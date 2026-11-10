@@ -1,0 +1,127 @@
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { supabase, supabaseConfigurationError } from '../lib/supabase';
+import { useThemeLanguage } from './ThemeLanguageContext';
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [session, setSession] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [coinBalance, setCoinBalance] = useState(0);
+  const [loading, setLoading] = useState(Boolean(supabase));
+  const [guest, setGuest] = useState(false);
+  const [guestDemoEnabled, setGuestDemoEnabled] = useState(false);
+  const { setTheme, setLanguage } = useThemeLanguage();
+
+  const loadAccount = useCallback(async (activeSession) => {
+    if (!activeSession?.user || !supabase) {
+      setProfile(null);
+      setCoinBalance(0);
+      return;
+    }
+    const userId = activeSession.user.id;
+    const [profileResult, walletResult] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+      supabase.from('coin_wallets').select('balance').eq('user_id', userId).maybeSingle()
+    ]);
+    if (profileResult.error) throw profileResult.error;
+    if (walletResult.error && walletResult.error.code !== 'PGRST116') throw walletResult.error;
+    setProfile(profileResult.data);
+    setCoinBalance(Number(walletResult.data?.balance || 0));
+    if (profileResult.data?.theme) {
+      localStorage.setItem('zyvra-theme', profileResult.data.theme);
+      await setTheme(profileResult.data.theme);
+    }
+    if (['en', 'hi'].includes(profileResult.data?.preferred_language)) {
+      setLanguage(profileResult.data.preferred_language, { syncProfile: false });
+    }
+  }, [setTheme, setLanguage]);
+
+  useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return undefined;
+    }
+    let active = true;
+    const initialize = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      if (!active) return;
+      setSession(data.session);
+      await loadAccount(data.session);
+      if (active) setLoading(false);
+    };
+    initialize().catch((error) => {
+      console.error('Unable to initialize account session:', error);
+      if (active) setLoading(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession);
+      setGuest(false);
+      sessionStorage.removeItem('zyvra-guest');
+      setLoading(Boolean(nextSession));
+      queueMicrotask(() => loadAccount(nextSession)
+        .catch((error) => console.error('Unable to load account:', error))
+        .finally(() => setLoading(false)));
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [loadAccount]);
+
+  useEffect(() => {
+    if (!supabase) return undefined;
+    let active = true;
+    supabase.from('platform_settings').select('value').eq('key', 'guest_demo_enabled').maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          if (error.code !== 'PGRST116') console.error('Unable to load guest demo setting:', error);
+          return;
+        }
+        const setting = data?.value;
+        const enabled = typeof setting === 'object' && setting !== null ? setting.enabled : setting;
+        if (!active) return;
+        const isEnabled = enabled === true || enabled === 'true';
+        setGuestDemoEnabled(isEnabled);
+        if (isEnabled && sessionStorage.getItem('zyvra-guest') === 'true') setGuest(true);
+        if (!isEnabled) {
+          sessionStorage.removeItem('zyvra-guest');
+          setGuest(false);
+        }
+      })
+      .catch((error) => console.error('Unable to load guest demo setting:', error));
+    return () => { active = false; };
+  }, []);
+
+  const enterGuestMode = () => {
+    if (!guestDemoEnabled) throw new Error('Guest demo access is currently disabled.');
+    sessionStorage.setItem('zyvra-guest', 'true');
+    setGuest(true);
+  };
+  const signOut = async () => {
+    if (guest) {
+      sessionStorage.removeItem('zyvra-guest');
+      setGuest(false);
+      return;
+    }
+    if (!supabase) throw new Error(supabaseConfigurationError);
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  };
+  const refreshAccount = useCallback(() => loadAccount(session), [loadAccount, session]);
+  const role = profile?.role || (guest ? 'guest' : 'student');
+  const value = useMemo(() => ({
+    supabase, session, user: session?.user || null, profile, coinBalance, loading, guest,
+    guestDemoEnabled, role, isAdmin: ['admin', 'super_admin'].includes(role),
+    enterGuestMode, signOut, refreshAccount, configurationError: supabaseConfigurationError
+  }), [session, profile, coinBalance, loading, guest, guestDemoEnabled, role, loadAccount]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error('useAuth must be used within AuthProvider');
+  return context;
+}
