@@ -1,5 +1,15 @@
 export const contentTables = ['exams', 'folders', 'chapters'];
 
+export function getContentErrorMessage(error, fallback) {
+  const message = typeof error?.message === 'string' && error.message.trim()
+    ? error.message
+    : fallback;
+  if (/schema cache|could not find the .* column/i.test(message)) {
+    return `${message} Apply the Zyvra content schema migration in Supabase, then retry.`;
+  }
+  return message;
+}
+
 export function slugify(value) {
   return value
     .normalize('NFKD')

@@ -112,7 +112,7 @@ export default function StudentAnalytics() {
       const questionIds = [...new Set(responseList.map((response) => response.question_id).filter(Boolean))];
       const testIds = [...new Set(completed.map((attempt) => attempt.test_id).filter(Boolean))];
       const [questionRows, testRows] = await Promise.all([
-        fetchByIds((batch) => supabase.from('questions').select('id,subject,topic').in('id', batch), questionIds),
+        fetchByIds((batch) => supabase.rpc('get_published_question_metadata', { p_question_ids: batch }), questionIds),
         fetchByIds((batch) => supabase.from('tests').select('id,title').in('id', batch), testIds)
       ]);
       if (!active) return;

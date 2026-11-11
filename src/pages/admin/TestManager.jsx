@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Check, ChevronDown, ClipboardList, Clock3, Coins, F
 import { supabase } from '../../lib/supabase';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getOptionEntries, TEST_PATTERNS } from '../../lib/tests';
+import { getContentErrorMessage } from '../../lib/content';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
 const initialTest = {
@@ -55,7 +56,7 @@ function TestEditor({ test, chapters, linkedOptionCounts, onClose, onSaved }) {
       mandatory_option_e_penalty: values.pattern === 'bpsc-mandatory-e' ? Number(values.mandatory_option_e_penalty) : 0,
       coin_reward_enabled: Boolean(values.coin_reward_enabled),
       chapter_id: values.chapter_id,
-      status: values.status
+      status: String(values.status || 'draft').toLowerCase()
     };
     setSaving(true);
     try {
@@ -65,7 +66,7 @@ function TestEditor({ test, chapters, linkedOptionCounts, onClose, onSaved }) {
       await onSaved();
       onClose();
     } catch (saveError) {
-      setError(saveError.message || 'Unable to save test configuration.');
+      setError(getContentErrorMessage(saveError, 'Unable to save test configuration.'));
     } finally { setSaving(false); }
   };
   return <div className="modal-backdrop"><form className="content-dialog test-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="test-editor-title" onSubmit={save}>
@@ -109,7 +110,7 @@ export default function TestManager() {
     setQuestions(questionResult.data || []);
     setLoading(false);
   };
-  useEffect(() => { refresh().catch((loadError) => { setError(loadError.message || 'Unable to load tests.'); setLoading(false); }); }, []);
+  useEffect(() => { refresh().catch((loadError) => { setError(getContentErrorMessage(loadError, 'Unable to load tests.')); setLoading(false); }); }, []);
   const selectedTest = tests.find((test) => test.id === selectedTestId);
   const testPattern = TEST_PATTERNS.find((pattern) => pattern.value === selectedTest?.pattern) || TEST_PATTERNS[0];
   const compatibleQuestions = useMemo(() => {
@@ -135,7 +136,7 @@ export default function TestManager() {
     setSelectedTestId(testId);
     setError('');
     try { await loadTestQuestions(testId); }
-    catch (loadError) { setError(loadError.message || 'Unable to load this test’s question order.'); }
+    catch (loadError) { setError(getContentErrorMessage(loadError, 'Unable to load this test’s question order.')); }
   };
   const saveTest = async () => {
     await refresh();
@@ -156,7 +157,7 @@ export default function TestManager() {
         if (addError) throw addError;
       }
       await loadTestQuestions(selectedTest.id);
-    } catch (addError) { setError(addError.message || 'Unable to add questions to this test.'); }
+    } catch (addError) { setError(getContentErrorMessage(addError, 'Unable to add questions to this test.')); }
   };
   const moveQuestion = async (index, direction) => {
     const target = index + direction;
@@ -169,7 +170,7 @@ export default function TestManager() {
       const { error: orderError } = await supabase.from('test_questions').upsert(normalized, { onConflict: 'id' });
       if (orderError) throw orderError;
       setTestQuestions(normalized);
-    } catch (orderError) { setError(orderError.message || 'Unable to update question order.'); }
+    } catch (orderError) { setError(getContentErrorMessage(orderError, 'Unable to update question order.')); }
     finally { setSavingOrder(false); }
   };
   const removeQuestion = async (link) => {
@@ -178,7 +179,7 @@ export default function TestManager() {
       const { error: removeError } = await supabase.from('test_questions').delete().eq('id', link.id);
       if (removeError) throw removeError;
       await loadTestQuestions(selectedTest.id);
-    } catch (removeError) { setError(removeError.message || 'Unable to remove question.'); }
+    } catch (removeError) { setError(getContentErrorMessage(removeError, 'Unable to remove question.')); }
   };
   const filteredTests = tests.filter((test) => !query.trim() || `${test.title} ${test.pattern} ${chapterTitle(test.chapter_id)}`.toLowerCase().includes(query.trim().toLowerCase()));
   return <div className="test-manager-page">

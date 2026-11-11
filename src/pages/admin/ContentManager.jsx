@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Archive, ArrowDownToLine, ArrowLeft, Atom, BookMarked, BookOpen, Brain, Calculator, ChevronRight, CircleDollarSign, Clock3, FileText, FlaskConical, Folder, FolderOpen, Globe2, GraduationCap, Landmark, Layers3, Pencil, Plus, ScrollText, Search, Trash2, X } from 'lucide-react';
 import useContentCatalog from '../../hooks/useContentCatalog';
-import { getFolderPath, getFolderPricing, slugify } from '../../lib/content';
+import { getContentErrorMessage, getFolderPath, getFolderPricing, slugify } from '../../lib/content';
 import { supabase } from '../../lib/supabase';
 
 const examIcons = { BookOpen, GraduationCap, Landmark, Atom, Calculator, Globe2, Brain, ScrollText, FlaskConical, BookMarked };
@@ -58,8 +58,8 @@ function ResourceManagerModal({ chapter, onClose }) {
       title: values.title.trim(),
       resource_type: values.resource_type,
       file_url: values.file_url.trim(),
-      file_size: values.file_size.trim() || null,
-      page_count: values.page_count ? Number(values.page_count) : null,
+      file_size: String(values.file_size || '').trim() || null,
+      page_count: values.page_count ? Math.trunc(Number(values.page_count)) : null,
       is_downloadable: values.is_downloadable,
       is_free_preview: values.is_free_preview,
       status: values.status
@@ -73,7 +73,7 @@ function ResourceManagerModal({ chapter, onClose }) {
       await refresh();
       reset();
     } catch (saveError) {
-      setError(saveError.message || 'Unable to save this resource.');
+      setError(getContentErrorMessage(saveError, 'Unable to save this resource.'));
     } finally { setBusy(false); }
   };
   const archive = async (resource) => {
@@ -84,7 +84,7 @@ function ResourceManagerModal({ chapter, onClose }) {
       await refresh();
       if (editing?.id === resource.id) reset();
     } catch (archiveError) {
-      setError(archiveError.message || 'Unable to archive this resource.');
+      setError(getContentErrorMessage(archiveError, 'Unable to archive this resource.'));
     }
   };
 
@@ -157,8 +157,8 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
       title,
       slug,
       description: values.description.trim() || null,
-      display_order: Number(values.display_order) || 0,
-      status: values.status
+      display_order: Math.max(0, Math.trunc(Number(values.display_order) || 0)),
+      status: String(values.status || 'draft')
     };
     if (kind === 'exam') Object.assign(payload, { icon: values.icon });
     if (kind === 'folder') Object.assign(payload, {
@@ -188,7 +188,7 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
       await onSaved();
       onClose();
     } catch (saveError) {
-      setError(saveError.message || `Unable to save ${kind}.`);
+      setError(getContentErrorMessage(saveError, `Unable to save ${kind}.`));
     } finally { setBusy(false); }
   };
 
@@ -269,7 +269,7 @@ export default function ContentManager() {
       if (kind === 'exam' && selectedExamId === item.id) { setSelectedExamId(''); setPathIds([]); }
       if (kind === 'folder' && pathIds.includes(item.id)) setPathIds(pathIds.slice(0, pathIds.indexOf(item.id)));
     } catch (archiveError) {
-      setActionError(archiveError.message || `Unable to archive ${typeLabel}.`);
+      setActionError(getContentErrorMessage(archiveError, `Unable to archive ${typeLabel}.`));
     } finally { setSavingArchive(''); }
   };
   const deleteExam = async () => {
@@ -302,7 +302,7 @@ export default function ContentManager() {
       setExamToDelete(null);
       setSuccessMessage(`“${exam.title || 'Exam'}” and its nested folders and chapters were permanently deleted.`);
     } catch (deleteError) {
-      setActionError(deleteError?.message || 'Unable to delete this exam and its nested content.');
+      setActionError(getContentErrorMessage(deleteError, 'Unable to delete this exam and its nested content.'));
       refresh().catch((refreshError) => setActionError(refreshError?.message || 'Unable to refresh the content hierarchy.'));
     } finally {
       setDeletingExam(false);

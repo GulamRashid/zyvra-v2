@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { contentTables } from '../lib/content';
+import { contentTables, getContentErrorMessage } from '../lib/content';
 import { supabase, supabaseConfigurationError } from '../lib/supabase';
 
 export default function useContentCatalog() {
@@ -18,7 +18,7 @@ export default function useContentCatalog() {
     const results = await Promise.all(contentTables.map((table) => supabase.from(table).select('*').order('display_order', { ascending: true })));
     const failed = results.find((result) => result.error);
     if (failed) {
-      setError(`Unable to load content hierarchy: ${failed.error.message}`);
+      setError(getContentErrorMessage(failed.error, 'Unable to load content hierarchy.'));
       setLoading(false);
       return;
     }
@@ -52,20 +52,20 @@ export default function useContentCatalog() {
       const results = await Promise.all(contentTables.map((table) => supabase.from(table).select('*').order('display_order', { ascending: true })));
       if (!active) return;
       const failed = results.find((result) => result.error);
-      if (failed) setError(`Unable to load content hierarchy: ${failed.error.message}`);
+      if (failed) setError(getContentErrorMessage(failed.error, 'Unable to load content hierarchy.'));
       else setCatalog({ exams: results[0].data || [], folders: results[1].data || [], chapters: results[2].data || [] });
       setLoading(false);
     };
     load().catch((loadError) => {
       if (active) {
-        setError(loadError.message || 'Unable to load content hierarchy.');
+        setError(getContentErrorMessage(loadError, 'Unable to load content hierarchy.'));
         setLoading(false);
       }
     });
     if (!supabase) return () => { active = false; };
     const channel = supabase.channel(`content-catalog-${Math.random().toString(36).slice(2)}`);
     for (const table of contentTables) channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
-      if (active) refresh().catch((loadError) => setError(loadError.message || 'Unable to refresh content hierarchy.'));
+      if (active) refresh().catch((loadError) => setError(getContentErrorMessage(loadError, 'Unable to refresh content hierarchy.')));
     });
     channel.subscribe((status) => {
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {

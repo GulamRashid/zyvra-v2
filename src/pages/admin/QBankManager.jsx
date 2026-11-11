@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowDownToLine, BookOpen, Check, ChevronDown, ChevronUp, FileQuestion, Filter, Plus, Search, Upload, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getOptionEntries, validateImportQuestion } from '../../lib/tests';
+import { getContentErrorMessage } from '../../lib/content';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -58,14 +59,14 @@ function QuestionDialog({ question, chapters, onClose, onSaved }) {
     if (!supabase) { setError('Supabase is not configured.'); return; }
     const optionKeys = values.options.map((_, index) => String.fromCharCode(65 + index));
     const payload = {
-      question_text: values.question_text.trim(),
-      question_text_hi: values.question_text_hi.trim() || null,
-      options: values.options.map((option) => ({ en: option.en.trim(), hi: option.hi.trim() })),
-      correct_answer: values.correct_answer,
-      explanation: values.explanation.trim() || null,
+      question_text: String(values.question_text || '').trim(),
+      question_text_hi: String(values.question_text_hi || '').trim() || null,
+      options: values.options.map((option) => ({ en: String(option.en || '').trim(), hi: String(option.hi || '').trim() })),
+      correct_answer: String(values.correct_answer || 'A').trim().toUpperCase(),
+      explanation: String(values.explanation || '').trim() || null,
       distractor_notes: Object.fromEntries(optionKeys.filter((key) => key !== values.correct_answer && values.distractor_notes[key]?.trim()).map((key) => [key, values.distractor_notes[key].trim()])),
-      subject: values.subject.trim(),
-      difficulty: values.difficulty,
+      subject: String(values.subject || '').trim(),
+      difficulty: String(values.difficulty || 'medium').toLowerCase(),
       chapter_id: values.chapter_id,
       status: values.status,
       tags: values.tags.split(',').map((tag) => tag.trim()).filter(Boolean)
@@ -80,7 +81,7 @@ function QuestionDialog({ question, chapters, onClose, onSaved }) {
       await onSaved();
       onClose();
     } catch (saveError) {
-      setError(saveError.message || 'Unable to save question.');
+      setError(getContentErrorMessage(saveError, 'Unable to save question.'));
     } finally { setSaving(false); }
   };
 
@@ -130,22 +131,21 @@ function ImportDialog({ chapters, onClose, onImported }) {
   };
   const handleImportDrafts = async () => {
     const validRows = (preview || []).filter((item) => item.valid).map(({ row }) => ({
-      question_text: row.question_text,
-      question_text_hi: row.question_text_hi || null,
-      options: row.options.map((option, index) => ({
-        id: String.fromCharCode(65 + index),
-        text: typeof option === 'string' ? option.trim() : String(option.en || option.text || option.hi || option.text_hi || '').trim()
+      question_text: String(row.question_text || '').trim(),
+      question_text_hi: String(row.question_text_hi || '').trim() || null,
+      options: row.options.map((option) => ({
+        en: typeof option === 'string' ? option.trim() : String(option.en || option.text || option.hi || option.text_hi || '').trim(),
+        hi: typeof option === 'object' && option ? String(option.hi || option.text_hi || '').trim() : ''
       })),
-      correct_answers: [String(Array.isArray(row.correct_answer) ? row.correct_answer[0] : row.correct_answer || 'A').trim().toUpperCase()],
-      explanation: row.explanation || null,
-      distractor_notes: row.distractor_notes || {},
-      subject: row.subject,
-      difficulty: row.difficulty || 'medium',
+      correct_answer: String(Array.isArray(row.correct_answer) ? row.correct_answer[0] : row.correct_answer || 'A').trim().toUpperCase(),
+      explanation: String(row.explanation || '').trim() || null,
+      distractor_notes: row.distractor_notes && typeof row.distractor_notes === 'object' && !Array.isArray(row.distractor_notes) ? row.distractor_notes : {},
+      subject: String(row.subject || '').trim(),
+      difficulty: String(row.difficulty || 'medium').toLowerCase(),
       chapter_id: row.chapter_id,
-      tags: Array.isArray(row.tags) ? row.tags : [],
+      tags: (Array.isArray(row.tags) ? row.tags : []).map((tag) => String(tag).trim()).filter(Boolean),
       status: 'draft'
     }));
-    console.log('--> Import button clicked, rows:', validRows);
     if (!validRows.length) {
       window.alert('No valid rows to import');
       setError('There are no valid rows to import.');
@@ -168,13 +168,14 @@ function ImportDialog({ chapters, onClose, onImported }) {
       if (insertError) {
         console.error('DB Insert Failed:', insertError);
         window.alert(`Database error: ${insertError.message}`);
-        setError(insertError.message || 'Unable to import the valid questions.');
+        setError(getContentErrorMessage(insertError, 'Unable to import the valid questions.'));
         return;
       }
     } catch (insertError) {
       console.error('DB Insert Failed:', insertError);
-      window.alert(`Database error: ${insertError.message || 'Unable to import questions.'}`);
-      setError(insertError.message || 'Unable to import the valid questions.');
+      const message = getContentErrorMessage(insertError, 'Unable to import questions.');
+      window.alert(`Database error: ${message}`);
+      setError(message);
       return;
     } finally {
       setIsImporting(false);
@@ -211,11 +212,11 @@ export default function QBankManager() {
     if (!supabase) { setError('Supabase is not configured.'); setLoading(false); return; }
     setError('');
     const { data, error: loadError } = await supabase.from('questions').select('*').order('created_at', { ascending: false });
-    if (loadError) { setError(loadError.message || 'Unable to load the question bank.'); setLoading(false); return; }
+    if (loadError) { setError(getContentErrorMessage(loadError, 'Unable to load the question bank.')); setLoading(false); return; }
     setQuestions(data || []);
     setLoading(false);
   };
-  useEffect(() => { refresh().catch((loadError) => { setError(loadError.message); setLoading(false); }); }, []);
+  useEffect(() => { refresh().catch((loadError) => { setError(getContentErrorMessage(loadError, 'Unable to load the question bank.')); setLoading(false); }); }, []);
   const subjects = [...new Set(questions.map((question) => question.subject).filter(Boolean))].sort();
   const filteredQuestions = useMemo(() => questions.filter((question) => {
     if (subject !== 'all' && question.subject !== subject) return false;
