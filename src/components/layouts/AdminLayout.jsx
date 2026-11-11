@@ -24,15 +24,15 @@ export default function AdminLayout() {
   const { profile, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   return <div className="admin-shell">
-    {menuOpen && <button className="drawer-scrim" aria-label="Close admin navigation" onClick={() => setMenuOpen(false)} />}
-    <aside className={`admin-sidebar ${menuOpen ? 'drawer-open' : ''}`}>
-      <div className="sidebar-brand admin-brand"><NavLink to="/admin" onClick={() => setMenuOpen(false)} className="sidebar-brand"><img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" /><div>ZYVRA<span>CONTROL CENTER</span></div></NavLink><button className="icon-button drawer-close" onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={19} /></button></div>
+    {menuOpen && <button type="button" className="drawer-scrim" aria-label="Close admin navigation" onClick={() => setMenuOpen(false)} />}
+    <aside id="admin-navigation" className={`admin-sidebar ${menuOpen ? 'drawer-open' : ''}`}>
+      <div className="sidebar-brand admin-brand"><NavLink to="/admin" onClick={() => setMenuOpen(false)} className="sidebar-brand"><img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" /><div>ZYVRA<span>CONTROL CENTER</span></div></NavLink><button type="button" className="icon-button drawer-close" onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={19} /></button></div>
       <div className="sidebar-caption">OPERATIONS</div>
       <nav className="side-nav admin-nav">{modules.map(({ to, label, Icon, end }) => <NavLink key={to} to={to} end={end} onClick={() => setMenuOpen(false)} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}><Icon size={17} /><span>{label}</span></NavLink>)}</nav>
       <div className="admin-sidebar-footer"><div className="health-dot" /> All systems operational</div>
     </aside>
     <div className="admin-main">
-      <header className="admin-topbar"><div><button className="icon-button mobile-menu" onClick={() => setMenuOpen(true)} aria-label="Menu"><Menu size={20} /></button><span className="eyebrow">ADMIN CONTROL CENTER</span></div><div className="topbar-actions"><ThemeToggle /><div className="admin-user"><div className="avatar">{(profile?.full_name || 'A').slice(0, 1).toUpperCase()}</div><span>{profile?.full_name || 'Administrator'}</span></div><button className="icon-button" title="Sign out" onClick={() => signOut().catch((error) => console.error('Unable to sign out:', error))}><LogOut size={17} /></button></div></header>
+      <header className="admin-topbar"><div><button type="button" className="icon-button mobile-menu" onClick={() => setMenuOpen((open) => !open)} aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} aria-controls="admin-navigation">{menuOpen ? <X size={20} /> : <Menu size={20} />}</button><span className="eyebrow">ADMIN CONTROL CENTER</span></div><div className="topbar-actions"><ThemeToggle /><div className="admin-user"><div className="avatar">{(profile?.full_name || 'A').slice(0, 1).toUpperCase()}</div><span>{profile?.full_name || 'Administrator'}</span></div><button type="button" className="icon-button" title="Sign out" onClick={() => signOut().catch((error) => console.error('Unable to sign out:', error))}><LogOut size={17} /></button></div></header>
       <main className="admin-content"><Outlet /></main>
     </div>
   </div>;

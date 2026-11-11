@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Archive, ArrowDownToLine, ArrowLeft, Atom, BookMarked, BookOpen, Brain, Calculator, ChevronRight, CircleDollarSign, Clock3, FileText, FlaskConical, Folder, FolderOpen, Globe2, GraduationCap, Landmark, Layers3, Pencil, Plus, ScrollText, Search, X } from 'lucide-react';
+import { AlertTriangle, Archive, ArrowDownToLine, ArrowLeft, Atom, BookMarked, BookOpen, Brain, Calculator, ChevronRight, CircleDollarSign, Clock3, FileText, FlaskConical, Folder, FolderOpen, Globe2, GraduationCap, Landmark, Layers3, Pencil, Plus, ScrollText, Search, Trash2, X } from 'lucide-react';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getFolderPath, getFolderPricing, slugify } from '../../lib/content';
 import { supabase } from '../../lib/supabase';
@@ -224,7 +224,7 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
 }
 
 export default function ContentManager() {
-  const { exams, folders, chapters, loading, error, refresh } = useContentCatalog();
+  const { exams, folders, chapters, loading, error, refresh, removeExam } = useContentCatalog();
   const [selectedExamId, setSelectedExamId] = useState('');
   const [pathIds, setPathIds] = useState([]);
   const [search, setSearch] = useState('');
@@ -232,6 +232,14 @@ export default function ContentManager() {
   const [resourceChapter, setResourceChapter] = useState(null);
   const [actionError, setActionError] = useState('');
   const [savingArchive, setSavingArchive] = useState('');
+  const [examToDelete, setExamToDelete] = useState(null);
+  const [deletingExam, setDeletingExam] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  useEffect(() => {
+    if (!successMessage) return undefined;
+    const timeout = window.setTimeout(() => setSuccessMessage(''), 4500);
+    return () => window.clearTimeout(timeout);
+  }, [successMessage]);
   const selectedExam = exams.find((exam) => exam.id === selectedExamId);
   const path = useMemo(() => pathIds.map((id) => folders.find((folder) => folder.id === id)).filter(Boolean), [pathIds, folders]);
   const currentFolder = path[path.length - 1];
@@ -259,6 +267,42 @@ export default function ContentManager() {
       setActionError(archiveError.message || `Unable to archive ${typeLabel}.`);
     } finally { setSavingArchive(''); }
   };
+  const deleteExam = async () => {
+    if (!examToDelete?.id) return;
+    if (!supabase) {
+      setActionError('Supabase is not configured. Connect it before deleting content.');
+      return;
+    }
+    const exam = examToDelete;
+    setActionError('');
+    setSuccessMessage('');
+    setDeletingExam(true);
+    try {
+      const examFolders = folders.filter((folder) => folder.exam_id === exam.id);
+      const folderIds = examFolders.map((folder) => folder.id);
+      if (folderIds.length) {
+        const { error: chaptersError } = await supabase.from('chapters').delete().in('folder_id', folderIds);
+        if (chaptersError) throw chaptersError;
+      }
+      const { error: foldersError } = await supabase.from('folders').delete().eq('exam_id', exam.id);
+      if (foldersError) throw foldersError;
+      const { error: examError } = await supabase.from('exams').delete().eq('id', exam.id);
+      if (examError) throw examError;
+
+      removeExam(exam.id);
+      if (selectedExamId === exam.id) {
+        setSelectedExamId('');
+        setPathIds([]);
+      }
+      setExamToDelete(null);
+      setSuccessMessage(`“${exam.title || 'Exam'}” and its nested folders and chapters were permanently deleted.`);
+    } catch (deleteError) {
+      setActionError(deleteError?.message || 'Unable to delete this exam and its nested content.');
+      refresh().catch((refreshError) => setActionError(refreshError?.message || 'Unable to refresh the content hierarchy.'));
+    } finally {
+      setDeletingExam(false);
+    }
+  };
   const onSaved = async () => { await refresh(); };
   const examIcon = (exam) => {
     const Icon = examIcons[exam.icon] || GraduationCap;
@@ -273,7 +317,8 @@ export default function ContentManager() {
 
   return <div className="content-manager">
     <div className="page-heading content-manager-heading"><div><div className="eyebrow">ADMINISTRATION / CONTENT OPERATIONS</div><h1>Content manager</h1><p>Build and maintain the exam → folder → chapter learning hierarchy.</p></div><button className="button button-gold" onClick={() => setDialog({ kind: selectedExam ? 'folder' : 'exam', item: null })}><Plus size={16} /> {selectedExam ? 'Add folder' : 'Add exam'}</button></div>
-    {(error || actionError) && <div className="feedback error-feedback">{actionError || error}</div>}
+    {(error || actionError) && <div className="feedback error-feedback" role="alert">{actionError || error}</div>}
+    {successMessage && <div className="feedback success-feedback" role="status">{successMessage}</div>}
     <div className="content-manager-layout">
       <aside className="content-exam-rail panel-card">
         <div className="content-rail-title"><div><span className="eyebrow">YOUR CATALOGUE</span><h2>Exam hierarchy</h2></div><button className="icon-button" title="Add exam" onClick={() => setDialog({ kind: 'exam', item: null })}><Plus size={17} /></button></div>
@@ -284,7 +329,7 @@ export default function ContentManager() {
           return <div key={exam.id} className={`exam-rail-row ${selectedExamId === exam.id ? 'selected' : ''}`}>
             <button className="exam-rail-main" onClick={() => beginExam(exam)}><span className="exam-rail-icon">{examIcon(exam)}</span><span className="exam-rail-copy"><strong>{exam.title}</strong><small>{counts.folders} folders · {counts.chapters} chapters</small></span><ChevronRight size={15} /></button>
             <span className={`content-status status-${String(exam.status || 'draft').toLowerCase()}`}>{exam.status || 'draft'}</span>
-            <div className="row-actions"><button title="Edit exam" aria-label={`Edit ${exam.title}`} onClick={() => setDialog({ kind: 'exam', item: exam })}><Pencil size={14} /></button><button title="Archive exam" aria-label={`Archive ${exam.title}`} disabled={savingArchive === exam.id} onClick={() => archive('exam', exam)}><Archive size={14} /></button></div>
+            <div className="row-actions"><button type="button" title="Edit exam" aria-label={`Edit ${exam.title}`} onClick={() => setDialog({ kind: 'exam', item: exam })}><Pencil size={14} /></button><button type="button" title="Delete exam" aria-label={`Delete ${exam.title}`} disabled={deletingExam} onClick={() => { setActionError(''); setSuccessMessage(''); setExamToDelete(exam); }}><Trash2 size={14} /></button></div>
           </div>;
         })}
         {!loading && !exams.length && <div className="empty-content"><GraduationCap size={24} /><strong>Your catalogue is ready</strong><span>Create your first exam to start building the hierarchy.</span><button className="button button-outline" onClick={() => setDialog({ kind: 'exam', item: null })}><Plus size={14} /> Create exam</button></div>}
@@ -312,5 +357,12 @@ export default function ContentManager() {
     </div>
     {dialog && <ContentDialog kind={dialog.kind} item={dialog.item} exams={exams} folders={folders} chapters={chapters} defaultExamId={selectedExamId} defaultParentId={currentFolder?.id} onClose={() => setDialog(null)} onSaved={onSaved} />}
     {resourceChapter && <ResourceManagerModal chapter={resourceChapter} onClose={() => setResourceChapter(null)} />}
+    {examToDelete && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (!deletingExam && event.target === event.currentTarget) setExamToDelete(null); }}><section className="content-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-exam-title" aria-describedby="delete-exam-warning">
+      <div className="delete-confirm-icon"><AlertTriangle size={22} /></div>
+      <h2 id="delete-exam-title">Delete {examToDelete.title || 'this exam'}?</h2>
+      <p className="dialog-intro" id="delete-exam-warning">Are you sure you want to delete this exam? All nested folders and chapters will be permanently deleted.</p>
+      {actionError && <div className="feedback error-feedback" role="alert">{actionError}</div>}
+      <div className="modal-actions"><button type="button" className="button button-outline" disabled={deletingExam} onClick={() => setExamToDelete(null)}>Cancel</button><button type="button" className="button button-danger" disabled={deletingExam} onClick={deleteExam}>{deletingExam ? 'Deleting…' : <><Trash2 size={15} /> Delete exam</>}</button></div>
+    </section></div>}
   </div>;
 }

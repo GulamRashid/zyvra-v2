@@ -30,6 +30,17 @@ export default function useContentCatalog() {
     setLoading(false);
   }, []);
 
+  const removeExam = useCallback((examId) => {
+    setCatalog((current) => {
+      const examFolderIds = new Set(current.folders.filter((folder) => folder.exam_id === examId).map((folder) => folder.id));
+      return {
+        exams: current.exams.filter((exam) => exam.id !== examId),
+        folders: current.folders.filter((folder) => folder.exam_id !== examId),
+        chapters: current.chapters.filter((chapter) => !examFolderIds.has(chapter.folder_id))
+      };
+    });
+  }, []);
+
   useEffect(() => {
     let active = true;
     const load = async () => {
@@ -67,5 +78,5 @@ export default function useContentCatalog() {
     };
   }, [refresh]);
 
-  return { ...catalog, loading, error, refresh };
+  return { ...catalog, loading, error, refresh, removeExam };
 }
