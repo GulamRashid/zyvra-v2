@@ -274,7 +274,7 @@ export default function TestHub() {
   };
 
   return (
-    <div className="test-hub-page">
+    <div className="test-hub-page w-full min-w-0 overflow-x-hidden">
       {/* Header Banner */}
       <section className="test-hub-hero">
         <div className="test-hub-hero-content">
@@ -357,7 +357,7 @@ export default function TestHub() {
         </div>
 
         {/* Category Filter Pills */}
-        <div className="test-filter-pills" role="tablist" aria-label="Test categories">
+        <div className="test-filter-pills min-w-0" role="tablist" aria-label="Test categories">
           {[
             { id: 'all', label: 'All Tests', count: categoryCounts.all },
             { id: 'chapter', label: 'Chapter tests', count: categoryCounts.chapter },
@@ -421,13 +421,13 @@ export default function TestHub() {
           )}
         </div>
       ) : (
-        <div className="test-cards-grid">
+        <div className="test-cards-grid w-full min-w-0">
           {filteredTests.map((test) => {
             const hasIncomplete = Boolean(test.incompleteAttempt);
             const isFinished = test.attemptStatus === 'completed';
 
             return (
-              <article key={test.id} className="test-card panel-card">
+              <article key={test.id} className="test-card panel-card w-full min-w-0 break-words">
                 {/* Top Badge Row */}
                 <div className="test-card-header">
                   <span className="subject-pill">{test.subject}</span>

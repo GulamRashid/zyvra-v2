@@ -1062,7 +1062,7 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
   .coin-redemption-copy { gap: 7px; }
 }
 .pricing-manager { display: grid; gap: 16px; }
-.pricing-settings-card, .payment-orders-card { padding: 18px; }
+.pricing-settings-card, .payment-orders-card, .coupon-manager-card { padding: 18px; }
 .pricing-settings-card .section-heading h2, .payment-orders-card .section-heading h2 { font-size: 15px; }
 .pricing-settings-card .section-heading p { margin: 5px 0 0; color: var(--muted); font-size: 8px; }
 .pricing-enable-toggle { margin: 14px 0; }
@@ -1075,6 +1075,25 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .pricing-input-wrap .text-input { min-height: 37px; }
 .pricing-input-wrap:has(svg) .text-input { padding-left: 32px; }
 .pricing-input-wrap:has(> span) .text-input { padding-right: 35px; }
+.coupon-manager-card .section-heading h2 { font-size: 15px; }
+.coupon-manager-card .section-heading p { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+.coupon-form { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: end; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.coupon-form .field-label { min-width: 0; margin: 0; font-size: 11px; }
+.coupon-active-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; color: var(--text); font-size: 12px; font-weight: 600; }
+.coupon-active-toggle input { width: 16px; height: 16px; accent-color: var(--accent); }
+.coupon-add-button { min-height: 44px; }
+.coupon-feedback { margin: 8px 0; overflow-wrap: anywhere; }
+.coupon-empty { min-height: 120px; }
+.coupon-list { display: grid; gap: 9px; padding-top: 14px; }
+.coupon-row { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(160px, 1.5fr) auto; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel2); }
+.coupon-code, .coupon-scope { display: grid; min-width: 0; gap: 3px; }
+.coupon-code strong { color: var(--text); font-size: 13px; letter-spacing: .04em; overflow-wrap: anywhere; }
+.coupon-code span, .coupon-scope span { color: var(--muted); font-size: 11px; }
+.coupon-scope strong { color: var(--text); font-size: 12px; }
+.coupon-actions { display: flex; align-items: center; gap: 8px; }
+.coupon-actions .status-pill { min-height: 36px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
+.coupon-actions .coupon-status-active { border-color: rgba(77, 211, 154, .35); background: rgba(77, 211, 154, .1); color: var(--accent); }
+.coupon-actions .icon-button { min-width: 40px; min-height: 40px; }
 .orders-table-wrap { width: 100%; overflow-x: auto; }
 .orders-table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
 .orders-table th { padding: 9px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 7px; letter-spacing: .06em; text-transform: uppercase; }
@@ -1636,7 +1655,7 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
   .paywall-banner { align-items: flex-start; flex-wrap: wrap; }
   .paywall-banner > div { flex-basis: calc(100% - 55px); }
   .paywall-banner .button { margin-left: auto; }
-  .pricing-settings-card, .payment-orders-card { padding: 13px; }
+  .pricing-settings-card, .payment-orders-card, .coupon-manager-card { padding: 13px; }
 }
 @media (max-width: 560px) {
   .test-list-item { width: 100%; }
@@ -1669,6 +1688,11 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
   .resource-manager-dialog { padding: 19px; }
   .resource-admin-form .content-form-row { grid-template-columns: 1fr; gap: 8px; }
   .pricing-rule-grid { grid-template-columns: 1fr; }
+  .coupon-form { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .coupon-form .coupon-add-button { grid-column: 1 / -1; }
+  .coupon-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
+  .coupon-scope { grid-column: 1 / -1; grid-row: 2; }
+  .coupon-actions { grid-column: 2; grid-row: 1; }
   .checkout-modal { padding: 20px; }
   .syllabus-card-link { min-height: 155px; }
   .purchase-list-item .folder-list-main { flex-basis: 100%; }
@@ -1676,8 +1700,9 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 }
 
 /* Test Hub Active Hub Styles */
-.test-hub-page { display: grid; gap: 24px; width: 100%; }
-.test-hub-hero { position: relative; overflow: hidden; padding: 26px 28px; border: 1px solid #285541; border-radius: 16px; background: radial-gradient(ellipse at 85% 45%, rgba(28, 121, 86, .24), transparent 42%), linear-gradient(125deg, #102c21, var(--panel)); }
+.test-hub-page { display: grid; gap: 24px; width: 100%; min-width: 0; overflow-x: clip; }
+.test-hub-page > *, .test-hub-toolbar > *, .test-card, .test-card-body { min-width: 0; }
+.test-hub-hero { position: relative; min-width: 0; overflow: hidden; padding: 26px 28px; border: 1px solid #285541; border-radius: 16px; background: radial-gradient(ellipse at 85% 45%, rgba(28, 121, 86, .24), transparent 42%), linear-gradient(125deg, #102c21, var(--panel)); }
 body.light .test-hub-hero { border-color: #b6d2c0; background: radial-gradient(ellipse at 85% 45%, rgba(77, 211, 154, .18), transparent 42%), linear-gradient(125deg, #e6f4eb, var(--panel)); }
 .test-hub-hero-content h1 { margin: 6px 0 8px; font: 700 clamp(24px, 3vw, 32px) Manrope, sans-serif; letter-spacing: -.03em; }
 .test-hub-hero-content p { max-width: 640px; margin: 0 0 18px; color: var(--muted); font-size: 13px; line-height: 1.55; }
@@ -1701,10 +1726,11 @@ body.light .test-hub-hero { border-color: #b6d2c0; background: radial-gradient(e
 .pill-count { padding: 2px 7px; border-radius: 999px; background: var(--panel2); font-size: 11px; font-weight: 700; color: inherit; }
 .subject-filter-dropdown .text-input { min-height: 42px; border-radius: 12px; padding: 0 14px; font-size: 12px; font-weight: 600; }
 
-.test-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
-.test-card { display: flex; flex-direction: column; justify-content: space-between; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); transition: transform .18s ease, border-color .18s ease; }
+.test-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; width: 100%; min-width: 0; }
+.test-card { display: flex; flex-direction: column; justify-content: space-between; width: 100%; min-width: 0; overflow-wrap: anywhere; padding: 20px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); transition: transform .18s ease, border-color .18s ease; }
 .test-card:hover { transform: translateY(-2px); border-color: rgba(228, 184, 95, .45); }
-.test-card-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.test-card-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; margin-bottom: 12px; }
+.test-card-title, .test-card-context, .test-card-desc { overflow-wrap: anywhere; }
 .test-reward-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border: 1px solid rgba(228, 184, 95, .25); border-radius: 999px; background: rgba(228, 184, 95, .1); color: var(--gold); font-size: 10px; font-weight: 700; }
 .test-pattern-badge { padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--panel2); color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .02em; }
 
@@ -1731,9 +1757,10 @@ body.light .test-hub-hero { border-color: #b6d2c0; background: radial-gradient(e
 @media (max-width: 768px) {
   .test-hub-toolbar { flex-direction: column; align-items: stretch; }
   .test-search-wrap { width: 100%; min-width: 0; }
-  .test-filter-pills { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; width: 100%; }
-  .test-filter-pill { flex: 0 0 auto; white-space: nowrap; }
-  .test-cards-grid { grid-template-columns: 1fr; }
+  .test-filter-pills { flex-wrap: wrap; width: 100%; max-width: 100%; }
+  .test-filter-pill { flex: 0 1 auto; white-space: nowrap; }
+  .test-cards-grid { grid-template-columns: minmax(0, 1fr); }
+  .test-card-header { flex-wrap: wrap; }
 }
 
 /* Share & Earn Referral System Styles */
@@ -1908,5 +1935,3 @@ body.light .test-hub-hero { border-color: #b6d2c0; background: radial-gradient(e
   height: 16px;
   background: var(--line);
 }
-
-

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Copy, Gift, MessageCircle, RefreshCw, Share2, Sparkles, Users } from 'lucide-react';
+import { Check, Coins, Copy, Gift, MessageCircle, RefreshCw, Sparkles, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ensureReferralCode, getReferralSettings } from '../../lib/referrals';
 
@@ -56,7 +56,8 @@ export default function ShareAndEarnCard({ className = '' }) {
     try {
       const generated = await ensureReferralCode(supabase, user.id);
       setCode(generated || 'Z-INVITE');
-    } catch {
+    } catch (error) {
+      console.warn('Could not generate referral code:', error);
       setCode('Z-INVITE');
     } finally {
       setGenerating(false);
@@ -77,8 +78,8 @@ export default function ShareAndEarnCard({ className = '' }) {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 2200);
-    } catch {
-      // Fallback
+    } catch (error) {
+      console.warn('Could not copy invite link:', error);
     }
   };
 
@@ -87,8 +88,8 @@ export default function ShareAndEarnCard({ className = '' }) {
       await navigator.clipboard.writeText(activeCode);
       setCopiedCode(true);
       setTimeout(() => setCopiedCode(false), 2200);
-    } catch {
-      // Fallback
+    } catch (error) {
+      console.warn('Could not copy referral code:', error);
     }
   };
 

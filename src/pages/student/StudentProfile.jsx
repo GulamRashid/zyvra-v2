@@ -18,7 +18,7 @@ const themeOptions = [
 export default function StudentProfile() {
   const { user, profile, guest, coinBalance, supabase, signOut, refreshAccount } = useAuth();
   const { theme, setTheme, language, setLanguage } = useThemeLanguage();
-  const [targets, setTargets] = useState(profile?.target_exams || []);
+  const [targets, setTargets] = useState(Array.isArray(profile?.target_exams) ? profile.target_exams : []);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [feedbackError, setFeedbackError] = useState(false);
@@ -35,13 +35,13 @@ export default function StudentProfile() {
   const navigate = useNavigate();
   const email = user?.email || 'Guest account';
   const name = profile?.full_name || profile?.name || user?.user_metadata?.full_name || 'Learner';
-  const avatarLetter = (name ? name.charAt(0) : 'L').toUpperCase();
+  const avatarLetter = String(name || 'Learner').charAt(0).toUpperCase();
   const displayCoins = Number(coinBalance || 0).toLocaleString();
   const referralCode = profile?.referral_code || (user?.referral_code || 'Z-INVITE');
 
   useEffect(() => {
-    if (profile?.target_exams) {
-      setTargets(profile.target_exams);
+    if (Array.isArray(profile?.target_exams)) {
+      setTargets(profile?.target_exams);
     }
   }, [profile?.target_exams]);
 
@@ -62,6 +62,13 @@ export default function StudentProfile() {
   };
 
   const toggleTarget = (exam) => saveTargets(targets.includes(exam) ? targets.filter((item) => item !== exam) : [...targets, exam]);
+
+  if (!user) {
+    return <div className="profile-page">
+      <div className="page-heading"><div><div className="eyebrow">YOUR ACCOUNT</div><h1>Profile & settings</h1><p>Sign in to view your account details and preferences.</p></div></div>
+      <section className="panel-card"><p>Your profile is unavailable until you sign in.</p><Link className="button button-gold" to="/auth">Sign in</Link></section>
+    </div>;
+  }
 
   const handlePasswordUpdate = async (event) => {
     event.preventDefault();
