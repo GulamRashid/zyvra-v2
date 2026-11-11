@@ -37,6 +37,7 @@ export default function StudentProfile() {
   const name = profile?.full_name || profile?.name || user?.user_metadata?.full_name || 'Learner';
   const avatarLetter = (name ? name.charAt(0) : 'L').toUpperCase();
   const displayCoins = Number(coinBalance || 0).toLocaleString();
+  const referralCode = profile?.referral_code || (user?.referral_code || 'Z-INVITE');
 
   useEffect(() => {
     if (profile?.target_exams) {
