@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Clock3, Flag, 
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import MathRenderer from '../../components/common/MathRenderer';
 import { getOptionEntries, getQuestionText, normalizeRpcObject, sanitizeLiveQuestion, unwrapRpcPayload } from '../../lib/tests';
 import { translateText } from '../../lib/translator';
 
@@ -344,13 +345,13 @@ export default function LiveQuiz() {
     <div className="quiz-body">
       <section className="quiz-question-panel">
         <div className="quiz-question-meta text-sm font-semibold"><span>QUESTION {String(currentIndex + 1).padStart(2, '0')}</span>{question?.subject && <span className="subject-pill text-xs font-semibold">{question.subject}</span>}{question?.topic && <span className="text-xs">{question.topic}</span>}</div>
-        <h1 className="quiz-question-text text-lg sm:text-xl font-medium leading-relaxed" lang={language} aria-busy={translatingQuestionId === questionId}>{displayedQuestionText}{language === 'hi' && !questionHindi && translatingQuestionId === questionId && <LoaderCircle className="translation-inline-spinner" size={14} aria-label="Translating" />}</h1>
+        <h1 className="quiz-question-text text-lg sm:text-xl font-medium leading-relaxed" lang={language} aria-busy={translatingQuestionId === questionId}><MathRenderer>{displayedQuestionText}</MathRenderer>{language === 'hi' && !questionHindi && translatingQuestionId === questionId && <LoaderCircle className="translation-inline-spinner" size={14} aria-label="Translating" />}</h1>
         <div className="quiz-options">{optionEntries.map(([key, value]) => {
           const text = getQuestionText(value, 'en') || getQuestionText(value?.text, 'en') || (typeof value === 'string' ? value : '');
           const optionHindi = getStoredHindi(value) || questionTranslations[`option:${key}`];
           const displayedOption = language === 'hi' ? optionHindi || text : text;
           const selected = responses[question.id]?.selected_option === key;
-          return <button key={key} className={`quiz-option py-3.5 px-4 min-h-[56px] ${selected ? 'selected' : ''} ${key === 'E' ? 'option-e' : ''}`} onClick={() => answer(key)} aria-pressed={selected}><span className="quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-bold rounded-full">{key}</span><span className="quiz-option-text text-base sm:text-lg leading-relaxed"><span lang={language}>{displayedOption}{language === 'hi' && !optionHindi && translatingQuestionId === questionId && <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />}</span></span><span className="quiz-option-check">{selected && <Check size={18} />}</span></button>;
+          return <button key={key} className={`quiz-option py-3.5 px-4 min-h-[56px] ${selected ? 'selected' : ''} ${key === 'E' ? 'option-e' : ''}`} onClick={() => answer(key)} aria-pressed={selected}><span className="quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-bold rounded-full">{key}</span><span className="quiz-option-text text-base sm:text-lg leading-relaxed"><span lang={language}><MathRenderer>{displayedOption}</MathRenderer>{language === 'hi' && !optionHindi && translatingQuestionId === questionId && <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />}</span></span><span className="quiz-option-check">{selected && <Check size={18} />}</span></button>;
         })}</div>
         <div className="quiz-question-actions"><button className={`review-toggle py-2 px-3 text-sm font-medium ${responses[question.id]?.marked_for_review ? 'marked' : ''}`} onClick={toggleReview}><Flag size={15} /> {responses[question.id]?.marked_for_review ? 'Marked for review' : 'Mark for review'}</button><button className="clear-response py-2 px-3 text-sm font-medium" onClick={clearResponse} disabled={!responses[question.id]?.selected_option}>Clear response</button></div>
         <div className="quiz-navigation">

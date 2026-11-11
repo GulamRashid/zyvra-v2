@@ -545,6 +545,13 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
 .admin-tool-exam-badge { padding: 3px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel2); color: var(--muted); font-size: 10px; font-weight: 600; }
 .admin-tool-status { flex: 0 0 auto; color: var(--muted); font-size: 11px; font-weight: 700; }
 .admin-tool-status.enabled { color: var(--accent); }
+.admin-tool-pricing { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; padding: 12px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.admin-tool-pricing .field-label { min-width: 0; margin: 0; font-size: 11px; }
+.admin-tool-pricing .text-input { min-width: 0; min-height: 38px; }
+.toolbox-combo-settings { min-width: 0; padding: 18px; }
+.toolbox-combo-settings .section-heading p { margin: 5px 0 0; color: var(--muted); font-size: 12px; }
+.toolbox-combo-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.toolbox-combo-fields .field-label { margin: 0; }
 .metric-card { display: grid; grid-template-columns: 37px 1fr; grid-template-rows: auto auto auto; align-items: center; column-gap: 10px; min-height: 105px; padding: 14px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
 .metric-icon { grid-row: 1 / span 2; display: grid; width: 36px; height: 36px; place-items: center; border-radius: 10px; }
 .metric-icon.gold { background: rgba(228, 184, 95, .12); color: var(--gold); }
@@ -1000,23 +1007,38 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .pomodoro-completed { display: flex; align-items: center; gap: 6px; grid-column: 1 / -1; color: var(--muted); font-size: 8px; }
 .pomodoro-completed svg { color: var(--accent); }
 .pomodoro-actions .button:focus-visible, .pomodoro-mode:focus-visible, .toolbox-filters button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
-.toolbox-calculator .section-heading h2 { display: flex; align-items: center; gap: 8px; }
-.toolbox-calculator-form { display: grid; grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr) auto; align-items: end; gap: 10px; }
-.toolbox-calculator-form .field-label { min-width: 0; margin: 0; }
-.toolbox-calculator-form .button { min-height: 42px; }
-.toolbox-calculator-result { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--muted); font-size: 13px; }
-.toolbox-calculator-result strong { color: var(--text); }
-.toolbox-calculator-result span { color: var(--accent); font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
+.interactive-math-tool .section-heading h2 { display: flex; align-items: center; gap: 8px; }
+.interactive-math-input { display: grid; max-width: 360px; gap: 7px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.interactive-math-input > span { display: flex; align-items: center; gap: 6px; }
+.interactive-math-input .text-input { min-height: 44px; font-size: 16px; }
+.interactive-math-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 9px; }
+.interactive-math-result { display: grid; min-width: 0; align-content: start; gap: 9px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.interactive-math-result > strong { color: var(--muted); font-size: 11px; }
+.interactive-math-result > .math-text { display: block; max-width: 100%; overflow-x: auto; color: var(--accent); font-size: 16px; font-weight: 650; white-space: nowrap; }
 .toolbox-formula-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 9px; }
 .toolbox-formula-card { display: grid; min-width: 0; gap: 7px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
 .toolbox-formula-card strong { color: var(--text); font-size: 13px; }
-.toolbox-formula-card span { color: var(--accent); font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
+.toolbox-formula-card > .math-text { display: block; max-width: 100%; overflow-x: auto; color: var(--accent); font-size: 13px; font-weight: 650; white-space: nowrap; }
 .toolbox-formula-card small { color: var(--muted); font-size: 11px; line-height: 1.45; }
 .toolbox-deep-link-card { display: flex; min-width: 0; align-items: center; gap: 12px; padding: 15px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
 .toolbox-deep-link-card > div { min-width: 0; flex: 1; }
 .toolbox-deep-link-card strong { color: var(--text); font-size: 14px; }
 .toolbox-deep-link-card p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
 .toolbox-deep-link-card .button { min-height: 42px; flex: 0 0 auto; }
+.tool-access-guard { position: relative; min-width: 0; }
+.tool-access-content { min-width: 0; }
+.tool-access-guard.locked .tool-access-content { filter: blur(5px); opacity: .6; pointer-events: none; user-select: none; }
+.tool-access-overlay { position: absolute; z-index: 2; inset: 0; display: flex; min-height: 180px; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: color-mix(in srgb, var(--panel) 84%, transparent); text-align: center; backdrop-filter: blur(3px); }
+.tool-access-lock { display: grid; width: 40px; height: 40px; place-items: center; border: 1px solid rgba(228, 184, 95, .3); border-radius: 12px; background: rgba(228, 184, 95, .12); color: var(--gold); }
+.tool-access-overlay > strong { color: var(--text); font-size: 15px; }
+.tool-access-overlay > p { margin: 0; color: var(--muted); font-size: 12px; }
+.tool-access-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 3px; }
+.tool-access-actions .button { min-height: 42px; }
+.math-text { overflow-wrap: anywhere; }
+.math-text .katex { white-space: normal; }
+.math-block-inline { display: inline-block; max-width: 100%; vertical-align: middle; }
+.math-block-inline .katex-display { margin: .25em 0; overflow-x: auto; overflow-y: hidden; }
+.math-render-error { color: var(--danger, #b91c1c); font-family: monospace; font-size: .9em; }
 .toolbox-page .page-heading h1 { font-size: clamp(24px, 2.5vw, 32px); }
 .toolbox-section { display: grid; gap: 11px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
 .toolbox-section .section-heading { margin: 0; }
@@ -2001,8 +2023,9 @@ body.light .test-hub-hero { border-color: #b6d2c0; background: radial-gradient(e
   .referral-settings-card, .referral-history-card { padding: 14px; }
   .form-toggle-row { align-items: flex-start; }
   .admin-tool-card-footer { align-items: flex-start; flex-direction: column; }
-  .toolbox-calculator-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .toolbox-calculator-form .button { grid-column: 1 / -1; }
+  .admin-tool-pricing { grid-template-columns: 1fr; }
+  .toolbox-combo-fields { grid-template-columns: 1fr; }
+  .interactive-math-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .toolbox-deep-link-card { align-items: flex-start; flex-wrap: wrap; }
   .toolbox-deep-link-card .button { width: 100%; justify-content: center; }
   .password-setting-header { align-items: flex-start; flex-direction: column; }

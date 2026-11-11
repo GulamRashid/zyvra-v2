@@ -27,6 +27,8 @@ export default function StudentLayout() {
   const { t } = useThemeLanguage();
   const location = useLocation();
   const navigate = useNavigate();
+  const assessmentActive = /^\/(?:quiz|test|exams?)(?:\/|$)/i.test(location.pathname);
+  const visibleSections = sections.filter(({ key }) => !(assessmentActive && key === 'toolbox'));
   const name = profile?.full_name || profile?.name || 'Learner';
   const navKeys = {
     '/purchases': 'purchases', '/analytics': 'analytics', '/bookmarks': 'bookmarks',
@@ -50,7 +52,7 @@ export default function StudentLayout() {
       <div className="sidebar-brand"><img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" /><div>ZYVRA<span>LEARN WITH INTENT</span></div><button className="icon-button drawer-close" onClick={closeDrawer} aria-label="Close menu"><X size={19} /></button></div>
       <div className="sidebar-caption">YOUR LEARNING SPACE</div>
       <nav className="side-nav">
-        {sections.map(({ to, Icon, ...item }) => <NavLink key={to} to={to} end={to === '/'} onClick={closeDrawer} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>
+        {visibleSections.map(({ to, Icon, ...item }) => <NavLink key={to} to={to} end={to === '/'} onClick={closeDrawer} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>
           <Icon size={17} /><span>{linkLabel(item)}</span>{location.pathname === to && <ChevronRight className="nav-chevron" size={15} />}
         </NavLink>)}
       </nav>
@@ -66,7 +68,7 @@ export default function StudentLayout() {
       </header>
       <main className="content-area"><div className="mobile-welcome">Welcome back, {name}</div><Outlet /></main>
       <nav className="mobile-bottom-nav">
-        {sections.filter(({ key }) => ['home', 'explore', 'tests', 'toolbox', 'profile'].includes(key)).map(({ to, Icon, ...item }) => <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `bottom-link ${isActive ? 'active' : ''}`}><Icon size={19} /><span>{linkLabel(item)}</span></NavLink>)}
+        {visibleSections.filter(({ key }) => ['home', 'explore', 'tests', 'toolbox', 'profile'].includes(key)).map(({ to, Icon, ...item }) => <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `bottom-link ${isActive ? 'active' : ''}`}><Icon size={19} /><span>{linkLabel(item)}</span></NavLink>)}
       </nav>
     </div>
   </div>;

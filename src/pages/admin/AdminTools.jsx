@@ -14,6 +14,9 @@ const DEFAULT_TOOLS = [
     description: 'Interval study timer with customizable focus & break sessions.',
     icon: 'Clock',
     enabled: true,
+    access_type: 'free',
+    price: 0,
+    validity_days: 30,
     exams: ['ALL', 'BPSC', 'SSC', 'CTET']
   },
   {
@@ -23,6 +26,9 @@ const DEFAULT_TOOLS = [
     description: 'Multiplication tricks, squares, cubes, and percentage fraction charts.',
     icon: 'Calculator',
     enabled: true,
+    access_type: 'free',
+    price: 0,
+    validity_days: 30,
     exams: ['SSC', 'BPSC', 'CTET']
   },
   {
@@ -32,6 +38,9 @@ const DEFAULT_TOOLS = [
     description: 'Searchable index of all Indian Constitution articles and amendments.',
     icon: 'BookOpen',
     enabled: true,
+    access_type: 'free',
+    price: 0,
+    validity_days: 30,
     exams: ['BPSC', 'SSC']
   },
   {
@@ -41,6 +50,9 @@ const DEFAULT_TOOLS = [
     description: 'Syllogism rules, blood relation trees, and seating arrangement diagrams.',
     icon: 'Brain',
     enabled: true,
+    access_type: 'free',
+    price: 0,
+    validity_days: 30,
     exams: ['SSC', 'CTET']
   }
 ];
@@ -48,12 +60,19 @@ const DEFAULT_TOOLS = [
 export default function AdminTools() {
   const { supabase } = useAuth();
   const [tools, setTools] = useState(DEFAULT_TOOLS);
+  const [combo, setCombo] = useState({ price: 0, validity_days: 30 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState({ text: '', type: '' });
 
   const loadTools = async (active = () => true) => {
-    if (!supabase) return;
+    if (!supabase) {
+      if (active()) {
+        setFeedback({ text: 'Supabase is unavailable. Toolbox settings could not be loaded.', type: 'error' });
+        setLoading(false);
+      }
+      return;
+    }
     try {
       const { data, error } = await supabase
         .from('platform_settings')
@@ -63,13 +82,33 @@ export default function AdminTools() {
 
       if (active() && data) {
         const row = data.find((r) => r.key === 'study_toolbox_config' || r.setting_key === 'study_toolbox_config');
-        const val = row?.setting_value !== undefined ? row.setting_value : row?.value;
-        if (val && Array.isArray(val)) {
-          setTools(val);
+        const pricingRow = data.find((r) => r.key === 'toolbox_pricing' || r.setting_key === 'toolbox_pricing');
+        const rawTools = row?.setting_value !== undefined ? row.setting_value : row?.value;
+        const rawPricing = pricingRow?.setting_value !== undefined ? pricingRow.setting_value : pricingRow?.value;
+        const parsedTools = typeof rawTools === 'string' ? JSON.parse(rawTools) : rawTools;
+        const parsedPricing = typeof rawPricing === 'string' ? JSON.parse(rawPricing) : rawPricing;
+        if (Array.isArray(parsedTools)) {
+          setTools(DEFAULT_TOOLS.map((defaultTool) => {
+            const configured = parsedTools.find((tool) => tool?.id === defaultTool.id);
+            return { ...defaultTool, ...(configured || {}) };
+          }));
+        }
+        if (parsedPricing && typeof parsedPricing === 'object') {
+          const pricingTools = parsedPricing.tools && typeof parsedPricing.tools === 'object' ? parsedPricing.tools : {};
+          setTools((current) => current.map((tool) => ({
+            ...tool,
+            ...(pricingTools[tool.id] || {})
+          })));
+          if (parsedPricing.combo && typeof parsedPricing.combo === 'object') {
+            setCombo({
+              price: Math.max(0, Number(parsedPricing.combo.price) || 0),
+              validity_days: Math.max(1, Number(parsedPricing.combo.validity_days) || 30)
+            });
+          }
         }
       }
     } catch (err) {
-      console.warn('Error loading toolbox config:', err.message);
+      if (active()) setFeedback({ text: err.message || 'Unable to load Toolbox settings.', type: 'error' });
     } finally {
       if (active()) setLoading(false);
     }
@@ -87,31 +126,51 @@ export default function AdminTools() {
     );
   };
 
+  const updateTool = (toolId, changes) => {
+    setTools((current) => current.map((tool) => tool.id === toolId ? { ...tool, ...changes } : tool));
+  };
+
   const handleSave = async () => {
+    if (!supabase) {
+      setFeedback({ text: 'Supabase is unavailable. Toolbox settings were not saved.', type: 'error' });
+      return;
+    }
+    if (tools.some((tool) => tool.access_type === 'premium' && Number(tool.price) <= 0)) {
+      setFeedback({ text: 'Set an unlock price greater than zero for every premium tool.', type: 'error' });
+      return;
+    }
     setSaving(true);
     setFeedback({ text: '', type: '' });
     try {
-      let { error } = await supabase
+      const [toolsResult, pricingResult] = await Promise.all([
+        supabase
         .from('platform_settings')
         .upsert({
           key: 'study_toolbox_config',
           setting_key: 'study_toolbox_config',
-          setting_value: tools,
-          value: tools
-        }, { onConflict: 'setting_key' });
-
-      if (error) {
-        const fallback = await supabase
+          setting_value: tools
+        }, { onConflict: 'setting_key' }),
+        supabase
           .from('platform_settings')
           .upsert({
-            key: 'study_toolbox_config',
-            setting_key: 'study_toolbox_config',
-            setting_value: tools,
-            value: tools
-          }, { onConflict: 'key' });
-        if (fallback.error) throw fallback.error;
-      }
-      setFeedback({ text: 'Toolbox configurations saved and live for learners.', type: 'success' });
+            key: 'toolbox_pricing',
+            setting_key: 'toolbox_pricing',
+            setting_value: {
+              tools: Object.fromEntries(tools.map((tool) => [tool.id, {
+                access_type: tool.access_type || 'free',
+                price: Math.max(0, Number(tool.price) || 0),
+                validity_days: Math.max(1, Number(tool.validity_days) || 30)
+              }])),
+              combo: {
+                price: Math.max(0, Number(combo.price) || 0),
+                validity_days: Math.max(1, Number(combo.validity_days) || 30)
+              }
+            }
+          }, { onConflict: 'setting_key' })
+      ]);
+      if (toolsResult.error) throw toolsResult.error;
+      if (pricingResult.error) throw pricingResult.error;
+      setFeedback({ text: 'Tool availability and pricing saved for learners.', type: 'success' });
     } catch (err) {
       setFeedback({ text: err.message || 'Failed to save tools.', type: 'error' });
     } finally {
@@ -153,6 +212,14 @@ export default function AdminTools() {
         </div>
       )}
 
+      <section className="panel-card toolbox-combo-settings">
+        <div className="section-heading"><div><div className="eyebrow">BUNDLE OFFER</div><h2>Combo Access / Unlock All Tools</h2><p>Set the package price and access duration for the full Toolbox.</p></div><div className="setting-symbol"><Sparkles size={18} /></div></div>
+        <div className="toolbox-combo-fields">
+          <label className="field-label">Combo price (₹)<input className="text-input" type="number" min="0" step="1" value={combo.price} onChange={(event) => setCombo((current) => ({ ...current, price: event.target.value }))} /></label>
+          <label className="field-label">Combo validity (days)<input className="text-input" type="number" min="1" step="1" value={combo.validity_days} onChange={(event) => setCombo((current) => ({ ...current, validity_days: event.target.value }))} /></label>
+        </div>
+      </section>
+
       {loading ? (
         <LoadingSkeleton rows={4} />
       ) : (
@@ -183,11 +250,29 @@ export default function AdminTools() {
                   >
                     {tool.enabled ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                   </button>
+                  <span className={`admin-tool-status ${tool.enabled ? 'enabled' : ''}`}>
+                    {tool.enabled ? 'Active' : 'Inactive'}
+                  </span>
                 </div>
 
                 <p className="admin-tool-description">
                   {tool.description}
                 </p>
+              </div>
+
+              <div className="admin-tool-pricing">
+                <label className="field-label">Access type
+                  <select className="text-input" value={tool.access_type || 'free'} onChange={(event) => updateTool(tool.id, { access_type: event.target.value })}>
+                    <option value="free">Free</option>
+                    <option value="premium">Locked / Paid</option>
+                  </select>
+                </label>
+                <label className="field-label">Unlock price (₹)
+                  <input className="text-input" type="number" min="0" step="1" value={tool.price ?? 0} onChange={(event) => updateTool(tool.id, { price: event.target.value })} disabled={tool.access_type !== 'premium'} />
+                </label>
+                <label className="field-label">Validity (days)
+                  <input className="text-input" type="number" min="1" step="1" value={tool.validity_days ?? 30} onChange={(event) => updateTool(tool.id, { validity_days: event.target.value })} />
+                </label>
               </div>
 
               <div className="admin-tool-card-footer">
@@ -198,9 +283,6 @@ export default function AdminTools() {
                     </span>
                   ))}
                 </div>
-                <span className={`admin-tool-status ${tool.enabled ? 'enabled' : ''}`}>
-                  {tool.enabled ? 'VISIBLE' : 'HIDDEN'}
-                </span>
               </div>
             </article>
           ))}

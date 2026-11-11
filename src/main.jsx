@@ -5,6 +5,7 @@ import App from './App';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeLanguageProvider } from './context/ThemeLanguageContext';
 import './styles.css';
+import 'katex/dist/katex.min.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>

@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight, Bookmark, BookOpen, Brain, Calculator, CheckCircle2, Clock3, FileText, Pause, Play, RotateCcw, Sparkles, Wrench } from 'lucide-react';
+import { ArrowRight, Bookmark, BookOpen, Brain, CheckCircle2, Clock3, FileText, LockKeyhole, Pause, Play, RotateCcw, Sparkles, Wrench } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
+import { normalizeAccessResult } from '../../lib/commerce';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import PdfReaderModal from '../../components/common/PdfReaderModal';
+import CheckoutModal from '../../components/common/CheckoutModal';
+import InteractiveMathTool from '../../components/toolbox/InteractiveMathTool';
+import MathRenderer from '../../components/common/MathRenderer';
+import ToolAccessGuard from '../../components/common/ToolAccessGuard';
 import { getChapterAccess } from '../../lib/content';
 
 const STUDY_SECONDS = 25 * 60;
@@ -71,9 +76,55 @@ export default function StudentToolbox() {
     'polity-articles': true,
     'formula-sheet': true
   });
-  const [calculatorInput, setCalculatorInput] = useState({ first: '', second: '', operation: '+' });
-  const [calculatorResult, setCalculatorResult] = useState('');
+  const [toolPricing, setToolPricing] = useState({});
+  const [comboPricing, setComboPricing] = useState({ price: 0, validity_days: 30 });
+  const [toolAccess, setToolAccess] = useState({});
+  const [toolboxLoaded, setToolboxLoaded] = useState(false);
+  const [accessError, setAccessError] = useState('');
+  const [checkout, setCheckout] = useState(null);
   const completionHandled = useRef(false);
+
+  const refreshToolAccess = async (pricing = toolPricing, comboEnabled = comboPricing.price > 0) => {
+    setAccessError('');
+    if (!user?.id || !supabase) {
+      setToolAccess({});
+      setToolboxLoaded(true);
+      return;
+    }
+    const premiumToolIds = Object.entries(pricing)
+      .filter(([, value]) => value?.access_type === 'premium')
+      .map(([id]) => id);
+    if (!premiumToolIds.length) {
+      setToolAccess({});
+      setToolboxLoaded(true);
+      return;
+    }
+    const requests = [
+      ...premiumToolIds.map((id) => [id, supabase.rpc('check_user_access', {
+          p_user_id: user.id,
+          p_item_type: 'tool',
+          p_item_id: id
+        })]),
+      ...(comboEnabled ? [['__combo', supabase.rpc('check_user_access', {
+        p_user_id: user.id,
+        p_item_type: 'toolbox_combo',
+        p_item_id: 'all-tools'
+      })]] : [])
+    ];
+    const results = await Promise.all(requests.map(async ([id, request]) => {
+      try {
+        const { data, error: accessError } = await request;
+        if (accessError) throw accessError;
+        return { id, allowed: normalizeAccessResult(data) };
+      } catch (accessError) {
+        return { id, allowed: false, error: accessError };
+      }
+    }));
+    setToolAccess(Object.fromEntries(results.map(({ id, allowed }) => [id, allowed])));
+    setToolboxLoaded(true);
+    const failed = results.find((result) => result.error);
+    if (failed) setAccessError(failed.error.message || 'Access check failed. Premium tools remain locked.');
+  };
 
   useEffect(() => {
     if (!running) return undefined;
@@ -117,10 +168,14 @@ export default function StudentToolbox() {
     const load = async () => {
       setLoading(true);
       setError('');
+      setToolboxLoaded(false);
+      setToolAccess({});
+        setAccessError('');
       if (!supabase) {
         setError('Connect to Zyvra to load your bookmarks and revision sheets.');
-        setLoading(false);
-        return;
+          setAccessError('Pricing and purchase status could not be verified.');
+          setLoading(false);
+          return;
       }
       const [resourceResult, bookmarkResult, settingsResult] = await Promise.all([
         supabase.from('chapter_resources').select('id,chapter_id,title,resource_type,file_size,page_count,is_downloadable,is_free_preview,status'),
@@ -143,6 +198,26 @@ export default function StudentToolbox() {
           return visibility;
         }, { ...current }));
       }
+      const pricingSetting = (settingsResult.data || []).find((item) => item?.setting_key === 'toolbox_pricing' || item?.key === 'toolbox_pricing');
+      const rawPricing = pricingSetting?.setting_value ?? pricingSetting?.value;
+      const parsedPricing = typeof rawPricing === 'string' ? JSON.parse(rawPricing) : rawPricing;
+      const savedToolPricing = parsedPricing?.tools && typeof parsedPricing.tools === 'object' ? parsedPricing.tools : {};
+      const legacyToolPricing = Array.isArray(configuredTools)
+        ? Object.fromEntries(configuredTools.filter((tool) => tool?.id).map((tool) => [tool.id, tool]))
+        : {};
+      const pricingTools = { ...legacyToolPricing, ...savedToolPricing };
+      const safePricing = Object.fromEntries(Object.entries(pricingTools).map(([id, value]) => [id, {
+        access_type: value?.access_type === 'premium' ? 'premium' : 'free',
+        price: Math.max(0, Number(value?.price) || 0),
+        validity_days: Math.max(1, Number(value?.validity_days) || 30)
+      }]));
+      const safeCombo = {
+        price: Math.max(0, Number(parsedPricing?.combo?.price) || 0),
+        validity_days: Math.max(1, Number(parsedPricing?.combo?.validity_days) || 30)
+      };
+      setToolPricing(safePricing);
+      setComboPricing(safeCombo);
+      await refreshToolAccess(safePricing, safeCombo.price > 0);
       setResources(availableResources);
       setBookmarks(bookmarkResult.data || []);
       setLoading(false);
@@ -155,6 +230,17 @@ export default function StudentToolbox() {
     });
     return () => { active = false; };
   }, [user]);
+
+  useEffect(() => {
+    const hasPremiumTools = Object.values(toolPricing).some((config) => config?.access_type === 'premium');
+    if (!user?.id || !toolboxLoaded || !hasPremiumTools) return undefined;
+    const interval = window.setInterval(() => {
+      refreshToolAccess(toolPricing, comboPricing.price > 0).catch((accessLoadError) => {
+        setAccessError(accessLoadError.message || 'Unable to refresh premium tool access.');
+      });
+    }, 60_000);
+    return () => window.clearInterval(interval);
+  }, [user?.id, toolboxLoaded, toolPricing, comboPricing.price]);
 
   const bookmarkIds = useMemo(() => new Set(bookmarks.map((item) => item.resource_id).filter(Boolean)), [bookmarks]);
   const sheets = useMemo(() => resources.filter((resource) => {
@@ -211,65 +297,78 @@ export default function StudentToolbox() {
     setMode(nextMode);
     setRemaining(nextMode === 'study' ? STUDY_SECONDS : BREAK_SECONDS);
   };
-  const calculate = (event) => {
-    event.preventDefault();
-    const first = Number(calculatorInput.first);
-    const second = Number(calculatorInput.second);
-    if (!Number.isFinite(first) || !Number.isFinite(second)) {
-      setCalculatorResult('Enter valid numbers to calculate.');
-      return;
+  const toolLocked = (id) => !toolboxLoaded
+    || (toolPricing[id]?.access_type === 'premium' && !toolAccess[id] && !toolAccess.__combo);
+  const toolGuardProps = (id) => ({
+    locked: toolLocked(id),
+    price: toolPricing[id]?.price,
+    validityDays: toolPricing[id]?.validity_days,
+    comboPrice: comboPricing.price,
+    comboValidityDays: comboPricing.validity_days,
+    onBuyTool: () => openToolCheckout(id),
+    onBuyCombo: openComboCheckout
+  });
+  const openToolCheckout = (id) => {
+    const config = toolPricing[id];
+    if (config?.price > 0) {
+      setCheckout({
+        itemType: 'tool',
+        itemId: id,
+        itemTitle: `Study Toolbox: ${({
+          pomodoro: 'Pomodoro Study Timer',
+          'math-shortcuts': 'Speed Math & Mental Calculation',
+          'polity-articles': 'Constitution & Articles Navigator',
+          'formula-sheet': 'Reasoning & Logic Formula Hub'
+        })[id] || 'Premium tool'}`,
+        tier: `${config.validity_days} days access`,
+        basePrice: config.price
+      });
     }
-    if (calculatorInput.operation === '/' && second === 0) {
-      setCalculatorResult('Cannot divide by zero.');
-      return;
+  };
+  const openComboCheckout = () => {
+    if (comboPricing.price > 0) {
+      setCheckout({
+        itemType: 'toolbox_combo',
+        itemId: 'all-tools',
+        itemTitle: 'Study Toolbox: Unlock All Tools',
+        tier: `${comboPricing.validity_days} days access`,
+        basePrice: comboPricing.price
+      });
     }
-    const result = calculatorInput.operation === '+' ? first + second
-      : calculatorInput.operation === '-' ? first - second
-        : calculatorInput.operation === '*' ? first * second
-          : first / second;
-    setCalculatorResult(String(Number(result.toFixed(8))));
   };
 
   return <div className="toolbox-page">
     <div className="page-heading"><div><div className="eyebrow">{language === 'hi' ? 'आपका अध्ययन स्थान / टूलबॉक्स' : 'YOUR LEARNING SPACE / TOOLBOX'}</div><h1>{t('toolboxTitle')}</h1><p>{t('toolboxDescription')}</p></div></div>
-    {visibleTools.pomodoro && <section className={`pomodoro-card ${mode === 'break' ? 'break-mode' : ''}`}>
+    {accessError && <div className="feedback error-feedback"><LockKeyhole size={15} /> Access verification failed; premium tools stay locked. {accessError}</div>}
+    {visibleTools.pomodoro && <ToolAccessGuard {...toolGuardProps('pomodoro')}><section className={`pomodoro-card ${mode === 'break' ? 'break-mode' : ''}`}>
       <div className="pomodoro-copy"><span className="toolbox-icon"><Clock3 size={21} /></span><div><div className="eyebrow">{mode === 'study' ? t('focusSession').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US') : t('restInterval').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div><h2>{mode === 'study' ? t('oneThing') : t('mindfulBreak')}</h2><p>{mode === 'study' ? t('focusSprint') : t('breakDescription')}</p></div></div>
       <div className="pomodoro-clock" aria-live="polite">{formatTime(remaining)}</div>
       <div className="pomodoro-actions"><button className="button button-gold" onClick={() => { completionHandled.current = false; setRunning((value) => !value); }}>{running ? <><Pause size={15} /> {t('pause')}</> : <><Play size={15} /> {t('startFocus')}</>}</button><button className="button button-outline" onClick={resetTimer}><RotateCcw size={15} /> {t('reset')}</button><button className={`pomodoro-mode ${mode === 'study' ? 'active' : ''}`} onClick={() => changeMode('study')}>{t('study25')}</button><button className={`pomodoro-mode ${mode === 'break' ? 'active' : ''}`} onClick={() => changeMode('break')}>{t('break5')}</button></div>
       <div className="pomodoro-completed"><CheckCircle2 size={15} /> {sessions} {t('focusSessions')}</div>
-    </section>}
+    </section></ToolAccessGuard>}
 
-    {visibleTools['math-shortcuts'] && <section className="toolbox-section toolbox-calculator">
-      <div className="section-heading"><div><div className="eyebrow">QUICK MATH</div><h2><Calculator size={17} /> Math Calculator</h2></div></div>
-      <form className="toolbox-calculator-form" onSubmit={calculate}>
-        <label className="field-label">First number<input className="text-input" type="number" step="any" value={calculatorInput.first} onChange={(event) => setCalculatorInput((current) => ({ ...current, first: event.target.value }))} required /></label>
-        <label className="field-label">Operation<select className="text-input" value={calculatorInput.operation} onChange={(event) => setCalculatorInput((current) => ({ ...current, operation: event.target.value }))}><option value="+">Add (+)</option><option value="-">Subtract (−)</option><option value="*">Multiply (×)</option><option value="/">Divide (÷)</option></select></label>
-        <label className="field-label">Second number<input className="text-input" type="number" step="any" value={calculatorInput.second} onChange={(event) => setCalculatorInput((current) => ({ ...current, second: event.target.value }))} required /></label>
-        <button className="button button-gold" type="submit">Calculate</button>
-      </form>
-      {calculatorResult && <div className="toolbox-calculator-result" aria-live="polite"><strong>Result</strong><span>{calculatorResult}</span></div>}
-    </section>}
+    {visibleTools['math-shortcuts'] && <ToolAccessGuard {...toolGuardProps('math-shortcuts')}><InteractiveMathTool /></ToolAccessGuard>}
 
-    {visibleTools['formula-sheet'] && <section className="toolbox-section">
+    {visibleTools['formula-sheet'] && <ToolAccessGuard {...toolGuardProps('formula-sheet')}><section className="toolbox-section">
       <div className="section-heading"><div><div className="eyebrow">FORMULA & REVISION HUB</div><h2><Brain size={17} /> Quick reference</h2></div></div>
       <div className="toolbox-formula-grid">
-        <article className="toolbox-formula-card"><strong>Percentage</strong><span>Percentage = (part ÷ whole) × 100</span><small>Use for ratios, marks and change calculations.</small></article>
-        <article className="toolbox-formula-card"><strong>Simple Interest</strong><span>SI = (Principal × Rate × Time) ÷ 100</span><small>Keep rate and time in matching units.</small></article>
-        <article className="toolbox-formula-card"><strong>Average</strong><span>Average = Sum of values ÷ Number of values</span><small>For a combined average, add totals before dividing.</small></article>
+        <article className="toolbox-formula-card"><strong>Percentage</strong><MathRenderer>{'$\\frac{part}{whole} \\times 100$'}</MathRenderer><small>Use for ratios, marks and change calculations.</small></article>
+        <article className="toolbox-formula-card"><strong>Simple Interest</strong><MathRenderer>{'$SI = \\frac{Principal \\times Rate \\times Time}{100}$'}</MathRenderer><small>Keep rate and time in matching units.</small></article>
+        <article className="toolbox-formula-card"><strong>Average</strong><MathRenderer>{'$Average = \\frac{Sum\\ of\\ values}{Number\\ of\\ values}$'}</MathRenderer><small>For a combined average, add totals before dividing.</small></article>
       </div>
-    </section>}
+    </section></ToolAccessGuard>}
 
-    {visibleTools['polity-articles'] && <section className="toolbox-deep-link-card">
+    {visibleTools['polity-articles'] && <ToolAccessGuard {...toolGuardProps('polity-articles')}><section className="toolbox-deep-link-card">
       <span className="toolbox-icon"><BookOpen size={19} /></span>
       <div><strong>Constitution & Articles</strong><p>Open your syllabus to browse polity chapters and revision resources.</p></div>
       <button type="button" className="button button-outline" onClick={() => navigate('/explore')}>Explore syllabus <ArrowRight size={15} /></button>
-    </section>}
+    </section></ToolAccessGuard>}
 
-    <section className="toolbox-section">
+    {visibleTools['formula-sheet'] && <ToolAccessGuard {...toolGuardProps('formula-sheet')}><section className="toolbox-section">
       <div className="section-heading"><div><div className="eyebrow">{t('quickRevision').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div><h2>{t('formulaSheets')}</h2></div><div className="toolbox-filters"><button className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>{t('highYield')}</button><button className={filter === 'saved' ? 'active' : ''} onClick={() => setFilter('saved')}>{t('bookmarked')}</button></div></div>
       {loading ? <p className="field-hint">{t('loadingSheets')}</p> : error ? <div className="feedback error-feedback">{error}</div> : !sheets.length ? <div className="empty-content"><Sparkles size={22} /><strong>{t('noRevisionSheets')}</strong><span>{t('revisionEmpty')}</span></div> : <div className="toolbox-resource-grid">{sheets.map((resource) => <article className="toolbox-resource-card" key={resource.id}><span className="toolbox-resource-icon"><FileText size={18} /></span><div><strong>{resource.title}</strong><small>{resource.resource_type || resource.type || (language === 'hi' ? 'अध्ययन शीट' : 'Study sheet')}{resource.file_size ? ` · ${resource.file_size}` : ''}</small></div><button className="icon-button" aria-label={`${language === 'hi' ? 'खोलें' : 'Open'} ${resource.title}`} onClick={() => canReadResource(resource) ? openResource(resource) : navigate(`/chapter/${resource.chapter_id}`)}><BookOpen size={16} /></button></article>)}</div>}
       {readerError && <div className="feedback error-feedback">{readerError}</div>}
-    </section>
+    </section></ToolAccessGuard>}
 
     <section className="toolbox-section">
       <div className="section-heading"><div><div className="eyebrow">{t('savedForLater').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div><h2>{t('savedBookmarks')}</h2></div><span className="chapter-item-count">{bookmarks.length} {t('saved')}</span></div>
@@ -281,5 +380,6 @@ export default function StudentToolbox() {
     </section>
     <p className="toolbox-footnote"><Wrench size={14} /> {t('timerLocalNote')}</p>
     {reader && <PdfReaderModal resource={reader.resource} url={reader.url} onClose={() => setReader(null)} />}
+    {checkout && <CheckoutModal {...checkout} onClose={() => setCheckout(null)} onCompleted={() => refreshToolAccess().catch((accessError) => setError(accessError.message || 'Unable to verify your Toolbox purchase.'))} />}
   </div>;
 }
