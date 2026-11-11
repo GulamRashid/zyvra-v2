@@ -12,9 +12,9 @@ function renderMath(formula, displayMode = false) {
   }
 }
 
-function MathMarkup({ formula, displayMode = false, fallback, className = '' }) {
-  const html = renderMath(formula, displayMode);
-  if (html === null) return <span className="math-render-error">{fallback}</span>;
+function MathMarkup({ formula, display = false, fallback, className = '' }) {
+  const html = renderMath(formula || '', display);
+  if (html === null) return <span className="math-render-error">{fallback ?? formula}</span>;
   return <span className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
@@ -31,17 +31,21 @@ function renderFormulaParts(text, keyPrefix = 'math') {
   return parts.length ? parts : [text];
 }
 
-export default function MathRenderer({ children, className = '' }) {
+export default function MathRenderer({ formula, display = false, children, className = '' }) {
+  if (formula !== undefined) {
+    return <MathMarkup formula={formula} display={display} className={`math-text ${className}`.trim()} />;
+  }
+
   const text = typeof children === 'string' || typeof children === 'number' ? String(children) : '';
   const parts = text.split(delimiters);
   return <span className={`math-text ${className}`.trim()}>
     {parts.map((part, index) => {
       if (!part) return null;
       if (part.startsWith('$$') && part.endsWith('$$')) {
-        return <MathMarkup className="math-block-inline" key={`display-${index}`} formula={part.slice(2, -2)} displayMode fallback={part} />;
+        return <MathMarkup className="math-block-inline" key={`display-${index}`} formula={part.slice(2, -2)} display fallback={part} />;
       }
       if (part.startsWith('\\[') && part.endsWith('\\]')) {
-        return <MathMarkup className="math-block-inline" key={`display-${index}`} formula={part.slice(2, -2)} displayMode fallback={part} />;
+        return <MathMarkup className="math-block-inline" key={`display-${index}`} formula={part.slice(2, -2)} display fallback={part} />;
       }
       if ((part.startsWith('\\(') && part.endsWith('\\)')) || (part.startsWith('$') && part.endsWith('$'))) {
         const math = part.startsWith('$') ? part.slice(1, -1) : part.slice(2, -2);

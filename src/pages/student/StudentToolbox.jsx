@@ -352,9 +352,9 @@ export default function StudentToolbox() {
     {visibleTools['formula-sheet'] && <ToolAccessGuard {...toolGuardProps('formula-sheet')}><section className="toolbox-section">
       <div className="section-heading"><div><div className="eyebrow">FORMULA & REVISION HUB</div><h2><Brain size={17} /> Quick reference</h2></div></div>
       <div className="toolbox-formula-grid">
-        <article className="toolbox-formula-card"><strong>Percentage</strong><MathRenderer>{'$\\frac{part}{whole} \\times 100$'}</MathRenderer><small>Use for ratios, marks and change calculations.</small></article>
-        <article className="toolbox-formula-card"><strong>Simple Interest</strong><MathRenderer>{'$SI = \\frac{Principal \\times Rate \\times Time}{100}$'}</MathRenderer><small>Keep rate and time in matching units.</small></article>
-        <article className="toolbox-formula-card"><strong>Average</strong><MathRenderer>{'$Average = \\frac{Sum\\ of\\ values}{Number\\ of\\ values}$'}</MathRenderer><small>For a combined average, add totals before dividing.</small></article>
+        <article className="toolbox-formula-card"><strong>Percentage</strong><MathRenderer formula="\frac{part}{whole} \times 100" /><small>Use for ratios, marks and change calculations.</small></article>
+        <article className="toolbox-formula-card"><strong>Simple Interest</strong><MathRenderer formula="SI = \frac{Principal \times Rate \times Time}{100}" /><small>Keep rate and time in matching units.</small></article>
+        <article className="toolbox-formula-card"><strong>Average</strong><MathRenderer formula="Average = \frac{Sum\ of\ values}{Number\ of\ values}" /><small>For a combined average, add totals before dividing.</small></article>
       </div>
     </section></ToolAccessGuard>}
 

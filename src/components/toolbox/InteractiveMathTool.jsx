@@ -33,17 +33,17 @@ export default function InteractiveMathTool() {
       <input className="text-input" type="number" step="any" value={input} onChange={(event) => setInput(event.target.value)} placeholder="e.g. 12" inputMode="decimal" />
     </label>
     <div className="interactive-math-grid" aria-live="polite">
-      <article className="interactive-math-result"><strong>Square</strong><MathRenderer>{valid ? `$${input}^2 = ${calculations.square}$` : '$N^2$'}</MathRenderer></article>
-      <article className="interactive-math-result"><strong>Cube</strong><MathRenderer>{valid ? `$${input}^3 = ${calculations.cube}$` : '$N^3$'}</MathRenderer></article>
+      <article className="interactive-math-result"><strong>Square</strong><MathRenderer formula={valid ? `${input}^2 = ${calculations.square}` : 'N^2'} /></article>
+      <article className="interactive-math-result"><strong>Cube</strong><MathRenderer formula={valid ? `${input}^3 = ${calculations.cube}` : 'N^3'} /></article>
       <article className="interactive-math-result">
         <strong>Fraction & percentage</strong>
         {valid && calculations.percentage !== null
-          ? <MathRenderer>{`$\\frac{1}{${input}} = ${calculations.reciprocal} = ${calculations.percentage}\\%$`}</MathRenderer>
-          : <MathRenderer>{valid ? 'N must be non-zero for 1/N.' : '$\\frac{1}{N} = decimal = percentage$'}</MathRenderer>}
+          ? <MathRenderer formula={`\\frac{1}{${input}} = ${calculations.reciprocal} = ${calculations.percentage}\\%`} />
+          : valid ? <span>N must be non-zero for 1/N.</span> : <MathRenderer formula="\\frac{1}{N} = decimal = percentage" />}
       </article>
-      <article className="interactive-math-result"><strong>Multiply by 11</strong><MathRenderer>{valid ? `$${input} \\times 11 = ${calculations.timesEleven}$` : '$N \\times 11$'}</MathRenderer><small>For two digits, add the digits and place the sum between them (carry if needed).</small></article>
-      <article className="interactive-math-result"><strong>Multiply by 5</strong><MathRenderer>{valid ? `$${input} \\times 5 = ${calculations.timesFive}$` : '$N \\times 5$'}</MathRenderer><small>Multiply by 10, then halve the result.</small></article>
-      <article className="interactive-math-result"><strong>Multiply by 25</strong><MathRenderer>{valid ? `$${input} \\times 25 = ${calculations.timesTwentyFive}$` : '$N \\times 25$'}</MathRenderer><small>Multiply by 100, then divide by 4.</small></article>
+      <article className="interactive-math-result"><strong>Multiply by 11</strong><MathRenderer formula={valid ? `${input} \\times 11 = ${calculations.timesEleven}` : 'N \\times 11'} /><small>For two digits, add the digits and place the sum between them (carry if needed).</small></article>
+      <article className="interactive-math-result"><strong>Multiply by 5</strong><MathRenderer formula={valid ? `${input} \\times 5 = ${calculations.timesFive}` : 'N \\times 5'} /><small>Multiply by 10, then halve the result.</small></article>
+      <article className="interactive-math-result"><strong>Multiply by 25</strong><MathRenderer formula={valid ? `${input} \\times 25 = ${calculations.timesTwentyFive}` : 'N \\times 25'} /><small>Multiply by 100, then divide by 4.</small></article>
     </div>
   </section>;
 }
