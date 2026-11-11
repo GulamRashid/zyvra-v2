@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase, supabaseConfigurationError } from '../lib/supabase';
 import { useThemeLanguage } from './ThemeLanguageContext';
+import { ensureReferralCode, processReferralAward } from '../lib/referrals';
 
 const AuthContext = createContext(null);
 
@@ -28,6 +29,19 @@ export function AuthProvider({ children }) {
     if (walletResult.error && walletResult.error.code !== 'PGRST116') throw walletResult.error;
     setProfile(profileResult.data);
     setCoinBalance(Number(walletResult.data?.balance || 0));
+
+    if (profileResult.data && !profileResult.data.referral_code) {
+      ensureReferralCode(supabase, userId).then((code) => {
+        if (code) setProfile((current) => current ? ({ ...current, referral_code: code }) : current);
+      });
+    }
+
+    const savedRef = sessionStorage.getItem('zyvra_ref_code');
+    if (savedRef) {
+      processReferralAward(supabase, userId, savedRef).then(() => {
+        sessionStorage.removeItem('zyvra_ref_code');
+      });
+    }
     if (profileResult.data?.theme) {
       localStorage.setItem('zyvra-theme', profileResult.data.theme);
       await setTheme(profileResult.data.theme);

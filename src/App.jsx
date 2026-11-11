@@ -21,12 +21,19 @@ const ExamDetail = lazy(() => import('./pages/student/ExamDetail'));
 const FolderView = lazy(() => import('./pages/student/FolderView'));
 const ChapterDetail = lazy(() => import('./pages/student/ChapterDetail'));
 const StudentToolbox = lazy(() => import('./pages/student/StudentToolbox'));
+const TestHub = lazy(() => import('./pages/student/TestHub'));
 const LiveQuiz = lazy(() => import('./pages/student/LiveQuiz'));
 const QuizResult = lazy(() => import('./pages/student/QuizResult'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const SettingsPreview = lazy(() => import('./pages/admin/SettingsPreview'));
 const PricingManager = lazy(() => import('./pages/admin/PricingManager'));
 const UserManager = lazy(() => import('./pages/admin/UserManager'));
+const AdminCoins = lazy(() => import('./pages/admin/AdminCoins'));
+const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
+const AdminSubscriptions = lazy(() => import('./pages/admin/AdminSubscriptions'));
+const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications'));
+const AdminTools = lazy(() => import('./pages/admin/AdminTools'));
+const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
 
 const studentPages = {
   '/tests': { title: 'Practice & tests', subtitle: 'Build your confidence with focused practice.', icon: FileQuestion, items: ['Daily practice', 'Chapter tests', 'Mock exams'] },
@@ -72,7 +79,12 @@ function AppRoutes() {
       <Route path="tests" element={<TestManager />} />
       <Route path="pricing" element={<PricingManager />} />
       <Route path="users" element={<UserManager />} />
-      {Object.entries(adminPages).filter(([path]) => !['/admin/content', '/admin/qbank', '/admin/tests', '/admin/pricing', '/admin/users'].includes(path)).map(([path, page]) => <Route key={path} path={path.replace('/admin/', '')} element={<AdminPlaceholder page={page} />} />)}
+      <Route path="coins" element={<AdminCoins />} />
+      <Route path="orders" element={<AdminOrders />} />
+      <Route path="subscriptions" element={<AdminSubscriptions />} />
+      <Route path="notifications" element={<AdminNotifications />} />
+      <Route path="tools" element={<AdminTools />} />
+      <Route path="reports" element={<AdminReports />} />
       <Route path="settings" element={<div className="admin-placeholder"><div className="page-heading"><div><div className="eyebrow">ADMINISTRATION / CONFIGURATION</div><h1><Settings size={22} /> Settings</h1><p>Control the platform’s core learning and reward behaviour.</p></div></div><SettingsPreview /></div>} />
     </Route>
     <Route path="/" element={<ProtectedRoute><StudentLayout /></ProtectedRoute>}>
@@ -81,11 +93,12 @@ function AppRoutes() {
       <Route path="explore/:examSlug" element={<ExamDetail />} />
       <Route path="folder/:folderId" element={<FolderView />} />
       <Route path="chapter/:chapterId" element={<ChapterDetail />} />
+      <Route path="tests" element={<TestHub />} />
       <Route path="toolbox" element={<StudentToolbox />} />
       <Route path="wallet" element={<StudentWallet />} />
       <Route path="analytics" element={<StudentAnalytics />} />
       <Route path="performance" element={<Navigate to="/analytics" replace />} />
-      {Object.entries(studentPages).filter(([path]) => path !== '/toolbox').map(([path, page]) => <Route key={path} path={path.slice(1)} element={<StudentPlaceholder page={page} />} />)}
+      {Object.entries(studentPages).filter(([path]) => !['/toolbox', '/tests'].includes(path)).map(([path, page]) => <Route key={path} path={path.slice(1)} element={<StudentPlaceholder page={page} />} />)}
       <Route path="profile" element={<StudentProfile />} />
       <Route path="settings" element={<Navigate to="/profile" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />

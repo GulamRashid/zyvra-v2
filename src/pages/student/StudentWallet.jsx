@@ -3,6 +3,7 @@ import { ArrowDownLeft, ArrowUpRight, Coins, Gift, ShoppingBag, Sparkles } from 
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import ShareAndEarnCard from '../../components/common/ShareAndEarnCard';
 
 const LEDGER_PAGE_SIZE = 1000;
 
@@ -88,6 +89,7 @@ export default function StudentWallet() {
       <div className="wallet-hero-stats"><div><span>Total earned</span><strong><ArrowDownLeft size={15} /> {summary.earned.toLocaleString()}</strong></div><div><span>Total spent</span><strong><ArrowUpRight size={15} /> {summary.spent.toLocaleString()}</strong></div></div>
       <div className="wallet-hero-glow" aria-hidden="true" />
     </section>
+    <ShareAndEarnCard className="wallet-share-card" />
     <div className="wallet-content-grid">
       <section className="panel-card wallet-info-card"><div className="section-heading"><div><div className="eyebrow">MAKE EVERY SESSION COUNT</div><h2>How to earn & spend</h2></div><span className="setting-symbol"><Sparkles size={18} /></span></div><div className="wallet-tip"><span><Gift size={16} /></span><div><strong>Score 70%+ in mock tests</strong><small>Earn test rewards when your attempt qualifies.</small></div></div><div className="wallet-tip"><span><Sparkles size={16} /></span><div><strong>Build your daily learning streak</strong><small>Keep a steady study rhythm to unlock streak rewards.</small></div></div><div className="wallet-tip"><span><ShoppingBag size={16} /></span><div><strong>Redeem coins at checkout</strong><small>10 coins = ₹1 discount on eligible purchases.</small></div></div><Link className="button button-outline wallet-explore-link" to="/explore">Explore learning paths</Link></section>
       <section className="panel-card wallet-ledger-card"><div className="section-heading"><div><div className="eyebrow">YOUR COIN ACTIVITY</div><h2>Transaction history</h2></div><span className="chapter-item-count">{transactions.length} transactions</span></div>

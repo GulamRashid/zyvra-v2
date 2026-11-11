@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, KeyRound, Mail, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, Gift, KeyRound, Mail, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
+import { ensureReferralCode, processReferralAward } from '../../lib/referrals';
 
 const RESEND_SECONDS = 45;
 
@@ -19,6 +20,16 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [refCode, setRefCode] = useState(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get('ref') || sessionStorage.getItem('zyvra_ref_code') || '';
+      if (code) sessionStorage.setItem('zyvra_ref_code', code);
+      return code;
+    } catch {
+      return '';
+    }
+  });
   const inputRefs = useRef([]);
   const { supabase, enterGuestMode, guestDemoEnabled, configurationError } = useAuth();
   const { theme, setTheme } = useThemeLanguage();
@@ -63,8 +74,15 @@ export default function AuthPage() {
     if (!/^\d{6}$/.test(token)) { setError('Enter all six digits to continue.'); return; }
     setBusy(true);
     try {
-      const { error: authError } = await supabase.auth.verifyOtp({ email: email.trim(), token, type: 'email' });
+      const { data: authData, error: authError } = await supabase.auth.verifyOtp({ email: email.trim(), token, type: 'email' });
       if (authError) throw authError;
+      if (authData?.user) {
+        await ensureReferralCode(supabase, authData.user.id);
+        if (refCode) {
+          await processReferralAward(supabase, authData.user.id, refCode);
+          sessionStorage.removeItem('zyvra_ref_code');
+        }
+      }
       navigate(destination, { replace: true });
     } catch (authError) {
       const detail = authError.message || '';
@@ -101,8 +119,15 @@ export default function AuthPage() {
     if (!supabase) { setError(configurationError); return; }
     setBusy(true);
     try {
-      const { error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
       if (authError) throw authError;
+      if (authData?.user) {
+        await ensureReferralCode(supabase, authData.user.id);
+        if (refCode) {
+          await processReferralAward(supabase, authData.user.id, refCode);
+          sessionStorage.removeItem('zyvra_ref_code');
+        }
+      }
       navigate(destination, { replace: true });
     } catch (authError) {
       setError(authError.message || 'Authentication failed. Check your connection and try again.');
@@ -142,6 +167,15 @@ export default function AuthPage() {
       <section className="auth-story"><div className="eyebrow"><Sparkles size={14} /> YOUR NEXT CHAPTER STARTS HERE</div><h1>Make every<br /><em>study hour</em> count.</h1><p>A calmer, more focused way to prepare for BPSC, SSC, CTET and beyond.</p><div className="auth-points"><span><CheckCircle2 size={16} /> One place for your learning journey</span><span><CheckCircle2 size={16} /> Progress that feels rewarding</span><span><CheckCircle2 size={16} /> Built for focused exam prep</span></div><div className="auth-quote"><div className="quote-stars">✦ ✦ ✦ ✦ ✦</div><p>“A little progress each day adds up to big results.”</p><span>YOUR ZYVRA STUDY SPACE</span></div></section>
       <section className="auth-card">
         <div className="auth-card-heading"><div className="auth-icon"><ShieldCheck size={20} /></div><div><h2>{step === 'verify' ? 'Check your email' : 'Welcome to Zyvra'}</h2><p>{step === 'verify' ? 'Enter the six-digit code to verify your email.' : 'Sign in or create your free account.'}</p></div></div>
+        {refCode && (
+          <div className="referral-auth-banner">
+            <Gift size={16} className="text-amber-400" />
+            <div>
+              <strong>Invite code active: <span>{refCode}</span></strong>
+              <small>Bonus coins will be credited to your wallet upon joining!</small>
+            </div>
+          </div>
+        )}
         {step === 'verify' ? <>
           <button className="back-link" onClick={() => { setStep('email'); setError(''); setMessage(''); }}><ArrowLeft size={15} /> Change email</button>
           <form onSubmit={verifyOtp}>

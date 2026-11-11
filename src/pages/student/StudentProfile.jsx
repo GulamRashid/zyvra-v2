@@ -6,6 +6,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
+import ShareAndEarnCard from '../../components/common/ShareAndEarnCard';
 
 const exams = ['BPSC', 'SSC', 'CTET', 'NCERT'];
 const themeOptions = [
@@ -204,6 +205,8 @@ export default function StudentProfile() {
             </form>
           )}
         </section>
+
+        <ShareAndEarnCard className="profile-share-card" />
 
         <section className="panel-card setting-card"><div className="setting-card-title"><div className="setting-symbol"><Bell size={17} /></div><div><h2>Wallet summary</h2><p>Your practice rewards at a glance.</p></div></div><div className="wallet-summary"><div><span>Available Zyvra Coins</span><strong><Coins size={18} /> {coinBalance.toLocaleString()}</strong></div><span>Coin activity and rewards will appear here as you learn.</span></div><div className="profile-quick-links"><Link to="/wallet"><Coins size={15} /> Open coin ledger <ArrowRight size={14} /></Link><Link to="/analytics"><ChartNoAxesColumn size={15} /> View performance analytics <ArrowRight size={14} /></Link></div></section>
         <section className="danger-card"><div><h2>Account deletion</h2><p>Request review of your account and personal data deletion.</p></div><button className="button danger-button" onClick={() => setDeleteOpen(true)} disabled={!user}><Trash2 size={15} /> Request deletion</button></section>
