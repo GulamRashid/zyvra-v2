@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Clock3, Flag, Grid3X3, Languages, ListChecks, LoaderCircle, LockKeyhole, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Clock3, Flag, Grid3X3, ListChecks, LoaderCircle, LockKeyhole, X } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -326,14 +326,13 @@ export default function LiveQuiz() {
   return <main className="live-quiz">
     {paletteOpen && <button className="drawer-scrim quiz-scrim" aria-label="Close question palette" onClick={() => setPaletteOpen(false)} />}
     <header className="quiz-header">
-      <Link to="/tests" className="quiz-brand"><span className="brand-mark">Z</span><span>ZYVRA<span>TEST MODE</span></span></Link>
+      <Link to="/tests" className="quiz-brand"><img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" /><span>ZYVRA<span>TEST MODE</span></span></Link>
       <div className="quiz-header-title"><strong>{test?.title}</strong><span>Question {currentIndex + 1} of {questions?.length || 0}</span></div>
       <div className="quiz-header-actions">
-        <div className={`quiz-timer ${remaining < 300 ? 'timer-warning' : ''} text-sm font-semibold`} aria-live="polite"><Clock3 size={16} /><span className="text-sm font-semibold">{formatTime(remaining)}</span></div>
-        <button className="button button-gold quiz-submit-button hidden sm:inline-flex" disabled={submitting} onClick={confirm}>{submitting ? 'Submitting…' : 'Submit test'}</button>
+        <div className={`quiz-timer ${remaining < 300 ? 'timer-warning' : ''} px-2.5 py-1 text-xs font-mono font-semibold`} aria-live="polite"><Clock3 size={14} /><span className="text-xs font-mono font-semibold">{formatTime(remaining)}</span></div>
+        <button className="button button-gold quiz-submit-button hidden md:inline-flex" disabled={submitting} onClick={confirm}>{submitting ? 'Submitting…' : 'Submit test'}</button>
         <button className="icon-button quiz-palette-toggle" onClick={() => setPaletteOpen(true)} aria-label="Open question palette"><Grid3X3 size={18} /></button>
         <div className="native-language-toggle" role="group" aria-label="Test language">
-          <Languages size={14} aria-hidden="true" />
           <button type="button" className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>EN</button>
           <button type="button" className={language === 'hi' ? 'active' : ''} aria-pressed={language === 'hi'} onClick={() => setLanguage('hi')}>HI</button>
         </div>

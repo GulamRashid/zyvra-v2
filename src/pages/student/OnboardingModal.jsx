@@ -70,7 +70,7 @@ export default function OnboardingModal() {
     <div className="modal-backdrop" role="presentation">
       <section className="onboarding-modal" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
         <div className="modal-step">A BETTER WAY TO BEGIN <span>01 / 01</span></div>
-        <div className="onboarding-mark"><span className="brand-mark">Z</span></div>
+        <div className="onboarding-mark"><img src="/logo.png" alt="Zyvra" className="w-12 h-12 rounded-xl object-contain shadow-sm" /></div>
         <h2 id="onboarding-title">Make Zyvra yours.</h2>
         <p>Set a few preferences to make your study space feel right.</p>
 

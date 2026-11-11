@@ -26,7 +26,7 @@ export default function AdminLayout() {
   return <div className="admin-shell">
     {menuOpen && <button className="drawer-scrim" aria-label="Close admin navigation" onClick={() => setMenuOpen(false)} />}
     <aside className={`admin-sidebar ${menuOpen ? 'drawer-open' : ''}`}>
-      <div className="sidebar-brand admin-brand"><NavLink to="/admin" onClick={() => setMenuOpen(false)} className="sidebar-brand"><div className="brand-mark">Z</div><div>ZYVRA<span>CONTROL CENTER</span></div></NavLink><button className="icon-button drawer-close" onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={19} /></button></div>
+      <div className="sidebar-brand admin-brand"><NavLink to="/admin" onClick={() => setMenuOpen(false)} className="sidebar-brand"><img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" /><div>ZYVRA<span>CONTROL CENTER</span></div></NavLink><button className="icon-button drawer-close" onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={19} /></button></div>
       <div className="sidebar-caption">OPERATIONS</div>
       <nav className="side-nav admin-nav">{modules.map(({ to, label, Icon, end }) => <NavLink key={to} to={to} end={end} onClick={() => setMenuOpen(false)} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}><Icon size={17} /><span>{label}</span></NavLink>)}</nav>
       <div className="admin-sidebar-footer"><div className="health-dot" /> All systems operational</div>

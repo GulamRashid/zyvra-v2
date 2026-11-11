@@ -137,7 +137,7 @@ export default function AuthPage() {
   };
 
   return <main className="auth-page">
-    <div className="auth-topbar"><a href="/" className="sidebar-brand auth-brand"><div className="brand-mark">Z</div><div>ZYVRA<span>LEARN WITH INTENT</span></div></a><button className="auth-theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☼ Light mode' : '◐ Dark mode'}</button></div>
+    <div className="auth-topbar"><a href="/" className="sidebar-brand auth-brand"><img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" /><div>ZYVRA<span>LEARN WITH INTENT</span></div></a><button className="auth-theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☼ Light mode' : '◐ Dark mode'}</button></div>
     <div className="auth-layout">
       <section className="auth-story"><div className="eyebrow"><Sparkles size={14} /> YOUR NEXT CHAPTER STARTS HERE</div><h1>Make every<br /><em>study hour</em> count.</h1><p>A calmer, more focused way to prepare for BPSC, SSC, CTET and beyond.</p><div className="auth-points"><span><CheckCircle2 size={16} /> One place for your learning journey</span><span><CheckCircle2 size={16} /> Progress that feels rewarding</span><span><CheckCircle2 size={16} /> Built for focused exam prep</span></div><div className="auth-quote"><div className="quote-stars">✦ ✦ ✦ ✦ ✦</div><p>“A little progress each day adds up to big results.”</p><span>YOUR ZYVRA STUDY SPACE</span></div></section>
       <section className="auth-card">

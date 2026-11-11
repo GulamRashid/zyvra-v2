@@ -47,7 +47,7 @@ export default function StudentLayout() {
   return <div className="app-shell">
     {drawerOpen && <button className="drawer-scrim" aria-label="Close navigation" onClick={closeDrawer} />}
     <aside className={`student-sidebar ${drawerOpen ? 'drawer-open' : ''}`}>
-      <div className="sidebar-brand"><div className="brand-mark">Z</div><div>ZYVRA<span>LEARN WITH INTENT</span></div><button className="icon-button drawer-close" onClick={closeDrawer} aria-label="Close menu"><X size={19} /></button></div>
+      <div className="sidebar-brand"><img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" /><div>ZYVRA<span>LEARN WITH INTENT</span></div><button className="icon-button drawer-close" onClick={closeDrawer} aria-label="Close menu"><X size={19} /></button></div>
       <div className="sidebar-caption">YOUR LEARNING SPACE</div>
       <nav className="side-nav">
         {sections.map(({ to, Icon, ...item }) => <NavLink key={to} to={to} end={to === '/'} onClick={closeDrawer} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}>
@@ -61,7 +61,7 @@ export default function StudentLayout() {
     </aside>
     <div className="main-column">
       <header className="topbar">
-        <div className="topbar-left"><button className="icon-button mobile-menu" onClick={() => setDrawerOpen(true)} aria-label="Open menu"><Menu size={20} /></button><div className="mobile-brand"><span className="brand-mark">Z</span> ZYVRA</div></div>
+        <div className="topbar-left"><button className="icon-button mobile-menu" onClick={() => setDrawerOpen(true)} aria-label="Open menu"><Menu size={20} /></button><div className="mobile-brand"><img src="/logo.png" alt="Zyvra" className="w-8 h-8 rounded-xl object-contain shadow-sm" /> ZYVRA</div></div>
         <div className="topbar-actions"><CoinBadge balance={coinBalance} /><LanguageToggle /><ThemeToggle /><NavLink className="icon-button notification-button" aria-label={t('notifications')} to="/notifications"><Bell size={18} /></NavLink>{isAdmin && <NavLink className="button admin-shortcut" to="/admin"><Shield size={15} /> {t('adminPanel')}</NavLink>}</div>
       </header>
       <main className="content-area"><div className="mobile-welcome">Welcome back, {name}</div><Outlet /></main>
