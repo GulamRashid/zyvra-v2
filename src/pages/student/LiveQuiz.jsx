@@ -1,60 +1,3 @@
-// LiveQuiz.jsx ke andar top bar ya header mein yeh Pill Toggle rakhein:
-
-const [language, setLanguage] = useState('en');
-const [translationCache, setTranslationCache] = useState({});
-const [isTranslating, setIsTranslating] = useState(false);
-
-const handleLanguageChange = async (lang) => {
-  setLanguage(lang);
-  if (lang === 'hi' && question && !translationCache[question.id]) {
-    setIsTranslating(true);
-    try {
-      const tText = await translateText(question.question_text || question.text);
-      
-      // Options translation
-      let tOptions = [];
-      const opts = question.options || [];
-      if (Array.isArray(opts)) {
-        tOptions = await Promise.all(opts.map(opt => translateText(typeof opt === 'string' ? opt : (opt.text || ''))));
-      }
-
-      setTranslationCache(prev => ({
-        ...prev,
-        [question.id]: { text: tText, options: tOptions }
-      }));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setIsTranslating(false);
-    }
-  }
-};
-
-// Render karte waqt yeh use karein:
-const cachedQ = translationCache[question?.id];
-const displayedQuestion = language === 'hi' 
-  ? (question?.question_text_hi || cachedQ?.text || question?.question_text || question?.text)
-  : (question?.question_text || question?.text);
-  
-<div className="flex items-center bg-neutral-900 border border-neutral-800 rounded-full p-1 shadow-inner">
-  <button
-    onClick={() => setLanguage('en')}
-    className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
-      language === 'en' ? 'bg-amber-500 text-neutral-950 shadow' : 'text-neutral-400 hover:text-white'
-    }`}
-  >
-    EN
-  </button>
-  <button
-    onClick={() => handleLanguageChange('hi')}
-    className={`px-3 py-1 text-xs font-semibold rounded-full transition-all ${
-      language === 'hi' ? 'bg-amber-500 text-neutral-950 shadow' : 'text-neutral-400 hover:text-white'
-    }`}
-  >
-    HI
-  </button>
-</div>
-
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Clock3, Flag, Grid3X3, Languages, ListChecks, LoaderCircle, LockKeyhole, X } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -111,7 +54,7 @@ export default function LiveQuiz() {
   const [remaining, setRemaining] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const submitLock = useRef(false);
@@ -125,8 +68,19 @@ export default function LiveQuiz() {
   useEffect(() => {
     let active = true;
     const initialize = async () => {
-      if (!user || !supabase) {
-        setError('Sign in to start a test. Your attempt and answers must be saved securely.');
+      if (!user) {
+        setError({
+          message: 'User session not found. Please log in first.',
+          technical: ''
+        });
+        setLoading(false);
+        return;
+      }
+      if (!supabase) {
+        setError({
+          message: 'Authentication service is currently unavailable.',
+          technical: ''
+        });
         setLoading(false);
         return;
       }
@@ -135,7 +89,10 @@ export default function LiveQuiz() {
         .eq('id', testId).maybeSingle();
       if (testError) throw testError;
       if (!testData || !['published', 'live', 'available'].includes(String(testData.status).toLowerCase())) {
-        setError('This test is not currently available.');
+        setError({
+          message: 'This test is not currently available.',
+          technical: ''
+        });
         setLoading(false);
         return;
       }
@@ -189,9 +146,14 @@ export default function LiveQuiz() {
       }
     };
 
-    initialize().catch((loadError) => {
+    initialize().catch((err) => {
       if (active) {
-        setError(loadError.message || 'Unable to start this test. Check your connection and try again.');
+        console.error('Failed to load test:', err);
+        const technical = err?.message || (typeof err === 'object' ? JSON.stringify(err) : String(err)) || 'Unknown error';
+        setError({
+          message: 'Something went wrong while loading the test. Please return to the test list and try again.',
+          technical
+        });
         setLoading(false);
       }
     });
@@ -265,7 +227,7 @@ export default function LiveQuiz() {
     if (submitLock.current || !attemptId || !supabase) return;
     submitLock.current = true;
     setSubmitting(true);
-    setError('');
+    setError(null);
     setConfirmSubmit(false);
     if (expired) setTimeExpired(true);
     const p_responses = questions.map((question) => ({
@@ -285,7 +247,10 @@ export default function LiveQuiz() {
     } catch (submitError) {
       submitLock.current = false;
       setSubmitting(false);
-      setError(submitError.message || 'Your responses could not be submitted. Please retry while this attempt is active.');
+      setError({
+        message: submitError?.message || 'Your responses could not be submitted. Please retry while this attempt is active.',
+        technical: submitError?.message || (typeof submitError === 'object' ? JSON.stringify(submitError) : String(submitError))
+      });
     }
   }, [attemptId, supabase, questions, responses, user, testId, navigate]);
 
@@ -321,7 +286,29 @@ export default function LiveQuiz() {
   };
 
   if (loading) return <main className="quiz-loading"><LoadingSkeleton rows={5} /></main>;
-  if (error && !questions?.length) return <main className="quiz-error-page"><div className="quiz-error-card"><div className="locked-icon"><LockKeyhole size={23} /></div><h1>Test unavailable</h1><p>{error}</p><Link className="button button-outline" to="/tests"><ArrowLeft size={15} /> Back to tests</Link></div></main>;
+  if (error && !questions?.length) {
+    const isObject = typeof error === 'object' && error !== null;
+    const errorMessage = isObject ? error.message : error;
+    const technicalError = isObject ? error.technical : '';
+
+    return (
+      <main className="quiz-error-page">
+        <div className="quiz-error-card">
+          <div className="locked-icon"><LockKeyhole size={23} /></div>
+          <h1>{errorMessage === 'User session not found. Please log in first.' ? 'Authentication required' : 'We couldn’t open this test'}</h1>
+          <p>{errorMessage}</p>
+          {technicalError && (
+            <p style={{ color: '#ef4444', fontSize: '13px', marginTop: '8px', wordBreak: 'break-word', fontFamily: 'monospace' }}>
+              {technicalError}
+            </p>
+          )}
+          <Link className="button button-outline" to={!user ? '/auth' : '/tests'}>
+            <ArrowLeft size={15} /> {!user ? 'Log in' : 'Back to tests'}
+          </Link>
+        </div>
+      </main>
+    );
+  }
   if (test && !questions?.length) return <main className="quiz-error-page"><div className="quiz-error-card"><div className="locked-icon"><ListChecks size={23} /></div><h1>Test not ready</h1><p>No questions available in this test yet.</p><Link className="button button-outline" to={test.chapter_id ? `/chapter/${test.chapter_id}` : '/tests'}><ArrowLeft size={15} /> Back to Chapter</Link></div></main>;
   if (!test || !question) return <main className="quiz-error-page"><div className="quiz-error-card"><div className="locked-icon"><LockKeyhole size={23} /></div><h1>Question unavailable</h1><p>We could not load this question. Please return to the test list and try again.</p><Link className="button button-outline" to="/tests"><ArrowLeft size={15} /> Back to tests</Link></div></main>;
 
@@ -343,7 +330,7 @@ export default function LiveQuiz() {
     </header>
     <div className="quiz-instructions">{test?.instructions || 'Choose the best answer. You can mark questions for review and return to them before submitting.'}<span>{attemptedCount}/{questions?.length || 0} answered</span></div>
     {timeExpired && <div className="feedback error-feedback quiz-feedback">Time is up. Your responses are being submitted.</div>}
-    {error && <div className="feedback error-feedback quiz-feedback">{error}</div>}
+    {error && <div className="feedback error-feedback quiz-feedback">{typeof error === 'object' ? error.message : error}</div>}
     <div className="quiz-body">
       <section className="quiz-question-panel">
         <div className="quiz-question-meta"><span>QUESTION {String(currentIndex + 1).padStart(2, '0')}</span>{question?.subject && <span className="subject-pill">{question.subject}</span>}{question?.topic && <span>{question.topic}</span>}</div>
@@ -365,7 +352,7 @@ export default function LiveQuiz() {
         return <button key={item.id} className={`palette-number ${state} ${isOptionE ? 'option-e-selected' : ''} ${currentIndex === index ? 'current' : ''}`} onClick={() => goTo(index)} aria-label={`Question ${index + 1}: ${state}${isOptionE ? ', Option E selected' : ''}`} title={`Question ${index + 1} — ${state}${isOptionE ? ', Option E selected' : ''}`}>{index + 1}</button>;
       })}</div><div className="palette-summary"><span><Check size={14} /> {attemptedCount} answered</span><span><Flag size={14} /> {markedCount} for review</span></div><div className="palette-footer"><span>{questions.length - attemptedCount} unanswered</span><button className="button button-gold" onClick={confirm}>Submit test</button></div></aside>
     </div>
-    {confirmSubmit && <div className="modal-backdrop"><section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="submit-confirm-title"><button className="modal-close" onClick={() => setConfirmSubmit(false)} aria-label="Close"><X size={18} /></button><div className="locked-icon"><ListChecks size={22} /></div><h2 id="submit-confirm-title">Submit your test?</h2><p>You have answered {attemptedCount} of {questions.length} questions and marked {markedCount} for review. Unanswered questions will be submitted blank.</p>{error && <div className="feedback error-feedback">{error}</div>}<div className="modal-actions"><button className="button button-outline" onClick={() => setConfirmSubmit(false)}>Continue test</button><button className="button button-gold" disabled={submitting} onClick={() => submit(false)}>{submitting ? 'Submitting…' : 'Submit test'}</button></div></section></div>}
+    {confirmSubmit && <div className="modal-backdrop"><section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="submit-confirm-title"><button className="modal-close" onClick={() => setConfirmSubmit(false)} aria-label="Close"><X size={18} /></button><div className="locked-icon"><ListChecks size={22} /></div><h2 id="submit-confirm-title">Submit your test?</h2><p>You have answered {attemptedCount} of {questions.length} questions and marked {markedCount} for review. Unanswered questions will be submitted blank.</p>{error && <div className="feedback error-feedback">{typeof error === 'object' ? error.message : error}</div>}<div className="modal-actions"><button className="button button-outline" onClick={() => setConfirmSubmit(false)}>Continue test</button><button className="button button-gold" disabled={submitting} onClick={() => submit(false)}>{submitting ? 'Submitting…' : 'Submit test'}</button></div></section></div>}
     {submitting && <div className="quiz-submitting-overlay"><div className="quiz-submit-spinner" /><span>Submitting your responses securely…</span></div>}
   </main>;
 }

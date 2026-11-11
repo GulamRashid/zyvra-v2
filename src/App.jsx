@@ -87,6 +87,7 @@ function AppRoutes() {
       <Route path="performance" element={<Navigate to="/analytics" replace />} />
       {Object.entries(studentPages).filter(([path]) => path !== '/toolbox').map(([path, page]) => <Route key={path} path={path.slice(1)} element={<StudentPlaceholder page={page} />} />)}
       <Route path="profile" element={<StudentProfile />} />
+      <Route path="settings" element={<Navigate to="/profile" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Route>
     <Route path="*" element={<Navigate to="/" replace />} />

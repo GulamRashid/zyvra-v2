@@ -72,7 +72,7 @@ function loadDailyMinutes(userId) {
 }
 
 export default function StudentHome() {
-  const { profile, coinBalance, guest, user, supabase } = useAuth();
+  const { profile, coinBalance, guest, user, supabase, refreshAccount } = useAuth();
   const { t, language } = useThemeLanguage();
   const { exams, folders, chapters } = useContentCatalog();
   const [dailyMinutes, setDailyMinutes] = useState(() => loadDailyMinutes(user?.id));
@@ -89,6 +89,12 @@ export default function StudentHome() {
   const goal = 30;
   const completedMinutes = Math.min(dailyMinutes, goal);
   const goalPercent = Math.min(100, completedMinutes / goal * 100);
+
+  useEffect(() => {
+    if (user && supabase) {
+      refreshAccount().catch((error) => console.error('Unable to refresh profile on home page load:', error));
+    }
+  }, [user?.id, supabase, refreshAccount]);
 
   useEffect(() => {
     setDailyMinutes(loadDailyMinutes(user?.id));
@@ -179,8 +185,15 @@ export default function StudentHome() {
     }
   };
 
+  const shouldShowOnboarding = Boolean(
+    user &&
+    !guest &&
+    profile &&
+    (profile.onboarding_completed === false || profile.onboarding_completed === null)
+  );
+
   return <div className="dashboard-page">
-    <OnboardingModal />
+    {shouldShowOnboarding && <OnboardingModal />}
     <section className="welcome-row">
       <div>
         <div className="eyebrow">{currentDate.toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div>
