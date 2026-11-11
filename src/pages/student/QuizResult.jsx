@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, BadgeCheck, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, CircleX, Clock3, Coins, Languages, LoaderCircle, Sparkles, Target, Trophy } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getOptionEntries, normalizeRpcObject, unwrapRpcPayload } from '../../lib/tests';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -61,6 +61,7 @@ function SolutionCard({ item, index, language, translations, translating }) {
 
 export default function QuizResult() {
   const { attemptId } = useParams();
+  const location = useLocation();
   const { supabase, refreshAccount } = useAuth();
   const [result, setResult] = useState(null);
   const [solutions, setSolutions] = useState([]);
@@ -73,6 +74,17 @@ export default function QuizResult() {
   const [translatingSolutionId, setTranslatingSolutionId] = useState('');
   const inFlightTranslations = useRef(new Map());
   const currentSolution = solutions[currentSolutionIndex] || null;
+
+  const returnTo = location.state?.returnTo || sessionStorage.getItem('last_quiz_return_url') || (result?.chapter_id ? `/chapter/${result.chapter_id}` : '/tests');
+
+  const getReturnLabel = (path) => {
+    if (!path || path === '/tests') return 'Back to tests';
+    if (path.includes('/chapter/')) return 'Back to Chapter';
+    if (path.includes('/folder/')) return 'Back to Folder';
+    if (path.includes('/explore')) return 'Back to Explore';
+    return 'Back to study space';
+  };
+  const returnLabel = getReturnLabel(returnTo);
 
   useEffect(() => {
     if (activeTab !== 'solutions' || language !== 'hi' || !currentSolution) return undefined;
@@ -157,7 +169,7 @@ export default function QuizResult() {
   }, [supabase, attemptId, refreshAccount]);
 
   if (loading) return <main className="quiz-loading"><LoadingSkeleton rows={5} /></main>;
-  if (error) return <main className="quiz-error-page"><div className="quiz-error-card"><div className="locked-icon"><BookOpen size={22} /></div><h1>Result unavailable</h1><p>{error}</p><Link to="/tests" className="button button-outline"><ArrowLeft size={15} /> Back to tests</Link></div></main>;
+  if (error) return <main className="quiz-error-page"><div className="quiz-error-card"><div className="locked-icon"><BookOpen size={22} /></div><h1>Result unavailable</h1><p>{error}</p><Link to={returnTo} className="button button-outline"><ArrowLeft size={15} /> {returnLabel}</Link></div></main>;
   const scorecard = result.scorecard || result.summary || result;
   const score = Number(valueOf(scorecard, 'score', 'total_score', 'final_score'));
   const rawPercentage = Number(valueOf(scorecard, 'percentage', 'score_percentage'));
@@ -175,7 +187,7 @@ export default function QuizResult() {
   return <main className="quiz-result-page"><header className="result-header"><Link to="/tests" className="quiz-brand"><span className="brand-mark">Z</span><span>ZYVRA<span>YOUR LEARNING JOURNEY</span></span></Link><Link className="result-home-link" to="/">Exit to dashboard <ArrowRight size={15} /></Link></header><div className="result-content">
     <section className="result-celebration"><div className="celebration-spark spark-left"><Sparkles size={23} /></div><div className="result-trophy"><Trophy size={28} /></div><div className="eyebrow">TEST COMPLETE</div><h1>{percentage >= 80 ? 'Wonderful work!' : 'Every attempt moves you forward.'}</h1><p>{result.test_title || result.title || 'Your test results are ready.'}</p><div className="result-primary-stats"><div><strong>{score.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong><span>TOTAL SCORE{totalMarks ? ` / ${totalMarks}` : ''}</span></div><div><strong>{percentage.toLocaleString(undefined, { maximumFractionDigits: 1 })}%</strong><span>PERCENTAGE</span></div><div><strong>{accuracy.toLocaleString(undefined, { maximumFractionDigits: 1 })}%</strong><span>ACCURACY</span></div></div>{coinsEarned > 0 && <div className="reward-earned"><span className="reward-coin-icon"><Coins size={19} /></span><div><strong>+{coinsEarned} Zyvra Coins earned</strong><span>{firstAttempt ? 'First attempt reward' : 'Reward credited to your wallet'}</span></div><BadgeCheck size={18} /></div>}{coinsEarned <= 0 && result.coin_reward_enabled && <div className="reward-not-earned"><Coins size={16} />{firstAttempt && !qualified ? 'Keep practising to meet the reward score.' : 'Coin rewards are available for qualifying first attempts.'}</div>}<div className="celebration-spark spark-right"><Sparkles size={19} /></div></section>
     <div className="result-tabs" role="tablist"><button role="tab" aria-selected={activeTab === 'summary'} className={activeTab === 'summary' ? 'active' : ''} onClick={() => setActiveTab('summary')}><Target size={15} /> Score breakdown</button><button role="tab" aria-selected={activeTab === 'solutions'} className={activeTab === 'solutions' ? 'active' : ''} onClick={() => setActiveTab('solutions')}><BookOpen size={15} /> Solutions & explanations <span>{solutions.length}</span></button></div>
-    {activeTab === 'summary' && <><section className="result-breakdown-grid"><article className="breakdown-card"><span className="breakdown-icon"><Trophy size={17} /></span><span>Total marks</span><strong>{score.toLocaleString(undefined, { maximumFractionDigits: 2 })}{totalMarks ? <small> / {totalMarks}</small> : null}</strong><div className="breakdown-track"><span style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }} /></div></article><article className="breakdown-card positive"><span className="breakdown-icon"><CheckCircle2 size={17} /></span><span>Positive score</span><strong>+{positive.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong><small>Correct answers</small></article><article className="breakdown-card negative"><span className="breakdown-icon"><CircleX size={17} /></span><span>Negative deductions</span><strong>−{negative.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong><small>Incorrect answers</small></article><article className="breakdown-card blank"><span className="breakdown-icon"><Clock3 size={17} /></span><span>Blank penalty deductions</span><strong>−{blankPenalty.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong><small>Mandatory Option E rule</small></article></section><div className="result-next-step"><div><span className="eyebrow">KEEP YOUR MOMENTUM</span><h2>Review your answers and strengthen what you’ve learned.</h2></div><button className="button button-gold" onClick={() => setActiveTab('solutions')}>Review solutions <ArrowRight size={15} /></button></div></>}
+    {activeTab === 'summary' && <><section className="result-breakdown-grid"><article className="breakdown-card"><span className="breakdown-icon"><Trophy size={17} /></span><span>Total marks</span><strong>{score.toLocaleString(undefined, { maximumFractionDigits: 2 })}{totalMarks ? <small> / {totalMarks}</small> : null}</strong><div className="breakdown-track"><span style={{ width: `${Math.min(100, Math.max(0, percentage))}%` }} /></div></article><article className="breakdown-card positive"><span className="breakdown-icon"><CheckCircle2 size={17} /></span><span>Positive score</span><strong>+{positive.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong><small>Correct answers</small></article><article className="breakdown-card negative"><span className="breakdown-icon"><CircleX size={17} /></span><span>Negative deductions</span><strong>−{negative.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong><small>Incorrect answers</small></article><article className="breakdown-card blank"><span className="breakdown-icon"><Clock3 size={17} /></span><span>Blank penalty deductions</span><strong>−{blankPenalty.toLocaleString(undefined, { maximumFractionDigits: 2 })}</strong><small>Mandatory Option E rule</small></article></section><div className="result-next-step"><div><span className="eyebrow">KEEP YOUR MOMENTUM</span><h2>Review your answers or return to continue your syllabus.</h2></div><div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}><Link to={returnTo} className="button button-gold"><ArrowLeft size={15} /> {returnLabel}</Link><button className="button button-outline" onClick={() => setActiveTab('solutions')}>Review solutions <ArrowRight size={15} /></button></div></div></>}
     {activeTab === 'solutions' && <section className="solutions-panel">
       <div className="solutions-heading">
         <div><div className="eyebrow">LEARN FROM EVERY ANSWER</div><h2>Solutions & explanations</h2><p>Review one question at a time and strengthen your understanding.</p></div>
@@ -219,7 +231,7 @@ export default function QuizResult() {
         <button type="button" className="button button-gold" onClick={() => setCurrentSolutionIndex((index) => Math.min(solutions.length - 1, index + 1))} disabled={currentSolutionIndex === solutions.length - 1}>Next <ChevronRight size={16} /></button>
       </div>}
     </section>}
-    <div className="result-footer"><Link to="/tests"><ArrowLeft size={14} /> Back to tests</Link><span>Results and rewards are calculated securely by Zyvra.</span></div>
+    <div className="result-footer"><div style={{ display: 'flex', gap: '14px', alignItems: 'center', flexWrap: 'wrap' }}><Link to={returnTo}><ArrowLeft size={14} /> {returnLabel}</Link>{returnTo !== '/tests' && <Link to="/tests">Browse all tests</Link>}</div><span>Results and rewards are calculated securely by Zyvra.</span></div>
   </div>
   </main>;
 }

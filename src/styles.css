@@ -1591,7 +1591,7 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
   .native-language-toggle button { min-width: 28px; min-height: 28px; padding: 0 6px; font-size: 11px; }
   .quiz-timer { min-width: 80px; gap: 5px; padding: 6px 9px; font-size: 14px; font-weight: 600; }
   .quiz-timer svg { width: 15px; height: 15px; }
-  .quiz-submit-button { min-width: 75px; min-height: 36px; padding: 0 8px; font-size: 11px; font-weight: 700; }
+  .quiz-submit-button { display: none; }
   .quiz-palette-toggle { display: inline-grid; width: 34px; height: 34px; }
   .quiz-instructions { align-items: flex-start; padding: 10px 14px; font-size: 12px; }
   .quiz-instructions > span { font-size: 12px; white-space: nowrap; }

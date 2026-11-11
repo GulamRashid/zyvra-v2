@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Clock3, Flag, Grid3X3, Languages, ListChecks, LoaderCircle, LockKeyhole, X } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { getOptionEntries, getQuestionText, normalizeRpcObject, sanitizeLiveQuestion, unwrapRpcPayload } from '../../lib/tests';
@@ -45,6 +45,7 @@ export default function LiveQuiz() {
   const { testId } = useParams();
   const { user, supabase } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [test, setTest] = useState(null);
   const [attemptId, setAttemptId] = useState('');
   const [questions, setQuestions] = useState([]);
@@ -64,6 +65,16 @@ export default function LiveQuiz() {
   const [translatingQuestionId, setTranslatingQuestionId] = useState('');
   const inFlightTranslations = useRef(new Map());
   const question = questions?.[currentIndex] || null;
+
+  const returnTo = location.state?.returnTo || sessionStorage.getItem('last_quiz_return_url') || (test?.chapter_id ? `/chapter/${test.chapter_id}` : '/tests');
+
+  useEffect(() => {
+    if (location.state?.returnTo) {
+      sessionStorage.setItem('last_quiz_return_url', location.state.returnTo);
+    } else if (test?.chapter_id && !sessionStorage.getItem('last_quiz_return_url')) {
+      sessionStorage.setItem('last_quiz_return_url', `/chapter/${test.chapter_id}`);
+    }
+  }, [location.state?.returnTo, test?.chapter_id]);
 
   useEffect(() => {
     let active = true;
@@ -243,7 +254,7 @@ export default function LiveQuiz() {
       if (submitError) throw submitError;
       if (user) sessionStorage.removeItem(`zyvra-active-attempt-${user.id}-${testId}`);
       sessionStorage.removeItem(`zyvra-responses-${attemptId}`);
-      navigate(`/quiz/result/${attemptId}`, { replace: true });
+      navigate(`/quiz/result/${attemptId}`, { replace: true, state: { returnTo } });
     } catch (submitError) {
       submitLock.current = false;
       setSubmitting(false);
@@ -252,7 +263,7 @@ export default function LiveQuiz() {
         technical: submitError?.message || (typeof submitError === 'object' ? JSON.stringify(submitError) : String(submitError))
       });
     }
-  }, [attemptId, supabase, questions, responses, user, testId, navigate]);
+  }, [attemptId, supabase, questions, responses, user, testId, navigate, returnTo]);
 
   useEffect(() => {
     if (!deadline || submitting) return undefined;
@@ -319,7 +330,7 @@ export default function LiveQuiz() {
       <div className="quiz-header-title"><strong>{test?.title}</strong><span>Question {currentIndex + 1} of {questions?.length || 0}</span></div>
       <div className="quiz-header-actions">
         <div className={`quiz-timer ${remaining < 300 ? 'timer-warning' : ''} text-sm font-semibold`} aria-live="polite"><Clock3 size={16} /><span className="text-sm font-semibold">{formatTime(remaining)}</span></div>
-        <button className="button button-gold quiz-submit-button" disabled={submitting} onClick={confirm}>{submitting ? 'Submitting…' : 'Submit test'}</button>
+        <button className="button button-gold quiz-submit-button hidden sm:inline-flex" disabled={submitting} onClick={confirm}>{submitting ? 'Submitting…' : 'Submit test'}</button>
         <button className="icon-button quiz-palette-toggle" onClick={() => setPaletteOpen(true)} aria-label="Open question palette"><Grid3X3 size={18} /></button>
         <div className="native-language-toggle" role="group" aria-label="Test language">
           <Languages size={14} aria-hidden="true" />
@@ -343,7 +354,30 @@ export default function LiveQuiz() {
           return <button key={key} className={`quiz-option py-3.5 px-4 min-h-[56px] ${selected ? 'selected' : ''} ${key === 'E' ? 'option-e' : ''}`} onClick={() => answer(key)} aria-pressed={selected}><span className="quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-bold rounded-full">{key}</span><span className="quiz-option-text text-base sm:text-lg leading-relaxed"><span lang={language}>{displayedOption}{language === 'hi' && !optionHindi && translatingQuestionId === questionId && <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />}</span></span><span className="quiz-option-check">{selected && <Check size={18} />}</span></button>;
         })}</div>
         <div className="quiz-question-actions"><button className={`review-toggle py-2 px-3 text-sm font-medium ${responses[question.id]?.marked_for_review ? 'marked' : ''}`} onClick={toggleReview}><Flag size={15} /> {responses[question.id]?.marked_for_review ? 'Marked for review' : 'Mark for review'}</button><button className="clear-response py-2 px-3 text-sm font-medium" onClick={clearResponse} disabled={!responses[question.id]?.selected_option}>Clear response</button></div>
-        <div className="quiz-navigation"><button className="button button-outline min-h-[44px] px-4 text-sm font-medium" onClick={() => goTo(Math.max(0, currentIndex - 1))} disabled={!currentIndex}><ChevronLeft size={16} /> Previous</button><span className="text-sm font-semibold">{currentIndex + 1} <small className="text-xs">/ {questions.length}</small></span><button className="button button-gold min-h-[44px] px-4 text-sm font-medium" onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))} disabled={currentIndex === questions.length - 1}>Next <ChevronRight size={16} /></button></div>
+        <div className="quiz-navigation">
+          <button className="button button-outline min-h-[44px] px-4 text-sm font-medium" onClick={() => goTo(Math.max(0, currentIndex - 1))} disabled={!currentIndex}>
+            <ChevronLeft size={16} /> Previous
+          </button>
+          <span className="text-sm font-semibold">{currentIndex + 1} <small className="text-xs">/ {questions.length}</small></span>
+          {currentIndex === questions.length - 1 ? (
+            <button
+              type="button"
+              className="button button-gold min-h-[44px] px-5 text-sm font-bold shadow-md quiz-bottom-submit"
+              disabled={submitting}
+              onClick={confirm}
+            >
+              {submitting ? 'Submitting…' : 'Submit test'}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="button button-gold min-h-[44px] px-4 text-sm font-medium"
+              onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
+            >
+              Next <ChevronRight size={16} />
+            </button>
+          )}
+        </div>
       </section>
       <aside className={`quiz-palette ${paletteOpen ? 'palette-open' : ''}`}><div className="palette-heading"><div><div className="eyebrow">YOUR PROGRESS</div><h2>Question palette</h2></div><button className="icon-button palette-close" onClick={() => setPaletteOpen(false)} aria-label="Close palette"><X size={18} /></button></div><div className="palette-legend"><span><i className="legend-attempted" /> Answered</span><span><i className="legend-unattempted" /> Unanswered</span><span><i className="legend-marked" /> Review</span><span><i className="legend-option-e" /> Option E</span></div><div className="palette-grid">{questions.map((item, index) => {
         const response = responses[item.id];
