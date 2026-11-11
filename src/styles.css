@@ -1084,17 +1084,27 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .family-horizontal { width: 75px; height: 2px; background: var(--muted); }
 .family-row.children .kinship-shape { width: 25px; height: 25px; border-color: var(--accent); }
 .blood-relation-example p { margin: 7px 0 0; color: var(--muted); font-size: 11px; text-align: center; }
-.compass-layout { display: grid; grid-template-columns: minmax(180px, .7fr) minmax(0, 1fr); align-items: center; gap: 20px; }
+.compass-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: 16px; }
 .direction-compass { display: grid; width: min(100%, 290px); aspect-ratio: 1; grid-template: repeat(3, 1fr) / repeat(3, 1fr); justify-self: center; padding: 8px; border: 1px solid var(--line); border-radius: 50%; background: radial-gradient(circle, var(--panel) 46%, var(--bg) 47%); }
-.compass-point { display: grid; align-content: center; justify-items: center; gap: 2px; color: var(--gold); }
+.compass-point { display: grid; align-content: center; justify-items: center; gap: 2px; padding: 0; border: 0; border-radius: 10px; background: transparent; color: var(--gold); cursor: pointer; }
+.compass-point.selected { background: color-mix(in srgb, var(--gold) 13%, transparent); }
 .compass-point strong { font-size: 13px; }
 .compass-point small { color: var(--muted); font-size: 9px; }
 .compass-point.nw { grid-area: 1 / 1; }.compass-point.n { grid-area: 1 / 2; }.compass-point.ne { grid-area: 1 / 3; }
 .compass-point.w { grid-area: 2 / 1; }.compass-point.e { grid-area: 2 / 3; }
 .compass-point.sw { grid-area: 3 / 1; }.compass-point.s { grid-area: 3 / 2; }.compass-point.se { grid-area: 3 / 3; }
-.compass-center { grid-area: 2 / 2; display: grid; place-items: center; color: var(--muted); font-size: 11px; font-weight: 700; }
+.compass-center { position: relative; grid-area: 2 / 2; display: grid; place-items: center; color: var(--text); font-size: 11px; font-weight: 700; }
+.compass-center strong { position: relative; z-index: 1; display: grid; width: 23px; height: 23px; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); font-size: 9px; }
+.compass-needle { position: absolute; top: 10%; left: calc(50% - 1px); width: 2px; height: 43%; transform-origin: 50% 93%; border-radius: 3px; background: var(--gold); }
+.compass-needle::before { position: absolute; top: -4px; left: -3px; width: 8px; height: 8px; background: var(--gold); clip-path: polygon(50% 0, 100% 100%, 50% 75%, 0 100%); content: ''; }
 .direction-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
-.direction-list > div { display: flex; min-width: 0; align-items: center; gap: 7px; padding: 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
+.direction-list { grid-column: 1 / -1; }
+.direction-selection { display: grid; gap: 5px; padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: var(--bg); }
+.direction-selection > span { color: var(--muted); font-size: 12px; }
+.direction-selection > strong { color: var(--gold); font: 750 30px Manrope, sans-serif; }
+.direction-selection > p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.direction-list > button { display: flex; min-width: 0; align-items: center; gap: 7px; padding: 8px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); cursor: pointer; text-align: left; }
+.direction-list > button[aria-pressed="true"] { border-color: color-mix(in srgb, var(--gold) 55%, var(--line)); background: color-mix(in srgb, var(--gold) 7%, var(--bg)); }
 .direction-list strong { min-width: 25px; color: var(--gold); font-size: 12px; }
 .direction-list span { min-width: 0; flex: 1; color: var(--text); font-size: 11px; }
 .direction-list small { color: var(--muted); font-size: 10px; }
@@ -1107,11 +1117,19 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .constitution-search { display: flex; min-width: 0; align-items: center; gap: 9px; color: var(--muted); }
 .constitution-search .text-input { width: 100%; min-width: 0; }
 .constitution-article-list { display: grid; gap: 8px; }
-.constitution-article { display: flex; min-width: 0; align-items: flex-start; gap: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--bg); }
-.constitution-article > span { flex: 0 0 auto; padding: 5px 8px; border-radius: 8px; background: rgba(228, 184, 95, .12); color: var(--gold); font-size: 11px; font-weight: 750; }
-.constitution-article > div { min-width: 0; }
-.constitution-article strong { color: var(--text); font-size: 13px; }
-.constitution-article p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.constitution-article { min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--bg); }
+.constitution-article summary { display: flex; min-width: 0; align-items: center; gap: 12px; cursor: pointer; list-style: none; }
+.constitution-article summary::-webkit-details-marker { display: none; }
+.constitution-article summary > span { flex: 0 0 auto; padding: 5px 8px; border-radius: 8px; background: rgba(228, 184, 95, .12); color: var(--gold); font-size: 11px; font-weight: 750; }
+.constitution-article summary > strong { min-width: 0; color: var(--text); font-size: 13px; }
+.constitution-article p { margin: 9px 0 5px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.constitution-article > small { color: var(--gold); font-size: 10px; }
+.constitution-schedules { padding: 13px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.constitution-schedules > summary { color: var(--text); cursor: pointer; font-weight: 700; }
+.constitution-schedule-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.constitution-schedule-grid > article { display: grid; gap: 4px; padding: 10px; border: 1px solid var(--line); border-radius: 9px; }
+.constitution-schedule-grid strong { color: var(--gold); font-size: 11px; }
+.constitution-schedule-grid span { color: var(--text); font-size: 11px; line-height: 1.45; }
 .unit-converter-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .unit-converter-result { display: flex; min-width: 0; min-height: 78px; align-items: baseline; justify-content: center; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 13px; background: var(--bg); color: var(--accent); overflow-wrap: anywhere; }
 .unit-converter-result strong { font: 750 clamp(24px, 6vw, 36px) Manrope, sans-serif; }
@@ -1120,6 +1138,48 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .notes-saved { display: inline-flex; align-items: center; gap: 5px; color: var(--accent); font-size: 11px; }
 .sticky-notes-textarea { width: 100%; min-height: 280px; resize: vertical; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(var(--panel), var(--panel)), repeating-linear-gradient(transparent 0 31px, color-mix(in srgb, var(--line) 75%, transparent) 32px); color: var(--text); font: 14px/2 Manrope, sans-serif; }
 .sticky-notes-textarea:focus { border-color: var(--gold); outline: 2px solid color-mix(in srgb, var(--gold) 20%, transparent); }
+.sticky-note-form, .sticky-notes-grid, .family-tree-builder, .blood-relation-explanations { display: grid; min-width: 0; gap: 12px; }
+.sticky-note-form .sticky-notes-textarea { min-height: 120px; }
+.sticky-note-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.sticky-notes-grid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.sticky-note-card { display: grid; min-width: 0; gap: 9px; padding: 14px; border: 1px solid var(--line); border-radius: 13px; background: color-mix(in srgb, var(--gold) 7%, var(--bg)); }
+.sticky-note-card-heading { display: flex; min-width: 0; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.sticky-note-card-heading strong { min-width: 0; color: var(--text); overflow-wrap: anywhere; }
+.sticky-note-card-heading time { flex: 0 0 auto; color: var(--muted); font-size: 10px; }
+.sticky-note-card > p { margin: 0; color: var(--text); font-size: 13px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sticky-note-card .sticky-note-actions { justify-content: flex-end; }
+.bookmarks-guidance { display: grid; gap: 10px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); }
+.bookmarks-guidance .empty-content { padding: 8px; }
+.bookmarks-guidance h3 { margin: 0; color: var(--text); font-size: 14px; }
+.bookmarks-guidance ol { display: grid; gap: 8px; margin: 0; padding-left: 22px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.family-tree-builder, .blood-relation-explanations { padding: 15px; border: 1px solid var(--line); border-radius: 13px; background: var(--bg); }
+.family-tree-builder h4, .blood-relation-explanations h4 { margin: 0; color: var(--text); font-size: 14px; }
+.family-tree-parents, .family-tree-children { display: flex; min-width: 0; flex-wrap: wrap; justify-content: center; gap: 12px; }
+.family-tree-person { display: grid; min-width: 0; width: min(100%, 180px); justify-items: center; gap: 7px; color: var(--muted); font-size: 11px; }
+.family-tree-person .text-input { width: 100%; min-width: 0; text-align: center; }
+.family-tree-connector { position: relative; justify-self: center; width: 2px; height: 18px; background: var(--gold); }
+.family-tree-connector::after { position: absolute; top: 100%; left: 50%; width: min(45vw, 190px); height: 2px; transform: translateX(-50%); background: var(--gold); content: ''; }
+.family-tree-children .family-tree-person { grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; }
+.family-tree-add { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; align-items: end; gap: 9px; }
+.blood-relation-explanations > p { margin: 0; padding: 9px 0; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; line-height: 1.5; }
+.blood-relation-explanations > p:last-child { border-bottom: 0; }
+.dice-view-comparison { display: grid; gap: 10px; }
+.dice-view-card { min-width: 0; margin: 0; padding: 13px; border: 1px solid var(--line); border-radius: 12px; }
+.dice-view-card legend { padding: 0 5px; color: var(--text); font-size: 12px; font-weight: 700; }
+.dice-view-inputs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.dice-view-inputs .field-label { min-width: 0; font-size: 10px; }
+.dice-opposite-output { display: grid; justify-items: start; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: var(--bg); }
+.dice-opposite-output > strong { color: var(--text); font-size: 12px; }
+.dice-opposite-output > span { color: var(--gold); font-size: 22px; font-weight: 800; }
+.dice-opposite-output > span b { padding: 0 8px; }
+.dice-opposite-output > small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.formula-hub-group > summary { cursor: pointer; list-style: none; }
+.formula-hub-group > summary::-webkit-details-marker { display: none; }
+.formula-hub-group > summary h3 { display: flex; align-items: center; justify-content: space-between; }
+.formula-hub-group > summary h3::after { content: '⌄'; color: var(--muted); font-size: 18px; }
+.formula-hub-group:not([open]) > summary h3::after { content: '›'; }
+.pomodoro-duration-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; align-items: end; gap: 10px; grid-column: 1 / -1; }
+.pomodoro-duration-form .button { min-height: 42px; }
 .daily-target-add { display: flex; min-width: 0; gap: 9px; }
 .daily-target-add .text-input { min-width: 0; flex: 1; }
 .daily-target-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
@@ -1142,14 +1202,14 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .toolbox-icon { display: grid; width: 43px; height: 43px; flex: 0 0 auto; place-items: center; border-radius: 12px; background: rgba(228, 184, 95, .11); color: var(--gold); }
 .break-mode .toolbox-icon { background: rgba(77, 211, 154, .1); color: var(--accent); }
 .pomodoro-copy h2 { margin: 5px 0; font: 700 19px Manrope, sans-serif; }
-.pomodoro-copy p { margin: 0; color: var(--muted); font-size: 9px; }
+.pomodoro-copy p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
 .pomodoro-clock { color: var(--gold); font: 700 clamp(38px, 7vw, 58px)/1 Manrope, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
 .break-mode .pomodoro-clock { color: var(--accent); }
 .pomodoro-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; grid-column: 1 / -1; }
-.pomodoro-actions .button { min-height: 36px; gap: 6px; font-size: 9px; }
-.pomodoro-mode { min-height: 31px; padding: 0 9px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; font-size: 8px; }
+.pomodoro-actions .button { min-height: 40px; gap: 6px; font-size: 13px; }
+.pomodoro-mode { min-height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--muted); cursor: pointer; font-size: 12px; }
 .pomodoro-mode.active { border-color: rgba(228, 184, 95, .35); background: rgba(228, 184, 95, .08); color: var(--gold); }
-.pomodoro-completed { display: flex; align-items: center; gap: 6px; grid-column: 1 / -1; color: var(--muted); font-size: 8px; }
+.pomodoro-completed { display: flex; align-items: center; gap: 6px; grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
 .pomodoro-completed svg { color: var(--accent); }
 .pomodoro-actions .button:focus-visible, .pomodoro-mode:focus-visible, .toolbox-filters button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 .interactive-math-tool .section-heading h2 { display: flex; align-items: center; gap: 8px; }
@@ -1287,6 +1347,11 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
   .direction-compass { width: min(100%, 250px); }
   .dice-rules-grid { grid-template-columns: minmax(0, 1fr); }
   .unit-converter-controls { grid-template-columns: minmax(0, 1fr); }
+  .dice-view-inputs { grid-template-columns: minmax(0, 1fr); }
+  .family-tree-add { grid-template-columns: minmax(0, 1fr); }
+  .constitution-schedule-grid { grid-template-columns: minmax(0, 1fr); }
+  .pomodoro-duration-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pomodoro-duration-form .button { grid-column: 1 / -1; }
   .sticky-notes-textarea { min-height: 230px; padding: 13px; }
   .daily-target-add { flex-wrap: wrap; }
   .daily-target-add .button { min-width: 84px; justify-content: center; }

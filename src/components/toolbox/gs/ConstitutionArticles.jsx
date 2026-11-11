@@ -1,45 +1,60 @@
 import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
+import { useThemeLanguage } from '../../../context/ThemeLanguageContext';
 
 const articles = [
-  { number: '14', title: 'Equality before law', detail: 'Equality before the law and equal protection of the laws.' },
-  { number: '15', title: 'Prohibition of discrimination', detail: 'Prohibits discrimination on specified grounds; permits special provisions for specified groups.' },
-  { number: '16', title: 'Equality in public employment', detail: 'Equal opportunity in matters of public employment, subject to constitutional provisions.' },
-  { number: '17', title: 'Abolition of untouchability', detail: 'Untouchability is abolished and its practice is forbidden.' },
-  { number: '19', title: 'Six freedoms', detail: 'Protects specified freedoms, including speech and expression, subject to reasonable restrictions.' },
-  { number: '21', title: 'Life and personal liberty', detail: 'No person shall be deprived of life or personal liberty except according to procedure established by law.' },
-  { number: '21A', title: 'Right to education', detail: 'Free and compulsory education for children aged six to fourteen years.' },
-  { number: '32', title: 'Constitutional remedies', detail: 'Right to move the Supreme Court for enforcement of Fundamental Rights.' },
-  { number: '40', title: 'Organisation of village panchayats', detail: 'Directive Principle encouraging village panchayats as units of self-government.' },
-  { number: '44', title: 'Uniform civil code', detail: 'Directive Principle concerning a uniform civil code for citizens.' },
-  { number: '51A', title: 'Fundamental duties', detail: 'Lists the fundamental duties of citizens.' },
-  { number: '72', title: 'President’s pardoning power', detail: 'Power of the President to grant pardons and related forms of clemency in specified cases.' },
-  { number: '110', title: 'Money Bills', detail: 'Defines a Money Bill and its constitutional scope.' },
-  { number: '123', title: 'President’s ordinance power', detail: 'Power to promulgate ordinances when Parliament is not in session, subject to constitutional limits.' },
-  { number: '148', title: 'Comptroller and Auditor-General', detail: 'Provides for the Comptroller and Auditor-General of India.' },
-  { number: '280', title: 'Finance Commission', detail: 'Provides for the Finance Commission and its constitution.' },
-  { number: '324', title: 'Election Commission', detail: 'Vests superintendence, direction and control of elections in the Election Commission.' },
-  { number: '352', title: 'National Emergency', detail: 'Proclamation of Emergency on grounds specified in the Constitution.' },
-  { number: '356', title: 'President’s Rule in States', detail: 'Provisions for failure of constitutional machinery in a State.' },
-  { number: '360', title: 'Financial Emergency', detail: 'Provisions for a Financial Emergency.' }
+  ['14', 'tbArticle14Title', 'tbArticle14Detail', 'tbPartIII'],
+  ['15', 'tbArticle15Title', 'tbArticle15Detail', 'tbPartIII'],
+  ['16', 'tbArticle16Title', 'tbArticle16Detail', 'tbPartIII'],
+  ['17', 'tbArticle17Title', 'tbArticle17Detail', 'tbPartIII'],
+  ['19', 'tbArticle19Title', 'tbArticle19Detail', 'tbPartIII'],
+  ['21', 'tbArticle21Title', 'tbArticle21Detail', 'tbPartIII'],
+  ['21A', 'tbArticle21ATitle', 'tbArticle21ADetail', 'tbPartIII'],
+  ['32', 'tbArticle32Title', 'tbArticle32Detail', 'tbPartIII'],
+  ['40', 'tbArticle40Title', 'tbArticle40Detail', 'tbPartIV'],
+  ['44', 'tbArticle44Title', 'tbArticle44Detail', 'tbPartIV'],
+  ['51A', 'tbArticle51ATitle', 'tbArticle51ADetail', 'tbPartIVA'],
+  ['72', 'tbArticle72Title', 'tbArticle72Detail', 'tbPartV'],
+  ['110', 'tbArticle110Title', 'tbArticle110Detail', 'tbPartV'],
+  ['123', 'tbArticle123Title', 'tbArticle123Detail', 'tbPartV'],
+  ['148', 'tbArticle148Title', 'tbArticle148Detail', 'tbPartV'],
+  ['280', 'tbArticle280Title', 'tbArticle280Detail', 'tbPartXII'],
+  ['324', 'tbArticle324Title', 'tbArticle324Detail', 'tbPartXV'],
+  ['352', 'tbArticle352Title', 'tbArticle352Detail', 'tbPartXVIII'],
+  ['356', 'tbArticle356Title', 'tbArticle356Detail', 'tbPartXVIII'],
+  ['360', 'tbArticle360Title', 'tbArticle360Detail', 'tbPartXVIII']
 ];
 
+const schedules = Array.from({ length: 12 }, (_, index) => {
+  const number = index + 1;
+  return [number, `tbSchedule${number}Title`];
+});
+
 export default function ConstitutionArticles() {
+  const { t } = useThemeLanguage();
   const [query, setQuery] = useState('');
   const results = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    return term ? articles.filter((article) => `${article.number} ${article.title} ${article.detail}`.toLowerCase().includes(term)) : articles;
-  }, [query]);
+    const term = query.trim().toLocaleLowerCase();
+    return articles.filter(([number, title, detail, part]) =>
+      !term || `${number} ${t(title)} ${t(detail)} ${t(part)}`.toLocaleLowerCase().includes(term));
+  }, [query, t]);
 
   return <section className="toolbox-section mini-tool">
-    <div><div className="eyebrow">INDIAN POLITY</div><h3>Frequently asked Constitution articles</h3></div>
-    <label className="constitution-search"><Search size={17} /><input className="text-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search article number or topic" /></label>
+    <div><div className="eyebrow">{t('tbIndianPolity')}</div><h3>{t('tbFrequentlyAsked')}</h3></div>
+    <label className="constitution-search"><Search size={17} /><input className="text-input" type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t('tbSearchArticles')} /></label>
     <div className="constitution-article-list" aria-live="polite">
-      {results.map((article) => <article className="constitution-article" key={article.number}>
-        <span>Article {article.number}</span><div><strong>{article.title}</strong><p>{article.detail}</p></div>
-      </article>)}
-      {!results.length && <div className="empty-content"><strong>No matching articles</strong><span>Try a different number or keyword.</span></div>}
+      {results.map(([number, title, detail, part]) => <details className="constitution-article" key={number}>
+        <summary><span>{t('tbArticle')} {number}</span><strong>{t(title)}</strong></summary>
+        <p>{t(detail)}</p><small>{t('tbPart')} · {t(part)}</small>
+      </details>)}
+      {!results.length && <div className="empty-content"><strong>{t('tbNoArticles')}</strong><span>{t('tbTryKeyword')}</span></div>}
     </div>
-    <p className="field-hint">Exam revision notes; refer to the Constitution of India for authoritative wording and amendments.</p>
+    <details className="constitution-schedules">
+      <summary>{t('tbSchedulesOverview')}</summary>
+      <div className="constitution-schedule-grid">{schedules.map(([number, title]) => <article key={number}>
+        <strong>{t('tbSchedule')} {number}</strong><span>{t(title)}</span>
+      </article>)}</div>
+    </details>
+    <p className="field-hint">{t('tbArticlesDisclaimer')}</p>
   </section>;
 }

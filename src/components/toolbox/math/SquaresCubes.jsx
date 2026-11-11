@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import MathRenderer from '../../common/MathRenderer';
+import { useThemeLanguage } from '../../../context/ThemeLanguageContext';
 
 function format(value) {
   return Number.isFinite(value) ? Number(value.toPrecision(8)).toString() : '—';
 }
 
 export default function SquaresCubes() {
+  const { t } = useThemeLanguage();
   const [input, setInput] = useState('12');
   const value = Number(input);
   const results = useMemo(() => {
@@ -19,17 +21,17 @@ export default function SquaresCubes() {
   }, [input, value]);
 
   return <section className="toolbox-section mini-tool">
-    <label className="field-label">Enter a number (N)
+    <label className="field-label">{t('tbEnterN')}
       <input className="text-input" type="number" step="any" inputMode="decimal" value={input} onChange={(event) => setInput(event.target.value)} />
     </label>
     <div className="toolbox-formula-grid squares-cubes-results" aria-live="polite">
-      <article className="toolbox-formula-card"><strong>Square</strong><MathRenderer formula={`${input || 'N'}^2 = ${results?.square || '—'}`} /></article>
-      <article className="toolbox-formula-card"><strong>Cube</strong><MathRenderer formula={`${input || 'N'}^3 = ${results?.cube || '—'}`} /></article>
-      <article className="toolbox-formula-card"><strong>Square root</strong>{results?.squareRoot !== null && results?.squareRoot !== undefined ? <MathRenderer formula={`\\sqrt{${input || 'N'}} = ${results.squareRoot}`} /> : <span>Real square root is undefined for negative values.</span>}</article>
-      <article className="toolbox-formula-card"><strong>Cube root</strong><MathRenderer formula={`\\sqrt[3]{${input || 'N'}} = ${results?.cubeRoot || '—'}`} /></article>
+      <article className="toolbox-formula-card"><strong>{t('tbSquare')}</strong><MathRenderer formula={`${input || 'N'}^2 = ${results?.square || '—'}`} /></article>
+      <article className="toolbox-formula-card"><strong>{t('tbCube')}</strong><MathRenderer formula={`${input || 'N'}^3 = ${results?.cube || '—'}`} /></article>
+      <article className="toolbox-formula-card"><strong>{t('tbSquareRoot')}</strong>{results?.squareRoot !== null && results?.squareRoot !== undefined ? <MathRenderer formula={`\\sqrt{${input || 'N'}} = ${results.squareRoot}`} /> : <span>{t('tbNegativeSqrt')}</span>}</article>
+      <article className="toolbox-formula-card"><strong>{t('tbCubeRoot')}</strong><MathRenderer formula={`\\sqrt[3]{${input || 'N'}} = ${results?.cubeRoot || '—'}`} /></article>
     </div>
     <div className="square-reference-wrap">
-      <h3>Squares & cubes: 1 to 30</h3>
+      <h3>{t('tbSquaresReference')}</h3>
       <div className="square-reference-scroll">
         <table className="square-reference-table">
           <thead><tr><th>n</th><th>n²</th><th>n³</th></tr></thead>

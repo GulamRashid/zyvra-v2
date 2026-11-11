@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Bookmark, BookOpen, Brain, Calculator, Clock3, LockKeyhole, Percent, Shapes, Superscript, Wrench, ChevronRight, StickyNote, ListChecks, Compass, Dices, Scale, Sigma, Binary } from 'lucide-react';
+import { ArrowLeft, Bookmark, BookOpen, Brain, Calculator, Clock3, LockKeyhole, Percent, Shapes, Superscript, Wrench, ChevronRight, StickyNote, ListChecks, Compass, Dices, Scale, Sigma, Binary, TrendingUp, Landmark } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
@@ -10,69 +10,85 @@ import SmartCalculator from '../../components/toolbox/math/SmartCalculator';
 import FractionConverter from '../../components/toolbox/math/FractionConverter';
 import SquaresCubes from '../../components/toolbox/math/SquaresCubes';
 import MathFormulaHub from '../../components/toolbox/math/MathFormulaHub';
+import UnitConverter from '../../components/toolbox/math/UnitConverter';
+import ProfitLossCalculator from '../../components/toolbox/math/ProfitLossCalculator';
+import InterestCalculator from '../../components/toolbox/math/InterestCalculator';
 import AlphabetPositions from '../../components/toolbox/reasoning/AlphabetPositions';
 import BloodRelations from '../../components/toolbox/reasoning/BloodRelations';
 import DirectionCompass from '../../components/toolbox/reasoning/DirectionCompass';
 import DiceRules from '../../components/toolbox/reasoning/DiceRules';
 import ConstitutionArticles from '../../components/toolbox/gs/ConstitutionArticles';
-import UnitConverter from '../../components/toolbox/gs/UnitConverter';
 import StickyNotes from '../../components/toolbox/productivity/StickyNotes';
 import PomodoroTimer from '../../components/toolbox/productivity/PomodoroTimer';
 import DailyTargets from '../../components/toolbox/productivity/DailyTargets';
 import ToolUnlockModal from '../../components/toolbox/ToolUnlockModal';
 
-const TOOL_TITLES = {
-  calculator: 'Smart Calculator',
-  'fraction-converter': 'Fraction & Percentage Converter',
-  'powers-roots': 'Squares, Cubes & Roots',
-  'geometry-formulas': 'Math Formula Hub',
-  'alphabet-positions': 'Alphabet Positions',
-  'blood-relations': 'Blood Relations',
-  'direction-compass': 'Direction Compass',
-  'dice-rules': 'Dice Rules',
-  'constitution-articles': 'Constitution Articles',
-  'unit-converter': 'Unit Converter',
-  'sticky-notes': 'Sticky Notes',
-  'daily-targets': 'Daily Targets',
-  'reasoning-formulas': 'Reasoning & Logic Formulas',
-  pomodoro: 'Pomodoro Study Timer',
-  'polity-articles': 'Constitution & Articles',
-  'saved-bookmarks': 'Saved Bookmarks'
-};
-
 const CATEGORY_CONFIG = [
-  { id: 'math', title: 'Quantitative Aptitude', subtitle: 'Calculate, convert and revise formulas', Icon: Calculator, color: 'gold' },
-  { id: 'reasoning', title: 'Reasoning & Logic', subtitle: 'Patterns, rules and revision sheets', Icon: Brain, color: 'violet' },
-  { id: 'productivity', title: 'Productivity', subtitle: 'Focus sessions and mindful breaks', Icon: Clock3, color: 'green' },
-  { id: 'general-studies', title: 'General Studies', subtitle: 'Polity references and study resources', Icon: BookOpen, color: 'blue' }
+  { id: 'math', titleKey: 'tbCategoryMath', subtitleKey: 'tbCategoryMathDesc', Icon: Calculator, color: 'gold' },
+  { id: 'reasoning', titleKey: 'tbCategoryReasoning', subtitleKey: 'tbCategoryReasoningDesc', Icon: Brain, color: 'violet' },
+  { id: 'productivity', titleKey: 'tbCategoryProductivity', subtitleKey: 'tbCategoryProductivityDesc', Icon: Clock3, color: 'green' },
+  { id: 'general-studies', titleKey: 'tbCategoryGs', subtitleKey: 'tbCategoryGsDesc', Icon: BookOpen, color: 'blue' }
 ];
 
 const CATEGORY_TOOLS = {
   math: [
-    { id: 'calculator', title: TOOL_TITLES.calculator, subtitle: 'Everyday calculations', Icon: Calculator, accessKey: 'math-shortcuts' },
-    { id: 'fraction-converter', title: TOOL_TITLES['fraction-converter'], subtitle: 'Convert percentages to fractions', Icon: Percent, accessKey: 'math-shortcuts' },
-    { id: 'powers-roots', title: TOOL_TITLES['powers-roots'], subtitle: 'Squares, cubes, roots and a 1–30 reference table', Icon: Superscript, accessKey: 'math-shortcuts' },
-    { id: 'geometry-formulas', title: TOOL_TITLES['geometry-formulas'], subtitle: 'Algebra, mensuration and trigonometry', Icon: Shapes, accessKey: 'math-shortcuts' }
+    { id: 'calculator', titleKey: 'tbCalculator', subtitleKey: 'tbCalculatorDesc', Icon: Calculator, accessKey: 'math-shortcuts' },
+    { id: 'fraction-converter', titleKey: 'tbFraction', subtitleKey: 'tbFractionDesc', Icon: Percent, accessKey: 'math-shortcuts' },
+    { id: 'powers-roots', titleKey: 'tbSquares', subtitleKey: 'tbSquaresDesc', Icon: Superscript, accessKey: 'math-shortcuts' },
+    { id: 'geometry-formulas', titleKey: 'tbMathFormulas', subtitleKey: 'tbMathFormulasDesc', Icon: Shapes, accessKey: 'math-shortcuts' },
+    { id: 'unit-converter', titleKey: 'tbUnitConverter', subtitleKey: 'tbUnitConverterDesc', Icon: Scale, accessKey: 'math-shortcuts' },
+    { id: 'profit-loss', titleKey: 'tbProfitLoss', subtitleKey: 'tbProfitLossDesc', Icon: TrendingUp, accessKey: 'math-shortcuts' },
+    { id: 'interest-calculator', titleKey: 'tbInterest', subtitleKey: 'tbInterestDesc', Icon: Percent, accessKey: 'math-shortcuts' }
   ],
   reasoning: [
-    { id: 'alphabet-positions', title: TOOL_TITLES['alphabet-positions'], subtitle: 'Forward positions and reverse pairs', Icon: Binary, accessKey: 'formula-sheet' },
-    { id: 'blood-relations', title: TOOL_TITLES['blood-relations'], subtitle: 'Family-tree symbols and generations', Icon: Brain, accessKey: 'formula-sheet' },
-    { id: 'direction-compass', title: TOOL_TITLES['direction-compass'], subtitle: 'Eight directions with clockwise angles', Icon: Compass, accessKey: 'formula-sheet' },
-    { id: 'dice-rules', title: TOOL_TITLES['dice-rules'], subtitle: 'Standard and general dice rules', Icon: Dices, accessKey: 'formula-sheet' },
-    { id: 'reasoning-formulas', title: TOOL_TITLES['reasoning-formulas'], subtitle: 'Quick quantitative reasoning reference', Icon: Sigma, accessKey: 'formula-sheet' }
+    { id: 'alphabet-positions', titleKey: 'tbAlphabet', subtitleKey: 'tbAlphabetDesc', Icon: Binary, accessKey: 'formula-sheet' },
+    { id: 'blood-relations', titleKey: 'tbBlood', subtitleKey: 'tbBloodDesc', Icon: Brain, accessKey: 'formula-sheet' },
+    { id: 'direction-compass', titleKey: 'tbDirectionTool', subtitleKey: 'tbDirectionDesc', Icon: Compass, accessKey: 'formula-sheet' },
+    { id: 'dice-rules', titleKey: 'tbDice', subtitleKey: 'tbDiceDesc', Icon: Dices, accessKey: 'formula-sheet' },
+    { id: 'reasoning-formulas', titleKey: 'tbReasoningFormulas', subtitleKey: 'tbReasoningFormulasDesc', Icon: Sigma, accessKey: 'formula-sheet' }
   ],
   productivity: [
-    { id: 'pomodoro', title: TOOL_TITLES.pomodoro, subtitle: '25-minute focus and 5-minute break cycles', Icon: Clock3, accessKey: 'pomodoro' },
-    { id: 'sticky-notes', title: TOOL_TITLES['sticky-notes'], subtitle: 'A private, locally saved rough pad', Icon: StickyNote, accessKey: 'pomodoro' },
-    { id: 'daily-targets', title: TOOL_TITLES['daily-targets'], subtitle: 'Create and track today’s study checklist', Icon: ListChecks, accessKey: 'pomodoro' }
+    { id: 'pomodoro', titleKey: 'tbPomodoro', subtitleKey: 'tbPomodoroDesc', Icon: Clock3, accessKey: 'pomodoro' },
+    { id: 'sticky-notes', titleKey: 'tbStickyNotes', subtitleKey: 'tbStickyNotesDesc', Icon: StickyNote, accessKey: 'pomodoro' },
+    { id: 'daily-targets', titleKey: 'tbDailyTargets', subtitleKey: 'tbDailyTargetsDesc', Icon: ListChecks, accessKey: 'pomodoro' }
   ],
   'general-studies': [
-    { id: 'constitution-articles', title: TOOL_TITLES['constitution-articles'], subtitle: 'Search frequently asked Indian Constitution articles', Icon: BookOpen, accessKey: 'polity-articles' },
-    { id: 'unit-converter', title: TOOL_TITLES['unit-converter'], subtitle: 'Length, temperature and land area conversions', Icon: Scale, accessKey: 'polity-articles' },
-    { id: 'polity-articles', title: TOOL_TITLES['polity-articles'], subtitle: 'Browse the syllabus and polity chapters', Icon: BookOpen, accessKey: 'polity-articles' },
-    { id: 'saved-bookmarks', title: TOOL_TITLES['saved-bookmarks'], subtitle: 'Continue from saved items', Icon: Bookmark, accessKey: null }
+    { id: 'constitution-articles', titleKey: 'tbConstitution', subtitleKey: 'tbConstitutionDesc', Icon: Landmark, accessKey: 'polity-articles' },
+    { id: 'saved-bookmarks', titleKey: 'tbBookmarks', subtitleKey: 'tbBookmarksDesc', Icon: Bookmark, accessKey: null }
   ]
 };
+
+const POMODORO_STORAGE_KEY = 'zyvra-toolbox-pomodoro';
+
+function readPomodoro() {
+  const fallback = { mode: 'focus', remaining: 25 * 60, running: false, completed: 0, focusMinutes: 25, breakMinutes: 5 };
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(POMODORO_STORAGE_KEY) || 'null');
+    if (!stored || !['focus', 'break'].includes(stored.mode)) return fallback;
+    const state = {
+      mode: stored.mode,
+      remaining: Math.max(0, Math.floor(Number(stored.remaining) || 0)),
+      running: stored.running === true,
+      completed: Math.max(0, Math.floor(Number(stored.completed) || 0)),
+      focusMinutes: Math.min(180, Math.max(1, Math.floor(Number(stored.focusMinutes) || 25))),
+      breakMinutes: Math.min(60, Math.max(1, Math.floor(Number(stored.breakMinutes) || 5)))
+    };
+    if (!state.running) return state;
+    let elapsed = Math.max(0, Math.floor((Date.now() - Number(stored.updatedAt || Date.now())) / 1000));
+    state.remaining = Math.max(1, state.remaining);
+    while (elapsed >= state.remaining) {
+      elapsed -= state.remaining;
+      if (state.mode === 'focus') state.completed += 1;
+      state.mode = state.mode === 'focus' ? 'break' : 'focus';
+      state.remaining = (state.mode === 'focus' ? state.focusMinutes : state.breakMinutes) * 60;
+    }
+    state.remaining = Math.max(0, state.remaining - elapsed);
+    return state;
+  } catch (error) {
+    console.error('Unable to restore the Toolbox timer:', error);
+    return fallback;
+  }
+}
 
 export default function StudentToolbox() {
   const { user } = useAuth();
@@ -98,6 +114,31 @@ export default function StudentToolbox() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeTool, setActiveTool] = useState(null);
   const [unlockTool, setUnlockTool] = useState(null);
+  const [pomodoro, setPomodoro] = useState(readPomodoro);
+  const [timerPersistenceError, setTimerPersistenceError] = useState('');
+  useEffect(() => {
+    if (!pomodoro.running) return undefined;
+    const timer = window.setInterval(() => setPomodoro((current) => {
+      if (current.remaining > 1) return { ...current, remaining: current.remaining - 1 };
+      const nextMode = current.mode === 'focus' ? 'break' : 'focus';
+      return {
+        ...current,
+        mode: nextMode,
+        remaining: (nextMode === 'focus' ? current.focusMinutes : current.breakMinutes) * 60,
+        completed: current.completed + (current.mode === 'focus' ? 1 : 0)
+      };
+    }), 1000);
+    return () => window.clearInterval(timer);
+  }, [pomodoro.running]);
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(POMODORO_STORAGE_KEY, JSON.stringify({ ...pomodoro, updatedAt: Date.now() }));
+      setTimerPersistenceError('');
+    } catch (storageError) {
+      console.error('Unable to save the Toolbox timer:', storageError);
+      setTimerPersistenceError('tbTimerSaveError');
+    }
+  }, [pomodoro, t]);
   const refreshToolAccess = async (pricing = toolPricing, comboEnabled = comboPricing.price > 0) => {
     setAccessError('');
     if (!user?.id || !supabase) {
@@ -137,7 +178,7 @@ export default function StudentToolbox() {
     setToolAccess(Object.fromEntries(results.map(({ id, allowed }) => [id, allowed])));
     setToolboxLoaded(true);
     const failed = results.find((result) => result.error);
-    if (failed) setAccessError(failed.error.message || 'Access check failed. Premium tools remain locked.');
+    if (failed) setAccessError(failed.error.message || t('tbAccessError'));
   };
 
   useEffect(() => {
@@ -150,8 +191,8 @@ export default function StudentToolbox() {
       setAccessError('');
       setSettingsUnavailable(false);
       if (!supabase) {
-          setError('Connect to Zyvra to verify Toolbox access and load your bookmarks.');
-          setAccessError('Pricing and purchase status could not be verified.');
+          setError(t('tbNoSupabase'));
+          setAccessError(t('tbPricingUnavailable'));
           setSettingsUnavailable(true);
           setToolboxLoaded(true);
           setLoading(false);
@@ -164,7 +205,7 @@ export default function StudentToolbox() {
       if (settingsResult.error) throw settingsResult.error;
       if (!active) return;
       if (bookmarkResult.error) {
-          setError(`Bookmarks could not be loaded: ${bookmarkResult.error.message}`);
+          setError(`${t('tbBookmarksLoadError')}: ${bookmarkResult.error.message}`);
       } else {
           setBookmarks(bookmarkResult.data || []);
       }
@@ -204,26 +245,26 @@ export default function StudentToolbox() {
     };
     load().catch((loadError) => {
       if (active) {
-        setError(loadError.message || 'Unable to load your study toolbox.');
-        setAccessError(loadError.message || 'Pricing and purchase status could not be verified.');
+        setError(loadError.message || t('tbLoadError'));
+        setAccessError(loadError.message || t('tbPricingUnavailable'));
         setSettingsUnavailable(true);
         setToolboxLoaded(true);
         setLoading(false);
       }
     });
     return () => { active = false; };
-  }, [user]);
+  }, [user, t]);
 
   useEffect(() => {
     const hasPremiumTools = Object.values(toolPricing).some((config) => config?.access_type === 'premium');
     if (!user?.id || !toolboxLoaded || !hasPremiumTools) return undefined;
     const interval = window.setInterval(() => {
       refreshToolAccess(toolPricing, comboPricing.price > 0).catch((accessLoadError) => {
-        setAccessError(accessLoadError.message || 'Unable to refresh premium tool access.');
+        setAccessError(accessLoadError.message || t('tbAccessError'));
       });
     }, 60_000);
     return () => window.clearInterval(interval);
-  }, [user?.id, toolboxLoaded, toolPricing, comboPricing.price]);
+  }, [user?.id, toolboxLoaded, toolPricing, comboPricing.price, t]);
 
   const savedBookmarks = bookmarks;
 
@@ -271,8 +312,8 @@ export default function StudentToolbox() {
       setCheckout({
         itemType: 'tool',
         itemId,
-        itemTitle: `Study Toolbox: ${TOOL_TITLES[tool.id] || tool.title || 'Premium tool'}`,
-        tier: `${config.validity_days} days access`,
+        itemTitle: `${t('toolboxTitle')}: ${t(tool.titleKey)}`,
+        tier: `${config.validity_days} ${t('tbDays')}`,
         basePrice: config.price
       });
     }
@@ -282,8 +323,8 @@ export default function StudentToolbox() {
       setCheckout({
         itemType: 'toolbox_combo',
         itemId: 'all-tools',
-        itemTitle: 'Study Toolbox: Unlock All Tools',
-        tier: `${comboPricing.validity_days} days access`,
+        itemTitle: `${t('toolboxTitle')}: ${t('tbUnlockAllTools')}`,
+        tier: `${comboPricing.validity_days} ${t('tbDays')}`,
         basePrice: comboPricing.price
       });
     }
@@ -291,21 +332,27 @@ export default function StudentToolbox() {
 
   const currentCategory = CATEGORY_CONFIG.find((category) => category.id === activeCategory);
   const currentTool = (CATEGORY_TOOLS[activeCategory] || []).find((tool) => tool.id === activeTool);
+  const currentCategoryTitle = currentCategory ? t(currentCategory.titleKey) : '';
+  const currentToolTitle = currentTool ? t(currentTool.titleKey) : '';
   const visibleCategories = CATEGORY_CONFIG.filter((category) => (CATEGORY_TOOLS[category.id] || []).some(isToolVisible));
 
   const renderReasoningHub = () => <section className="toolbox-section mini-tool">
-    <div className="section-heading"><div><div className="eyebrow">QUICK REFERENCE</div><h2>Reasoning & Logic</h2></div></div>
+    <div className="section-heading"><div><div className="eyebrow">{t('tbReasoningEyebrow')}</div><h2>{t('tbReasoningTitle')}</h2></div></div>
     <div className="toolbox-formula-grid">
-      <article className="toolbox-formula-card"><strong>Average</strong><span>Sum of observations ÷ Number of observations</span></article>
-      <article className="toolbox-formula-card"><strong>Speed</strong><span>Distance ÷ Time</span></article>
-      <article className="toolbox-formula-card"><strong>Percentage</strong><span>(Part ÷ Whole) × 100</span></article>
-      <article className="toolbox-formula-card"><strong>Ratio</strong><span>Compare quantities in the same units.</span></article>
+      <article className="toolbox-formula-card"><strong>{t('tbSyllogism')}</strong><span>{t('tbSyllogism1')}</span><span>{t('tbSyllogism2')}</span><span>{t('tbSyllogism3')}</span><span>{t('tbSyllogism4')}</span></article>
+      <article className="toolbox-formula-card"><strong>{t('tbClock')}</strong><span>{t('tbClockFormula')}</span></article>
+      <article className="toolbox-formula-card"><strong>{t('tbCalendar')}</strong><span>{t('tbOddDays')}</span><span>{t('tbLeapYear')}</span><span>{t('tbCalendarCentury')}</span></article>
     </div>
   </section>;
 
   const renderBookmarks = () => <section className="toolbox-section">
     <div className="section-heading"><div><div className="eyebrow">{t('savedForLater').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div><h2>{t('savedBookmarks')}</h2></div><span className="chapter-item-count">{bookmarks.length} {t('saved')}</span></div>
-    {loading ? <p className="field-hint">{t('loadingBookmarks')}</p> : !savedBookmarks.length ? <div className="empty-content"><Bookmark size={22} /><strong>{t('bookmarksEmpty')}</strong><span>{t('bookmarkHint')}</span></div> : <div className="toolbox-bookmark-list">{savedBookmarks.map((bookmark) => {
+    {loading ? <p className="field-hint">{t('loadingBookmarks')}</p> : !savedBookmarks.length ? <div className="bookmarks-guidance">
+      <div className="empty-content"><Bookmark size={22} /><strong>{t('tbBookmarksEmptyTitle')}</strong><span>{t('bookmarkHint')}</span></div>
+      <h3>{t('tbBookmarksHowTo')}</h3>
+      <ol><li>{t('tbBookmarkInstruction1')}</li><li>{t('tbBookmarkInstruction2')}</li><li>{t('tbBookmarkInstruction3')}</li></ol>
+      {!user?.id && <p className="field-hint">{t('tbNoBookmarksSignIn')}</p>}
+    </div> : <div className="toolbox-bookmark-list">{savedBookmarks.map((bookmark) => {
       const title = bookmark.title || (bookmark.question_id ? t('question') : bookmark.chapter_id ? t('chapter') : t('saved'));
       const destination = bookmark.chapter_id ? `/chapter/${bookmark.chapter_id}` : '/tests';
       return <button className="toolbox-bookmark-row" key={bookmark.id || `${bookmark.user_id}-${bookmark.item_id || bookmark.resource_id || bookmark.chapter_id || bookmark.question_id}`} onClick={() => navigate(destination)}><Bookmark size={16} /><span><strong>{title}</strong><small>{bookmark.question_id ? t('question') : bookmark.resource_id ? t('studyResource') : t('chapter')}</small></span><BookOpen size={15} /></button>;
@@ -317,6 +364,9 @@ export default function StudentToolbox() {
     if (activeTool === 'fraction-converter') return <FractionConverter />;
     if (activeTool === 'powers-roots') return <SquaresCubes />;
     if (activeTool === 'geometry-formulas') return <MathFormulaHub />;
+    if (activeTool === 'unit-converter') return <UnitConverter />;
+    if (activeTool === 'profit-loss') return <ProfitLossCalculator />;
+    if (activeTool === 'interest-calculator') return <InterestCalculator />;
     if (activeTool === 'alphabet-positions') return <AlphabetPositions />;
     if (activeTool === 'blood-relations') return <BloodRelations />;
     if (activeTool === 'direction-compass') return <DirectionCompass />;
@@ -327,54 +377,66 @@ export default function StudentToolbox() {
     if (activeTool === 'daily-targets') return <DailyTargets />;
     if (activeTool === 'reasoning-formulas') return renderReasoningHub();
     if (activeTool === 'saved-bookmarks') return renderBookmarks();
-    if (activeTool === 'polity-articles') return <section className="toolbox-deep-link-card">
-      <span className="toolbox-icon"><BookOpen size={19} /></span>
-      <div><strong>Constitution & Articles</strong><p>Open your syllabus to browse polity chapters and revision resources.</p></div>
-      <button type="button" className="button button-outline" onClick={() => navigate('/explore')}>Explore syllabus <ArrowRight size={15} /></button>
-    </section>;
-    if (activeTool === 'pomodoro') return <PomodoroTimer />;
+    if (activeTool === 'pomodoro') return <PomodoroTimer
+      mode={pomodoro.mode}
+      remaining={pomodoro.remaining}
+      running={pomodoro.running}
+      completed={pomodoro.completed}
+      focusMinutes={pomodoro.focusMinutes}
+      breakMinutes={pomodoro.breakMinutes}
+      onToggle={() => setPomodoro((current) => ({ ...current, running: !current.running }))}
+      onReset={() => setPomodoro((current) => ({ ...current, running: false, remaining: (current.mode === 'focus' ? current.focusMinutes : current.breakMinutes) * 60 }))}
+      onSelectMode={(mode) => setPomodoro((current) => ({ ...current, mode, running: false, remaining: (mode === 'focus' ? current.focusMinutes : current.breakMinutes) * 60 }))}
+      onApplyTimes={(focusMinutes, breakMinutes) => setPomodoro((current) => ({
+        ...current,
+        focusMinutes,
+        breakMinutes,
+        remaining: (current.mode === 'focus' ? focusMinutes : breakMinutes) * 60
+      }))}
+    />;
     return null;
   };
 
   return <div className="toolbox-page mini-app-os">
     <div className="page-heading toolbox-os-heading">
       <div>
-        <div className="eyebrow">{language === 'hi' ? 'आपका अध्ययन स्थान / टूलबॉक्स' : 'YOUR LEARNING SPACE / TOOLBOX'}</div>
-        <h1>{currentTool?.title || currentCategory?.title || t('toolboxTitle')}</h1>
-        <p>{currentTool?.subtitle || currentCategory?.subtitle || t('toolboxDescription')}</p>
+        <div className="eyebrow">{t('tbLearningSpace')}</div>
+        <h1>{currentToolTitle || currentCategoryTitle || t('toolboxTitle')}</h1>
+        <p>{(currentTool ? t(currentTool.subtitleKey) : currentCategory ? t(currentCategory.subtitleKey) : t('toolboxDescription'))}</p>
       </div>
     </div>
     {(currentView !== 'main-menu') && <div className="toolbox-breadcrumb">
-      <button type="button" className="button button-outline" onClick={goBack}><ArrowLeft size={16} /> {currentView === 'active-tool' ? `Back to ${currentCategory?.title || 'Category'}` : 'Back to Toolbox'}</button>
-      <div aria-label="Breadcrumb"><span>Toolbox</span><ChevronRight size={14} /><span>{currentCategory?.title}</span>{currentView === 'active-tool' && <><ChevronRight size={14} /><strong>{currentTool?.title}</strong></>}</div>
+      <button type="button" className="button button-outline" onClick={goBack}><ArrowLeft size={16} /> {currentView === 'active-tool' ? `${t('tbBack')} ${currentCategoryTitle}` : t('tbBackToolbox')}</button>
+      <div aria-label={t('tbBreadcrumb')}><span>{t('tbBreadcrumb')}</span><ChevronRight size={14} /><span>{currentCategoryTitle}</span>{currentView === 'active-tool' && <><ChevronRight size={14} /><strong>{currentToolTitle}</strong></>}</div>
     </div>}
-    {accessError && <div className="feedback error-feedback"><LockKeyhole size={15} /> Access verification failed; premium tools stay locked. {accessError}</div>}
+    {accessError && <div className="feedback error-feedback"><LockKeyhole size={15} /> {t('tbAccessError')} {accessError}</div>}
     {error && <div className="feedback error-feedback">{error}</div>}
+    {timerPersistenceError && <div className="feedback error-feedback">{t(timerPersistenceError)}</div>}
 
-    {currentView === 'main-menu' && <section className="toolbox-app-grid" aria-label="Toolbox categories">
-      {visibleCategories.map(({ id, title, subtitle, Icon, color }) => <button type="button" className={`toolbox-app-card ${color}`} key={id} onClick={() => openCategory(id)}>
-        <span className="toolbox-app-icon"><Icon size={24} /></span><span className="toolbox-app-copy"><strong>{title}</strong><small>{subtitle}</small></span><ChevronRight className="toolbox-app-arrow" size={18} />
+    {currentView === 'main-menu' && <section className="toolbox-app-grid" aria-label={t('tbAllCategories')}>
+      {visibleCategories.map(({ id, titleKey, subtitleKey, Icon, color }) => <button type="button" className={`toolbox-app-card ${color}`} key={id} onClick={() => openCategory(id)}>
+        <span className="toolbox-app-icon"><Icon size={24} /></span><span className="toolbox-app-copy"><strong>{t(titleKey)}</strong><small>{t(subtitleKey)}</small></span><ChevronRight className="toolbox-app-arrow" size={18} />
       </button>)}
-      {!visibleCategories.length && <div className="empty-content"><Wrench size={22} /><strong>No Toolbox categories are available right now.</strong></div>}
+      {!visibleCategories.length && <div className="empty-content"><Wrench size={22} /><strong>{t('tbNoCategories')}</strong></div>}
     </section>}
 
-    {currentView === 'category-menu' && <section className="toolbox-tool-grid" aria-label={`${currentCategory?.title || 'Tool'} tools`}>
+    {currentView === 'category-menu' && <section className="toolbox-tool-grid" aria-label={currentCategoryTitle}>
       {(CATEGORY_TOOLS[activeCategory] || []).filter(isToolVisible).map((tool) => {
         const locked = isToolLocked(tool);
         const Icon = tool.Icon;
         return <button type="button" className={`toolbox-tool-card ${locked ? 'locked' : ''}`} key={tool.id} onClick={() => openTool(tool)}>
           <span className="toolbox-app-icon"><Icon size={23} /></span>
-          <span className="toolbox-app-copy"><strong>{tool.title}</strong><small>{tool.subtitle}</small></span>
+          <span className="toolbox-app-copy"><strong>{t(tool.titleKey)}</strong><small>{t(tool.subtitleKey)}</small></span>
           {locked ? <LockKeyhole className="toolbox-tool-lock" size={17} /> : <ChevronRight className="toolbox-app-arrow" size={18} />}
           {locked && <span className="toolbox-tool-price">{`₹${Number(getToolConfig(tool).price || 0).toLocaleString('en-IN')}`}</span>}
         </button>;
       })}
-      {!loading && !(CATEGORY_TOOLS[activeCategory] || []).some(isToolVisible) && <div className="empty-content"><Wrench size={22} /><strong>No tools are available in this category right now.</strong></div>}
+      {!loading && !(CATEGORY_TOOLS[activeCategory] || []).some(isToolVisible) && <div className="empty-content"><Wrench size={22} /><strong>{t('tbNoTools')}</strong></div>}
     </section>}
 
-    {currentView === 'active-tool' && currentTool && !toolboxLoaded && <div className="toolbox-access-loading" role="status">Checking access…</div>}
+    {currentView === 'active-tool' && currentTool && !toolboxLoaded && <div className="toolbox-access-loading" role="status">{t('tbCheckingAccess')}</div>}
     {currentView === 'active-tool' && currentTool && toolboxLoaded && isToolLocked(currentTool) && <ToolUnlockModal
-      title={currentTool.title}
+      title={currentToolTitle}
       price={getToolConfig(currentTool).price}
       validityDays={getToolConfig(currentTool).validity_days}
       comboPrice={comboPricing.price}
@@ -384,10 +446,10 @@ export default function StudentToolbox() {
       onClose={goBack}
     />}
     {currentView === 'active-tool' && currentTool && toolboxLoaded && !isToolLocked(currentTool) && renderActiveTool()}
-    {currentView === 'active-tool' && <p className="toolbox-footnote"><Wrench size={14} /> {t('timerLocalNote')}</p>}
-    {checkout && <CheckoutModal {...checkout} onClose={() => setCheckout(null)} onCompleted={() => refreshToolAccess().catch((accessError) => setError(accessError.message || 'Unable to verify your Toolbox purchase.'))} />}
+    {currentView === 'active-tool' && <p className="toolbox-footnote"><Wrench size={14} /> {t('tbActiveToolNote')}</p>}
+    {checkout && <CheckoutModal {...checkout} onClose={() => setCheckout(null)} onCompleted={() => refreshToolAccess().catch((accessError) => setError(accessError.message || t('tbPurchaseVerifyError')))} />}
     {unlockTool && <ToolUnlockModal
-      title={unlockTool.title}
+      title={t(unlockTool.titleKey)}
       price={getToolConfig(unlockTool).price}
       validityDays={getToolConfig(unlockTool).validity_days}
       comboPrice={comboPricing.price}

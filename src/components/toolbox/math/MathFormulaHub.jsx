@@ -1,42 +1,50 @@
 import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import { useThemeLanguage } from '../../../context/ThemeLanguageContext';
 
 const groups = [
   {
-    title: 'Algebraic identities',
+    key: 'tbAlgebra',
     formulas: [
-      ['Square of a sum', '(a+b)^2 = a^2 + 2ab + b^2'],
-      ['Square of a difference', '(a-b)^2 = a^2 - 2ab + b^2'],
-      ['Difference of squares', 'a^2-b^2 = (a-b)(a+b)'],
-      ['Sum of cubes', 'a^3+b^3 = (a+b)(a^2-ab+b^2)'],
-      ['Difference of cubes', 'a^3-b^3 = (a-b)(a^2+ab+b^2)'],
-      ['Cube of a sum', '(a+b)^3 = a^3+3a^2b+3ab^2+b^3']
+      ['tbSquareSum', '(a+b)^2 = a^2 + 2ab + b^2'],
+      ['tbSquareDifference', '(a-b)^2 = a^2 - 2ab + b^2'],
+      ['tbDifferenceSquares', 'a^2-b^2 = (a-b)(a+b)'],
+      ['tbSumCubes', 'a^3+b^3 = (a+b)(a^2-ab+b^2)'],
+      ['tbDifferenceCubes', 'a^3-b^3 = (a-b)(a^2+ab+b^2)'],
+      ['tbCubeSum', '(a+b)^3 = a^3+3a^2b+3ab^2+b^3']
     ]
   },
   {
-    title: 'Mensuration',
+    key: 'tbMensuration2D',
     formulas: [
-      ['Circle area', 'A = \\pi r^2'],
-      ['Circle circumference', 'C = 2\\pi r'],
-      ['Sphere volume', 'V = \\frac{4}{3}\\pi r^3'],
-      ['Sphere surface area', 'SA = 4\\pi r^2'],
-      ['Cylinder volume', 'V = \\pi r^2h'],
-      ['Cylinder curved surface area', 'CSA = 2\\pi rh'],
-      ['Cone volume', 'V = \\frac{1}{3}\\pi r^2h'],
-      ['Cone slant height', 'l = \\sqrt{r^2+h^2}'],
-      ['Cuboid volume', 'V = lwh'],
-      ['Cuboid total surface area', 'TSA = 2(lw+wh+hl)'],
-      ['Rectangle area', 'A = l \\times w'],
-      ['Triangle area', 'A = \\frac{1}{2}bh']
+      ['tbCircleArea', 'A = \\pi r^2'],
+      ['tbCircleCircumference', 'C = 2\\pi r'],
+      ['tbTriangleArea', 'A = \\frac{1}{2}bh'],
+      ['tbRectangleArea', 'A = lw'],
+      ['tbParallelogramArea', 'A = bh'],
+      ['tbTrapeziumArea', 'A = \\frac{1}{2}(a+b)h']
     ]
   },
   {
-    title: 'Trigonometric identities',
+    key: 'tbMensuration3D',
     formulas: [
-      ['Pythagorean identity', '\\sin^2\\theta + \\cos^2\\theta = 1'],
-      ['Tangent identity', '1 + \\tan^2\\theta = \\sec^2\\theta'],
-      ['Cotangent identity', '1 + \\cot^2\\theta = \\csc^2\\theta'],
-      ['Complementary angles', '\\sin(90^\\circ-\\theta) = \\cos\\theta']
+      ['tbCuboidVolume', 'V = lwh'],
+      ['tbCuboidSurface', 'TSA = 2(lw+wh+hl)'],
+      ['tbCubeVolume', 'V = a^3'],
+      ['tbSphereVolume', 'V = \\frac{4}{3}\\pi r^3'],
+      ['tbSphereSurface', 'SA = 4\\pi r^2'],
+      ['tbCylinderVolume', 'V = \\pi r^2h'],
+      ['tbCylinderCurved', 'CSA = 2\\pi rh'],
+      ['tbConeVolume', 'V = \\frac{1}{3}\\pi r^2h'],
+      ['tbConeSlant', 'l = \\sqrt{r^2+h^2}']
+    ]
+  },
+  {
+    key: 'tbTrigonometry',
+    formulas: [
+      ['tbPythagorean', '\\sin^2\\theta + \\cos^2\\theta = 1'],
+      ['tbTangentIdentity', '1 + \\tan^2\\theta = \\sec^2\\theta'],
+      ['tbCotangentIdentity', '1 + \\cot^2\\theta = \\csc^2\\theta'],
+      ['tbComplementary', '\\sin(90^\\circ-\\theta) = \\cos\\theta']
     ]
   }
 ];
@@ -46,7 +54,7 @@ const trigValues = [
   ['30°', '\\frac{1}{2}', '\\frac{\\sqrt{3}}{2}', '\\frac{1}{\\sqrt{3}}'],
   ['45°', '\\frac{1}{\\sqrt{2}}', '\\frac{1}{\\sqrt{2}}', '1'],
   ['60°', '\\frac{\\sqrt{3}}{2}', '\\frac{1}{2}', '\\sqrt{3}'],
-  ['90°', '1', '0', 'Undefined']
+  ['90°', '1', '0', null]
 ];
 
 function MathMarkup({ formula }) {
@@ -55,22 +63,23 @@ function MathMarkup({ formula }) {
 }
 
 export default function MathFormulaHub() {
+  const { t } = useThemeLanguage();
   return <div className="formula-hub">
-    {groups.map((group) => <section className="toolbox-section mini-tool" key={group.title}>
-      <h3>{group.title}</h3>
+    {groups.map((group) => <details className="toolbox-section mini-tool formula-hub-group" key={group.key}>
+      <summary><h3>{t(group.key)}</h3></summary>
       <div className="toolbox-formula-grid">
         {group.formulas.map(([name, formula]) => <article className="toolbox-formula-card" key={name}>
-          <strong>{name}</strong><MathMarkup formula={formula} />
+          <strong>{t(name)}</strong><MathMarkup formula={formula} />
         </article>)}
       </div>
-    </section>)}
+    </details>)}
     <section className="toolbox-section mini-tool">
-      <h3>Standard angle table</h3>
+      <h3>{t('tbStandardAngleTable')}</h3>
       <div className="trig-table-scroll">
         <table className="square-reference-table trig-table">
-          <thead><tr><th>Angle</th><th>sin θ</th><th>cos θ</th><th>tan θ</th></tr></thead>
+          <thead><tr><th>{t('tbAngle')}</th><th>{t('tbSine')}</th><th>{t('tbCosine')}</th><th>{t('tbTangent')}</th></tr></thead>
           <tbody>{trigValues.map(([angle, sin, cos, tan]) => <tr key={angle}>
-            <th>{angle}</th><td><MathMarkup formula={sin} /></td><td><MathMarkup formula={cos} /></td><td>{tan === 'Undefined' ? tan : <MathMarkup formula={tan} />}</td>
+            <th>{angle}</th><td><MathMarkup formula={sin} /></td><td><MathMarkup formula={cos} /></td><td>{tan ? <MathMarkup formula={tan} /> : '—'}</td>
           </tr>)}</tbody>
         </table>
       </div>

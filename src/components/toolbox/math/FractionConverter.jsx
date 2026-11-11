@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import MathRenderer from '../../common/MathRenderer';
+import { useThemeLanguage } from '../../../context/ThemeLanguageContext';
 
 function gcd(a, b) {
   let left = Math.abs(a);
@@ -25,6 +26,7 @@ function approximateFraction(decimal) {
 }
 
 export default function FractionConverter() {
+  const { t } = useThemeLanguage();
   const [percentage, setPercentage] = useState('16.66');
   const [numerator, setNumerator] = useState('1');
   const [denominator, setDenominator] = useState('6');
@@ -42,29 +44,30 @@ export default function FractionConverter() {
 
   return <div className="fraction-converter-stack">
     <section className="toolbox-section mini-tool">
-      <div><div className="eyebrow">PERCENTAGE TO FRACTION</div><h3>Convert a percentage</h3></div>
-      <label className="field-label">Percentage (%)
+      <div><div className="eyebrow">{t('tbPercentToFraction')}</div><h3>{t('tbConvertPercent')}</h3></div>
+      <label className="field-label">{t('tbPercentageLabel')}
         <div className="fraction-input-wrap"><input className="text-input" type="number" step="any" inputMode="decimal" value={percentage} onChange={(event) => setPercentage(event.target.value)} /><span>%</span></div>
       </label>
       <div className="fraction-result" aria-live="polite">
         {converted
           ? <MathRenderer formula={`${percentage}\\% \\approx \\frac{${converted.numerator}}{${converted.denominator}}`} />
-          : <span>Enter a valid percentage to convert it.</span>}
+          : <span>{t('tbFractionInvalid')}</span>}
       </div>
-      <p className="field-hint">The simplest familiar fraction is chosen when the decimal percentage is rounded (for example, 16.66% ≈ 1/6).</p>
+      <p className="field-hint">{t('tbFractionApproxNote')}</p>
     </section>
     <section className="toolbox-section mini-tool">
-      <div><div className="eyebrow">FRACTION TO PERCENTAGE</div><h3>Convert a fraction</h3></div>
+      <div><div className="eyebrow">{t('tbFractionToPercent')}</div><h3>{t('tbConvertFraction')}</h3></div>
       <div className="fraction-parts">
-        <label className="field-label">Numerator<input className="text-input" type="number" step="any" inputMode="decimal" value={numerator} onChange={(event) => setNumerator(event.target.value)} /></label>
+        <label className="field-label">{t('tbNumerator')}<input className="text-input" type="number" step="any" inputMode="decimal" value={numerator} onChange={(event) => setNumerator(event.target.value)} /></label>
         <span className="fraction-divider">÷</span>
-        <label className="field-label">Denominator<input className="text-input" type="number" step="any" inputMode="decimal" value={denominator} onChange={(event) => setDenominator(event.target.value)} /></label>
+        <label className="field-label">{t('tbDenominator')}<input className="text-input" type="number" step="any" inputMode="decimal" value={denominator} onChange={(event) => setDenominator(event.target.value)} /></label>
       </div>
       <div className="fraction-result" aria-live="polite">
         {fractionPercent !== null
           ? <MathRenderer formula={`\\frac{${numerator}}{${denominator}} = ${Number(fractionPercent.toFixed(4))}\\%`} />
-          : <span>Enter a valid fraction with a non-zero denominator.</span>}
+          : <span>{t('tbFractionInvalidDenom')}</span>}
       </div>
+      {fractionPercent !== null && <p className="field-hint">{t('tbSimplifiedFraction')}</p>}
     </section>
   </div>;
 }
