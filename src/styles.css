@@ -642,7 +642,7 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
   .action-icon { width: 34px; height: 34px; }
   .lower-grid { grid-template-columns: 1fr; gap: 10px; }
   .practice-card { min-height: 180px; }
-  .mobile-bottom-nav { position: fixed; z-index: 30; right: 0; bottom: 0; left: 0; display: grid; height: calc(61px + env(safe-area-inset-bottom)); grid-template-columns: repeat(6, minmax(0, 1fr)); padding: 5px 5px env(safe-area-inset-bottom); border-top: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 95%, transparent); backdrop-filter: blur(17px); }
+  .mobile-bottom-nav { position: fixed; z-index: 30; right: 0; bottom: 0; left: 0; display: grid; height: calc(61px + env(safe-area-inset-bottom)); grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 5px 5px env(safe-area-inset-bottom); border-top: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 95%, transparent); backdrop-filter: blur(17px); }
   .bottom-link { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; color: var(--muted); font-size: 8px; }
   .bottom-link.active { color: var(--gold); }
   .bottom-link span { max-width: 66px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -1471,7 +1471,11 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .quiz-submitting-overlay { position: fixed; z-index: 80; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(3, 11, 8, .8); color: var(--text); font-size: 11px; backdrop-filter: blur(5px); }
 .quiz-submit-spinner { width: 34px; height: 34px; border: 3px solid var(--line); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; }
 .quiz-submitting-overlay small { max-width: min(440px, calc(100vw - 36px)); color: var(--muted); text-align: center; }
-.quiz-loading { width: min(800px, 100%); margin: 10vh auto; padding: 24px; }
+.quiz-loading, .page-loading { display: flex; align-items: center; justify-content: center; min-height: 50vh; width: 100%; margin: 0 auto; padding: 24px; }
+.zyvra-loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; padding: 36px 20px; gap: 16px; text-align: center; }
+.zyvra-loader-brand { position: relative; display: grid; place-items: center; width: 68px; height: 68px; }
+.zyvra-loader-ring { position: absolute; inset: -4px; border-radius: 50%; border: 2.5px solid transparent; border-top-color: var(--gold); border-right-color: rgba(228, 184, 95, .3); animation: spin 1.2s linear infinite; }
+.zyvra-loader-text { margin: 0; font-family: Manrope, sans-serif; font-size: 13px; font-weight: 500; color: var(--muted); letter-spacing: .02em; }
 .quiz-error-page { display: grid; min-height: 100vh; place-items: center; padding: 20px; background: var(--bg); }
 .quiz-error-card { display: flex; width: min(100%, 420px); flex-direction: column; align-items: center; padding: 26px; border: 1px solid var(--line); border-radius: 15px; background: var(--panel); text-align: center; }
 .quiz-error-card h1 { margin: 0 0 7px; font: 700 19px Manrope, sans-serif; }
@@ -1538,30 +1542,30 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .review-navigation .button { justify-self: start; }
 .review-navigation .button:last-child { justify-self: end; }
 .review-navigation > span { color: var(--muted); font-size: 9px; font-weight: 600; }
-.solution-card { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
-.solution-question-heading { display: flex; align-items: flex-start; gap: 9px; }
-.solution-result-icon { display: grid; width: 29px; height: 29px; flex: 0 0 auto; place-items: center; border-radius: 8px; }
+.solution-card { padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.solution-question-heading { display: flex; align-items: flex-start; gap: 12px; }
+.solution-result-icon { display: grid; width: 32px; height: 32px; flex: 0 0 auto; place-items: center; border-radius: 9px; }
 .solution-result-icon.correct { background: rgba(77, 211, 154, .1); color: var(--accent); }
 .solution-result-icon.incorrect { background: rgba(234, 117, 103, .1); color: #f19b8f; }
 .solution-result-icon.skipped { background: var(--panel2); color: var(--muted); }
-.solution-question-heading h3 { margin: 4px 0; font: 600 11px/1.5 Manrope, sans-serif; }
-.solution-question-heading .qbank-hindi { font-size: 9px; }
-.solution-options { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin: 11px 0; }
-.solution-option { display: flex; align-items: center; gap: 7px; padding: 7px; border: 1px solid var(--line); border-radius: 7px; color: var(--muted); font-size: 8px; }
-.solution-option > b { color: var(--gold); }
+.solution-question-heading h3 { margin: 6px 0; font: 600 16px/1.55 Manrope, sans-serif; }
+.solution-question-heading .qbank-hindi { font-size: 14px; }
+.solution-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; }
+.solution-option { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; color: var(--muted); font-size: 14px; min-height: 48px; }
+.solution-option > b { color: var(--gold); font-size: 14px; }
 .solution-option > span { display: grid; flex: 1; gap: 2px; }
 .solution-option > span small { color: var(--muted); }
-.solution-option > em { color: var(--accent); font-size: 7px; font-style: normal; white-space: nowrap; }
-.solution-option.correct-answer { border-color: rgba(77, 211, 154, .25); background: rgba(77, 211, 154, .05); color: var(--text); }
-.solution-option.wrong-answer { border-color: rgba(234, 117, 103, .3); background: rgba(234, 117, 103, .05); }
+.solution-option > em { color: var(--accent); font-size: 12px; font-style: normal; font-weight: 600; white-space: nowrap; }
+.solution-option.correct-answer { border-color: rgba(77, 211, 154, .35); background: rgba(77, 211, 154, .07); color: var(--text); }
+.solution-option.wrong-answer { border-color: rgba(234, 117, 103, .35); background: rgba(234, 117, 103, .07); }
 .solution-option.wrong-answer > em { color: #f19b8f; }
-.solution-answer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; padding: 8px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 8px; }
-.solution-answer-row strong { color: var(--text); }
+.solution-answer-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; font-weight: 500; }
+.solution-answer-row strong { color: var(--text); font-weight: 600; }
 .solution-answer-row .subject-pill { margin-left: auto; }
-.solution-explanation { margin-top: 7px; padding: 10px; border-left: 2px solid var(--gold); border-radius: 0 7px 7px 0; background: var(--panel2); }
-.solution-explanation > strong { color: var(--gold); font-size: 8px; }
-.solution-explanation > p { margin: 4px 0 0; color: var(--text); font-size: 8px; line-height: 1.6; }
-.solution-card .distractor-details p { margin: 6px 0; font-size: 8px; }
+.solution-explanation { margin-top: 12px; padding: 14px; border-left: 3px solid var(--gold); border-radius: 0 10px 10px 0; background: var(--panel2); }
+.solution-explanation > strong { color: var(--gold); font-size: 13px; font-weight: 700; }
+.solution-explanation > p { margin: 6px 0 0; color: var(--text); font-size: 14px; line-height: 1.65; }
+.solution-card .distractor-details p { margin: 6px 0; font-size: 12px; }
 .result-footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 4px; }
 .result-footer > a { display: inline-flex; align-items: center; gap: 5px; color: var(--gold); font-size: 9px; font-weight: 700; }
 .result-footer > span { color: var(--muted); font-size: 7px; }
@@ -1652,8 +1656,8 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
   .review-toolbar { align-items: stretch; flex-direction: column-reverse; }
   .review-toolbar .native-language-toggle { align-self: flex-end; }
   .review-navigation { gap: 5px; }
-  .review-navigation .button { min-height: 34px; padding: 0 8px; font-size: 8px; }
-  .review-navigation > span { font-size: 8px; text-align: center; }
+  .review-navigation .button { min-height: 38px; padding: 0 12px; font-size: 12px; }
+  .review-navigation > span { font-size: 12px; text-align: center; }
   .solution-options { grid-template-columns: 1fr; }
   .solution-answer-row .subject-pill { margin-left: 0; }
   .result-footer { align-items: flex-start; flex-direction: column; }

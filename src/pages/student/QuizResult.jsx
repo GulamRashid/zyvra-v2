@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, BadgeCheck, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, CircleX, Clock3, Coins, Languages, LoaderCircle, Sparkles, Target, Trophy } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BadgeCheck, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, CircleX, Clock3, Coins, LoaderCircle, Sparkles, Target, Trophy } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getOptionEntries, normalizeRpcObject, unwrapRpcPayload } from '../../lib/tests';
@@ -41,9 +41,9 @@ function SolutionCard({ item, index, language, translations, translating }) {
   const isCorrect = item.is_correct ?? item.response?.is_correct ?? (hasSelection && String(chosenKey).toUpperCase() === String(correctKey).toUpperCase());
   return <article className="solution-card">
     <div className="solution-question-heading">
-      <span className={`solution-result-icon ${isCorrect ? 'correct' : hasSelection ? 'incorrect' : 'skipped'}`}>{isCorrect ? <CheckCircle2 size={16} /> : hasSelection ? <CircleX size={16} /> : <span>—</span>}</span>
+      <span className={`solution-result-icon ${isCorrect ? 'correct' : hasSelection ? 'incorrect' : 'skipped'}`}>{isCorrect ? <CheckCircle2 size={18} /> : hasSelection ? <CircleX size={18} /> : <span>—</span>}</span>
       <div><span className="eyebrow">QUESTION {String(index + 1).padStart(2, '0')}</span>
-        <h3 lang={language} aria-busy={translating}>{displayedQuestion || 'Question text unavailable.'}{language === 'hi' && !questionHindi && !translations.question && translating && <LoaderCircle className="translation-inline-spinner" size={14} aria-label="Translating" />}</h3>
+        <h3 className="text-base sm:text-lg font-semibold leading-relaxed" lang={language} aria-busy={translating}>{displayedQuestion || 'Question text unavailable.'}{language === 'hi' && !questionHindi && !translations.question && translating && <LoaderCircle className="translation-inline-spinner" size={14} aria-label="Translating" />}</h3>
       </div>
     </div>
     <div className="solution-options">{options.map(([key, option]) => {
@@ -52,10 +52,10 @@ function SolutionCard({ item, index, language, translations, translating }) {
     const displayedOption = language === 'hi' ? hindiText || text : text;
     const selectedOption = String(chosenKey || '').toUpperCase() === key;
     const correctOption = String(correctKey || '').toUpperCase() === key;
-    return <div key={key} className={`solution-option ${correctOption ? 'correct-answer' : ''} ${selectedOption && !correctOption ? 'wrong-answer' : ''}`}><b>{key}</b><span lang={language}>{displayedOption}{language === 'hi' && !getStoredHindi(option) && !translations[`option:${key}`] && translating && <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />}</span>{selectedOption && <em>Your answer</em>}{correctOption && <em>Correct answer</em>}</div>;
+    return <div key={key} className={`solution-option text-sm sm:text-base py-3 px-4 ${correctOption ? 'correct-answer' : ''} ${selectedOption && !correctOption ? 'wrong-answer' : ''}`}><b>{key}</b><span lang={language}>{displayedOption}{language === 'hi' && !getStoredHindi(option) && !translations[`option:${key}`] && translating && <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />}</span>{selectedOption && <em className="text-xs sm:text-sm font-semibold">Your answer</em>}{correctOption && <em className="text-xs sm:text-sm font-semibold">Correct answer</em>}</div>;
   })}</div>
-    <div className="solution-answer-row"><span>Your answer: <strong>{Array.isArray(selected) && selected.length ? selected.join(', ') : chosenKey || 'Not answered'}</strong></span><span>Correct answer: <strong>{Array.isArray(correct) ? correct.join(', ') : correctKey || 'Unavailable'}</strong></span>{question.subject && <span className="subject-pill">{question.subject}</span>}</div>
-    {explanation && <div className="solution-explanation"><strong>Explanation</strong><p lang={language}>{displayedExplanation}{language === 'hi' && !explanationHindi && !translations.explanation && translating && <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />}</p></div>}
+    <div className="solution-answer-row text-xs sm:text-sm"><span>Your answer: <strong>{Array.isArray(selected) && selected.length ? selected.join(', ') : chosenKey || 'Not answered'}</strong></span><span>Correct answer: <strong>{Array.isArray(correct) ? correct.join(', ') : correctKey || 'Unavailable'}</strong></span>{question.subject && <span className="subject-pill">{question.subject}</span>}</div>
+    {explanation && <div className="solution-explanation"><strong className="text-sm font-bold">Explanation</strong><p className="text-sm sm:text-base leading-relaxed text-neutral-700 dark:text-neutral-300" lang={language}>{displayedExplanation}{language === 'hi' && !explanationHindi && !translations.explanation && translating && <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />}</p></div>}
   </article>;
 }
 
@@ -211,7 +211,6 @@ export default function QuizResult() {
           })}
         </div>
         <div className="native-language-toggle" role="group" aria-label="Review language">
-          <Languages size={14} aria-hidden="true" />
           <button type="button" className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>EN</button>
           <button type="button" className={language === 'hi' ? 'active' : ''} aria-pressed={language === 'hi'} onClick={() => setLanguage('hi')}>HI</button>
         </div>
@@ -231,15 +230,10 @@ export default function QuizResult() {
         <button type="button" className="button button-gold" onClick={() => setCurrentSolutionIndex((index) => Math.min(solutions.length - 1, index + 1))} disabled={currentSolutionIndex === solutions.length - 1}>Next <ChevronRight size={16} /></button>
       </div>}
     </section>}
-    <div className="result-footer" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <div className="result-footer-buttons" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', width: '100%' }}>
-        <Link to={returnTo} className="button button-outline" style={{ minHeight: '44px', padding: '0 18px', borderRadius: '12px', fontSize: '13px', fontWeight: 600 }}>
-          <ArrowLeft size={16} /> {returnLabel}
-        </Link>
-        <Link to="/tests" className="button button-quiet" style={{ minHeight: '44px', padding: '0 18px', borderRadius: '12px', fontSize: '13px', fontWeight: 600 }}>
-          Browse all tests <ArrowRight size={15} />
-        </Link>
-      </div>
+    <div className="result-footer" style={{ display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'flex-start' }}>
+      <Link to="/tests" className="button button-outline" style={{ minHeight: '44px', padding: '0 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 600 }}>
+        Browse all tests <ArrowRight size={15} />
+      </Link>
       <span>Results and rewards are calculated securely by Zyvra.</span>
     </div>
   </div>

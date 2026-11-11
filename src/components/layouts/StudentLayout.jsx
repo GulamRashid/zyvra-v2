@@ -67,7 +67,6 @@ export default function StudentLayout() {
       <main className="content-area"><div className="mobile-welcome">Welcome back, {name}</div><Outlet /></main>
       <nav className="mobile-bottom-nav">
         {sections.filter(({ key }) => ['home', 'explore', 'tests', 'toolbox', 'profile'].includes(key)).map(({ to, Icon, ...item }) => <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => `bottom-link ${isActive ? 'active' : ''}`}><Icon size={19} /><span>{linkLabel(item)}</span></NavLink>)}
-        <LanguageToggle compact />
       </nav>
     </div>
   </div>;

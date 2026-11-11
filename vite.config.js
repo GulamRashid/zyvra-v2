@@ -7,18 +7,18 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['zyvra.svg'],
+      includeAssets: ['logo.png', 'zyvra.svg'],
       manifest: {
         name: 'ZYVRA - Exam Prep',
         short_name: 'ZYVRA',
         description: 'A focused preparation space for competitive exams.',
-        theme_color: '#07120f',
-        background_color: '#07120f',
+        theme_color: '#122d25',
+        background_color: '#122d25',
         display: 'standalone',
         start_url: '/',
         icons: [
-          { src: '/zyvra.svg', sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
-          { src: '/zyvra.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+          { src: '/logo.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+          { src: '/logo.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
         ]
       }
     })
