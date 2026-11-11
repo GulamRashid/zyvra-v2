@@ -26,17 +26,18 @@ export default function PricingManager() {
     if (!supabase) { setLoading(false); return; }
     setError('');
     const [configResult, enabledResult, orderResult] = await Promise.all([
-      supabase.from('platform_settings').select('value').eq('key', 'coin_redemption_config').maybeSingle(),
-      supabase.from('platform_settings').select('value').eq('key', 'global_pricing_enabled').maybeSingle(),
+      supabase.from('platform_settings').select('*').or('setting_key.eq.coin_redemption_config,key.eq.coin_redemption_config').maybeSingle(),
+      supabase.from('platform_settings').select('*').or('setting_key.eq.global_pricing_enabled,key.eq.global_pricing_enabled').maybeSingle(),
       supabase.from('payment_orders').select('*').order('created_at', { ascending: false }).limit(50)
     ]);
     const failed = [configResult, enabledResult, orderResult].find((result) => result.error);
     if (failed) throw failed.error;
-    setConfig(parseCoinRedemptionConfig(configResult.data?.value));
-    const enabledValue = enabledResult.data?.value;
-    setPricingEnabled(typeof enabledValue === 'object' && enabledValue !== null
-      ? enabledValue.enabled !== false && enabledValue.enabled !== 'false'
-      : enabledValue !== false && enabledValue !== 'false');
+    const configVal = configResult.data?.setting_value !== undefined ? configResult.data.setting_value : configResult.data?.value;
+    setConfig(parseCoinRedemptionConfig(configVal));
+    const enabledRaw = enabledResult.data?.setting_value !== undefined ? enabledResult.data.setting_value : enabledResult.data?.value;
+    setPricingEnabled(typeof enabledRaw === 'object' && enabledRaw !== null
+      ? enabledRaw.enabled !== false && enabledRaw.enabled !== 'false'
+      : enabledRaw !== false && enabledRaw !== 'false');
     const recentOrders = orderResult.data || [];
     setOrders(recentOrders);
     const userIds = [...new Set(recentOrders.map((order) => order.user_id).filter(Boolean))];
@@ -70,12 +71,12 @@ export default function PricingManager() {
     setSaving(true);
     try {
       const settings = [
-        { key: 'coin_redemption_config', setting_key: 'coin_redemption_config', value: normalized },
-        { key: 'global_pricing_enabled', setting_key: 'global_pricing_enabled', value: { enabled: pricingEnabled } }
+        { key: 'coin_redemption_config', setting_key: 'coin_redemption_config', setting_value: normalized, value: normalized },
+        { key: 'global_pricing_enabled', setting_key: 'global_pricing_enabled', setting_value: { enabled: pricingEnabled }, value: { enabled: pricingEnabled } }
       ];
-      let { error: saveError } = await supabase.from('platform_settings').upsert(settings, { onConflict: 'key' });
+      let { error: saveError } = await supabase.from('platform_settings').upsert(settings, { onConflict: 'setting_key' });
       if (saveError) {
-        const fallback = await supabase.from('platform_settings').upsert(settings, { onConflict: 'setting_key' });
+        const fallback = await supabase.from('platform_settings').upsert(settings, { onConflict: 'key' });
         if (fallback.error) throw fallback.error;
       }
       setConfig(normalized);

@@ -4,14 +4,14 @@
 CREATE TABLE IF NOT EXISTS public.platform_settings (
   setting_key TEXT PRIMARY KEY,
   key TEXT,
-  value JSONB,
+  setting_value JSONB,
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
 );
 
--- Ensure both key and setting_key columns exist alongside value and updated_at
+-- Ensure both key and setting_key columns exist alongside setting_value and updated_at
 ALTER TABLE public.platform_settings ADD COLUMN IF NOT EXISTS setting_key TEXT;
 ALTER TABLE public.platform_settings ADD COLUMN IF NOT EXISTS key TEXT;
-ALTER TABLE public.platform_settings ADD COLUMN IF NOT EXISTS value JSONB;
+ALTER TABLE public.platform_settings ADD COLUMN IF NOT EXISTS setting_value JSONB;
 ALTER TABLE public.platform_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());
 
 -- Sync existing values so key is populated from setting_key
@@ -111,13 +111,13 @@ CREATE POLICY "Authenticated users can insert referrals"
   WITH CHECK (auth.uid() = referred_id OR auth.uid() = referrer_id);
 
 -- 5. Seed default platform settings with ON CONFLICT (setting_key) DO UPDATE
-INSERT INTO public.platform_settings (setting_key, key, value)
+INSERT INTO public.platform_settings (setting_key, key, setting_value)
 VALUES 
   ('referral_program_config', 'referral_program_config', '{"referral_enabled": true, "referrer_reward_coins": 50, "referred_reward_coins": 20}'::jsonb),
   ('referral_enabled', 'referral_enabled', 'true'::jsonb),
   ('referrer_reward_coins', 'referrer_reward_coins', '50'::jsonb),
   ('referred_reward_coins', 'referred_reward_coins', '20'::jsonb)
 ON CONFLICT (setting_key) DO UPDATE
-SET value = EXCLUDED.value, key = EXCLUDED.key, updated_at = now();
+SET setting_value = EXCLUDED.setting_value, key = EXCLUDED.key, updated_at = now();
 
 

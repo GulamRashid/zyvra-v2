@@ -33,7 +33,8 @@ export default function AdminNotifications() {
 
       if (active()) {
         const row = (data || []).find((r) => r.key === 'platform_announcements' || r.setting_key === 'platform_announcements');
-        const list = Array.isArray(row?.value) ? row.value : [];
+        const val = row?.setting_value !== undefined ? row.setting_value : row?.value;
+        const list = Array.isArray(val) ? val : [];
         setAnnouncements(list);
       }
     } catch (err) {
@@ -77,8 +78,9 @@ export default function AdminNotifications() {
         .upsert({
           key: 'platform_announcements',
           setting_key: 'platform_announcements',
+          setting_value: updated,
           value: updated
-        }, { onConflict: 'key' });
+        }, { onConflict: 'setting_key' });
 
       if (error) {
         const fallback = await supabase
@@ -86,8 +88,9 @@ export default function AdminNotifications() {
           .upsert({
             key: 'platform_announcements',
             setting_key: 'platform_announcements',
+            setting_value: updated,
             value: updated
-          }, { onConflict: 'setting_key' });
+          }, { onConflict: 'key' });
         if (fallback.error) throw fallback.error;
       }
 
@@ -111,8 +114,9 @@ export default function AdminNotifications() {
         .upsert({
           key: 'platform_announcements',
           setting_key: 'platform_announcements',
+          setting_value: updated,
           value: updated
-        }, { onConflict: 'key' });
+        }, { onConflict: 'setting_key' });
 
       if (error) {
         const fallback = await supabase
@@ -120,8 +124,9 @@ export default function AdminNotifications() {
           .upsert({
             key: 'platform_announcements',
             setting_key: 'platform_announcements',
+            setting_value: updated,
             value: updated
-          }, { onConflict: 'setting_key' });
+          }, { onConflict: 'key' });
         if (fallback.error) throw fallback.error;
       }
       setAnnouncements(updated);

@@ -63,8 +63,9 @@ export default function AdminTools() {
 
       if (active() && data) {
         const row = data.find((r) => r.key === 'study_toolbox_config' || r.setting_key === 'study_toolbox_config');
-        if (row?.value && Array.isArray(row.value)) {
-          setTools(row.value);
+        const val = row?.setting_value !== undefined ? row.setting_value : row?.value;
+        if (val && Array.isArray(val)) {
+          setTools(val);
         }
       }
     } catch (err) {
@@ -95,8 +96,9 @@ export default function AdminTools() {
         .upsert({
           key: 'study_toolbox_config',
           setting_key: 'study_toolbox_config',
+          setting_value: tools,
           value: tools
-        }, { onConflict: 'key' });
+        }, { onConflict: 'setting_key' });
 
       if (error) {
         const fallback = await supabase
@@ -104,8 +106,9 @@ export default function AdminTools() {
           .upsert({
             key: 'study_toolbox_config',
             setting_key: 'study_toolbox_config',
+            setting_value: tools,
             value: tools
-          }, { onConflict: 'setting_key' });
+          }, { onConflict: 'key' });
         if (fallback.error) throw fallback.error;
       }
       setFeedback({ text: 'Toolbox configurations saved and live for learners.', type: 'success' });

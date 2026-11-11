@@ -45,17 +45,18 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
       if (!supabase || !user) throw new Error(t('signInToPurchase'));
       const [walletResult, settingResult, pricingResult] = await Promise.all([
         supabase.from('coin_wallets').select('balance').eq('user_id', user.id).maybeSingle(),
-        supabase.from('platform_settings').select('value').or('key.eq.coin_redemption_config,setting_key.eq.coin_redemption_config').maybeSingle(),
-        supabase.from('platform_settings').select('value').or('key.eq.global_pricing_enabled,setting_key.eq.global_pricing_enabled').maybeSingle()
+        supabase.from('platform_settings').select('*').or('setting_key.eq.coin_redemption_config,key.eq.coin_redemption_config').maybeSingle(),
+        supabase.from('platform_settings').select('*').or('setting_key.eq.global_pricing_enabled,key.eq.global_pricing_enabled').maybeSingle()
       ]);
       if (walletResult.error) throw walletResult.error;
       if (settingResult.error) throw settingResult.error;
       if (pricingResult.error) throw pricingResult.error;
-      const parsedConfig = parseCoinRedemptionConfig(settingResult.data?.value);
-      const pricingValue = pricingResult.data?.value;
-      const enabled = typeof pricingValue === 'object' && pricingValue !== null
-        ? pricingValue.enabled !== false && pricingValue.enabled !== 'false'
-        : pricingValue !== false && pricingValue !== 'false';
+      const settingVal = settingResult.data?.setting_value !== undefined ? settingResult.data.setting_value : settingResult.data?.value;
+      const parsedConfig = parseCoinRedemptionConfig(settingVal);
+      const pricingRaw = pricingResult.data?.setting_value !== undefined ? pricingResult.data.setting_value : pricingResult.data?.value;
+      const enabled = typeof pricingRaw === 'object' && pricingRaw !== null
+        ? pricingRaw.enabled !== false && pricingRaw.enabled !== 'false'
+        : pricingRaw !== false && pricingRaw !== 'false';
       if (!active) return;
       setWalletBalance(Math.max(0, Math.floor(Number(walletResult.data?.balance || 0))));
       setConfig(parsedConfig);
