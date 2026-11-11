@@ -991,6 +991,60 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .resource-admin-form .field-label { margin: 0; }
 .resource-admin-form .text-input { min-height: 36px; }
 .toolbox-page { display: grid; gap: 20px; }
+.mini-app-os { min-width: 0; overflow-x: hidden; }
+.toolbox-os-heading { margin-bottom: -2px; }
+.toolbox-breadcrumb { display: flex; min-width: 0; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.toolbox-breadcrumb > .button { min-height: 42px; }
+.toolbox-breadcrumb > div { display: flex; min-width: 0; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; }
+.toolbox-breadcrumb > div > * { flex: 0 0 auto; }
+.toolbox-breadcrumb > div strong { overflow: hidden; color: var(--text); text-overflow: ellipsis; white-space: nowrap; }
+.toolbox-app-grid, .toolbox-tool-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; min-width: 0; }
+.toolbox-app-card, .toolbox-tool-card { position: relative; display: flex; min-width: 0; min-height: 126px; align-items: center; gap: 14px; padding: 18px; overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: var(--panel); box-shadow: 0 9px 24px rgba(0, 0, 0, .08); color: var(--text); text-align: left; cursor: pointer; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.toolbox-app-card:hover, .toolbox-tool-card:hover { transform: translateY(-2px); border-color: rgba(228, 184, 95, .48); box-shadow: 0 13px 30px rgba(0, 0, 0, .12); }
+.toolbox-app-card:active, .toolbox-tool-card:active { transform: scale(.985); }
+.toolbox-app-card:focus-visible, .toolbox-tool-card:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+.toolbox-app-card.gold { background: linear-gradient(135deg, rgba(228, 184, 95, .12), transparent 70%), var(--panel); }
+.toolbox-app-card.violet { background: linear-gradient(135deg, rgba(174, 143, 226, .13), transparent 70%), var(--panel); }
+.toolbox-app-card.green { background: linear-gradient(135deg, rgba(77, 211, 154, .12), transparent 70%), var(--panel); }
+.toolbox-app-card.blue { background: linear-gradient(135deg, rgba(105, 166, 218, .13), transparent 70%), var(--panel); }
+.toolbox-app-icon { display: grid; width: 52px; height: 52px; flex: 0 0 auto; place-items: center; border: 1px solid rgba(228, 184, 95, .2); border-radius: 16px; background: rgba(228, 184, 95, .1); color: var(--gold); }
+.toolbox-app-card.violet .toolbox-app-icon { border-color: rgba(174, 143, 226, .22); background: rgba(174, 143, 226, .11); color: #b59be9; }
+.toolbox-app-card.green .toolbox-app-icon { border-color: rgba(77, 211, 154, .22); background: rgba(77, 211, 154, .1); color: var(--accent); }
+.toolbox-app-card.blue .toolbox-app-icon { border-color: rgba(105, 166, 218, .22); background: rgba(105, 166, 218, .11); color: #79b4e8; }
+.toolbox-app-copy { display: grid; min-width: 0; flex: 1; align-content: center; gap: 6px; }
+.toolbox-app-copy strong { color: var(--text); font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+.toolbox-app-copy small { color: var(--muted); font-size: 12px; line-height: 1.45; }
+.toolbox-app-arrow { flex: 0 0 auto; color: var(--muted); }
+.toolbox-tool-card { min-height: 112px; padding: 15px; }
+.toolbox-tool-card .toolbox-app-icon { width: 46px; height: 46px; border-radius: 14px; }
+.toolbox-tool-card.locked { border-color: rgba(228, 184, 95, .3); }
+.toolbox-tool-card.locked .toolbox-app-copy { padding-right: 22px; }
+.toolbox-tool-card:disabled { opacity: .7; cursor: wait; transform: none; }
+.toolbox-tool-lock { position: absolute; top: 14px; right: 14px; color: var(--gold); }
+.toolbox-tool-price { position: absolute; right: 12px; bottom: 11px; color: var(--gold); font-size: 11px; font-weight: 750; }
+.mini-tool { min-width: 0; }
+.mini-tool .field-label { min-width: 0; }
+.calculator-display { display: flex; min-height: 92px; align-items: center; justify-content: flex-end; padding: 15px; overflow: hidden; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); color: var(--text); font: 600 clamp(28px, 8vw, 40px)/1.2 Manrope, sans-serif; overflow-wrap: anywhere; }
+.calculator-keypad { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
+.calculator-key { display: grid; min-width: 0; min-height: 54px; place-items: center; border: 1px solid var(--line); border-radius: 13px; background: var(--panel2); color: var(--text); font-size: 18px; font-weight: 650; cursor: pointer; }
+.calculator-key:hover { border-color: rgba(228, 184, 95, .48); }
+.calculator-key.utility { color: var(--muted); }
+.calculator-key.accent { border-color: rgba(228, 184, 95, .25); background: rgba(228, 184, 95, .1); color: var(--gold); }
+.fraction-input-wrap { position: relative; display: flex; align-items: center; }
+.fraction-input-wrap input { width: 100%; padding-right: 40px; }
+.fraction-input-wrap > span { position: absolute; right: 14px; color: var(--muted); }
+.fraction-result { display: grid; min-width: 0; min-height: 100px; place-items: center; padding: 20px; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); color: var(--accent); font-size: clamp(20px, 5vw, 28px); text-align: center; overflow-wrap: anywhere; }
+.fraction-result .katex { max-width: 100%; }
+.formula-hub { display: grid; min-width: 0; gap: 15px; }
+.formula-hub > .toolbox-section > h3 { margin: 0; color: var(--text); font: 700 16px Manrope, sans-serif; }
+.formula-hub-math { display: block; max-width: 100%; overflow-x: auto; color: var(--accent); font-size: 16px; white-space: nowrap; }
+.tool-unlock-backdrop { position: fixed; z-index: 210; inset: 0; display: grid; place-items: center; padding: 18px; background: rgba(4, 10, 8, .68); backdrop-filter: blur(7px); }
+.tool-unlock-modal { position: relative; display: flex; width: min(100%, 410px); flex-direction: column; align-items: center; gap: 12px; padding: 28px; border: 1px solid rgba(228, 184, 95, .3); border-radius: 22px; background: color-mix(in srgb, var(--panel) 90%, transparent); box-shadow: 0 24px 80px rgba(0, 0, 0, .35); text-align: center; }
+.tool-unlock-close { position: absolute; top: 12px; right: 12px; }
+.tool-unlock-icon { display: grid; width: 54px; height: 54px; place-items: center; border: 1px solid rgba(228, 184, 95, .28); border-radius: 17px; background: rgba(228, 184, 95, .12); color: var(--gold); }
+.tool-unlock-modal h2 { margin: 0; color: var(--text); font: 750 22px Manrope, sans-serif; }
+.tool-unlock-modal p { margin: 0 0 5px; color: var(--muted); font-size: 14px; line-height: 1.55; }
+.tool-unlock-modal > .button { width: 100%; min-height: 46px; justify-content: center; }
 .pomodoro-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 15px 25px; padding: 22px; border: 1px solid rgba(228, 184, 95, .23); border-radius: 16px; background: radial-gradient(ellipse at 85% 50%, rgba(28, 121, 86, .25), transparent 55%), var(--panel); }
 .pomodoro-card.break-mode { border-color: rgba(77, 211, 154, .25); }
 .pomodoro-copy { display: flex; align-items: flex-start; gap: 12px; }
@@ -1119,6 +1173,19 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .checkout-success p { margin: 0 0 16px; color: var(--muted); font-size: 9px; }
 .checkout-success .button { min-height: 37px; }
 @media (max-width: 540px) {
+  .toolbox-app-grid, .toolbox-tool-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .toolbox-app-card, .toolbox-tool-card { min-height: 158px; flex-direction: column; align-items: flex-start; gap: 10px; padding: 13px; border-radius: 16px; }
+  .toolbox-app-icon, .toolbox-tool-card .toolbox-app-icon { width: 42px; height: 42px; border-radius: 13px; }
+  .toolbox-app-copy { padding-right: 0 !important; }
+  .toolbox-app-copy strong { font-size: 13px; }
+  .toolbox-app-copy small { font-size: 11px; }
+  .toolbox-app-arrow { position: absolute; right: 12px; bottom: 13px; width: 15px; }
+  .toolbox-tool-lock { top: 12px; right: 12px; width: 15px; }
+  .toolbox-tool-price { right: 10px; bottom: 9px; font-size: 10px; }
+  .toolbox-breadcrumb > div { max-width: 100%; font-size: 10px; }
+  .calculator-keypad { gap: 7px; }
+  .calculator-key { min-height: 48px; }
+  .tool-unlock-modal { padding: 25px 20px; }
   .pomodoro-card { grid-template-columns: minmax(0, 1fr); gap: 14px; padding: 15px; }
   .pomodoro-clock { justify-self: center; }
   .pomodoro-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
