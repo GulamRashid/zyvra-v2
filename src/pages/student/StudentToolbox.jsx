@@ -304,11 +304,16 @@ export default function StudentToolbox() {
       setCurrentView('main-menu');
     }
   };
-  const openToolCheckout = (tool) => {
+  const handleUnlockTool = (toolId, price) => {
+    const tool = Object.values(CATEGORY_TOOLS).flat().find((item) => item.id === toolId);
+    if (!tool) {
+      setError(t('tbLoadError'));
+      return;
+    }
     const specificConfig = toolPricing[tool.id];
     const itemId = specificConfig ? tool.id : tool.accessKey;
     const config = toolPricing[itemId];
-    if (config?.price > 0) {
+    if (config?.price > 0 && Number(config.price) === Number(price)) {
       setCheckout({
         itemType: 'tool',
         itemId,
@@ -316,6 +321,8 @@ export default function StudentToolbox() {
         tier: `${config.validity_days} ${t('tbDays')}`,
         basePrice: config.price
       });
+    } else {
+      setError(t('tbPriceChanged'));
     }
   };
   const openComboCheckout = () => {
@@ -441,7 +448,7 @@ export default function StudentToolbox() {
       validityDays={getToolConfig(currentTool).validity_days}
       comboPrice={comboPricing.price}
       comboValidityDays={comboPricing.validity_days}
-      onBuy={() => openToolCheckout(currentTool)}
+      onBuy={() => handleUnlockTool(currentTool.id, getToolConfig(currentTool).price)}
       onBuyCombo={openComboCheckout}
       onClose={goBack}
     />}
@@ -457,7 +464,7 @@ export default function StudentToolbox() {
       onBuy={() => {
         const selectedTool = unlockTool;
         setUnlockTool(null);
-        openToolCheckout(selectedTool);
+        handleUnlockTool(selectedTool.id, getToolConfig(selectedTool).price);
       }}
       onBuyCombo={() => {
         setUnlockTool(null);

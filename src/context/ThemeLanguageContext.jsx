@@ -312,7 +312,8 @@ const translations = {
     tbPricingUnavailable: 'Pricing and purchase status could not be verified.',
     tbBookmarksLoadError: 'Bookmarks could not be loaded',
     tbLoadError: 'Unable to load your study toolbox.',
-    tbPurchaseVerifyError: 'Unable to verify your Toolbox purchase.'
+    tbPurchaseVerifyError: 'Unable to verify your Toolbox purchase.',
+    tbPriceChanged: 'The tool price changed. Close and reopen the unlock dialog to review it.'
   },
   hi: {
     home: 'होम', explore: 'खोजें', tests: 'टेस्ट', toolbox: 'टूलबॉक्स', profile: 'प्रोफ़ाइल',
@@ -624,7 +625,8 @@ const translations = {
     tbPricingUnavailable: 'कीमत और खरीद की स्थिति की पुष्टि नहीं हो सकी।',
     tbBookmarksLoadError: 'बुकमार्क लोड नहीं हो सके',
     tbLoadError: 'अध्ययन टूलबॉक्स लोड नहीं हो सका।',
-    tbPurchaseVerifyError: 'टूलबॉक्स की खरीद की पुष्टि नहीं हो सकी।'
+    tbPurchaseVerifyError: 'टूलबॉक्स की खरीद की पुष्टि नहीं हो सकी।',
+    tbPriceChanged: 'टूल की कीमत बदल गई है। कीमत देखने के लिए अनलॉक संवाद बंद करके फिर खोलें।'
   }
 };
 

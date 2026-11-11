@@ -2,28 +2,26 @@ import { useEffect, useMemo, useState } from 'react';
 import { BadgeCheck, Coins, CreditCard, LoaderCircle, LockKeyhole, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
-import { formatRupees, getRpcValue, parseCoinRedemptionConfig } from '../../lib/commerce';
+import { formatRupees, parseCoinRedemptionConfig } from '../../lib/commerce';
+import { loadRazorpayScript } from '../../utils/razorpay';
 
-const RAZORPAY_SCRIPT = 'https://checkout.razorpay.com/v1/checkout.js';
-
-function loadRazorpay() {
-  if (window.Razorpay) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    let script = document.querySelector(`script[src="${RAZORPAY_SCRIPT}"]`);
-    if (script?.dataset.loaded === 'true') {
-      reject(new Error('Razorpay Checkout did not initialize. Reload the page and try again.'));
-      return;
-    }
-    if (!script) {
-      script = document.createElement('script');
-      script.src = RAZORPAY_SCRIPT;
-      script.async = true;
-      script.addEventListener('load', () => { script.dataset.loaded = 'true'; }, { once: true });
-      document.body.appendChild(script);
-    }
-    script.addEventListener('load', resolve, { once: true });
-    script.addEventListener('error', () => reject(new Error('Razorpay Checkout could not be loaded. Check your connection and try again.')), { once: true });
+async function postPaymentRequest(endpoint, payload, accessToken) {
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`
+    },
+    body: JSON.stringify(payload)
   });
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    throw new Error('The payment service returned an invalid response.');
+  }
+  if (!response.ok) throw new Error(result?.error || 'The payment request could not be completed.');
+  return result;
 }
 
 export default function CheckoutModal({ itemType, itemId, itemTitle, tier, basePrice, onClose, onCompleted }) {
@@ -81,25 +79,28 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
     return { base, maxCoins, coinsUsed, discount, payable: Math.max(0, base - discount) };
   }, [basePrice, config, redeemCoins, walletBalance]);
 
-  const finishCheckout = async ({ orderId, paymentId, signature }) => {
+  const finishCheckout = async ({ orderId, razorpayOrderId, paymentId, signature, accessToken }) => {
     setError('');
-    const { data, error: completionError } = await supabase.rpc('complete_successful_checkout', {
-      p_order_id: orderId,
-      p_payment_id: paymentId,
-      p_payment_signature: signature
-    });
-    if (completionError) throw completionError;
-    const result = getRpcValue(data, ['success', 'order', 'status']);
-    const confirmed = result === true
-      || (result && typeof result === 'object' && result.success === true)
-      || (typeof result === 'string' && ['success', 'paid', 'completed'].includes(result.toLowerCase()));
-    if (!confirmed) {
-      const message = result && typeof result === 'object' ? result.message : null;
-      throw new Error(message || 'The payment service did not confirm this purchase. Contact support if your account was charged.');
+    const result = await postPaymentRequest('/api/verify-payment', {
+      order_id: orderId,
+      razorpay_order_id: razorpayOrderId,
+      razorpay_payment_id: paymentId,
+      razorpay_signature: signature
+    }, accessToken);
+    if (result?.success !== true) {
+      throw new Error(result?.error || 'The payment service did not confirm this purchase.');
     }
     await refreshAccount();
     setComplete(true);
-    onCompleted?.(data);
+    await onCompleted?.(result);
+  };
+
+  const getAccessToken = async () => {
+    const { data, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+    const accessToken = data?.session?.access_token;
+    if (!accessToken) throw new Error(t('signInToPurchase'));
+    return accessToken;
   };
 
   const checkout = async () => {
@@ -118,13 +119,13 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
         return;
       }
       if (!keyId && !localTestMode) throw new Error('Razorpay is not configured. Add VITE_RAZORPAY_KEY_ID to enable secure checkout.');
-      const { data: orderData, error: orderError } = await supabase.rpc('create_checkout_order', {
-        p_item_type: itemType,
-        p_item_id: itemId,
-        p_coins_to_redeem: pricing.coinsUsed
-      });
-      if (orderError) throw orderError;
-      const order = getRpcValue(orderData, ['order']);
+      const accessToken = await getAccessToken();
+      const order = await postPaymentRequest('/api/create-order', {
+        amount: pricing.payable,
+        itemType,
+        itemId,
+        coinsToRedeem: pricing.coinsUsed
+      }, accessToken);
       if (!order || typeof order !== 'object') throw new Error('Checkout could not create a payment order.');
       const orderId = order.id || order.payment_order_id || order.order_id;
       const razorpayOrderId = order.razorpay_order_id;
@@ -134,7 +135,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
       if (!razorpayOrderId) throw new Error('The payment service did not return a Razorpay order ID.');
       if (!Number.isInteger(Number(order.amount_paise)) || Number(order.amount_paise) <= 0) throw new Error('The payment service returned an invalid order amount.');
       if (Number(order.amount_paise) !== Math.round(pricing.payable * 100)) throw new Error('The server price changed. Close checkout and reopen it to review the latest total.');
-      await loadRazorpay();
+      await loadRazorpayScript();
       const checkoutInstance = new window.Razorpay({
         key: keyId,
         order_id: razorpayOrderId,
@@ -149,8 +150,10 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
           try {
             await finishCheckout({
               orderId,
+              razorpayOrderId,
               paymentId: response.razorpay_payment_id,
-              signature: response.razorpay_signature
+              signature: response.razorpay_signature,
+              accessToken
             });
           } catch (completionError) {
             setError(completionError.message || 'Payment verification failed. Contact support with your payment ID.');
