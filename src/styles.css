@@ -1031,7 +1031,9 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .toolbox-tool-price { position: absolute; right: 12px; bottom: 11px; color: var(--gold); font-size: 11px; font-weight: 750; }
 .mini-tool { min-width: 0; }
 .mini-tool .field-label { min-width: 0; }
-.calculator-display { display: flex; min-height: 92px; align-items: center; justify-content: flex-end; padding: 15px; overflow: hidden; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); color: var(--text); font: 600 clamp(28px, 8vw, 40px)/1.2 Manrope, sans-serif; overflow-wrap: anywhere; }
+.calculator-display { display: flex; min-height: 92px; flex-direction: column; align-items: stretch; justify-content: center; gap: 2px; padding: 12px 15px; overflow: hidden; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); color: var(--text); font-family: Manrope, sans-serif; }
+.calculator-secondary-display { display: block; min-width: 0; height: 22px; color: var(--muted); font-size: 13px; font-weight: 500; line-height: 22px; text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.calculator-primary-display { display: block; min-width: 0; color: var(--text); font-size: clamp(28px, 8vw, 40px); font-weight: 600; line-height: 1.2; text-align: right; overflow-wrap: anywhere; }
 .calculator-keypad { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
 .calculator-key { display: grid; min-width: 0; min-height: 54px; place-items: center; border: 1px solid var(--line); border-radius: 13px; background: var(--panel2); color: var(--text); font-size: 18px; font-weight: 650; cursor: pointer; }
 .calculator-key:hover { border-color: rgba(228, 184, 95, .48); }

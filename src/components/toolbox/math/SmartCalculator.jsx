@@ -116,8 +116,15 @@ export default function SmartCalculator() {
     }
   };
 
+  const pendingExpression = operator !== null && storedValue !== null
+    ? `${storedValue} ${operator}`
+    : '';
+
   return <section className="toolbox-section mini-tool calculator-tool">
-    <div className="calculator-display" aria-live="polite">{display === 'Error' ? t('tbError') : display}</div>
+    <div className="calculator-display" aria-live="polite" aria-label={`${pendingExpression ? `${pendingExpression} ` : ''}${display}`}>
+      <span className="calculator-secondary-display" aria-hidden="true">{pendingExpression}</span>
+      <span className="calculator-primary-display">{display === 'Error' ? t('tbError') : display}</span>
+    </div>
     <div className="calculator-keypad">
       {basicKeys.map(([label, type]) => <button
         type="button"
