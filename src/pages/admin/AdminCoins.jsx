@@ -82,7 +82,7 @@ export default function AdminCoins() {
         if (userIds.length > 0) {
           const { data: profiles } = await supabase
             .from('profiles')
-            .select('id, full_name, name, email, referral_code')
+            .select('id, full_name, email, referral_code')
             .in('id', userIds);
 
           if (profiles) {

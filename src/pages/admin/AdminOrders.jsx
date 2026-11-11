@@ -33,7 +33,7 @@ export default function AdminOrders() {
       if (userIds.length > 0) {
         const { data: users } = await supabase
           .from('profiles')
-          .select('id, full_name, name, email')
+          .select('id, full_name, email')
           .in('id', userIds);
 
         if (users) {

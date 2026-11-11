@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Copy, Gift, MessageCircle, Share2, Sparkles, Users } from 'lucide-react';
+import { Check, Copy, Gift, MessageCircle, RefreshCw, Share2, Sparkles, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ensureReferralCode, getReferralSettings } from '../../lib/referrals';
 
@@ -8,21 +8,23 @@ export default function ShareAndEarnCard({ className = '' }) {
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [referrals, setReferrals] = useState([]);
-  const [code, setCode] = useState(profile?.referral_code || '');
+  const [code, setCode] = useState(profile?.referral_code || user?.referral_code || '');
+  const [generating, setGenerating] = useState(false);
   const [settings, setSettings] = useState({ enabled: true, referrerCoins: 50, referredCoins: 20 });
 
   useEffect(() => {
-    if (profile?.referral_code) {
-      setCode(profile.referral_code);
-    } else if (user && supabase) {
+    const existing = profile?.referral_code || user?.referral_code;
+    if (existing) {
+      setCode(existing);
+    } else if (user?.id && supabase) {
       ensureReferralCode(supabase, user.id).then((generated) => {
         if (generated) setCode(generated);
-      });
+      }).catch((err) => console.warn('Could not auto-generate referral code:', err));
     }
-  }, [profile?.referral_code, user, supabase]);
+  }, [profile?.referral_code, user?.referral_code, user?.id, supabase]);
 
   useEffect(() => {
-    if (!supabase || !user) return;
+    if (!supabase || !user?.id) return;
     let active = true;
 
     // Load referral history & reward settings
@@ -40,16 +42,34 @@ export default function ShareAndEarnCard({ className = '' }) {
     }).catch((err) => console.warn('Could not load user referrals:', err));
 
     return () => { active = false; };
-  }, [supabase, user]);
+  }, [supabase, user?.id]);
+
+  const activeCode = code || profile?.referral_code || user?.referral_code || 'Z-INVITE';
+  const hasRealCode = Boolean(code || profile?.referral_code || user?.referral_code);
+
+  const handleGenerateCode = async () => {
+    if (!user?.id || !supabase) {
+      setCode('Z-INVITE');
+      return;
+    }
+    setGenerating(true);
+    try {
+      const generated = await ensureReferralCode(supabase, user.id);
+      setCode(generated || 'Z-INVITE');
+    } catch {
+      setCode('Z-INVITE');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const shareUrl = useMemo(() => {
-    if (!code) return '';
-    const base = typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'https://zyvra-v2.vercel.app';
-    return `${base}/auth?ref=${code}`;
-  }, [code]);
+    const base = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://zyvra-v2.vercel.app';
+    return `${base}/auth?ref=${activeCode}`;
+  }, [activeCode]);
 
-  const invitedCount = referrals.length;
-  const coinsEarned = referrals.reduce((acc, r) => acc + Number(r.referrer_coins_awarded || settings.referrerCoins), 0);
+  const invitedCount = Number(referrals?.length || 0);
+  const coinsEarned = Number((referrals || []).reduce((acc, r) => acc + Number(r?.referrer_coins_awarded || settings?.referrerCoins || 50), 0) || 0);
 
   const copyLink = async () => {
     if (!shareUrl) return;
@@ -63,9 +83,8 @@ export default function ShareAndEarnCard({ className = '' }) {
   };
 
   const copyCodeOnly = async () => {
-    if (!code) return;
     try {
-      await navigator.clipboard.writeText(code);
+      await navigator.clipboard.writeText(activeCode);
       setCopiedCode(true);
       setTimeout(() => setCopiedCode(false), 2200);
     } catch {
@@ -74,13 +93,12 @@ export default function ShareAndEarnCard({ className = '' }) {
   };
 
   const shareViaWhatsApp = () => {
-    if (!code) return;
-    const message = `Join Zyvra for exam preparation and get free coins for test series! Use my code ${code}: ${shareUrl}`;
+    const message = `Join Zyvra for exam preparation and get free coins for test series! Use my code ${activeCode}: ${shareUrl}`;
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  if (!settings.enabled) return null;
+  if (!settings || settings.enabled === false) return null;
 
   return (
     <article className={`share-earn-card panel-card ${className}`}>
@@ -94,7 +112,7 @@ export default function ShareAndEarnCard({ className = '' }) {
           </div>
           <h2>Invite Friends & Earn Free Coins</h2>
           <p>
-            Give your friends <strong>+{settings.referredCoins} coins</strong> on signup and get <strong>+{settings.referrerCoins} coins</strong> credited to your wallet for each friend who joins!
+            Give your friends <strong>+{settings.referredCoins || 20} coins</strong> on signup and get <strong>+{settings.referrerCoins || 50} coins</strong> credited to your wallet for each friend who joins!
           </p>
         </div>
       </div>
@@ -103,16 +121,26 @@ export default function ShareAndEarnCard({ className = '' }) {
         <div className="referral-code-display">
           <span className="code-label">YOUR INVITE CODE</span>
           <div className="code-value-row">
-            <strong className="referral-code-text">{code || 'Generating…'}</strong>
+            <strong className="referral-code-text">{activeCode}</strong>
             <button
               type="button"
               className="icon-button copy-code-btn"
               onClick={copyCodeOnly}
               title="Copy code"
-              disabled={!code}
             >
               {copiedCode ? <Check size={15} className="text-emerald-400" /> : <Copy size={15} />}
             </button>
+            {!hasRealCode && (
+              <button
+                type="button"
+                className="button button-small button-gold"
+                onClick={handleGenerateCode}
+                disabled={generating}
+                style={{ fontSize: '0.75rem', padding: '4px 8px', minHeight: '30px' }}
+              >
+                <RefreshCw size={12} className={generating ? 'spin' : ''} /> {generating ? 'Generating…' : 'Generate Code'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -138,7 +166,6 @@ export default function ShareAndEarnCard({ className = '' }) {
             type="button"
             className="button whatsapp-share-btn min-h-[44px]"
             onClick={shareViaWhatsApp}
-            disabled={!code}
           >
             <MessageCircle size={16} /> Share via WhatsApp
           </button>

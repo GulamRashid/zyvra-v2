@@ -34,7 +34,9 @@ export default function StudentProfile() {
 
   const navigate = useNavigate();
   const email = user?.email || 'Guest account';
-  const name = profile?.full_name || profile?.name || 'Learner';
+  const name = profile?.full_name || profile?.name || user?.user_metadata?.full_name || 'Learner';
+  const avatarLetter = (name ? name.charAt(0) : 'L').toUpperCase();
+  const displayCoins = Number(coinBalance || 0).toLocaleString();
 
   useEffect(() => {
     if (profile?.target_exams) {
@@ -123,7 +125,7 @@ export default function StudentProfile() {
     <div className="page-heading"><div><div className="eyebrow">YOUR ACCOUNT</div><h1>Profile & settings</h1><p>Your details, preferences and account controls.</p></div><button className="button button-outline" onClick={logout}>Sign out</button></div>
     {feedback && <div className={`feedback ${feedbackError ? 'error-feedback' : 'success-feedback'}`}>{feedback}</div>}
     <div className="profile-layout">
-      <section className="panel-card profile-identity"><div className="profile-avatar">{name.slice(0, 1).toUpperCase()}</div><h2>{name}</h2><p>{email}</p><div className="verification-row"><span><BadgeCheck size={16} /> {user?.email_confirmed_at ? 'Email verified' : 'Email status'}</span><span className="status-pill">{user?.email_confirmed_at ? 'VERIFIED' : 'PENDING'}</span></div><div className="verification-row"><span><Shield size={16} /> Account type</span><strong>{guest ? 'Guest' : 'Student'}</strong></div><div className="profile-stat"><Coins size={18} /><div><span>ZYVRA COINS</span><strong>{coinBalance.toLocaleString()}</strong></div><span>Available balance</span></div></section>
+      <section className="panel-card profile-identity"><div className="profile-avatar">{avatarLetter}</div><h2>{name}</h2><p>{email}</p><div className="verification-row"><span><BadgeCheck size={16} /> {user?.email_confirmed_at ? 'Email verified' : 'Email status'}</span><span className="status-pill">{user?.email_confirmed_at ? 'VERIFIED' : 'PENDING'}</span></div><div className="verification-row"><span><Shield size={16} /> Account type</span><strong>{guest ? 'Guest' : 'Student'}</strong></div><div className="profile-stat"><Coins size={18} /><div><span>ZYVRA COINS</span><strong>{displayCoins}</strong></div><span>Available balance</span></div></section>
       <div className="profile-settings">
         <section className="panel-card setting-card"><div className="setting-card-title"><div className="setting-symbol"><UserRound size={17} /></div><div><h2>Personal details</h2><p>How you appear in your learning space.</p></div></div><label className="field-label">Full name<input className="text-input" value={name} readOnly /></label><label className="field-label">Email address<div className="input-with-icon"><Mail size={16} /><input className="text-input" value={email} readOnly /></div></label><p className="field-hint">To update verified contact details, contact Zyvra support.</p></section>
         
@@ -208,7 +210,7 @@ export default function StudentProfile() {
 
         <ShareAndEarnCard className="profile-share-card" />
 
-        <section className="panel-card setting-card"><div className="setting-card-title"><div className="setting-symbol"><Bell size={17} /></div><div><h2>Wallet summary</h2><p>Your practice rewards at a glance.</p></div></div><div className="wallet-summary"><div><span>Available Zyvra Coins</span><strong><Coins size={18} /> {coinBalance.toLocaleString()}</strong></div><span>Coin activity and rewards will appear here as you learn.</span></div><div className="profile-quick-links"><Link to="/wallet"><Coins size={15} /> Open coin ledger <ArrowRight size={14} /></Link><Link to="/analytics"><ChartNoAxesColumn size={15} /> View performance analytics <ArrowRight size={14} /></Link></div></section>
+        <section className="panel-card setting-card"><div className="setting-card-title"><div className="setting-symbol"><Bell size={17} /></div><div><h2>Wallet summary</h2><p>Your practice rewards at a glance.</p></div></div><div className="wallet-summary"><div><span>Available Zyvra Coins</span><strong><Coins size={18} /> {displayCoins}</strong></div><span>Coin activity and rewards will appear here as you learn.</span></div><div className="profile-quick-links"><Link to="/wallet"><Coins size={15} /> Open coin ledger <ArrowRight size={14} /></Link><Link to="/analytics"><ChartNoAxesColumn size={15} /> View performance analytics <ArrowRight size={14} /></Link></div></section>
         <section className="danger-card"><div><h2>Account deletion</h2><p>Request review of your account and personal data deletion.</p></div><button className="button danger-button" onClick={() => setDeleteOpen(true)} disabled={!user}><Trash2 size={15} /> Request deletion</button></section>
       </div>
     </div>

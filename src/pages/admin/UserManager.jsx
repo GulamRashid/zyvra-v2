@@ -115,7 +115,7 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
   return <div className="user-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
     <aside className="user-drawer" role="dialog" aria-modal="true" aria-labelledby="user-drawer-title">
       <header className="user-drawer-header"><div><div className="eyebrow">USER ACCOUNT</div><h2 id="user-drawer-title">Account details</h2></div><button className="icon-button" aria-label="Close user details" onClick={onClose}><X size={18} /></button></header>
-      <section className="user-drawer-identity"><span className="user-avatar-large">{(profile.full_name || profile.name || profile.email || 'S').slice(0, 1).toUpperCase()}</span><div><strong>{profile.full_name || profile.name || 'Student'}</strong><small>{profile.email || 'Email unavailable'}</small><span className={`user-role-badge ${profile.role === 'super_admin' || profile.role === 'admin' ? 'admin' : ''}`}>{profile.role || 'student'}</span></div></section>
+      <section className="user-drawer-identity"><span className="user-avatar-large">{(profile.full_name || profile.email || 'S').slice(0, 1).toUpperCase()}</span><div><strong>{profile.full_name || 'Student'}</strong><small>{profile.email || 'Email unavailable'}</small><span className={`user-role-badge ${profile.role === 'super_admin' || profile.role === 'admin' ? 'admin' : ''}`}>{profile.role || 'student'}</span></div></section>
       {error && <div className="feedback error-feedback">{error}</div>}
       {message && <div className="feedback success-feedback">{message}</div>}
       <section className="user-drawer-section"><div className="section-heading"><div><div className="eyebrow">CONTENT ACCESS</div><h3>Active grants</h3></div><span className="chapter-item-count">{activeAccess.length}</span></div>{accessLoading ? <p className="field-hint">Loading access grants…</p> : !activeAccess.length ? <p className="field-hint">No active access grants.</p> : <div className="user-detail-list">{activeAccess.map((grant) => <div key={grant.id}><BookOpen size={15} /><span><strong>{accessLabel(grant)}</strong><small>{grant.status || (grant.expires_at ? `Expires ${new Date(grant.expires_at).toLocaleDateString()}` : 'Lifetime / active')}</small></span></div>)}</div>}</section>
@@ -150,7 +150,7 @@ export default function UserManager() {
     if (!supabase) { setError('Supabase is not configured.'); setLoading(false); return; }
     setError('');
     const [profilesResult, walletsResult] = await Promise.all([
-      supabase.from('profiles').select('id,full_name,name,email,role,target_exams,created_at').order('created_at', { ascending: false }).limit(1000),
+      supabase.from('profiles').select('id,full_name,email,role,target_exams,created_at').order('created_at', { ascending: false }).limit(1000),
       supabase.from('coin_wallets').select('user_id,balance')
     ]);
     const failed = [profilesResult, walletsResult].find((result) => result.error);
@@ -180,7 +180,7 @@ export default function UserManager() {
       const role = String(profile.role || 'student');
       const matchesRole = roleFilter === 'all' || (roleFilter === 'admin' ? ['admin', 'super_admin'].includes(role) : role === 'student');
       const matchesExam = examFilter === 'all' || (profile.target_exams || []).includes(examFilter);
-      const matchesSearch = !query || `${profile.full_name || ''} ${profile.name || ''} ${profile.email || ''} ${profile.id || ''}`.toLowerCase().includes(query);
+      const matchesSearch = !query || `${profile.full_name || ''} ${profile.email || ''} ${profile.id || ''}`.toLowerCase().includes(query);
       return matchesRole && matchesExam && matchesSearch;
     });
   }, [users, search, roleFilter, examFilter]);
@@ -200,7 +200,7 @@ export default function UserManager() {
     <section className="panel-card user-directory">
       <div className="user-directory-toolbar"><label className="content-search"><Search size={15} /><input placeholder="Search name, email or ID…" value={search} onChange={(event) => setSearch(event.target.value)} /></label><label className="filter-select">Role<select className="text-input" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="all">All roles</option><option value="student">Students</option><option value="admin">Admins</option></select></label><label className="filter-select">Target exam<select className="text-input" value={examFilter} onChange={(event) => setExamFilter(event.target.value)}><option value="all">All exams</option>{['BPSC', 'SSC', 'CTET', 'NCERT'].map((exam) => <option key={exam}>{exam}</option>)}</select></label></div>
       {loading ? <LoadingSkeleton rows={5} /> : !filteredUsers.length ? <div className="empty-content"><UserRound size={23} /><strong>No matching users.</strong><span>Adjust your search or filters to see more accounts.</span></div> : <div className="user-directory-list">{filteredUsers.map((profile) => {
-        const name = profile.full_name || profile.name || 'Student';
+        const name = profile.full_name || 'Student';
         const isAdmin = ['admin', 'super_admin'].includes(profile.role);
         return <button className="user-directory-row" key={profile.id} onClick={() => setSelected(profile)}><span className={`user-avatar ${isAdmin ? 'admin' : ''}`}>{name.slice(0, 1).toUpperCase()}</span><span className="user-directory-name"><strong>{name}</strong><small>{profile.email || 'Email unavailable'}</small></span><span className={`user-role-badge ${isAdmin ? 'admin' : ''}`}>{isAdmin ? 'super_admin' : 'student'}</span><span className="user-target-tags">{(profile.target_exams || []).length ? profile.target_exams.map((exam) => <i key={exam}>{exam}</i>) : <small>No target exam</small>}</span><span className="user-wallet-pill"><Coins size={14} /> {(wallets[profile.id] || 0).toLocaleString()}</span><span className="user-join-date">{profile.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '—'}</span></button>;
       })}</div>}
