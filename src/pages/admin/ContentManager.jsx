@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, Archive, ArrowDownToLine, ArrowLeft, Atom, BookMarked, BookOpen, Brain, Calculator, ChevronRight, CircleDollarSign, Clock3, FileText, FlaskConical, Folder, FolderOpen, Globe2, GraduationCap, Landmark, Layers3, Pencil, Plus, ScrollText, Search, Trash2, X } from 'lucide-react';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getFolderPath, getFolderPricing, slugify } from '../../lib/content';
@@ -250,6 +251,11 @@ export default function ContentManager() {
   const filteredChapters = visibleChapters.filter((chapter) => !normalizedSearch || `${chapter.title} ${chapter.subject || ''} ${chapter.slug}`.toLowerCase().includes(normalizedSearch));
   const beginExam = (exam) => { setSelectedExamId(exam.id); setPathIds([]); setSearch(''); };
   const navigateToPath = (index) => setPathIds(path.slice(0, index + 1).map((folder) => folder.id));
+  const handleDeleteClick = (exam) => {
+    setActionError('');
+    setSuccessMessage('');
+    setExamToDelete(exam);
+  };
   const archive = async (kind, item) => {
     const typeLabel = kind === 'exam' ? 'exam' : kind === 'folder' ? 'folder' : 'chapter';
     if (!window.confirm(`Archive “${item.title}”? It will no longer appear in student discovery.`)) return;
@@ -329,7 +335,7 @@ export default function ContentManager() {
           return <div key={exam.id} className={`exam-rail-row ${selectedExamId === exam.id ? 'selected' : ''}`}>
             <button className="exam-rail-main" onClick={() => beginExam(exam)}><span className="exam-rail-icon">{examIcon(exam)}</span><span className="exam-rail-copy"><strong>{exam.title}</strong><small>{counts.folders} folders · {counts.chapters} chapters</small></span><ChevronRight size={15} /></button>
             <span className={`content-status status-${String(exam.status || 'draft').toLowerCase()}`}>{exam.status || 'draft'}</span>
-            <div className="row-actions"><button type="button" title="Edit exam" aria-label={`Edit ${exam.title}`} onClick={() => setDialog({ kind: 'exam', item: exam })}><Pencil size={14} /></button><button type="button" title="Delete exam" aria-label={`Delete ${exam.title}`} disabled={deletingExam} onClick={() => { setActionError(''); setSuccessMessage(''); setExamToDelete(exam); }}><Trash2 size={14} /></button></div>
+            <div className="row-actions"><button type="button" title="Edit exam" aria-label={`Edit ${exam.title}`} onClick={(event) => { event.stopPropagation(); setDialog({ kind: 'exam', item: exam }); }}><Pencil size={14} /></button><button type="button" title="Delete exam" aria-label={`Delete ${exam.title}`} disabled={deletingExam} onClick={(event) => { event.stopPropagation(); handleDeleteClick(exam); }}><Trash2 size={14} /></button><button type="button" title="Archive exam" aria-label={`Archive ${exam.title}`} disabled={savingArchive === exam.id} onClick={(event) => { event.stopPropagation(); archive('exam', exam); }}><Archive size={14} /></button></div>
           </div>;
         })}
         {!loading && !exams.length && <div className="empty-content"><GraduationCap size={24} /><strong>Your catalogue is ready</strong><span>Create your first exam to start building the hierarchy.</span><button className="button button-outline" onClick={() => setDialog({ kind: 'exam', item: null })}><Plus size={14} /> Create exam</button></div>}
@@ -357,12 +363,12 @@ export default function ContentManager() {
     </div>
     {dialog && <ContentDialog kind={dialog.kind} item={dialog.item} exams={exams} folders={folders} chapters={chapters} defaultExamId={selectedExamId} defaultParentId={currentFolder?.id} onClose={() => setDialog(null)} onSaved={onSaved} />}
     {resourceChapter && <ResourceManagerModal chapter={resourceChapter} onClose={() => setResourceChapter(null)} />}
-    {examToDelete && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (!deletingExam && event.target === event.currentTarget) setExamToDelete(null); }}><section className="content-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-exam-title" aria-describedby="delete-exam-warning">
+    {examToDelete && createPortal(<div className="modal-backdrop delete-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (!deletingExam && event.target === event.currentTarget) setExamToDelete(null); }}><section className="content-dialog delete-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-exam-title" aria-describedby="delete-exam-warning">
       <div className="delete-confirm-icon"><AlertTriangle size={22} /></div>
       <h2 id="delete-exam-title">Delete {examToDelete.title || 'this exam'}?</h2>
       <p className="dialog-intro" id="delete-exam-warning">Are you sure you want to delete this exam? All nested folders and chapters will be permanently deleted.</p>
       {actionError && <div className="feedback error-feedback" role="alert">{actionError}</div>}
       <div className="modal-actions"><button type="button" className="button button-outline" disabled={deletingExam} onClick={() => setExamToDelete(null)}>Cancel</button><button type="button" className="button button-danger" disabled={deletingExam} onClick={deleteExam}>{deletingExam ? 'Deleting…' : <><Trash2 size={15} /> Delete exam</>}</button></div>
-    </section></div>}
+    </section></div>, document.body)}
   </div>;
 }

@@ -496,6 +496,13 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
 
 /* Admin control center */
 .admin-sidebar { position: fixed; z-index: 25; inset: 0 auto 0 0; display: flex; width: 254px; flex-direction: column; padding: 24px 16px 15px; border-right: 1px solid var(--line); background: var(--panel); }
+.admin-sidebar, .admin-main { transition: width .22s ease, margin-left .22s ease; }
+.admin-sidebar.sidebar-collapsed { width: 0; overflow: hidden; padding-right: 0; padding-left: 0; border-right: 0; }
+.admin-main.sidebar-collapsed { margin-left: 0; }
+.admin-sidebar-toggle { display: inline-grid; flex: 0 0 auto; }
+.admin-drawer-scrim { display: none; }
+.delete-confirm-backdrop { position: fixed; z-index: 9999; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, .6); }
+.delete-confirm-dialog { width: min(100%, 480px); }
 .admin-brand { margin: 0 3px; }
 .admin-nav { gap: 3px; }
 .admin-nav .side-link { min-height: 39px; font-size: 11px; }
@@ -715,11 +722,11 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
   .profile-identity > p { margin: 0; }
   .verification-row, .profile-stat { grid-column: 1 / -1; }
   .verification-row:first-of-type { margin-top: 13px; }
-  .admin-sidebar { z-index: 45; width: min(300px, 84vw); transform: translateX(-105%); transition: transform .22s ease; }
-  .admin-sidebar.drawer-open { transform: translateX(0); }
+  .admin-sidebar { z-index: 45; width: min(300px, 84vw); transform: translateX(0); transition: transform .22s ease; box-shadow: var(--shadow); }
+  .admin-sidebar.sidebar-collapsed { width: min(300px, 84vw); transform: translateX(-105%); }
+  .admin-drawer-scrim { position: fixed; z-index: 40; inset: 0; display: block; border: 0; background: rgba(0, 0, 0, .56); }
   .admin-main { margin-left: 0; padding-bottom: 30px; }
   .admin-topbar { height: 58px; padding: 0 14px; }
-  .admin-topbar .mobile-menu { display: inline-grid; }
   .admin-content { padding: 21px 15px; }
   .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .metric-card { min-height: 96px; padding: 10px; }
