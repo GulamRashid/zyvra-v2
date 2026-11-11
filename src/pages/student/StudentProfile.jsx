@@ -18,7 +18,7 @@ const themeOptions = [
 export default function StudentProfile() {
   const { user, profile, guest, coinBalance, supabase, signOut, refreshAccount } = useAuth();
   const { theme, setTheme, language, setLanguage } = useThemeLanguage();
-  const [targets, setTargets] = useState(Array.isArray(profile?.target_exams) ? profile.target_exams : []);
+  const [targets, setTargets] = useState(Array.isArray(profile?.target_exams) ? profile?.target_exams : []);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState('');
   const [feedbackError, setFeedbackError] = useState(false);
@@ -28,13 +28,14 @@ export default function StudentProfile() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [passwordFeedback, setPasswordFeedback] = useState('');
   const [passwordError, setPasswordError] = useState(false);
   const [passwordUpdating, setPasswordUpdating] = useState(false);
 
   const navigate = useNavigate();
   const email = user?.email || 'Guest account';
-  const name = profile?.full_name || profile?.name || user?.user_metadata?.full_name || 'Learner';
+  const name = String(profile?.full_name || profile?.name || user?.user_metadata?.full_name || 'Learner');
   const avatarLetter = String(name || 'Learner').charAt(0).toUpperCase();
   const displayCoins = Number(coinBalance || 0).toLocaleString();
   const referralCode = profile?.referral_code || (user?.referral_code || 'Z-INVITE');
@@ -101,6 +102,7 @@ export default function StudentProfile() {
       setPasswordError(false);
       setNewPassword('');
       setConfirmPassword('');
+      setPasswordOpen(false);
     } catch (error) {
       setPasswordFeedback(error.message || 'Unable to update password. Please try again.');
       setPasswordError(true);
@@ -150,11 +152,16 @@ export default function StudentProfile() {
         </section>
 
         <section className="panel-card setting-card">
-          <div className="setting-card-title"><div className="setting-symbol"><KeyRound size={17} /></div><div><h2>Password & security</h2><p>Set or change your password for fast 1-click login.</p></div></div>
-          {guest ? (
+          <div className="password-setting-header">
+            <div className="setting-card-title"><div className="setting-symbol"><KeyRound size={17} /></div><div><h2>Password & security</h2><p>Manage your sign-in password.</p></div></div>
+            <button type="button" className="button button-outline password-toggle-button" onClick={() => setPasswordOpen((open) => !open)} aria-expanded={passwordOpen}>
+              {passwordOpen ? 'Cancel' : 'Change Password'}
+            </button>
+          </div>
+          {passwordOpen && (guest ? (
             <p className="field-hint">Password setup is available for registered student accounts. Sign in or create an account to configure a password.</p>
           ) : (
-            <form onSubmit={handlePasswordUpdate}>
+            <form className="password-update-form" onSubmit={handlePasswordUpdate}>
               <label className="field-label">
                 New password
                 <div className="input-with-icon">
@@ -180,7 +187,7 @@ export default function StudentProfile() {
                 </div>
               </label>
 
-              <label className="field-label" style={{ marginTop: '12px' }}>
+              <label className="field-label">
                 Confirm new password
                 <div className="input-with-icon">
                   <KeyRound size={16} />
@@ -203,17 +210,11 @@ export default function StudentProfile() {
                 </div>
               )}
 
-              <div style={{ marginTop: '16px' }}>
-                <button
-                  type="submit"
-                  className="button button-gold"
-                  disabled={passwordUpdating || !newPassword}
-                >
-                  {passwordUpdating ? 'Updating password…' : 'Update password'}
-                </button>
-              </div>
+              <button type="submit" className="button button-gold" disabled={passwordUpdating || !newPassword}>
+                {passwordUpdating ? 'Updating password…' : 'Update password'}
+              </button>
             </form>
-          )}
+          ))}
         </section>
 
         <ShareAndEarnCard className="profile-share-card" />

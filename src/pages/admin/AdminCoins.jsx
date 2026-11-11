@@ -209,7 +209,7 @@ export default function AdminCoins() {
             </article>
           </div>
 
-          <div className="admin-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 420px) 1fr', gap: '24px', marginTop: '24px' }}>
+          <div className="admin-two-col-grid admin-coins-content-grid">
             {/* Share & Earn Settings Form */}
             <section className="panel-card referral-settings-card">
               <div className="section-heading">
@@ -223,23 +223,22 @@ export default function AdminCoins() {
                 Tune how many Zyvra Coins learners earn when sharing their invite link with peers.
               </p>
 
-              <form onSubmit={handleSaveSettings} className="space-y-4">
-                <div className="form-toggle-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'var(--bg-subtle, rgba(255,255,255,0.03))', borderRadius: '10px', border: '1px solid var(--border-color, rgba(255,255,255,0.08))' }}>
+              <form onSubmit={handleSaveSettings} className="referral-settings-form">
+                <div className="form-toggle-row">
                   <div>
                     <strong style={{ display: 'block', fontSize: '0.95rem' }}>Referral Program</strong>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)' }}>Enable Share & Earn cards on student wallets</span>
                   </div>
-                  <label className="toggle-switch" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                  <label className="toggle-switch referral-toggle">
                     <input
                       type="checkbox"
                       checked={settings.enabled}
                       onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
-                      style={{ width: '18px', height: '18px', accentColor: 'var(--gold, #f59e0b)' }}
                     />
                   </label>
                 </div>
 
-                <div style={{ marginTop: '16px' }}>
+                <div className="referral-setting-field">
                   <label className="field-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.875rem', fontWeight: 600 }}>
                     Referrer Reward (Coins)
                     <input
@@ -249,7 +248,6 @@ export default function AdminCoins() {
                       className="text-input"
                       value={settings.referrerCoins}
                       onChange={(e) => setSettings({ ...settings, referrerCoins: Math.max(0, parseInt(e.target.value) || 0) })}
-                      style={{ marginTop: '6px', width: '100%' }}
                       required
                     />
                   </label>
@@ -258,7 +256,7 @@ export default function AdminCoins() {
                   </p>
                 </div>
 
-                <div style={{ marginTop: '16px' }}>
+                <div className="referral-setting-field">
                   <label className="field-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.875rem', fontWeight: 600 }}>
                     New Student Bonus (Coins)
                     <input
@@ -268,7 +266,6 @@ export default function AdminCoins() {
                       className="text-input"
                       value={settings.referredCoins}
                       onChange={(e) => setSettings({ ...settings, referredCoins: Math.max(0, parseInt(e.target.value) || 0) })}
-                      style={{ marginTop: '6px', width: '100%' }}
                       required
                     />
                   </label>
@@ -278,22 +275,15 @@ export default function AdminCoins() {
                 </div>
 
                 {settingsFeedback.text && (
-                  <div className={`feedback ${settingsFeedback.type === 'success' ? 'success-feedback' : 'error-feedback'}`} style={{ marginTop: '16px' }}>
+                  <div className={`feedback ${settingsFeedback.type === 'success' ? 'success-feedback' : 'error-feedback'}`}>
                     {settingsFeedback.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
                     {settingsFeedback.text}
                   </div>
                 )}
 
-                <div style={{ marginTop: '20px' }}>
-                  <button
-                    type="submit"
-                    className="button button-gold"
-                    disabled={savingSettings}
-                    style={{ width: '100%', justifyContent: 'center' }}
-                  >
-                    <Save size={16} /> {savingSettings ? 'Saving Settings…' : 'Save Referral Rules'}
-                  </button>
-                </div>
+                <button type="submit" className="button button-gold referral-save-button" disabled={savingSettings}>
+                  <Save size={16} /> {savingSettings ? 'Saving Settings…' : 'Save Referral Rules'}
+                </button>
               </form>
             </section>
 

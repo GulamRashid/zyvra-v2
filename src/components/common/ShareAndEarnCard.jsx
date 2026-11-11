@@ -8,7 +8,7 @@ export default function ShareAndEarnCard({ className = '' }) {
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [referrals, setReferrals] = useState([]);
-  const [code, setCode] = useState(profile?.referral_code || (user?.referral_code || 'Z-INVITE'));
+  const [code, setCode] = useState(String(profile?.referral_code || user?.referral_code || 'Z-INVITE'));
   const [generating, setGenerating] = useState(false);
   const [settings, setSettings] = useState({ enabled: true, referrerCoins: 50, referredCoins: 20 });
 
@@ -44,7 +44,7 @@ export default function ShareAndEarnCard({ className = '' }) {
     return () => { active = false; };
   }, [supabase, user?.id]);
 
-  const activeCode = code || profile?.referral_code || (user?.referral_code || 'Z-INVITE');
+  const activeCode = String(code || profile?.referral_code || user?.referral_code || 'Z-INVITE');
   const hasRealCode = Boolean((code && code !== 'Z-INVITE') || profile?.referral_code || user?.referral_code);
 
   const handleGenerateCode = async () => {

@@ -156,57 +156,49 @@ export default function AdminTools() {
       {loading ? (
         <LoadingSkeleton rows={4} />
       ) : (
-        <div className="tools-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '20px', marginTop: '16px' }}>
+        <div className="tools-grid">
           {tools.map((tool) => (
             <article
               key={tool.id}
-              className="panel-card"
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                border: tool.enabled ? '1px solid var(--border-color, rgba(255,255,255,0.08))' : '1px dashed rgba(255,255,255,0.1)',
-                opacity: tool.enabled ? 1 : 0.65
-              }}
+              className={`panel-card admin-tool-card ${tool.enabled ? '' : 'disabled'}`}
             >
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div className="setting-symbol" style={{ background: tool.enabled ? 'rgba(245, 158, 11, 0.15)' : 'rgba(255,255,255,0.05)', color: tool.enabled ? '#fbbf24' : '#94a3b8' }}>
+                <div className="admin-tool-card-heading">
+                  <div className="admin-tool-card-title">
+                    <div className="setting-symbol">
                       {getIcon(tool.icon)}
                     </div>
                     <div>
-                      <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', color: 'var(--text-muted, #94a3b8)', letterSpacing: '0.05em' }}>
-                        {tool.category}
-                      </span>
-                      <h3 style={{ fontSize: '1.05rem', margin: 0, fontWeight: 600 }}>{tool.name}</h3>
+                      <span className="admin-tool-category">{tool.category}</span>
+                      <h3>{tool.name}</h3>
                     </div>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => toggleTool(tool.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: tool.enabled ? '#34d399' : '#94a3b8' }}
+                    className={`admin-tool-toggle ${tool.enabled ? 'enabled' : ''}`}
                     title={tool.enabled ? 'Disable tool' : 'Enable tool'}
+                    aria-label={`${tool.enabled ? 'Disable' : 'Enable'} ${tool.name}`}
                   >
                     {tool.enabled ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                   </button>
                 </div>
 
-                <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #94a3b8)', lineHeight: 1.5, margin: '8px 0 16px' }}>
+                <p className="admin-tool-description">
                   {tool.description}
                 </p>
               </div>
 
-              <div style={{ paddingTop: '12px', borderTop: '1px solid var(--border-color, rgba(255,255,255,0.06))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+              <div className="admin-tool-card-footer">
+                <div className="admin-tool-exams">
                   {(tool.exams || []).map((ex) => (
-                    <span key={ex} style={{ fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', background: 'var(--bg-subtle, rgba(255,255,255,0.05))', color: 'var(--text-muted, #cbd5e1)' }}>
+                    <span key={ex} className="admin-tool-exam-badge">
                       {ex}
                     </span>
                   ))}
                 </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: tool.enabled ? '#34d399' : '#94a3b8' }}>
+                <span className={`admin-tool-status ${tool.enabled ? 'enabled' : ''}`}>
                   {tool.enabled ? 'VISIBLE' : 'HIDDEN'}
                 </span>
               </div>

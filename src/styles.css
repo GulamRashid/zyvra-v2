@@ -513,6 +513,38 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
 .admin-page-heading p { font-size: 11px; }
 .heading-dot { padding: 0 5px; }
 .metrics-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.admin-coins-page, .admin-tools-page { display: grid; min-width: 0; gap: 18px; }
+.admin-coins-content-grid { display: grid; grid-template-columns: minmax(0, 420px) minmax(0, 1fr); align-items: start; gap: 20px; margin-top: 20px; }
+.referral-settings-card, .referral-history-card { min-width: 0; padding: 18px; }
+.referral-settings-form { display: grid; gap: 14px; min-width: 0; }
+.referral-settings-form .field-label { min-width: 0; margin: 0; }
+.referral-setting-field { display: grid; gap: 5px; }
+.referral-setting-field .field-label { display: grid !important; gap: 6px; font-size: 13px !important; }
+.referral-setting-field .text-input { width: 100%; min-width: 0; margin: 0 !important; }
+.form-toggle-row { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel2); }
+.form-toggle-row > div { display: grid; min-width: 0; gap: 4px; }
+.form-toggle-row > div span { color: var(--muted) !important; overflow-wrap: anywhere; }
+.referral-toggle { display: flex; flex: 0 0 auto; align-items: center; cursor: pointer; }
+.referral-toggle input { width: 20px !important; height: 20px; accent-color: var(--gold); }
+.referral-settings-form .feedback { display: flex; align-items: flex-start; gap: 8px; margin: 0; overflow-wrap: anywhere; }
+.referral-save-button { width: 100%; min-height: 44px; justify-content: center; }
+.tools-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); gap: 16px; width: 100%; min-width: 0; margin-top: 16px; }
+.admin-tool-card { display: flex; min-width: 0; flex-direction: column; justify-content: space-between; gap: 16px; padding: 18px; border: 1px solid var(--line); }
+.admin-tool-card.disabled { opacity: .7; border-style: dashed; }
+.admin-tool-card-heading { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 14px; }
+.admin-tool-card-title { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.admin-tool-card-title > div:last-child { display: grid; min-width: 0; gap: 3px; }
+.admin-tool-card-title .setting-symbol { flex: 0 0 auto; }
+.admin-tool-category { color: var(--muted); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; }
+.admin-tool-card-title h3 { margin: 0; color: var(--text); font-size: 15px; font-weight: 650; overflow-wrap: anywhere; }
+.admin-tool-toggle { display: grid; width: 40px; height: 40px; flex: 0 0 auto; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel2); color: var(--muted); cursor: pointer; }
+.admin-tool-toggle.enabled { color: var(--accent); }
+.admin-tool-description { margin: 10px 0 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+.admin-tool-card-footer { display: flex; min-width: 0; align-items: center; justify-content: space-between; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.admin-tool-exams { display: flex; min-width: 0; flex-wrap: wrap; gap: 6px; }
+.admin-tool-exam-badge { padding: 3px 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel2); color: var(--muted); font-size: 10px; font-weight: 600; }
+.admin-tool-status { flex: 0 0 auto; color: var(--muted); font-size: 11px; font-weight: 700; }
+.admin-tool-status.enabled { color: var(--accent); }
 .metric-card { display: grid; grid-template-columns: 37px 1fr; grid-template-rows: auto auto auto; align-items: center; column-gap: 10px; min-height: 105px; padding: 14px; border: 1px solid var(--line); border-radius: 13px; background: var(--panel); }
 .metric-icon { grid-row: 1 / span 2; display: grid; width: 36px; height: 36px; place-items: center; border-radius: 10px; }
 .metric-icon.gold { background: rgba(228, 184, 95, .12); color: var(--gold); }
@@ -968,6 +1000,23 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .pomodoro-completed { display: flex; align-items: center; gap: 6px; grid-column: 1 / -1; color: var(--muted); font-size: 8px; }
 .pomodoro-completed svg { color: var(--accent); }
 .pomodoro-actions .button:focus-visible, .pomodoro-mode:focus-visible, .toolbox-filters button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.toolbox-calculator .section-heading h2 { display: flex; align-items: center; gap: 8px; }
+.toolbox-calculator-form { display: grid; grid-template-columns: minmax(0, 1fr) 150px minmax(0, 1fr) auto; align-items: end; gap: 10px; }
+.toolbox-calculator-form .field-label { min-width: 0; margin: 0; }
+.toolbox-calculator-form .button { min-height: 42px; }
+.toolbox-calculator-result { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--muted); font-size: 13px; }
+.toolbox-calculator-result strong { color: var(--text); }
+.toolbox-calculator-result span { color: var(--accent); font-size: 17px; font-weight: 700; overflow-wrap: anywhere; }
+.toolbox-formula-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); gap: 9px; }
+.toolbox-formula-card { display: grid; min-width: 0; gap: 7px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.toolbox-formula-card strong { color: var(--text); font-size: 13px; }
+.toolbox-formula-card span { color: var(--accent); font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
+.toolbox-formula-card small { color: var(--muted); font-size: 11px; line-height: 1.45; }
+.toolbox-deep-link-card { display: flex; min-width: 0; align-items: center; gap: 12px; padding: 15px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+.toolbox-deep-link-card > div { min-width: 0; flex: 1; }
+.toolbox-deep-link-card strong { color: var(--text); font-size: 14px; }
+.toolbox-deep-link-card p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+.toolbox-deep-link-card .button { min-height: 42px; flex: 0 0 auto; }
 .toolbox-page .page-heading h1 { font-size: clamp(24px, 2.5vw, 32px); }
 .toolbox-section { display: grid; gap: 11px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
 .toolbox-section .section-heading { margin: 0; }
@@ -1934,4 +1983,28 @@ body.light .test-hub-hero { border-color: #b6d2c0; background: radial-gradient(e
   width: 1px;
   height: 16px;
   background: var(--line);
+}
+
+.password-setting-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.password-setting-header .setting-card-title { min-width: 0; }
+.password-toggle-button { min-height: 40px; flex: 0 0 auto; }
+.password-update-form { display: grid; gap: 10px; margin-top: 16px; }
+.password-update-form .field-label { margin: 0; }
+.password-update-form .feedback { margin: 0; overflow-wrap: anywhere; }
+.password-update-form > .button { justify-self: start; min-height: 44px; }
+
+@media (max-width: 900px) {
+  .admin-coins-content-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .referral-settings-card, .referral-history-card { padding: 14px; }
+  .form-toggle-row { align-items: flex-start; }
+  .admin-tool-card-footer { align-items: flex-start; flex-direction: column; }
+  .toolbox-calculator-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .toolbox-calculator-form .button { grid-column: 1 / -1; }
+  .toolbox-deep-link-card { align-items: flex-start; flex-wrap: wrap; }
+  .toolbox-deep-link-card .button { width: 100%; justify-content: center; }
+  .password-setting-header { align-items: flex-start; flex-direction: column; }
+  .password-toggle-button { align-self: flex-start; }
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bookmark, BookOpen, CheckCircle2, Clock3, FileText, Pause, Play, RotateCcw, Sparkles, Wrench } from 'lucide-react';
+import { ArrowRight, Bookmark, BookOpen, Brain, Calculator, CheckCircle2, Clock3, FileText, Pause, Play, RotateCcw, Sparkles, Wrench } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
@@ -65,6 +65,14 @@ export default function StudentToolbox() {
   const [filter, setFilter] = useState('all');
   const [reader, setReader] = useState(null);
   const [readerError, setReaderError] = useState('');
+  const [visibleTools, setVisibleTools] = useState({
+    pomodoro: true,
+    'math-shortcuts': true,
+    'polity-articles': true,
+    'formula-sheet': true
+  });
+  const [calculatorInput, setCalculatorInput] = useState({ first: '', second: '', operation: '+' });
+  const [calculatorResult, setCalculatorResult] = useState('');
   const completionHandled = useRef(false);
 
   useEffect(() => {
@@ -114,14 +122,27 @@ export default function StudentToolbox() {
         setLoading(false);
         return;
       }
-      const [resourceResult, bookmarkResult] = await Promise.all([
+      const [resourceResult, bookmarkResult, settingsResult] = await Promise.all([
         supabase.from('chapter_resources').select('id,chapter_id,title,resource_type,file_size,page_count,is_downloadable,is_free_preview,status'),
-        user ? supabase.from('student_bookmarks').select('*').eq('user_id', user.id) : Promise.resolve({ data: [], error: null })
+        user ? supabase.from('student_bookmarks').select('*').eq('user_id', user.id) : Promise.resolve({ data: [], error: null }),
+        supabase.from('platform_settings').select('*')
       ]);
       if (resourceResult.error) throw resourceResult.error;
       if (bookmarkResult.error) throw bookmarkResult.error;
+      if (settingsResult.error) throw settingsResult.error;
       if (!active) return;
       const availableResources = (resourceResult.data || []).filter((item) => !['archived', 'draft', 'unpublished'].includes(String(item.status || '').toLowerCase()));
+      const toolboxSetting = (settingsResult.data || []).find((item) => item?.setting_key === 'study_toolbox_config' || item?.key === 'study_toolbox_config');
+      const rawTools = toolboxSetting?.setting_value ?? toolboxSetting?.value;
+      const configuredTools = typeof rawTools === 'string' ? JSON.parse(rawTools) : rawTools;
+      if (Array.isArray(configuredTools)) {
+        setVisibleTools((current) => configuredTools.reduce((visibility, tool) => {
+          if (tool?.id && Object.prototype.hasOwnProperty.call(visibility, tool.id)) {
+            visibility[tool.id] = tool.enabled !== false;
+          }
+          return visibility;
+        }, { ...current }));
+      }
       setResources(availableResources);
       setBookmarks(bookmarkResult.data || []);
       setLoading(false);
@@ -190,15 +211,59 @@ export default function StudentToolbox() {
     setMode(nextMode);
     setRemaining(nextMode === 'study' ? STUDY_SECONDS : BREAK_SECONDS);
   };
+  const calculate = (event) => {
+    event.preventDefault();
+    const first = Number(calculatorInput.first);
+    const second = Number(calculatorInput.second);
+    if (!Number.isFinite(first) || !Number.isFinite(second)) {
+      setCalculatorResult('Enter valid numbers to calculate.');
+      return;
+    }
+    if (calculatorInput.operation === '/' && second === 0) {
+      setCalculatorResult('Cannot divide by zero.');
+      return;
+    }
+    const result = calculatorInput.operation === '+' ? first + second
+      : calculatorInput.operation === '-' ? first - second
+        : calculatorInput.operation === '*' ? first * second
+          : first / second;
+    setCalculatorResult(String(Number(result.toFixed(8))));
+  };
 
   return <div className="toolbox-page">
     <div className="page-heading"><div><div className="eyebrow">{language === 'hi' ? 'आपका अध्ययन स्थान / टूलबॉक्स' : 'YOUR LEARNING SPACE / TOOLBOX'}</div><h1>{t('toolboxTitle')}</h1><p>{t('toolboxDescription')}</p></div></div>
-    <section className={`pomodoro-card ${mode === 'break' ? 'break-mode' : ''}`}>
+    {visibleTools.pomodoro && <section className={`pomodoro-card ${mode === 'break' ? 'break-mode' : ''}`}>
       <div className="pomodoro-copy"><span className="toolbox-icon"><Clock3 size={21} /></span><div><div className="eyebrow">{mode === 'study' ? t('focusSession').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US') : t('restInterval').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div><h2>{mode === 'study' ? t('oneThing') : t('mindfulBreak')}</h2><p>{mode === 'study' ? t('focusSprint') : t('breakDescription')}</p></div></div>
       <div className="pomodoro-clock" aria-live="polite">{formatTime(remaining)}</div>
       <div className="pomodoro-actions"><button className="button button-gold" onClick={() => { completionHandled.current = false; setRunning((value) => !value); }}>{running ? <><Pause size={15} /> {t('pause')}</> : <><Play size={15} /> {t('startFocus')}</>}</button><button className="button button-outline" onClick={resetTimer}><RotateCcw size={15} /> {t('reset')}</button><button className={`pomodoro-mode ${mode === 'study' ? 'active' : ''}`} onClick={() => changeMode('study')}>{t('study25')}</button><button className={`pomodoro-mode ${mode === 'break' ? 'active' : ''}`} onClick={() => changeMode('break')}>{t('break5')}</button></div>
       <div className="pomodoro-completed"><CheckCircle2 size={15} /> {sessions} {t('focusSessions')}</div>
-    </section>
+    </section>}
+
+    {visibleTools['math-shortcuts'] && <section className="toolbox-section toolbox-calculator">
+      <div className="section-heading"><div><div className="eyebrow">QUICK MATH</div><h2><Calculator size={17} /> Math Calculator</h2></div></div>
+      <form className="toolbox-calculator-form" onSubmit={calculate}>
+        <label className="field-label">First number<input className="text-input" type="number" step="any" value={calculatorInput.first} onChange={(event) => setCalculatorInput((current) => ({ ...current, first: event.target.value }))} required /></label>
+        <label className="field-label">Operation<select className="text-input" value={calculatorInput.operation} onChange={(event) => setCalculatorInput((current) => ({ ...current, operation: event.target.value }))}><option value="+">Add (+)</option><option value="-">Subtract (−)</option><option value="*">Multiply (×)</option><option value="/">Divide (÷)</option></select></label>
+        <label className="field-label">Second number<input className="text-input" type="number" step="any" value={calculatorInput.second} onChange={(event) => setCalculatorInput((current) => ({ ...current, second: event.target.value }))} required /></label>
+        <button className="button button-gold" type="submit">Calculate</button>
+      </form>
+      {calculatorResult && <div className="toolbox-calculator-result" aria-live="polite"><strong>Result</strong><span>{calculatorResult}</span></div>}
+    </section>}
+
+    {visibleTools['formula-sheet'] && <section className="toolbox-section">
+      <div className="section-heading"><div><div className="eyebrow">FORMULA & REVISION HUB</div><h2><Brain size={17} /> Quick reference</h2></div></div>
+      <div className="toolbox-formula-grid">
+        <article className="toolbox-formula-card"><strong>Percentage</strong><span>Percentage = (part ÷ whole) × 100</span><small>Use for ratios, marks and change calculations.</small></article>
+        <article className="toolbox-formula-card"><strong>Simple Interest</strong><span>SI = (Principal × Rate × Time) ÷ 100</span><small>Keep rate and time in matching units.</small></article>
+        <article className="toolbox-formula-card"><strong>Average</strong><span>Average = Sum of values ÷ Number of values</span><small>For a combined average, add totals before dividing.</small></article>
+      </div>
+    </section>}
+
+    {visibleTools['polity-articles'] && <section className="toolbox-deep-link-card">
+      <span className="toolbox-icon"><BookOpen size={19} /></span>
+      <div><strong>Constitution & Articles</strong><p>Open your syllabus to browse polity chapters and revision resources.</p></div>
+      <button type="button" className="button button-outline" onClick={() => navigate('/explore')}>Explore syllabus <ArrowRight size={15} /></button>
+    </section>}
 
     <section className="toolbox-section">
       <div className="section-heading"><div><div className="eyebrow">{t('quickRevision').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div><h2>{t('formulaSheets')}</h2></div><div className="toolbox-filters"><button className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>{t('highYield')}</button><button className={filter === 'saved' ? 'active' : ''} onClick={() => setFilter('saved')}>{t('bookmarked')}</button></div></div>
