@@ -18,8 +18,7 @@ export async function getReferralSettings(supabase) {
   try {
     const { data, error } = await supabase
       .from('platform_settings')
-      .select('key, value')
-      .in('key', ['referral_program_config', 'referral_enabled', 'referrer_reward_coins', 'referred_reward_coins']);
+      .select('*');
 
     if (error && error.code !== 'PGRST116') {
       console.warn('Error loading referral settings:', error.message);
@@ -27,7 +26,8 @@ export async function getReferralSettings(supabase) {
 
     const settingsMap = {};
     (data || []).forEach((row) => {
-      settingsMap[row.key] = row.value;
+      const identifier = row.key || row.setting_key;
+      if (identifier) settingsMap[identifier] = row.value;
     });
 
     // Check jsonb config first
@@ -62,17 +62,22 @@ export async function saveReferralSettings(supabase, { enabled, referrerCoins, r
   };
 
   const rows = [
-    { key: 'referral_program_config', value: config },
-    { key: 'referral_enabled', value: Boolean(enabled) },
-    { key: 'referrer_reward_coins', value: Number(referrerCoins) },
-    { key: 'referred_reward_coins', value: Number(referredCoins) }
+    { key: 'referral_program_config', setting_key: 'referral_program_config', value: config },
+    { key: 'referral_enabled', setting_key: 'referral_enabled', value: Boolean(enabled) },
+    { key: 'referrer_reward_coins', setting_key: 'referrer_reward_coins', value: Number(referrerCoins) },
+    { key: 'referred_reward_coins', setting_key: 'referred_reward_coins', value: Number(referredCoins) }
   ];
 
-  const { error } = await supabase
+  let { error } = await supabase
     .from('platform_settings')
     .upsert(rows, { onConflict: 'key' });
 
-  if (error) throw error;
+  if (error) {
+    const fallback = await supabase
+      .from('platform_settings')
+      .upsert(rows, { onConflict: 'setting_key' });
+    if (fallback.error) throw fallback.error;
+  }
   return config;
 }
 

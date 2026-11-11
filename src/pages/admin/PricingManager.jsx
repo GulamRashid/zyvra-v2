@@ -70,11 +70,14 @@ export default function PricingManager() {
     setSaving(true);
     try {
       const settings = [
-        { key: 'coin_redemption_config', value: normalized },
-        { key: 'global_pricing_enabled', value: { enabled: pricingEnabled } }
+        { key: 'coin_redemption_config', setting_key: 'coin_redemption_config', value: normalized },
+        { key: 'global_pricing_enabled', setting_key: 'global_pricing_enabled', value: { enabled: pricingEnabled } }
       ];
-      const { error: saveError } = await supabase.from('platform_settings').upsert(settings, { onConflict: 'key' });
-      if (saveError) throw saveError;
+      let { error: saveError } = await supabase.from('platform_settings').upsert(settings, { onConflict: 'key' });
+      if (saveError) {
+        const fallback = await supabase.from('platform_settings').upsert(settings, { onConflict: 'setting_key' });
+        if (fallback.error) throw fallback.error;
+      }
       setConfig(normalized);
       setSaved(true);
     } catch (saveError) {

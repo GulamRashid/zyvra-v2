@@ -27,14 +27,13 @@ export default function AdminNotifications() {
       // Check platform_settings for platform_announcements
       const { data, error } = await supabase
         .from('platform_settings')
-        .select('value')
-        .eq('key', 'platform_announcements')
-        .maybeSingle();
+        .select('*');
 
       if (error && error.code !== 'PGRST116') throw error;
 
       if (active()) {
-        const list = Array.isArray(data?.value) ? data.value : [];
+        const row = (data || []).find((r) => r.key === 'platform_announcements' || r.setting_key === 'platform_announcements');
+        const list = Array.isArray(row?.value) ? row.value : [];
         setAnnouncements(list);
       }
     } catch (err) {
@@ -73,14 +72,24 @@ export default function AdminNotifications() {
 
       const updated = [newEntry, ...announcements];
 
-      const { error } = await supabase
+      let { error } = await supabase
         .from('platform_settings')
         .upsert({
           key: 'platform_announcements',
+          setting_key: 'platform_announcements',
           value: updated
         }, { onConflict: 'key' });
 
-      if (error) throw error;
+      if (error) {
+        const fallback = await supabase
+          .from('platform_settings')
+          .upsert({
+            key: 'platform_announcements',
+            setting_key: 'platform_announcements',
+            value: updated
+          }, { onConflict: 'setting_key' });
+        if (fallback.error) throw fallback.error;
+      }
 
       setAnnouncements(updated);
       setTitle('');
@@ -97,14 +106,24 @@ export default function AdminNotifications() {
     if (!confirm('Remove this announcement?')) return;
     try {
       const updated = announcements.filter((a) => a.id !== id);
-      const { error } = await supabase
+      let { error } = await supabase
         .from('platform_settings')
         .upsert({
           key: 'platform_announcements',
+          setting_key: 'platform_announcements',
           value: updated
         }, { onConflict: 'key' });
 
-      if (error) throw error;
+      if (error) {
+        const fallback = await supabase
+          .from('platform_settings')
+          .upsert({
+            key: 'platform_announcements',
+            setting_key: 'platform_announcements',
+            value: updated
+          }, { onConflict: 'setting_key' });
+        if (fallback.error) throw fallback.error;
+      }
       setAnnouncements(updated);
     } catch (err) {
       alert('Failed to delete announcement: ' + err.message);

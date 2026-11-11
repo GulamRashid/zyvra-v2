@@ -57,14 +57,15 @@ export default function AdminTools() {
     try {
       const { data, error } = await supabase
         .from('platform_settings')
-        .select('value')
-        .eq('key', 'study_toolbox_config')
-        .maybeSingle();
+        .select('*');
 
       if (error && error.code !== 'PGRST116') throw error;
 
-      if (active() && data?.value && Array.isArray(data.value)) {
-        setTools(data.value);
+      if (active() && data) {
+        const row = data.find((r) => r.key === 'study_toolbox_config' || r.setting_key === 'study_toolbox_config');
+        if (row?.value && Array.isArray(row.value)) {
+          setTools(row.value);
+        }
       }
     } catch (err) {
       console.warn('Error loading toolbox config:', err.message);
@@ -89,14 +90,24 @@ export default function AdminTools() {
     setSaving(true);
     setFeedback({ text: '', type: '' });
     try {
-      const { error } = await supabase
+      let { error } = await supabase
         .from('platform_settings')
         .upsert({
           key: 'study_toolbox_config',
+          setting_key: 'study_toolbox_config',
           value: tools
         }, { onConflict: 'key' });
 
-      if (error) throw error;
+      if (error) {
+        const fallback = await supabase
+          .from('platform_settings')
+          .upsert({
+            key: 'study_toolbox_config',
+            setting_key: 'study_toolbox_config',
+            value: tools
+          }, { onConflict: 'setting_key' });
+        if (fallback.error) throw fallback.error;
+      }
       setFeedback({ text: 'Toolbox configurations saved and live for learners.', type: 'success' });
     } catch (err) {
       setFeedback({ text: err.message || 'Failed to save tools.', type: 'error' });

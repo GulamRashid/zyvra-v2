@@ -22,12 +22,15 @@ export default function SettingsPreview({ compact = false }) {
     let active = true;
     const load = async () => {
       if (!supabase) { setLoading(false); return; }
-      const { data, error: loadError } = await supabase.from('platform_settings').select('value').eq('key', 'test_coin_reward_slabs').maybeSingle();
+      const { data, error: loadError } = await supabase.from('platform_settings').select('*');
       if (!active) return;
       if (loadError) setError(loadError.message);
-      else if (data?.value !== undefined) {
-        try { setSlabs(parseSlabs(data.value)); }
-        catch (parseError) { setError(parseError.message); }
+      else {
+        const row = (data || []).find((r) => r.key === 'test_coin_reward_slabs' || r.setting_key === 'test_coin_reward_slabs');
+        if (row?.value !== undefined) {
+          try { setSlabs(parseSlabs(row.value)); }
+          catch (parseError) { setError(parseError.message); }
+        }
       }
       setLoading(false);
     };
@@ -47,8 +50,11 @@ export default function SettingsPreview({ compact = false }) {
     }
     setSaving(true);
     try {
-      const { error: saveError } = await supabase.from('platform_settings').upsert({ key: 'test_coin_reward_slabs', value: normalized }, { onConflict: 'key' });
-      if (saveError) throw saveError;
+      let { error: saveError } = await supabase.from('platform_settings').upsert({ key: 'test_coin_reward_slabs', setting_key: 'test_coin_reward_slabs', value: normalized }, { onConflict: 'key' });
+      if (saveError) {
+        const fallback = await supabase.from('platform_settings').upsert({ key: 'test_coin_reward_slabs', setting_key: 'test_coin_reward_slabs', value: normalized }, { onConflict: 'setting_key' });
+        if (fallback.error) throw fallback.error;
+      }
       setSlabs(normalized);
       setSaved(true);
     } catch (saveError) {
