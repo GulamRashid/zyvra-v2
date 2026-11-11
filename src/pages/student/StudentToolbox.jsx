@@ -1,29 +1,42 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Bookmark, BookOpen, Brain, Calculator, CheckCircle2, Clock3, FileText, LockKeyhole, Pause, Percent, Play, RotateCcw, Shapes, Superscript, Wrench, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bookmark, BookOpen, Brain, Calculator, Clock3, LockKeyhole, Percent, Shapes, Superscript, Wrench, ChevronRight, StickyNote, ListChecks, Compass, Dices, Scale, Sigma, Binary } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 import { normalizeAccessResult } from '../../lib/commerce';
 import CheckoutModal from '../../components/common/CheckoutModal';
-import CalculatorTool from '../../components/toolbox/math/CalculatorTool';
+import SmartCalculator from '../../components/toolbox/math/SmartCalculator';
 import FractionConverter from '../../components/toolbox/math/FractionConverter';
-import FormulaHub from '../../components/toolbox/math/FormulaHub';
-import PowersRootsTool from '../../components/toolbox/math/PowersRootsTool';
+import SquaresCubes from '../../components/toolbox/math/SquaresCubes';
+import MathFormulaHub from '../../components/toolbox/math/MathFormulaHub';
+import AlphabetPositions from '../../components/toolbox/reasoning/AlphabetPositions';
+import BloodRelations from '../../components/toolbox/reasoning/BloodRelations';
+import DirectionCompass from '../../components/toolbox/reasoning/DirectionCompass';
+import DiceRules from '../../components/toolbox/reasoning/DiceRules';
+import ConstitutionArticles from '../../components/toolbox/gs/ConstitutionArticles';
+import UnitConverter from '../../components/toolbox/gs/UnitConverter';
+import StickyNotes from '../../components/toolbox/productivity/StickyNotes';
+import PomodoroTimer from '../../components/toolbox/productivity/PomodoroTimer';
+import DailyTargets from '../../components/toolbox/productivity/DailyTargets';
 import ToolUnlockModal from '../../components/toolbox/ToolUnlockModal';
-
-const STUDY_SECONDS = 25 * 60;
-const BREAK_SECONDS = 5 * 60;
 
 const TOOL_TITLES = {
   calculator: 'Smart Calculator',
   'fraction-converter': 'Fraction & Percentage Converter',
   'powers-roots': 'Squares, Cubes & Roots',
-  'geometry-formulas': 'Geometry & Mensuration Formulas',
+  'geometry-formulas': 'Math Formula Hub',
+  'alphabet-positions': 'Alphabet Positions',
+  'blood-relations': 'Blood Relations',
+  'direction-compass': 'Direction Compass',
+  'dice-rules': 'Dice Rules',
+  'constitution-articles': 'Constitution Articles',
+  'unit-converter': 'Unit Converter',
+  'sticky-notes': 'Sticky Notes',
+  'daily-targets': 'Daily Targets',
   'reasoning-formulas': 'Reasoning & Logic Formulas',
   pomodoro: 'Pomodoro Study Timer',
   'polity-articles': 'Constitution & Articles',
-  'revision-sheets': 'Revision Sheets',
   'saved-bookmarks': 'Saved Bookmarks'
 };
 
@@ -38,68 +51,33 @@ const CATEGORY_TOOLS = {
   math: [
     { id: 'calculator', title: TOOL_TITLES.calculator, subtitle: 'Everyday calculations', Icon: Calculator, accessKey: 'math-shortcuts' },
     { id: 'fraction-converter', title: TOOL_TITLES['fraction-converter'], subtitle: 'Convert percentages to fractions', Icon: Percent, accessKey: 'math-shortcuts' },
-    { id: 'powers-roots', title: TOOL_TITLES['powers-roots'], subtitle: 'Squares, cubes and roots', Icon: Superscript, accessKey: 'math-shortcuts' },
-    { id: 'geometry-formulas', title: TOOL_TITLES['geometry-formulas'], subtitle: 'Areas, surface areas and volumes', Icon: Shapes, accessKey: 'math-shortcuts' }
+    { id: 'powers-roots', title: TOOL_TITLES['powers-roots'], subtitle: 'Squares, cubes, roots and a 1–30 reference table', Icon: Superscript, accessKey: 'math-shortcuts' },
+    { id: 'geometry-formulas', title: TOOL_TITLES['geometry-formulas'], subtitle: 'Algebra, mensuration and trigonometry', Icon: Shapes, accessKey: 'math-shortcuts' }
   ],
   reasoning: [
-    { id: 'reasoning-formulas', title: TOOL_TITLES['reasoning-formulas'], subtitle: 'Explore your reasoning and logic sheets', Icon: Brain, accessKey: 'formula-sheet' }
+    { id: 'alphabet-positions', title: TOOL_TITLES['alphabet-positions'], subtitle: 'Forward positions and reverse pairs', Icon: Binary, accessKey: 'formula-sheet' },
+    { id: 'blood-relations', title: TOOL_TITLES['blood-relations'], subtitle: 'Family-tree symbols and generations', Icon: Brain, accessKey: 'formula-sheet' },
+    { id: 'direction-compass', title: TOOL_TITLES['direction-compass'], subtitle: 'Eight directions with clockwise angles', Icon: Compass, accessKey: 'formula-sheet' },
+    { id: 'dice-rules', title: TOOL_TITLES['dice-rules'], subtitle: 'Standard and general dice rules', Icon: Dices, accessKey: 'formula-sheet' },
+    { id: 'reasoning-formulas', title: TOOL_TITLES['reasoning-formulas'], subtitle: 'Quick quantitative reasoning reference', Icon: Sigma, accessKey: 'formula-sheet' }
   ],
   productivity: [
-    { id: 'pomodoro', title: TOOL_TITLES.pomodoro, subtitle: 'Focus and break timer', Icon: Clock3, accessKey: 'pomodoro' }
+    { id: 'pomodoro', title: TOOL_TITLES.pomodoro, subtitle: '25-minute focus and 5-minute break cycles', Icon: Clock3, accessKey: 'pomodoro' },
+    { id: 'sticky-notes', title: TOOL_TITLES['sticky-notes'], subtitle: 'A private, locally saved rough pad', Icon: StickyNote, accessKey: 'pomodoro' },
+    { id: 'daily-targets', title: TOOL_TITLES['daily-targets'], subtitle: 'Create and track today’s study checklist', Icon: ListChecks, accessKey: 'pomodoro' }
   ],
   'general-studies': [
+    { id: 'constitution-articles', title: TOOL_TITLES['constitution-articles'], subtitle: 'Search frequently asked Indian Constitution articles', Icon: BookOpen, accessKey: 'polity-articles' },
+    { id: 'unit-converter', title: TOOL_TITLES['unit-converter'], subtitle: 'Length, temperature and land area conversions', Icon: Scale, accessKey: 'polity-articles' },
     { id: 'polity-articles', title: TOOL_TITLES['polity-articles'], subtitle: 'Browse the syllabus and polity chapters', Icon: BookOpen, accessKey: 'polity-articles' },
-    { id: 'revision-sheets', title: TOOL_TITLES['revision-sheets'], subtitle: 'Open revision notes and study sheets', Icon: FileText, accessKey: 'formula-sheet' },
     { id: 'saved-bookmarks', title: TOOL_TITLES['saved-bookmarks'], subtitle: 'Continue from saved items', Icon: Bookmark, accessKey: null }
   ]
 };
-
-function playChime() {
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContextClass) return;
-  const context = new AudioContextClass();
-  [660, 880].forEach((frequency, index) => {
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.frequency.value = frequency;
-    gain.gain.setValueAtTime(0.0001, context.currentTime + index * 0.18);
-    gain.gain.exponentialRampToValueAtTime(0.12, context.currentTime + index * 0.18 + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + index * 0.18 + 0.22);
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start(context.currentTime + index * 0.18);
-    oscillator.stop(context.currentTime + index * 0.18 + 0.24);
-  });
-  window.setTimeout(() => context.close(), 800);
-}
-
-function formatTime(seconds) {
-  return `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-}
-
-function currentDayKey() {
-  const date = new Date();
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-}
-
-function getCompletedSessions(userId) {
-  try {
-    const stored = JSON.parse(localStorage.getItem(`zyvra-focus-sessions-${userId || 'guest'}`) || 'null');
-    return stored?.date === currentDayKey() ? Math.max(0, Number(stored.count) || 0) : 0;
-  } catch (error) {
-    console.error('Unable to read completed focus sessions:', error);
-    return 0;
-  }
-}
 
 export default function StudentToolbox() {
   const { user } = useAuth();
   const { t, language } = useThemeLanguage();
   const navigate = useNavigate();
-  const [mode, setMode] = useState('study');
-  const [remaining, setRemaining] = useState(STUDY_SECONDS);
-  const [running, setRunning] = useState(false);
-  const [sessions, setSessions] = useState(() => getCompletedSessions(user?.id));
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -114,13 +92,12 @@ export default function StudentToolbox() {
   const [toolAccess, setToolAccess] = useState({});
   const [toolboxLoaded, setToolboxLoaded] = useState(false);
   const [accessError, setAccessError] = useState('');
+  const [settingsUnavailable, setSettingsUnavailable] = useState(false);
   const [checkout, setCheckout] = useState(null);
   const [currentView, setCurrentView] = useState('main-menu');
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeTool, setActiveTool] = useState(null);
   const [unlockTool, setUnlockTool] = useState(null);
-  const completionHandled = useRef(false);
-
   const refreshToolAccess = async (pricing = toolPricing, comboEnabled = comboPricing.price > 0) => {
     setAccessError('');
     if (!user?.id || !supabase) {
@@ -164,43 +141,6 @@ export default function StudentToolbox() {
   };
 
   useEffect(() => {
-    if (!running) return undefined;
-    const timer = window.setInterval(() => {
-      setRemaining((value) => Math.max(0, value - 1));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [running]);
-
-  useEffect(() => {
-    if (!running || remaining !== 0 || completionHandled.current) return;
-    completionHandled.current = true;
-    setRunning(false);
-    playChime();
-    if (mode === 'study') {
-      setSessions((value) => {
-        const next = value + 1;
-        try {
-          localStorage.setItem(`zyvra-focus-sessions-${user?.id || 'guest'}`, JSON.stringify({ date: currentDayKey(), count: next }));
-          const dailyKey = `zyvra-daily-study-${user?.id || 'guest'}`;
-          const saved = JSON.parse(localStorage.getItem(dailyKey) || 'null');
-          const minutes = saved?.date === currentDayKey() ? Math.max(0, Number(saved.minutes) || 0) : 0;
-          localStorage.setItem(dailyKey, JSON.stringify({ date: currentDayKey(), minutes: minutes + 25 }));
-        } catch (storageError) {
-          console.error('Unable to save focus session progress:', storageError);
-        }
-        return next;
-      });
-    }
-    const nextMode = mode === 'study' ? 'break' : 'study';
-    setMode(nextMode);
-    setRemaining(nextMode === 'study' ? STUDY_SECONDS : BREAK_SECONDS);
-  }, [mode, remaining, running, user?.id]);
-
-  useEffect(() => {
-    setSessions(getCompletedSessions(user?.id));
-  }, [user?.id]);
-
-  useEffect(() => {
     let active = true;
     const load = async () => {
       setLoading(true);
@@ -208,9 +148,11 @@ export default function StudentToolbox() {
       setToolboxLoaded(false);
       setToolAccess({});
       setAccessError('');
+      setSettingsUnavailable(false);
       if (!supabase) {
           setError('Connect to Zyvra to verify Toolbox access and load your bookmarks.');
           setAccessError('Pricing and purchase status could not be verified.');
+          setSettingsUnavailable(true);
           setToolboxLoaded(true);
           setLoading(false);
           return;
@@ -256,12 +198,16 @@ export default function StudentToolbox() {
       };
       setToolPricing(safePricing);
       setComboPricing(safeCombo);
+      setSettingsUnavailable(false);
       await refreshToolAccess(safePricing, safeCombo.price > 0);
       setLoading(false);
     };
     load().catch((loadError) => {
       if (active) {
         setError(loadError.message || 'Unable to load your study toolbox.');
+        setAccessError(loadError.message || 'Pricing and purchase status could not be verified.');
+        setSettingsUnavailable(true);
+        setToolboxLoaded(true);
         setLoading(false);
       }
     });
@@ -281,20 +227,11 @@ export default function StudentToolbox() {
 
   const savedBookmarks = bookmarks;
 
-  const resetTimer = () => {
-    setRunning(false);
-    completionHandled.current = false;
-    setRemaining(mode === 'study' ? STUDY_SECONDS : BREAK_SECONDS);
-  };
-  const changeMode = (nextMode) => {
-    setRunning(false);
-    completionHandled.current = false;
-    setMode(nextMode);
-    setRemaining(nextMode === 'study' ? STUDY_SECONDS : BREAK_SECONDS);
-  };
   const getToolConfig = (tool) => toolPricing[tool.id] || (tool.accessKey ? toolPricing[tool.accessKey] : null) || {};
   const isToolLocked = (tool) => {
-    if (!toolboxLoaded || !tool.accessKey) return false;
+    if (!tool.accessKey) return false;
+    if (settingsUnavailable) return true;
+    if (!toolboxLoaded) return false;
     const specificConfig = toolPricing[tool.id];
     const accessKey = specificConfig ? tool.id : tool.accessKey;
     return getToolConfig(tool).access_type === 'premium' && !toolAccess[accessKey] && !toolAccess.__combo;
@@ -356,12 +293,6 @@ export default function StudentToolbox() {
   const currentTool = (CATEGORY_TOOLS[activeCategory] || []).find((tool) => tool.id === activeTool);
   const visibleCategories = CATEGORY_CONFIG.filter((category) => (CATEGORY_TOOLS[category.id] || []).some(isToolVisible));
 
-  const renderRevisionHub = () => <section className="toolbox-section mini-tool">
-    <div className="section-heading"><div><div className="eyebrow">QUICK REVISION</div><h2>Study resources</h2></div></div>
-    <p className="field-hint">Browse your exam folders and chapter resources from the Explore area.</p>
-    <button type="button" className="button button-outline" onClick={() => navigate('/explore')}>Explore study resources <ArrowRight size={15} /></button>
-  </section>;
-
   const renderReasoningHub = () => <section className="toolbox-section mini-tool">
     <div className="section-heading"><div><div className="eyebrow">QUICK REFERENCE</div><h2>Reasoning & Logic</h2></div></div>
     <div className="toolbox-formula-grid">
@@ -382,11 +313,18 @@ export default function StudentToolbox() {
   </section>;
 
   const renderActiveTool = () => {
-    if (activeTool === 'calculator') return <CalculatorTool />;
+    if (activeTool === 'calculator') return <SmartCalculator />;
     if (activeTool === 'fraction-converter') return <FractionConverter />;
-    if (activeTool === 'powers-roots') return <PowersRootsTool />;
-    if (activeTool === 'geometry-formulas') return <FormulaHub />;
-    if (activeTool === 'revision-sheets') return renderRevisionHub();
+    if (activeTool === 'powers-roots') return <SquaresCubes />;
+    if (activeTool === 'geometry-formulas') return <MathFormulaHub />;
+    if (activeTool === 'alphabet-positions') return <AlphabetPositions />;
+    if (activeTool === 'blood-relations') return <BloodRelations />;
+    if (activeTool === 'direction-compass') return <DirectionCompass />;
+    if (activeTool === 'dice-rules') return <DiceRules />;
+    if (activeTool === 'constitution-articles') return <ConstitutionArticles />;
+    if (activeTool === 'unit-converter') return <UnitConverter />;
+    if (activeTool === 'sticky-notes') return <StickyNotes />;
+    if (activeTool === 'daily-targets') return <DailyTargets />;
     if (activeTool === 'reasoning-formulas') return renderReasoningHub();
     if (activeTool === 'saved-bookmarks') return renderBookmarks();
     if (activeTool === 'polity-articles') return <section className="toolbox-deep-link-card">
@@ -394,12 +332,7 @@ export default function StudentToolbox() {
       <div><strong>Constitution & Articles</strong><p>Open your syllabus to browse polity chapters and revision resources.</p></div>
       <button type="button" className="button button-outline" onClick={() => navigate('/explore')}>Explore syllabus <ArrowRight size={15} /></button>
     </section>;
-    if (activeTool === 'pomodoro') return <section className={`pomodoro-card ${mode === 'break' ? 'break-mode' : ''}`}>
-      <div className="pomodoro-copy"><span className="toolbox-icon"><Clock3 size={21} /></span><div><div className="eyebrow">{mode === 'study' ? t('focusSession').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US') : t('restInterval').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div><h2>{mode === 'study' ? t('oneThing') : t('mindfulBreak')}</h2><p>{mode === 'study' ? t('focusSprint') : t('breakDescription')}</p></div></div>
-      <div className="pomodoro-clock" aria-live="polite">{formatTime(remaining)}</div>
-      <div className="pomodoro-actions"><button className="button button-gold" onClick={() => { completionHandled.current = false; setRunning((value) => !value); }}>{running ? <><Pause size={15} /> {t('pause')}</> : <><Play size={15} /> {t('startFocus')}</>}</button><button className="button button-outline" onClick={resetTimer}><RotateCcw size={15} /> {t('reset')}</button><button className={`pomodoro-mode ${mode === 'study' ? 'active' : ''}`} onClick={() => changeMode('study')}>{t('study25')}</button><button className={`pomodoro-mode ${mode === 'break' ? 'active' : ''}`} onClick={() => changeMode('break')}>{t('break5')}</button></div>
-      <div className="pomodoro-completed"><CheckCircle2 size={15} /> {sessions} {t('focusSessions')}</div>
-    </section>;
+    if (activeTool === 'pomodoro') return <PomodoroTimer />;
     return null;
   };
 
