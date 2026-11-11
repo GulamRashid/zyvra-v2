@@ -2,35 +2,20 @@
 
 -- 1. Ensure platform_settings table exists
 CREATE TABLE IF NOT EXISTS public.platform_settings (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  setting_key TEXT PRIMARY KEY,
   key TEXT,
-  setting_key TEXT,
   value JSONB,
   updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now())
 );
 
--- Ensure both key and setting_key columns exist
-ALTER TABLE public.platform_settings ADD COLUMN IF NOT EXISTS key TEXT;
+-- Ensure both key and setting_key columns exist alongside value and updated_at
 ALTER TABLE public.platform_settings ADD COLUMN IF NOT EXISTS setting_key TEXT;
+ALTER TABLE public.platform_settings ADD COLUMN IF NOT EXISTS key TEXT;
 ALTER TABLE public.platform_settings ADD COLUMN IF NOT EXISTS value JSONB;
+ALTER TABLE public.platform_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now());
 
--- Drop NOT NULL on setting_key if it exists so both key and setting_key work seamlessly
-DO $$
-BEGIN
-  IF EXISTS (
-    SELECT 1 FROM information_schema.columns 
-    WHERE table_schema = 'public' 
-      AND table_name = 'platform_settings' 
-      AND column_name = 'setting_key' 
-      AND is_nullable = 'NO'
-  ) THEN
-    ALTER TABLE public.platform_settings ALTER COLUMN setting_key DROP NOT NULL;
-  END IF;
-END $$;
-
--- Sync existing values between key and setting_key
+-- Sync existing values so key is populated from setting_key
 UPDATE public.platform_settings SET key = setting_key WHERE key IS NULL AND setting_key IS NOT NULL;
-UPDATE public.platform_settings SET setting_key = key WHERE setting_key IS NULL AND key IS NOT NULL;
 
 -- Safe block: Add unique constraint on platform_settings(key) if not already present
 DO $$
@@ -44,21 +29,6 @@ BEGIN
     WHERE c.relname = 'platform_settings' AND a.attname = 'key' AND (i.indisunique OR i.indisprimary)
   ) THEN
     ALTER TABLE public.platform_settings ADD CONSTRAINT platform_settings_key_unique UNIQUE (key);
-  END IF;
-END $$;
-
--- Safe block: Add unique constraint on platform_settings(setting_key) if not already present
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'platform_settings_setting_key_unique'
-  ) AND NOT EXISTS (
-    SELECT 1 FROM pg_index i
-    JOIN pg_class c ON c.oid = i.indrelid
-    JOIN pg_attribute a ON a.attrelid = c.oid AND a.attnum = ANY(i.indkey)
-    WHERE c.relname = 'platform_settings' AND a.attname = 'setting_key' AND (i.indisunique OR i.indisprimary)
-  ) THEN
-    ALTER TABLE public.platform_settings ADD CONSTRAINT platform_settings_setting_key_unique UNIQUE (setting_key);
   END IF;
 END $$;
 
@@ -140,14 +110,14 @@ CREATE POLICY "Authenticated users can insert referrals"
   ON public.referrals FOR INSERT
   WITH CHECK (auth.uid() = referred_id OR auth.uid() = referrer_id);
 
--- 5. Seed default platform settings with ON CONFLICT (key) DO UPDATE
-INSERT INTO public.platform_settings (key, setting_key, value)
+-- 5. Seed default platform settings with ON CONFLICT (setting_key) DO UPDATE
+INSERT INTO public.platform_settings (setting_key, key, value)
 VALUES 
   ('referral_program_config', 'referral_program_config', '{"referral_enabled": true, "referrer_reward_coins": 50, "referred_reward_coins": 20}'::jsonb),
   ('referral_enabled', 'referral_enabled', 'true'::jsonb),
   ('referrer_reward_coins', 'referrer_reward_coins', '50'::jsonb),
   ('referred_reward_coins', 'referred_reward_coins', '20'::jsonb)
-ON CONFLICT (key) DO UPDATE
-SET value = EXCLUDED.value, setting_key = EXCLUDED.setting_key;
+ON CONFLICT (setting_key) DO UPDATE
+SET value = EXCLUDED.value, key = EXCLUDED.key, updated_at = now();
 
 
