@@ -1,19 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Bookmark, BookOpen, Brain, Calculator, CheckCircle2, Clock3, FileText, LockKeyhole, Pause, Percent, Play, RotateCcw, Shapes, Sparkles, Superscript, Wrench, ChevronRight } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Bookmark, BookOpen, Brain, Calculator, CheckCircle2, Clock3, FileText, LockKeyhole, Pause, Percent, Play, RotateCcw, Shapes, Superscript, Wrench, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 import { normalizeAccessResult } from '../../lib/commerce';
-import useContentCatalog from '../../hooks/useContentCatalog';
-import PdfReaderModal from '../../components/common/PdfReaderModal';
 import CheckoutModal from '../../components/common/CheckoutModal';
 import CalculatorTool from '../../components/toolbox/math/CalculatorTool';
 import FractionConverter from '../../components/toolbox/math/FractionConverter';
 import FormulaHub from '../../components/toolbox/math/FormulaHub';
 import PowersRootsTool from '../../components/toolbox/math/PowersRootsTool';
 import ToolUnlockModal from '../../components/toolbox/ToolUnlockModal';
-import { getChapterAccess } from '../../lib/content';
 
 const STUDY_SECONDS = 25 * 60;
 const BREAK_SECONDS = 5 * 60;
@@ -98,19 +95,14 @@ function getCompletedSessions(userId) {
 export default function StudentToolbox() {
   const { user } = useAuth();
   const { t, language } = useThemeLanguage();
-  const { chapters, folders } = useContentCatalog();
   const navigate = useNavigate();
   const [mode, setMode] = useState('study');
   const [remaining, setRemaining] = useState(STUDY_SECONDS);
   const [running, setRunning] = useState(false);
   const [sessions, setSessions] = useState(() => getCompletedSessions(user?.id));
-  const [resources, setResources] = useState([]);
   const [bookmarks, setBookmarks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all');
-  const [reader, setReader] = useState(null);
-  const [readerError, setReaderError] = useState('');
   const [visibleTools, setVisibleTools] = useState({
     pomodoro: true,
     'math-shortcuts': true,
@@ -215,23 +207,25 @@ export default function StudentToolbox() {
       setError('');
       setToolboxLoaded(false);
       setToolAccess({});
-        setAccessError('');
+      setAccessError('');
       if (!supabase) {
-        setError('Connect to Zyvra to load your bookmarks and revision sheets.');
+          setError('Connect to Zyvra to verify Toolbox access and load your bookmarks.');
           setAccessError('Pricing and purchase status could not be verified.');
+          setToolboxLoaded(true);
           setLoading(false);
           return;
       }
-      const [resourceResult, bookmarkResult, settingsResult] = await Promise.all([
-        supabase.from('chapter_resources').select('id,chapter_id,title,resource_type,file_size,page_count,is_downloadable,is_free_preview,status'),
-        user ? supabase.from('student_bookmarks').select('*').eq('user_id', user.id) : Promise.resolve({ data: [], error: null }),
-        supabase.from('platform_settings').select('*')
+      const [bookmarkResult, settingsResult] = await Promise.all([
+          user ? supabase.from('student_bookmarks').select('*').eq('user_id', user.id) : Promise.resolve({ data: [], error: null }),
+          supabase.from('platform_settings').select('*')
       ]);
-      if (resourceResult.error) throw resourceResult.error;
-      if (bookmarkResult.error) throw bookmarkResult.error;
       if (settingsResult.error) throw settingsResult.error;
       if (!active) return;
-      const availableResources = (resourceResult.data || []).filter((item) => !['archived', 'draft', 'unpublished'].includes(String(item.status || '').toLowerCase()));
+      if (bookmarkResult.error) {
+          setError(`Bookmarks could not be loaded: ${bookmarkResult.error.message}`);
+      } else {
+          setBookmarks(bookmarkResult.data || []);
+      }
       const toolboxSetting = (settingsResult.data || []).find((item) => item?.setting_key === 'study_toolbox_config' || item?.key === 'study_toolbox_config');
       const rawTools = toolboxSetting?.setting_value ?? toolboxSetting?.value;
       const configuredTools = typeof rawTools === 'string' ? JSON.parse(rawTools) : rawTools;
@@ -263,8 +257,6 @@ export default function StudentToolbox() {
       setToolPricing(safePricing);
       setComboPricing(safeCombo);
       await refreshToolAccess(safePricing, safeCombo.price > 0);
-      setResources(availableResources);
-      setBookmarks(bookmarkResult.data || []);
       setLoading(false);
     };
     load().catch((loadError) => {
@@ -287,49 +279,7 @@ export default function StudentToolbox() {
     return () => window.clearInterval(interval);
   }, [user?.id, toolboxLoaded, toolPricing, comboPricing.price]);
 
-  const bookmarkIds = useMemo(() => new Set(bookmarks.map((item) => item.resource_id).filter(Boolean)), [bookmarks]);
-  const sheets = useMemo(() => resources.filter((resource) => {
-    const isSheet = /formula|revision|sheet|notes/i.test(`${resource.title || ''} ${resource.resource_type || ''}`);
-    return isSheet && (filter === 'all' || bookmarkIds.has(resource.id));
-  }), [resources, filter, bookmarkIds]);
-  const savedBookmarks = useMemo(() => bookmarks.map((bookmark) => {
-    const resource = resources.find((item) => item.id === bookmark.resource_id);
-    const chapter = chapters.find((item) => item.id === bookmark.chapter_id);
-    return { ...bookmark, resource, chapter };
-  }), [bookmarks, resources, chapters]);
-
-  const canReadResource = (resource) => {
-    if (resource.is_free_preview) return true;
-    if (!resource.is_downloadable) return false;
-    const resourceChapter = chapters.find((item) => item.id === resource.chapter_id);
-    if (!resourceChapter) return false;
-    const parentFolder = folders.find((item) => item.id === resourceChapter?.folder_id);
-    return getChapterAccess(resourceChapter, parentFolder, folders).amount === 0;
-  };
-
-  const openResource = async (resource) => {
-    setReaderError('');
-    try {
-      const { data: file, error: fileError } = await supabase.from('chapter_resources')
-        .select('file_url')
-        .eq('id', resource.id)
-        .single();
-      if (fileError) throw fileError;
-      const fileUrl = file.file_url;
-      if (!fileUrl) throw new Error('This resource does not have a document URL yet.');
-      let url = fileUrl;
-      if (!/^https?:\/\//i.test(fileUrl)) {
-        const { data, error: urlError } = await supabase.storage
-          .from('chapter-resources')
-          .createSignedUrl(fileUrl, 300);
-        if (urlError) throw urlError;
-        url = data.signedUrl;
-      }
-      setReader({ resource, url });
-    } catch (openError) {
-      setReaderError(openError.message || 'Unable to open this document.');
-    }
-  };
+  const savedBookmarks = bookmarks;
 
   const resetTimer = () => {
     setRunning(false);
@@ -355,7 +305,11 @@ export default function StudentToolbox() {
     setCurrentView('category-menu');
   };
   const openTool = (tool) => {
-    if (!toolboxLoaded && tool.accessKey) return;
+    if (!toolboxLoaded && tool.accessKey) {
+      setActiveTool(tool.id);
+      setCurrentView('active-tool');
+      return;
+    }
     if (isToolLocked(tool)) {
       setUnlockTool(tool);
       return;
@@ -402,17 +356,27 @@ export default function StudentToolbox() {
   const currentTool = (CATEGORY_TOOLS[activeCategory] || []).find((tool) => tool.id === activeTool);
   const visibleCategories = CATEGORY_CONFIG.filter((category) => (CATEGORY_TOOLS[category.id] || []).some(isToolVisible));
 
-  const renderResourceLibrary = () => <section className="toolbox-section">
-    <div className="section-heading"><div><div className="eyebrow">{t('quickRevision').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div><h2>{t('formulaSheets')}</h2></div><div className="toolbox-filters"><button className={filter === 'all' ? 'active' : ''} onClick={() => setFilter('all')}>{t('highYield')}</button><button className={filter === 'saved' ? 'active' : ''} onClick={() => setFilter('saved')}>{t('bookmarked')}</button></div></div>
-    {loading ? <p className="field-hint">{t('loadingSheets')}</p> : error ? <div className="feedback error-feedback">{error}</div> : !sheets.length ? <div className="empty-content"><Sparkles size={22} /><strong>{t('noRevisionSheets')}</strong><span>{t('revisionEmpty')}</span></div> : <div className="toolbox-resource-grid">{sheets.map((resource) => <article className="toolbox-resource-card" key={resource.id}><span className="toolbox-resource-icon"><FileText size={18} /></span><div><strong>{resource.title}</strong><small>{resource.resource_type || resource.type || (language === 'hi' ? 'अध्ययन शीट' : 'Study sheet')}{resource.file_size ? ` · ${resource.file_size}` : ''}</small></div><button className="icon-button" aria-label={`${language === 'hi' ? 'खोलें' : 'Open'} ${resource.title}`} onClick={() => canReadResource(resource) ? openResource(resource) : navigate(`/chapter/${resource.chapter_id}`)}><BookOpen size={16} /></button></article>)}</div>}
-    {readerError && <div className="feedback error-feedback">{readerError}</div>}
+  const renderRevisionHub = () => <section className="toolbox-section mini-tool">
+    <div className="section-heading"><div><div className="eyebrow">QUICK REVISION</div><h2>Study resources</h2></div></div>
+    <p className="field-hint">Browse your exam folders and chapter resources from the Explore area.</p>
+    <button type="button" className="button button-outline" onClick={() => navigate('/explore')}>Explore study resources <ArrowRight size={15} /></button>
+  </section>;
+
+  const renderReasoningHub = () => <section className="toolbox-section mini-tool">
+    <div className="section-heading"><div><div className="eyebrow">QUICK REFERENCE</div><h2>Reasoning & Logic</h2></div></div>
+    <div className="toolbox-formula-grid">
+      <article className="toolbox-formula-card"><strong>Average</strong><span>Sum of observations ÷ Number of observations</span></article>
+      <article className="toolbox-formula-card"><strong>Speed</strong><span>Distance ÷ Time</span></article>
+      <article className="toolbox-formula-card"><strong>Percentage</strong><span>(Part ÷ Whole) × 100</span></article>
+      <article className="toolbox-formula-card"><strong>Ratio</strong><span>Compare quantities in the same units.</span></article>
+    </div>
   </section>;
 
   const renderBookmarks = () => <section className="toolbox-section">
     <div className="section-heading"><div><div className="eyebrow">{t('savedForLater').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div><h2>{t('savedBookmarks')}</h2></div><span className="chapter-item-count">{bookmarks.length} {t('saved')}</span></div>
     {loading ? <p className="field-hint">{t('loadingBookmarks')}</p> : !savedBookmarks.length ? <div className="empty-content"><Bookmark size={22} /><strong>{t('bookmarksEmpty')}</strong><span>{t('bookmarkHint')}</span></div> : <div className="toolbox-bookmark-list">{savedBookmarks.map((bookmark) => {
-      const title = bookmark.resource?.title || bookmark.chapter?.title || bookmark.title || (bookmark.question_id ? t('question') : bookmark.chapter_id ? t('chapter') : t('saved'));
-      const destination = bookmark.resource?.chapter_id || bookmark.chapter_id ? `/chapter/${bookmark.resource?.chapter_id || bookmark.chapter_id}` : '/tests';
+      const title = bookmark.title || (bookmark.question_id ? t('question') : bookmark.chapter_id ? t('chapter') : t('saved'));
+      const destination = bookmark.chapter_id ? `/chapter/${bookmark.chapter_id}` : '/tests';
       return <button className="toolbox-bookmark-row" key={bookmark.id || `${bookmark.user_id}-${bookmark.item_id || bookmark.resource_id || bookmark.chapter_id || bookmark.question_id}`} onClick={() => navigate(destination)}><Bookmark size={16} /><span><strong>{title}</strong><small>{bookmark.question_id ? t('question') : bookmark.resource_id ? t('studyResource') : t('chapter')}</small></span><BookOpen size={15} /></button>;
     })}</div>}
   </section>;
@@ -422,7 +386,8 @@ export default function StudentToolbox() {
     if (activeTool === 'fraction-converter') return <FractionConverter />;
     if (activeTool === 'powers-roots') return <PowersRootsTool />;
     if (activeTool === 'geometry-formulas') return <FormulaHub />;
-    if (activeTool === 'revision-sheets' || activeTool === 'reasoning-formulas') return renderResourceLibrary();
+    if (activeTool === 'revision-sheets') return renderRevisionHub();
+    if (activeTool === 'reasoning-formulas') return renderReasoningHub();
     if (activeTool === 'saved-bookmarks') return renderBookmarks();
     if (activeTool === 'polity-articles') return <section className="toolbox-deep-link-card">
       <span className="toolbox-icon"><BookOpen size={19} /></span>
@@ -464,7 +429,7 @@ export default function StudentToolbox() {
       {(CATEGORY_TOOLS[activeCategory] || []).filter(isToolVisible).map((tool) => {
         const locked = isToolLocked(tool);
         const Icon = tool.Icon;
-        return <button type="button" className={`toolbox-tool-card ${locked ? 'locked' : ''}`} key={tool.id} onClick={() => openTool(tool)} disabled={!toolboxLoaded && Boolean(tool.accessKey)}>
+        return <button type="button" className={`toolbox-tool-card ${locked ? 'locked' : ''}`} key={tool.id} onClick={() => openTool(tool)}>
           <span className="toolbox-app-icon"><Icon size={23} /></span>
           <span className="toolbox-app-copy"><strong>{tool.title}</strong><small>{tool.subtitle}</small></span>
           {locked ? <LockKeyhole className="toolbox-tool-lock" size={17} /> : <ChevronRight className="toolbox-app-arrow" size={18} />}
@@ -474,9 +439,19 @@ export default function StudentToolbox() {
       {!loading && !(CATEGORY_TOOLS[activeCategory] || []).some(isToolVisible) && <div className="empty-content"><Wrench size={22} /><strong>No tools are available in this category right now.</strong></div>}
     </section>}
 
-    {currentView === 'active-tool' && currentTool && renderActiveTool()}
+    {currentView === 'active-tool' && currentTool && !toolboxLoaded && <div className="toolbox-access-loading" role="status">Checking access…</div>}
+    {currentView === 'active-tool' && currentTool && toolboxLoaded && isToolLocked(currentTool) && <ToolUnlockModal
+      title={currentTool.title}
+      price={getToolConfig(currentTool).price}
+      validityDays={getToolConfig(currentTool).validity_days}
+      comboPrice={comboPricing.price}
+      comboValidityDays={comboPricing.validity_days}
+      onBuy={() => openToolCheckout(currentTool)}
+      onBuyCombo={openComboCheckout}
+      onClose={goBack}
+    />}
+    {currentView === 'active-tool' && currentTool && toolboxLoaded && !isToolLocked(currentTool) && renderActiveTool()}
     {currentView === 'active-tool' && <p className="toolbox-footnote"><Wrench size={14} /> {t('timerLocalNote')}</p>}
-    {reader && <PdfReaderModal resource={reader.resource} url={reader.url} onClose={() => setReader(null)} />}
     {checkout && <CheckoutModal {...checkout} onClose={() => setCheckout(null)} onCompleted={() => refreshToolAccess().catch((accessError) => setError(accessError.message || 'Unable to verify your Toolbox purchase.'))} />}
     {unlockTool && <ToolUnlockModal
       title={unlockTool.title}
