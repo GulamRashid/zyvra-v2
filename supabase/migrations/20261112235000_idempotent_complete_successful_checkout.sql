@@ -6,6 +6,7 @@
 -- 3. Matches orders by internal UUID, razorpay_order_id, or gateway_order_id
 -- 4. Grants active entitlement in public.user_access
 -- 5. Deducts coins safely and logs to coin_ledger & coin_transactions
+-- 6. Ensures student read access on published questions and test questions
 -- ==============================================================================
 
 -- 1. Ensure coin_wallets, coin_ledger, and coin_transactions exist before configuring policies
@@ -42,10 +43,20 @@ CREATE TABLE IF NOT EXISTS public.coin_transactions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   amount NUMERIC NOT NULL DEFAULT 0,
-  transaction_type TEXT NOT NULL DEFAULT 'credit',
+  type TEXT DEFAULT 'credit',
+  transaction_type TEXT DEFAULT 'credit',
+  reason TEXT,
   description TEXT,
+  reference_id TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Ensure all required columns exist if table was previously created with minimal columns
+ALTER TABLE public.coin_transactions ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'credit';
+ALTER TABLE public.coin_transactions ADD COLUMN IF NOT EXISTS transaction_type TEXT DEFAULT 'credit';
+ALTER TABLE public.coin_transactions ADD COLUMN IF NOT EXISTS reason TEXT;
+ALTER TABLE public.coin_transactions ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.coin_transactions ADD COLUMN IF NOT EXISTS reference_id TEXT;
 
 -- 2. Enable RLS and setup user self-service read policies
 ALTER TABLE public.coin_wallets ENABLE ROW LEVEL SECURITY;
@@ -70,6 +81,27 @@ CREATE POLICY "Users can read own coin transactions"
 GRANT SELECT ON public.coin_wallets TO anon, authenticated;
 GRANT SELECT ON public.coin_ledger TO anon, authenticated;
 GRANT SELECT ON public.coin_transactions TO anon, authenticated;
+
+-- Ensure questions and test questions are readable by students
+DROP POLICY IF EXISTS "Published questions are readable" ON public.questions;
+CREATE POLICY "Published questions are readable"
+  ON public.questions FOR SELECT TO anon, authenticated
+  USING (
+    status IN ('published', 'active', 'live', 'available')
+    OR status IS NULL
+    OR EXISTS (
+      SELECT 1 FROM public.profiles p
+      WHERE p.id = auth.uid() AND p.role IN ('admin', 'super_admin')
+    )
+  );
+
+DROP POLICY IF EXISTS "Published test questions are readable" ON public.test_questions;
+CREATE POLICY "Published test questions are readable"
+  ON public.test_questions FOR SELECT TO anon, authenticated
+  USING (true);
+
+GRANT SELECT ON public.questions TO anon, authenticated;
+GRANT SELECT ON public.test_questions TO anon, authenticated;
 
 -- 3. IDEMPOTENT complete_successful_checkout RPC
 CREATE OR REPLACE FUNCTION public.complete_successful_checkout(
@@ -211,15 +243,21 @@ BEGIN
     INSERT INTO public.coin_transactions (
       user_id,
       amount,
+      type,
       transaction_type,
+      reason,
       description,
+      reference_id,
       created_at
     )
     VALUES (
       v_order.user_id,
       -v_coins_to_deduct,
       'redeem',
+      'redeem',
       format('Redeemed %s coins for %s purchase', v_coins_to_deduct, COALESCE(v_order.item_type, v_order.order_type, 'content')),
+      format('Redeemed %s coins for %s purchase', v_coins_to_deduct, COALESCE(v_order.item_type, v_order.order_type, 'content')),
+      v_order.id::text,
       now()
     );
   END IF;

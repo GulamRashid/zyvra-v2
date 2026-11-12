@@ -25,6 +25,7 @@ import {
   sanitizeLiveQuestion
 } from '../../lib/tests';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
+import { supabase } from '../../lib/supabase';
 
 function getStoredHindi(value) {
   return value && typeof value === 'object' ? value.hi || value.text_hi || '' : '';
@@ -152,15 +153,48 @@ export default function QuestionPracticeModal({
   const [language, setLanguage] = useState('en');
 
   const safeQuestions = useMemo(() => {
-    return (questions || []).map((question) => sanitizeLiveQuestion({
-      ...question,
-      options: parseSerializedValue(question?.options),
-      distractor_notes: normalizeDistractorNotes(question?.distractor_notes)
-    }));
+    return (questions || []).map((question) => {
+      const sanitized = sanitizeLiveQuestion({
+        ...question,
+        options: parseSerializedValue(question?.options),
+        distractor_notes: normalizeDistractorNotes(question?.distractor_notes)
+      });
+      if (!sanitized.correct_answer) {
+        console.warn(`[QuestionPracticeModal] Question ${sanitized.id || sanitized.question_id} missing correct_answer. Keys present:`, Object.keys(question || {}));
+      }
+      return sanitized;
+    });
   }, [questions]);
 
+  const [extraAnswerMap, setExtraAnswerMap] = useState({});
   const currentQ = safeQuestions[currentIndex] || null;
   const currentQId = currentQ ? String(currentQ.id || currentIndex) : '';
+
+  useEffect(() => {
+    if (!currentQ || !supabase) return;
+    const targetId = currentQ.question_id || currentQ.id;
+    if (!targetId || currentQ.correct_answer || extraAnswerMap[currentQId]) return;
+
+    supabase
+      .from('questions')
+      .select('id, correct_answer, correct_option, answer, explanation, distractor_notes')
+      .eq('id', targetId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          const ans = normalizeCorrectAnswer(
+            data.correct_answer ?? data.correct_option ?? data.answer,
+            currentQ.options
+          );
+          if (ans) {
+            setExtraAnswerMap((prev) => ({ ...prev, [currentQId]: ans }));
+            currentQ.correct_answer = ans;
+            currentQ.correct_option = ans;
+          }
+        }
+      })
+      .catch((err) => console.warn('[QuestionPracticeModal] Answer fallback error:', err));
+  }, [currentQId, currentQ, extraAnswerMap]);
 
   // Close on Escape & Arrow keys for navigation
   useEffect(() => {
@@ -206,7 +240,7 @@ export default function QuestionPracticeModal({
   const selectedOption = selectedOptions[currentQId] || null;
   const isAnswered = selectedOption !== null;
   const correctAnswer = normalizeCorrectAnswer(
-    currentQ?.correct_answer ?? currentQ?.correct_option ?? currentQ?.answer,
+    currentQ?.correct_answer ?? currentQ?.correct_option ?? currentQ?.answer ?? extraAnswerMap[currentQId],
     currentQ?.options
   );
   const isCorrect = isAnswered && Boolean(correctAnswer && String(selectedOption).trim().toUpperCase() === correctAnswer);

@@ -482,16 +482,24 @@ export default function LiveQuiz() {
         const safeQuestions = safeRows.map(sanitizeLiveQuestion);
 
         if (testData?.solution_mode === 'immediate' && safeQuestions.length > 0) {
-          const qIds = safeQuestions.map((q) => q.id);
-          const { data: fullQuestions } = await supabase
+          const qIds = Array.from(new Set(safeQuestions.flatMap((q) => [q.question_id, q.id]).filter(Boolean)));
+          const { data: fullQuestions, error: fqError } = await supabase
             .from('questions')
             .select('id, correct_answer, correct_option, answer, explanation, explanation_en, explanation_hi, distractor_notes')
             .in('id', qIds);
 
+          if (fqError) {
+            console.warn('[LiveQuiz:initialize] Error fetching question answers:', fqError);
+          }
+
           if (fullQuestions?.length) {
-            const map = new Map(fullQuestions.map((fq) => [fq.id, fq]));
+            const map = new Map();
+            fullQuestions.forEach((fq) => {
+              if (fq.id) map.set(fq.id, fq);
+            });
+
             safeQuestions.forEach((q) => {
-              const full = map.get(q.id);
+              const full = map.get(q.question_id) || map.get(q.id);
               if (full) {
                 const ans = normalizeCorrectAnswer(
                   full.correct_answer ?? full.correct_option ?? full.answer ?? q.correct_answer,
@@ -509,6 +517,12 @@ export default function LiveQuiz() {
               }
             });
           }
+
+          safeQuestions.forEach((q) => {
+            if (!q.correct_answer) {
+              console.warn(`[LiveQuiz:initialize] Question ${q.id || q.question_id} missing correct_answer. Keys:`, Object.keys(q));
+            }
+          });
         }
 
         if (active) {
@@ -636,16 +650,24 @@ export default function LiveQuiz() {
       const safeQuestions = safeRows.map(sanitizeLiveQuestion);
 
       if (test?.solution_mode === 'immediate' && safeQuestions.length > 0) {
-        const qIds = safeQuestions.map((q) => q.id);
-        const { data: fullQuestions } = await supabase
+        const qIds = Array.from(new Set(safeQuestions.flatMap((q) => [q.question_id, q.id]).filter(Boolean)));
+        const { data: fullQuestions, error: fqError } = await supabase
           .from('questions')
           .select('id, correct_answer, correct_option, answer, explanation, explanation_en, explanation_hi, distractor_notes')
           .in('id', qIds);
 
+        if (fqError) {
+          console.warn('[LiveQuiz:handleStartTest] Error fetching question answers:', fqError);
+        }
+
         if (fullQuestions?.length) {
-          const map = new Map(fullQuestions.map((fq) => [fq.id, fq]));
+          const map = new Map();
+          fullQuestions.forEach((fq) => {
+            if (fq.id) map.set(fq.id, fq);
+          });
+
           safeQuestions.forEach((q) => {
-            const full = map.get(q.id);
+            const full = map.get(q.question_id) || map.get(q.id);
             if (full) {
               const ans = normalizeCorrectAnswer(
                 full.correct_answer ?? full.correct_option ?? full.answer ?? q.correct_answer,
@@ -663,6 +685,12 @@ export default function LiveQuiz() {
             }
           });
         }
+
+        safeQuestions.forEach((q) => {
+          if (!q.correct_answer) {
+            console.warn(`[LiveQuiz:handleStartTest] Question ${q.id || q.question_id} missing correct_answer. Keys:`, Object.keys(q));
+          }
+        });
       }
 
       setAttemptId(activeAttemptId);
@@ -1032,6 +1060,31 @@ export default function LiveQuiz() {
     };
     setResponses(nextResponses);
     saveProgressSnapshot({ responses: nextResponses }, true);
+
+    // If immediate solution mode and question is missing correct_answer, fetch on-demand
+    if (test?.solution_mode === 'immediate' && !question?.correct_answer && nextVal && supabase) {
+      const targetId = question.question_id || question.id;
+      supabase
+        .from('questions')
+        .select('id, correct_answer, correct_option, answer, explanation, distractor_notes')
+        .eq('id', targetId)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            const ans = normalizeCorrectAnswer(
+              data.correct_answer ?? data.correct_option ?? data.answer,
+              question.options
+            );
+            if (ans) {
+              question.correct_answer = ans;
+              question.correct_option = ans;
+              question.answer = ans;
+              setQuestions((prev) => [...prev]);
+            }
+          }
+        })
+        .catch((err) => console.warn('[LiveQuiz:answer] On-demand answer fetch error:', err));
+    }
   };
 
   const toggleReview = () => {
