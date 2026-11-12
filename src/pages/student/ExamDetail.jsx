@@ -22,7 +22,7 @@ export default function ExamDetail() {
   const examFolderIds = new Set(folders.filter((folder) => folder.exam_id === exam?.id && isPublished(folder)).map((folder) => folder.id));
   const Icon = examIcons[exam?.icon] || GraduationCap;
   const examPrice = Number(exam?.price || 0);
-  const examIsPaid = examPrice > 0 || exam?.access_mode === 'paid-own' || exam?.pricing_mode === 'paid-own';
+  const examIsPaid = examPrice > 0 || exam?.access_mode === 'paid-own' || exam?.access_mode === 'paid_own' || exam?.pricing_mode === 'paid-own' || exam?.pricing_mode === 'paid_own';
   const { accessByKey, loading: accessLoading, error: accessError } = useContentAccess(exam && examIsPaid ? [{ type: 'exam', id: exam.id, paid: true }] : [], user, supabase, refreshKey);
   const hasExamAccess = !examIsPaid || accessByKey[`exam:${exam?.id}`] === true;
   const countFolder = (rootId) => {

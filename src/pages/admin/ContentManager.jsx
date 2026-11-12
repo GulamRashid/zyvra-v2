@@ -7,12 +7,42 @@ import { supabase } from '../../lib/supabase';
 
 const examIcons = { BookOpen, GraduationCap, Landmark, Atom, Calculator, Globe2, Brain, ScrollText, FlaskConical, BookMarked };
 const iconNames = Object.keys(examIcons);
-const initialForm = { title: '', slug: '', description: '', icon: 'BookOpen', display_order: 0, status: 'published', exam_id: '', parent_folder_id: '', allow_tests: true, allow_practice: true, allow_notes: true, pricing_mode: 'free', price: '', subject: '', estimated_study_time_minutes: 20, access_mode: 'inherit-parent' };
+const initialForm = { title: '', slug: '', description: '', icon: 'BookOpen', display_order: 0, status: 'published', exam_id: '', parent_folder_id: '', allow_tests: true, allow_practice: true, allow_notes: true, pricing_mode: 'free', price: '', subject: '', estimated_study_time_minutes: 20, access_mode: 'inherit' };
+
+const normalizeResourceType = (type) => {
+  const clean = String(type || '').trim().toLowerCase();
+  if (clean === 'formula sheet' || clean === 'formula-sheet' || clean === 'formula_sheet') return 'formula_sheet';
+  if (clean === 'revision sheet' || clean === 'revision-sheet' || clean === 'revision_sheet') return 'revision_sheet';
+  if (clean === 'notes') return 'notes';
+  return 'pdf';
+};
+
+const formatResourceType = (type) => ({
+  pdf: 'PDF',
+  formula_sheet: 'Formula Sheet',
+  revision_sheet: 'Revision Sheet',
+  notes: 'Notes'
+}[String(type || '').toLowerCase()] || type || 'PDF');
+
+const normalizePricingMode = (mode) => {
+  const clean = String(mode || '').trim().toLowerCase();
+  if (clean === 'paid-own' || clean === 'paid_own') return 'paid_own';
+  if (clean === 'inherit-parent' || clean === 'inherit_parent' || clean === 'inherit') return 'inherit';
+  return 'free';
+};
+
+const normalizeAccessMode = (mode) => {
+  const clean = String(mode || '').trim().toLowerCase();
+  if (clean === 'paid-own' || clean === 'paid_own') return 'paid_own';
+  if (clean === 'inherit-parent' || clean === 'inherit_parent' || clean === 'inherit') return 'inherit';
+  if (clean === 'free') return 'free';
+  return 'inherit';
+};
 
 function ResourceManagerModal({ chapter, onClose }) {
   const [resources, setResources] = useState([]);
   const [editing, setEditing] = useState(null);
-  const [values, setValues] = useState({ title: '', resource_type: 'PDF', file_url: '', file_size: '', page_count: '', is_downloadable: false, is_free_preview: false, status: 'published' });
+  const [values, setValues] = useState({ title: '', resource_type: 'pdf', file_url: '', file_size: '', page_count: '', is_downloadable: false, is_free_preview: false, status: 'published' });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -33,7 +63,7 @@ function ResourceManagerModal({ chapter, onClose }) {
     setEditing(resource);
     setValues({
       title: resource.title || '',
-      resource_type: resource.resource_type || 'PDF',
+      resource_type: normalizeResourceType(resource.resource_type || 'pdf'),
       file_url: resource.file_url || resource.url || '',
       file_size: resource.file_size || '',
       page_count: resource.page_count || '',
@@ -44,7 +74,7 @@ function ResourceManagerModal({ chapter, onClose }) {
   };
   const reset = () => {
     setEditing(null);
-    setValues({ title: '', resource_type: 'PDF', file_url: '', file_size: '', page_count: '', is_downloadable: false, is_free_preview: false, status: 'published' });
+    setValues({ title: '', resource_type: 'pdf', file_url: '', file_size: '', page_count: '', is_downloadable: false, is_free_preview: false, status: 'published' });
   };
   const save = async (event) => {
     event.preventDefault();
@@ -91,10 +121,10 @@ function ResourceManagerModal({ chapter, onClose }) {
   return <div className="modal-backdrop" role="presentation"><section className="content-dialog resource-manager-dialog" role="dialog" aria-modal="true" aria-labelledby="resource-manager-title">
     <button className="modal-close" type="button" aria-label="Close resource manager" onClick={onClose}><X size={18} /></button>
     <div className="eyebrow">CHAPTER RESOURCES</div><h2 id="resource-manager-title">Manage resources</h2><p className="dialog-intro">{chapter.title} · Link notes, PDFs and revision sheets.</p>
-    {loading ? <p className="field-hint">Loading resources…</p> : resources.length ? <div className="resource-admin-list">{resources.map((resource) => <div className="resource-admin-row" key={resource.id}><FileText size={17} /><span><strong>{resource.title}</strong><small>{resource.resource_type || 'PDF'} · {resource.file_size || 'Size not set'} · {resource.status || 'published'}</small></span><button type="button" className="icon-button" aria-label={`Edit ${resource.title}`} onClick={() => edit(resource)}><Pencil size={15} /></button><button type="button" className="icon-button" aria-label={`Archive ${resource.title}`} onClick={() => archive(resource)}><Archive size={15} /></button></div>)}</div> : <div className="empty-content"><FileText size={20} /><strong>No resources linked yet.</strong><span>Add the first PDF or revision sheet below.</span></div>}
+    {loading ? <p className="field-hint">Loading resources…</p> : resources.length ? <div className="resource-admin-list">{resources.map((resource) => <div className="resource-admin-row" key={resource.id}><FileText size={17} /><span><strong>{resource.title}</strong><small>{formatResourceType(resource.resource_type)} · {resource.file_size || 'Size not set'} · {resource.status || 'published'}</small></span><button type="button" className="icon-button" aria-label={`Edit ${resource.title}`} onClick={() => edit(resource)}><Pencil size={15} /></button><button type="button" className="icon-button" aria-label={`Archive ${resource.title}`} onClick={() => archive(resource)}><Archive size={15} /></button></div>)}</div> : <div className="empty-content"><FileText size={20} /><strong>No resources linked yet.</strong><span>Add the first PDF or revision sheet below.</span></div>}
     <form className="resource-admin-form" onSubmit={save}>
       <div className="resource-admin-form-heading"><h3>{editing ? 'Edit resource' : 'Add a resource'}</h3>{editing && <button className="text-button" type="button" onClick={reset}>Cancel edit</button>}</div>
-      <div className="content-form-row"><label className="field-label">Title <input className="text-input" value={values.title} onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))} required minLength="2" maxLength="120" placeholder="e.g. Fundamental Rights — Quick Notes" /></label><label className="field-label">File type<select className="text-input" value={values.resource_type} onChange={(event) => setValues((current) => ({ ...current, resource_type: event.target.value }))}><option>PDF</option><option>Formula Sheet</option><option>Revision Sheet</option><option>Notes</option></select></label></div>
+      <div className="content-form-row"><label className="field-label">Title <input className="text-input" value={values.title} onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))} required minLength="2" maxLength="120" placeholder="e.g. Fundamental Rights — Quick Notes" /></label><label className="field-label">File type<select className="text-input" value={values.resource_type} onChange={(event) => setValues((current) => ({ ...current, resource_type: event.target.value }))}><option value="pdf">PDF</option><option value="formula_sheet">Formula Sheet</option><option value="revision_sheet">Revision Sheet</option><option value="notes">Notes</option></select></label></div>
       <label className="field-label">Document URL or storage path <input className="text-input" value={values.file_url} onChange={(event) => setValues((current) => ({ ...current, file_url: event.target.value }))} required placeholder="https://… or storage/object/path.pdf" /></label>
       <div className="content-form-row"><label className="field-label">File size <input className="text-input" value={values.file_size} onChange={(event) => setValues((current) => ({ ...current, file_size: event.target.value }))} placeholder="e.g. 2.4 MB" /></label><label className="field-label">Page count <input className="text-input" type="number" min="1" step="1" value={values.page_count} onChange={(event) => setValues((current) => ({ ...current, page_count: event.target.value }))} placeholder="Optional" /></label></div>
       <div className="content-switches"><label className="content-switch"><input type="checkbox" checked={values.is_free_preview} onChange={(event) => setValues((current) => ({ ...current, is_free_preview: event.target.checked }))} /><span>Free preview</span></label><label className="content-switch"><input type="checkbox" checked={values.is_downloadable} onChange={(event) => setValues((current) => ({ ...current, is_downloadable: event.target.checked }))} /><span>Allow downloads</span></label></div>
@@ -109,6 +139,8 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
   const [values, setValues] = useState(() => item ? {
     ...initialForm,
     ...item,
+    pricing_mode: normalizePricingMode(item.pricing_mode),
+    access_mode: normalizeAccessMode(item.access_mode),
     exam_id: item.exam_id || '',
     parent_folder_id: item.parent_folder_id || item.folder_id || '',
     price: item.price ?? '',
@@ -146,9 +178,9 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
     if (slugCandidates.some((candidate) => String(candidate.slug).toLowerCase() === slug)) { setError('That slug is already used at this hierarchy level. Choose a unique slug.'); return; }
     if (kind === 'folder' && !values.exam_id) { setError('Choose an exam for this folder.'); return; }
     if (kind === 'chapter' && !values.parent_folder_id) { setError('Choose a parent folder for this chapter.'); return; }
-    if (kind === 'folder' && values.pricing_mode === 'inherit-parent' && !values.parent_folder_id) { setError('A top-level folder has no parent price to inherit. Choose Free or Paid-Own.'); return; }
-    if (values.pricing_mode === 'paid-own' && !(Number(values.price) > 0)) { setError('Enter a price greater than zero for Paid-Own access.'); return; }
-    if (kind === 'chapter' && values.access_mode === 'paid-own' && !(Number(values.price) > 0)) { setError('Enter a price greater than zero for paid chapter access.'); return; }
+    if (kind === 'folder' && values.pricing_mode === 'inherit' && !values.parent_folder_id) { setError('A top-level folder has no parent price to inherit. Choose Free or Paid-Own.'); return; }
+    if (values.pricing_mode === 'paid_own' && !(Number(values.price) > 0)) { setError('Enter a price greater than zero for Paid-Own access.'); return; }
+    if (kind === 'chapter' && values.access_mode === 'paid_own' && !(Number(values.price) > 0)) { setError('Enter a price greater than zero for paid chapter access.'); return; }
     if (kind === 'chapter' && (!values.subject.trim() || values.subject.trim().length > 50)) { setError('Enter a subject tag of 1–50 characters.'); return; }
     if (kind === 'chapter' && (!Number.isInteger(Number(values.estimated_study_time_minutes)) || Number(values.estimated_study_time_minutes) < 1 || Number(values.estimated_study_time_minutes) > 1440)) { setError('Estimated study time must be between 1 and 1440 minutes.'); return; }
     if (!supabase) { setError('Supabase is not configured. Add your project URL and anon key before saving content.'); return; }
@@ -168,14 +200,14 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
       allow_practice: Boolean(values.allow_practice),
       allow_notes: Boolean(values.allow_notes),
       pricing_mode: values.pricing_mode,
-      price: values.pricing_mode === 'paid-own' ? Number(values.price) : null
+      price: values.pricing_mode === 'paid_own' ? Number(values.price) : null
     });
     if (kind === 'chapter') Object.assign(payload, {
       folder_id: values.parent_folder_id,
       subject: values.subject.trim(),
       estimated_study_time_minutes: Number(values.estimated_study_time_minutes),
       access_mode: values.access_mode,
-      price: values.access_mode === 'paid-own' ? Number(values.price) : null
+      price: values.access_mode === 'paid_own' ? Number(values.price) : null
     });
     setBusy(true);
     try {
@@ -205,16 +237,16 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
       <label className="field-label">Exam <span className="required-mark">*</span><select className="text-input" value={values.exam_id} onChange={(event) => setValues((current) => ({ ...current, exam_id: event.target.value, parent_folder_id: '' }))} required><option value="">Select an exam</option>{exams.filter((exam) => exam.status !== 'archived').map((exam) => <option value={exam.id} key={exam.id}>{exam.title}</option>)}</select></label>
       <label className="field-label">Parent folder<select className="text-input" value={values.parent_folder_id} onChange={(event) => setField('parent_folder_id', event.target.value)}><option value="">None — top-level folder</option>{childFolders.map((folder) => <option value={folder.id} key={folder.id}>{getFolderPath(folder, folders).map((part) => part.title).join(' / ')}</option>)}</select><small>No parent price is applied unless you explicitly choose Inherit Parent.</small></label>
       <div className="field-label">Available learning options</div><div className="content-switches">{[['allow_tests', 'Tests'], ['allow_practice', 'Question practice'], ['allow_notes', 'Notes & PDFs']].map(([key, label]) => <label className="content-switch" key={key}><input type="checkbox" checked={Boolean(values[key])} onChange={(event) => setField(key, event.target.checked)} /><span>{label}</span></label>)}</div>
-      <label className="field-label">Pricing mode<select className="text-input" value={values.pricing_mode} onChange={(event) => setField('pricing_mode', event.target.value)}><option value="free">Free — this folder has no price</option><option value="paid-own">Paid-Own — set this folder’s price</option><option value="inherit-parent" disabled={!values.parent_folder_id}>Inherit Parent — explicitly use parent price</option></select></label>
-      {values.pricing_mode === 'paid-own' && <label className="field-label">Folder price (INR) <span className="required-mark">*</span><input className="text-input" type="number" min="0.01" step="0.01" value={values.price} onChange={(event) => setField('price', event.target.value)} required /></label>}
-      <div className={`effective-price ${values.pricing_mode === 'inherit-parent' ? 'inherited-price' : ''}`}><CircleDollarSign size={17} /><div><strong>Effective access: {values.pricing_mode === 'free' ? 'Free' : values.pricing_mode === 'paid-own' ? (Number(values.price) > 0 ? `Paid · ₹${Number(values.price).toLocaleString('en-IN')}` : 'Paid · price required') : values.parent_folder_id ? getFolderPricing({ ...values, title: values.title || 'This folder', parent_folder_id: values.parent_folder_id }, folders).label : 'No parent price available — choose Free or Paid-Own'}</strong><span>Parent pricing never applies automatically. Inheritance is only active when you select it above.</span></div></div>
+      <label className="field-label">Pricing mode<select className="text-input" value={values.pricing_mode} onChange={(event) => setField('pricing_mode', event.target.value)}><option value="free">Free — this folder has no price</option><option value="paid_own">Paid-Own — set this folder’s price</option><option value="inherit" disabled={!values.parent_folder_id}>Inherit Parent — explicitly use parent price</option></select></label>
+      {values.pricing_mode === 'paid_own' && <label className="field-label">Folder price (INR) <span className="required-mark">*</span><input className="text-input" type="number" min="0.01" step="0.01" value={values.price} onChange={(event) => setField('price', event.target.value)} required /></label>}
+      <div className={`effective-price ${values.pricing_mode === 'inherit' ? 'inherited-price' : ''}`}><CircleDollarSign size={17} /><div><strong>Effective access: {values.pricing_mode === 'free' ? 'Free' : values.pricing_mode === 'paid_own' ? (Number(values.price) > 0 ? `Paid · ₹${Number(values.price).toLocaleString('en-IN')}` : 'Paid · price required') : values.parent_folder_id ? getFolderPricing({ ...values, title: values.title || 'This folder', parent_folder_id: values.parent_folder_id }, folders).label : 'No parent price available — choose Free or Paid-Own'}</strong><span>Parent pricing never applies automatically. Inheritance is only active when you select it above.</span></div></div>
     </>}
     {kind === 'chapter' && <>
       <label className="field-label">Parent folder <span className="required-mark">*</span><select className="text-input" value={values.parent_folder_id} onChange={(event) => setField('parent_folder_id', event.target.value)} required><option value="">Select a folder</option>{folders.filter((folder) => folder.status !== 'archived').map((folder) => <option value={folder.id} key={folder.id}>{(exams.find((exam) => exam.id === folder.exam_id)?.title || 'Exam') + ' / ' + getFolderPath(folder, folders).map((part) => part.title).join(' / ')}</option>)}</select></label>
       <label className="field-label">Subject tag <span className="required-mark">*</span><input className="text-input" value={values.subject} onChange={(event) => setField('subject', event.target.value)} maxLength="50" required placeholder="e.g. Polity, Science, Math" /></label>
       <label className="field-label">Estimated study time (minutes) <span className="required-mark">*</span><input className="text-input" type="number" min="1" max="1440" step="1" value={values.estimated_study_time_minutes} onChange={(event) => setField('estimated_study_time_minutes', event.target.value)} required /></label>
-      <label className="field-label">Access mode<select className="text-input" value={values.access_mode} onChange={(event) => setField('access_mode', event.target.value)}><option value="free">Free</option><option value="paid-own">Paid-Own</option><option value="inherit-parent">Inherit Parent (explicit)</option></select></label>
-      {values.access_mode === 'paid-own' && <label className="field-label">Chapter price (INR) <span className="required-mark">*</span><input className="text-input" type="number" min="0.01" step="0.01" value={values.price} onChange={(event) => setField('price', event.target.value)} required /></label>}
+      <label className="field-label">Access mode<select className="text-input" value={values.access_mode} onChange={(event) => setField('access_mode', event.target.value)}><option value="free">Free</option><option value="paid_own">Paid-Own</option><option value="inherit">Inherit Parent (explicit)</option></select></label>
+      {values.access_mode === 'paid_own' && <label className="field-label">Chapter price (INR) <span className="required-mark">*</span><input className="text-input" type="number" min="0.01" step="0.01" value={values.price} onChange={(event) => setField('price', event.target.value)} required /></label>}
     </>}
     <label className="field-label">Description<textarea className="text-input content-textarea" value={values.description} onChange={(event) => setField('description', event.target.value)} rows="3" maxLength="1000" placeholder="A short, student-friendly overview." /></label>
     <div className="content-form-row"><label className="field-label">Display order<input className="text-input" type="number" min="0" step="1" value={values.display_order} onChange={(event) => setField('display_order', event.target.value)} /></label><label className="field-label">Status<select className="text-input" value={values.status} onChange={(event) => setField('status', event.target.value)}><option value="published">Published</option><option value="draft">Draft</option><option value="unpublished">Unpublished</option><option value="archived">Archived</option></select></label></div>

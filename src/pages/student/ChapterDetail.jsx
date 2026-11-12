@@ -227,7 +227,12 @@ export default function ChapterDetail() {
           const isDownloadable = Boolean(resource.is_downloadable);
           const canRead = isPreview || (isDownloadable && !isLocked);
           const status = isPreview ? t('freePreview') : canRead ? t('downloadAllowed') : t('locked');
-          const fileKind = resource.resource_type || resource.type || 'PDF';
+          const rawKind = String(resource.resource_type || resource.type || 'PDF').toLowerCase();
+          const fileKind = rawKind === 'formula_sheet' || rawKind === 'formula sheet' ? 'Formula Sheet'
+            : rawKind === 'revision_sheet' || rawKind === 'revision sheet' ? 'Revision Sheet'
+            : rawKind === 'notes' ? 'Notes'
+            : rawKind === 'pdf' ? 'PDF'
+            : (resource.resource_type || resource.type || 'PDF');
           return <article className={`chapter-resource-card ${canRead ? '' : 'resource-locked'}`} key={resource.id}>
             <span className="resource-file-icon"><FileText size={19} /></span>
             <div className="resource-card-copy"><strong>{resource.title}</strong><div className="resource-card-meta"><span className="resource-file-badge">{fileKind}</span>{resource.file_size && <span>{resource.file_size}</span>}{resource.page_count && <span>{resource.page_count} {t('pages')}</span>}<span className={`resource-access-status ${canRead ? 'available' : ''}`}>{status}</span></div></div>

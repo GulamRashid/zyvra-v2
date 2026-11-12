@@ -42,10 +42,10 @@ export function getFolderPath(folder, folders) {
 
 export function getFolderPricing(folder, folders) {
   if (!folder || folder.pricing_mode === 'free') return { label: 'Free', amount: 0, source: null };
-  if (folder.pricing_mode === 'paid-own') {
+  if (folder.pricing_mode === 'paid-own' || folder.pricing_mode === 'paid_own') {
     return { label: folder.price > 0 ? `Paid · ₹${Number(folder.price).toLocaleString('en-IN')}` : 'Paid · price not set', amount: Number(folder.price) || 0, source: folder };
   }
-  if (folder.pricing_mode !== 'inherit-parent' || !folder.parent_folder_id) {
+  if (!['inherit', 'inherit-parent', 'inherit_parent'].includes(folder.pricing_mode) || !folder.parent_folder_id) {
     return { label: 'Free · no inherited price', amount: 0, source: null };
   }
   const parent = folders.find((item) => item.id === folder.parent_folder_id);
@@ -61,9 +61,9 @@ export function getChapterAccess(chapter, folder, folders) {
   if (['coming-soon', 'coming_soon'].includes(String(chapter?.status || '').toLowerCase())) {
     return { label: 'Coming Soon', amount: 0 };
   }
-  const mode = chapter?.access_mode || 'inherit-parent';
+  const mode = chapter?.access_mode || 'inherit';
   if (mode === 'free') return { label: 'Free', amount: 0 };
-  if (mode === 'paid-own') {
+  if (mode === 'paid-own' || mode === 'paid_own') {
     return { label: Number(chapter.price) > 0 ? `Paid · ₹${Number(chapter.price).toLocaleString('en-IN')}` : 'Paid', amount: Number(chapter.price) || 0 };
   }
   const pricing = getFolderPricing(folder, folders);
