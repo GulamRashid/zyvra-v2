@@ -28,6 +28,8 @@ export default function FolderView() {
   const childFolders = folders.filter((item) => (item.parent_folder_id === folder?.id || item.parent_id === folder?.id) && isPublished(item));
   const folderChapters = chapters.filter((chapter) => chapter.folder_id === folder?.id && isPublished(chapter));
   const parent = path.length > 1 ? path[path.length - 2] : null;
+  const rootFolder = path.length > 0 ? path[0] : null;
+  const rootPricing = rootFolder ? getFolderPricing(rootFolder, folders) : { amount: 0 };
   const pricing = getFolderPricing(folder, folders);
   const examPrice = Number(exam?.price || 0);
   const examIsPaid = examPrice > 0 || exam?.access_mode === 'paid-own' || exam?.access_mode === 'paid_own' || exam?.pricing_mode === 'paid-own' || exam?.pricing_mode === 'paid_own';
@@ -49,6 +51,7 @@ export default function FolderView() {
   }, [accessByKey]);
 
   const hasExamAccess = !examIsPaid || accessByKey[`exam:${exam?.id}`] === true;
+  const isRootPurchased = rootFolder ? (hasExamAccess || rootPricing.amount <= 0 || isFolderUnlocked(rootFolder.id, folders, purchasedFolderIds) || accessByKey[`folder:${rootFolder.id}`] === true) : false;
   const isCurrentFolderUnlocked = hasExamAccess || pricing.amount <= 0 || isFolderUnlocked(folder?.id, folders, purchasedFolderIds) || accessByKey[`folder:${folder?.id}`] === true;
 
   return <div className="catalog-page">
@@ -59,7 +62,7 @@ export default function FolderView() {
     {!loading && !error && folder && exam && hierarchyPublished && <>
       <section className="folder-hero"><div className="folder-hero-icon"><FolderOpen size={25} /></div><div className="eyebrow">{exam.title} / SYLLABUS</div><h1>{folder.title}</h1><p>{folder.description || 'Explore the topics and chapters in this learning section.'}</p><div className="folder-hero-meta"><AccessBadge label={pricing.amount ? isCurrentFolderUnlocked ? 'Purchased' : pricing.label : 'Free'} />{pricing.amount > 0 && <span className="folder-price-note">Explicit pricing rule · {pricing.label}</span>}<span><Folder size={14} /> {childFolders.length} subfolders</span><span><BookOpen size={14} /> {folderChapters.length} chapters</span></div></section>
       {accessError && <div className="feedback error-feedback">{accessError}</div>}
-      {pricing.amount > 0 && !isCurrentFolderUnlocked && <section className="paywall-banner"><span className="paywall-icon"><LockKeyhole size={19} /></span><div><strong>Unlock Full Access for {`₹${pricing.amount.toLocaleString('en-IN')}`}</strong><span>Get the complete {folder.title} learning bundle — automatically unlocks all sub-folders and chapters inside it.</span></div><button className="button button-gold" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'folder', itemId: folder.id, itemTitle: folder.title, tier: 'Folder Bundle', basePrice: pricing.amount })}>{accessLoading ? 'Checking access…' : 'Buy Now'} <ArrowRight size={14} /></button></section>}
+      {pricing.amount > 0 && !isCurrentFolderUnlocked && <section className="paywall-banner"><span className="paywall-icon"><LockKeyhole size={19} /></span><div><strong>Unlock Access for {folder.title}</strong><span>Get this section, or unlock the entire {rootFolder?.id !== folder.id ? `${rootFolder?.title} syllabus` : 'bundle'} to automatically unlock all nested sub-folders and chapters inside it.</span></div><div className="paywall-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}><button className="button button-gold" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'folder', itemId: folder.id, itemTitle: folder.title, tier: 'Folder Bundle', basePrice: pricing.amount })}>{accessLoading ? 'Checking access…' : `Buy ${folder.title} · ₹${pricing.amount.toLocaleString('en-IN')}`} <ArrowRight size={14} /></button>{rootFolder && rootFolder.id !== folder.id && rootPricing.amount > 0 && !isRootPurchased && <button className="button button-outline" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'folder', itemId: rootFolder.id, itemTitle: rootFolder.title, tier: 'Root Bundle', basePrice: rootPricing.amount })}>Unlock Complete {rootFolder.title} · ₹{rootPricing.amount.toLocaleString('en-IN')}</button>}</div></section>}
       <div className="section-heading catalog-section-heading"><div><div className="eyebrow">INSIDE THIS SECTION</div><h2>Topics & chapters</h2></div><span className="folder-content-count">{childFolders.length + folderChapters.length} learning items</span></div>
       {!childFolders.length && !folderChapters.length && <div className="empty-content"><FolderOpen size={24} /><strong>More learning content coming soon.</strong><span>This section is being prepared for you.</span></div>}
       <div className="folder-item-list">{childFolders.map((child) => {

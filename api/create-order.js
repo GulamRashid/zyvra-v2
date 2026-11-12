@@ -40,18 +40,29 @@ export default async function handler(req, res) {
     }
     const order = responseData?.order || responseData;
     const internalOrderId = order?.id || order?.payment_order_id || order?.order_id;
-    const razorpayOrderId = order?.razorpay_order_id;
+    let razorpayOrderId = order?.razorpay_order_id;
     const amountPaise = Number(order?.amount_paise);
-    if (!internalOrderId || !razorpayOrderId || !Number.isSafeInteger(amountPaise) || amountPaise <= 0) {
+    if (!internalOrderId || !Number.isSafeInteger(amountPaise) || amountPaise <= 0) {
       throw new Error('The payment service returned an invalid order.');
     }
     if (amountPaise !== Math.round(requestedAmount * 100)) {
       return sendJson(res, 409, { error: 'The server price changed. Reopen checkout to review the latest total.' });
     }
 
-    const razorpayOrder = await razorpay.orders.fetch(razorpayOrderId);
-    if (Number(razorpayOrder.amount) !== amountPaise || razorpayOrder.currency !== 'INR') {
-      throw new Error('The payment order does not match the confirmed checkout amount.');
+    if (!razorpayOrderId) {
+      const receiptCode = String(internalOrderId).replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
+      const razorpayOrder = await razorpay.orders.create({
+        amount: amountPaise,
+        currency: 'INR',
+        receipt: `ord_${receiptCode}`
+      });
+      razorpayOrderId = razorpayOrder.id;
+      await supabase.from('payment_orders').update({ gateway_order_id: razorpayOrderId }).eq('id', internalOrderId);
+    } else {
+      const razorpayOrder = await razorpay.orders.fetch(razorpayOrderId);
+      if (Number(razorpayOrder.amount) !== amountPaise || razorpayOrder.currency !== 'INR') {
+        throw new Error('The payment order does not match the confirmed checkout amount.');
+      }
     }
 
     return sendJson(res, 200, {

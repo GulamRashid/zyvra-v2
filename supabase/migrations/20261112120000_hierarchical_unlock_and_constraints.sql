@@ -708,11 +708,173 @@ END;
 $$;
 
 -- ------------------------------------------------------------------------------
--- 10. GRANTS & SCHEMA RELOAD
+-- 10. CREATE_CHECKOUT_ORDER RPC (COMMERCE & ENTITLEMENT INITIALIZATION)
+-- ------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.create_checkout_order(
+  p_item_type TEXT,
+  p_item_id TEXT,
+  p_coins_to_redeem INTEGER DEFAULT 0
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_user_id UUID := auth.uid();
+  v_clean_type TEXT := lower(trim(p_item_type));
+  v_uuid UUID;
+  v_base_price NUMERIC := 0;
+  v_item_title TEXT := '';
+  v_wallet_balance INTEGER := 0;
+  v_coins_used INTEGER := 0;
+  v_max_coins INTEGER := 0;
+  v_discount NUMERIC := 0;
+  v_payable NUMERIC := 0;
+  v_amount_paise BIGINT := 0;
+  v_order_id UUID;
+  v_coins_per_rupee NUMERIC := 10;
+  v_max_discount_pct NUMERIC := 20;
+  v_config_val JSONB;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'User must be authenticated to create a checkout order.';
+  END IF;
+
+  -- 1. Determine base price based on item type
+  IF v_clean_type = 'folder' THEN
+    BEGIN
+      v_uuid := p_item_id::UUID;
+      SELECT COALESCE(price, 0), title INTO v_base_price, v_item_title
+      FROM public.folders
+      WHERE id = v_uuid;
+
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Folder not found: %', p_item_id;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE EXCEPTION 'Invalid folder UUID: %', p_item_id;
+    END;
+
+  ELSIF v_clean_type = 'chapter' THEN
+    BEGIN
+      v_uuid := p_item_id::UUID;
+      SELECT COALESCE(price, 0), title INTO v_base_price, v_item_title
+      FROM public.chapters
+      WHERE id = v_uuid;
+
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Chapter not found: %', p_item_id;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE EXCEPTION 'Invalid chapter UUID: %', p_item_id;
+    END;
+
+  ELSIF v_clean_type = 'exam' THEN
+    BEGIN
+      v_uuid := p_item_id::UUID;
+      SELECT COALESCE(price, 0), title INTO v_base_price, v_item_title
+      FROM public.exams
+      WHERE id = v_uuid;
+
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Exam not found: %', p_item_id;
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE EXCEPTION 'Invalid exam UUID: %', p_item_id;
+    END;
+
+  ELSE
+    -- Generic / tool pricing fallback
+    v_base_price := 49.00;
+  END IF;
+
+  IF v_base_price <= 0 THEN
+    RAISE EXCEPTION 'This item has no price or is free.';
+  END IF;
+
+  -- 2. Read coin config if available
+  BEGIN
+    SELECT setting_value::jsonb INTO v_config_val
+    FROM public.platform_settings
+    WHERE setting_key = 'coin_redemption_config' OR key = 'coin_redemption_config'
+    LIMIT 1;
+
+    IF v_config_val IS NOT NULL THEN
+      v_coins_per_rupee := COALESCE((v_config_val->>'coins_per_rupee')::NUMERIC, 10);
+      v_max_discount_pct := COALESCE((v_config_val->>'max_discount_percent')::NUMERIC, 20);
+    END IF;
+  EXCEPTION WHEN OTHERS THEN
+    v_coins_per_rupee := 10;
+    v_max_discount_pct := 20;
+  END;
+
+  -- 3. Calculate coin redemption
+  SELECT COALESCE(balance, 0) INTO v_wallet_balance
+  FROM public.coin_wallets
+  WHERE user_id = v_user_id;
+
+  v_max_coins := LEAST(
+    v_wallet_balance,
+    FLOOR((v_base_price * (v_max_discount_pct / 100.0)) * v_coins_per_rupee)::INTEGER
+  );
+
+  IF p_coins_to_redeem > 0 AND v_max_coins > 0 THEN
+    v_coins_used := LEAST(p_coins_to_redeem, v_max_coins);
+    v_discount := ROUND((v_coins_used / v_coins_per_rupee)::NUMERIC, 2);
+  ELSE
+    v_coins_used := 0;
+    v_discount := 0;
+  END IF;
+
+  v_payable := GREATEST(0, v_base_price - v_discount);
+  v_amount_paise := ROUND(v_payable * 100)::BIGINT;
+
+  -- 4. Create internal payment order
+  INSERT INTO public.payment_orders (
+    user_id,
+    item_type,
+    item_id,
+    amount,
+    amount_paise,
+    coins_redeemed,
+    status,
+    currency
+  )
+  VALUES (
+    v_user_id,
+    v_clean_type,
+    p_item_id,
+    v_payable,
+    v_amount_paise,
+    v_coins_used,
+    'created',
+    'INR'
+  )
+  RETURNING id INTO v_order_id;
+
+  RETURN jsonb_build_object(
+    'order', jsonb_build_object(
+      'id', v_order_id,
+      'item_type', v_clean_type,
+      'item_id', p_item_id,
+      'amount', v_payable,
+      'amount_paise', v_amount_paise,
+      'currency', 'INR',
+      'coins_redeemed', v_coins_used,
+      'razorpay_order_id', NULL
+    )
+  );
+END;
+$$;
+
+-- ------------------------------------------------------------------------------
+-- 11. GRANTS & SCHEMA RELOAD
 -- ------------------------------------------------------------------------------
 GRANT EXECUTE ON FUNCTION public.user_has_folder_access(UUID, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.user_has_chapter_access(UUID, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.check_user_access(UUID, TEXT, TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_checkout_order(TEXT, TEXT, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.complete_successful_checkout(TEXT, TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.admin_grant_user_access(UUID, TEXT, TEXT, TEXT) TO authenticated;
 

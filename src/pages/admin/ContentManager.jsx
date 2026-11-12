@@ -227,6 +227,7 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
     if (kind === 'folder') Object.assign(payload, {
       exam_id: values.exam_id,
       parent_folder_id: values.parent_folder_id || null,
+      parent_id: values.parent_folder_id || null,
       allow_tests: Boolean(values.allow_tests),
       allow_practice: Boolean(values.allow_practice),
       allow_notes: Boolean(values.allow_notes),

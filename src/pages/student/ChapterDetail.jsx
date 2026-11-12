@@ -37,12 +37,15 @@ export default function ChapterDetail() {
   const [reader, setReader] = useState(null);
   const [readerLoading, setReaderLoading] = useState('');
   const [resourceNotice, setResourceNotice] = useState('');
-  const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [checkoutItem, setCheckoutItem] = useState(null);
   const [accessRefreshKey, setAccessRefreshKey] = useState(0);
   const chapter = chapters.find((item) => item.id === chapterId && isPublished(item));
   const folder = folders.find((item) => item.id === chapter?.folder_id && isPublished(item));
   const exam = exams.find((item) => item.id === folder?.exam_id && isPublished(item));
   const folderPath = folder ? getFolderPath(folder, folders) : [];
+  const rootFolder = folderPath.length > 0 ? folderPath[0] : null;
+  const rootPricing = rootFolder ? getFolderPricing(rootFolder, folders) : { amount: 0 };
+  const parentPricing = folder ? getFolderPricing(folder, folders) : { amount: 0 };
   const hierarchyPublished = folderPath.every(isPublished);
   const access = getChapterAccess(chapter, folder, folders);
   const examPrice = Number(exam?.price || 0);
@@ -230,7 +233,7 @@ export default function ChapterDetail() {
       <div className="chapter-tabs" role="tablist" aria-label={t('chapterContent')}>{tabs.map(({ id, label, icon: Icon }) => <button key={id} role="tab" aria-selected={activeTab === id} className={activeTab === id ? 'active' : ''} onClick={() => setActiveTab(id)}><Icon size={16} /><span>{t(label)}</span></button>)}</div>
       {notice && <div className="feedback success-feedback">{notice}</div>}
       {accessError && <div className="feedback error-feedback">{accessError}</div>}
-      {isLocked && <section className="paywall-banner"><span className="paywall-icon"><LockKeyhole size={19} /></span><div><strong>{t('fullAccess')} {`₹${access.amount.toLocaleString('en-IN')}`}</strong><span>{t('unlockChapterCopy')}</span></div><button className="button button-gold" disabled={!user || accessLoading} onClick={() => setCheckoutOpen(true)}>{accessLoading ? t('checkingAccess') : t('buyNow')} <ArrowRight size={14} /></button></section>}
+      {isLocked && <section className="paywall-banner"><span className="paywall-icon"><LockKeyhole size={19} /></span><div><strong>{t('fullAccess')} {`₹${access.amount.toLocaleString('en-IN')}`}</strong><span>{t('unlockChapterCopy')}</span></div><div className="paywall-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}><button className="button button-gold" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'chapter', itemId: chapter.id, itemTitle: chapter.title, tier: 'Chapter', basePrice: access.amount })}>{accessLoading ? t('checkingAccess') : `Buy Chapter · ₹${access.amount}`} <ArrowRight size={14} /></button>{folder && parentPricing.amount > 0 && !hasParentFolderAccess && <button className="button button-outline" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'folder', itemId: folder.id, itemTitle: folder.title, tier: 'Folder Bundle', basePrice: parentPricing.amount })}>Unlock {folder.title} Bundle · ₹{parentPricing.amount.toLocaleString('en-IN')}</button>}{rootFolder && rootFolder.id !== folder?.id && rootPricing.amount > 0 && !isFolderUnlocked(rootFolder.id, folders, purchasedFolderIds) && <button className="button button-outline" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'folder', itemId: rootFolder.id, itemTitle: rootFolder.title, tier: 'Root Bundle', basePrice: rootPricing.amount })}>Unlock Complete {rootFolder.title} · ₹{rootPricing.amount.toLocaleString('en-IN')}</button>}</div></section>}
       {isComingSoon ? <section className="chapter-locked panel-card"><div className="locked-icon"><Clock3 size={22} /></div><h2>{t('chapterComingSoon')}</h2><p>{t('chapterPreparing')}</p><Link className="button button-outline" to={`/folder/${folder.id}`}><ArrowLeft size={14} /> {t('backToSyllabus')}</Link></section> : isLocked && activeTab !== 'notes' ? <section className="chapter-locked panel-card"><div className="locked-icon"><LockKeyhole size={22} /></div><h2>{t('paidLearningPath')}</h2><p>{access.label}. {t('accessVerified')}</p><Link className="button button-gold" to="/purchases">{t('viewAccessOptions')} <ChevronRight size={15} /></Link></section> : <>
         {activeTab === 'tests' && <section className="chapter-tab-panel"><div className="section-heading"><div><div className="eyebrow">{t('checkUnderstanding')}</div><h2>{t('chapterTests')}</h2></div><span className="chapter-item-count">{chapterTests.length} {t('available')}</span></div>{!hasTests ? <div className="empty-content chapter-tab-empty"><CheckCircle2 size={23} /><strong>{t('testsUnavailable')}</strong><span>{t('chooseAnotherTab')}</span></div> : isLocked ? <div className="empty-content chapter-tab-empty"><LockKeyhole size={23} /><strong>{t('unlockLiveTests')}</strong><span>{t('freePreviewsNotes')}</span></div> : testsLoading ? <p className="field-hint">{t('loadingTests')}</p> : testsError ? <div className="feedback error-feedback">{testsError}</div> : !chapterTests.length ? <div className="empty-content chapter-tab-empty"><CheckCircle2 size={23} /><strong>{t('noPublishedTests')}</strong><span>{t('checkBackPractice')}</span></div> : chapterTests.map((test) => {
           const attempts = testAttempts[test.id] || 0;
@@ -261,6 +264,6 @@ export default function ChapterDetail() {
       <Link to={`/folder/${folder.id}`} className="chapter-back-link"><ArrowLeft size={14} /> Back to {folder.title}</Link>
     </>}
     {reader && <PdfReaderModal resource={reader.resource} url={reader.url} onClose={() => setReader(null)} />}
-    {checkoutOpen && <CheckoutModal itemType="chapter" itemId={chapter.id} itemTitle={chapter.title} tier="Chapter" basePrice={access.amount} onClose={() => setCheckoutOpen(false)} onCompleted={() => setAccessRefreshKey((value) => value + 1)} />}
+    {checkoutItem && <CheckoutModal {...checkoutItem} onClose={() => setCheckoutItem(null)} onCompleted={() => setAccessRefreshKey((value) => value + 1)} />}
   </div>;
 }

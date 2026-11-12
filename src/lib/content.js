@@ -71,6 +71,18 @@ export function isFolderUnlocked(folderId, foldersMapOrArray, purchasedFolderIds
   return false;
 }
 
+export function isChapterUnlocked(chapter, folders, purchasedFolderIds = [], purchasedChapterIds = []) {
+  if (!chapter) return false;
+  const chapterSet = purchasedChapterIds instanceof Set
+    ? purchasedChapterIds
+    : new Set(Array.isArray(purchasedChapterIds) ? purchasedChapterIds : []);
+  if (chapterSet.has(chapter.id)) return true;
+
+  const folderId = chapter.folder_id;
+  if (!folderId) return false;
+  return isFolderUnlocked(folderId, folders, purchasedFolderIds);
+}
+
 export function getFolderPricing(folder, folders) {
   if (!folder || folder.pricing_mode === 'free') return { label: 'Free', amount: 0, source: null };
   if (folder.pricing_mode === 'paid-own' || folder.pricing_mode === 'paid_own') {
