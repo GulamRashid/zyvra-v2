@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, BadgeCheck, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, CircleX, Clock3, Coins, LoaderCircle, Sparkles, Target, Trophy } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { extractLocalizedDistractorNote, extractLocalizedExplanation, getOptionEntries, normalizeRpcObject, unwrapRpcPayload } from '../../lib/tests';
+import { extractLocalizedDistractorNote, extractLocalizedExplanation, getOptionEntries, normalizeCorrectAnswer, normalizeRpcObject, unwrapRpcPayload } from '../../lib/tests';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import QuestionFormatter from '../../components/common/QuestionFormatter';
 import { translateText } from '../../lib/translator';
@@ -37,11 +37,11 @@ function SolutionCard({ item, index, language, translations, translating }) {
     || (language === 'hi' ? translations.explanation : '');
 
   const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? item.selected_answers ?? item.response?.selected_answers ?? null;
-  const correct = item.correct_answer ?? item.answer_key ?? item.correct_option ?? null;
-  const correctKey = Array.isArray(correct) ? correct[0] : correct;
+  const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? item.question?.correct_answer ?? item.question?.correct_option ?? item.question?.answer ?? null;
+  const correctKey = normalizeCorrectAnswer(rawCorrect, question.options);
   const chosenKey = Array.isArray(selected) ? selected[0] : selected;
   const hasSelection = Array.isArray(selected) ? selected.length > 0 : Boolean(selected);
-  const isCorrect = item.is_correct ?? item.response?.is_correct ?? (hasSelection && String(chosenKey).toUpperCase() === String(correctKey).toUpperCase());
+  const isCorrect = item.is_correct ?? item.response?.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).trim().toUpperCase() === correctKey);
 
   return <article className="solution-card">
     <div className="solution-question-heading">

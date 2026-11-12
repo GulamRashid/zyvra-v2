@@ -21,6 +21,7 @@ import {
   getQuestionText,
   hasDevanagari,
   hasLatin,
+  normalizeCorrectAnswer,
   sanitizeLiveQuestion
 } from '../../lib/tests';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
@@ -204,8 +205,11 @@ export default function QuestionPracticeModal({
   }, [currentQ]);
   const selectedOption = selectedOptions[currentQId] || null;
   const isAnswered = selectedOption !== null;
-  const correctAnswer = String(currentQ.correct_answer || '').trim().toUpperCase();
-  const isCorrect = isAnswered && selectedOption.toUpperCase() === correctAnswer;
+  const correctAnswer = normalizeCorrectAnswer(
+    currentQ?.correct_answer ?? currentQ?.correct_option ?? currentQ?.answer,
+    currentQ?.options
+  );
+  const isCorrect = isAnswered && Boolean(correctAnswer && String(selectedOption).trim().toUpperCase() === correctAnswer);
   const isExplanationShown = showExplanationMap[currentQId] || isAnswered;
 
   // Explanation text
@@ -321,9 +325,18 @@ export default function QuestionPracticeModal({
             <div className="practice-q-num">
               <span>Question {currentIndex + 1}</span>
               {isAnswered && (
-                <span className={`practice-result-badge ${isCorrect ? 'correct' : 'wrong'}`}>
-                  {isCorrect ? 'Correct ✓' : 'Incorrect ✗'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`practice-result-badge ${isCorrect ? 'correct' : 'wrong'}`}>
+                    {isCorrect
+                      ? (language === 'hi' ? 'सही उत्तर ✓' : 'Correct ✓')
+                      : (language === 'hi' ? 'गलत उत्तर ✗' : 'Incorrect ✗')}
+                  </span>
+                  {!isCorrect && correctAnswer && (
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      {language === 'hi' ? `सही उत्तर है: ${correctAnswer}` : `Correct answer: ${correctAnswer}`}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
 
@@ -336,7 +349,7 @@ export default function QuestionPracticeModal({
               {optionEntries.map(([key, opt]) => {
                 const optText = resolveOptionText(opt, key, currentQ, language);
                 const isSelected = selectedOption === key;
-                const isThisCorrect = correctAnswer === key;
+                const isThisCorrect = Boolean(correctAnswer && correctAnswer === key);
 
                 let optClass = 'quiz-option';
                 if (isAnswered) {
@@ -360,10 +373,16 @@ export default function QuestionPracticeModal({
                     <span className="quiz-option-text">
                       <MathRenderer>{optText}</MathRenderer>
                     </span>
-                    {isAnswered && isThisCorrect && (
-                      <span className="quiz-option-check text-green-500">
-                        <Check size={18} />
-                      </span>
+                    {isAnswered && (
+                      isThisCorrect ? (
+                        <span className="quiz-option-check text-emerald-600 dark:text-emerald-400 font-bold">
+                          <Check size={18} />
+                        </span>
+                      ) : isSelected ? (
+                        <span className="quiz-option-check text-rose-600 dark:text-rose-400 font-bold">
+                          <X size={18} />
+                        </span>
+                      ) : null
                     )}
                   </button>
                 );

@@ -97,10 +97,64 @@ export function getQuestionText(value, language = 'en') {
   return '';
 }
 
+export function normalizeCorrectAnswer(raw, options = []) {
+  if (raw === undefined || raw === null) return '';
+  let str = '';
+  if (Array.isArray(raw)) {
+    str = String(raw[0] ?? '').trim();
+  } else if (typeof raw === 'object') {
+    str = String(raw.answer || raw.option || raw.value || raw.key || raw.id || raw.correct || '').trim();
+  } else {
+    str = String(raw).trim();
+  }
+
+  // Strip JSON formatting or outer quotes/brackets: e.g. '["A"]' -> 'A', '"A"' -> 'A'
+  str = str.replace(/^\[\s*["']?|["']?\s*\]$/g, '').replace(/^["']|["']$/g, '').trim();
+
+  // 1. Direct option letter match: A, B, C, D, E (or a, b, c, d, e)
+  if (/^[A-E]$/i.test(str)) {
+    return str.toUpperCase();
+  }
+
+  // 2. 1-based numeric: '1' -> 'A', '2' -> 'B', etc.
+  if (/^[1-5]$/.test(str)) {
+    return String.fromCharCode(65 + Number(str) - 1);
+  }
+
+  // 3. 0-based index: '0' -> 'A'
+  if (str === '0') {
+    return 'A';
+  }
+
+  // 4. Option key prefix like "Option A" or "Option (A)" or "(A)"
+  const prefixMatch = str.match(/^(?:Option\s*)?\(?([A-E])\)?(?:\s*[:.\-]|$)/i);
+  if (prefixMatch) {
+    return prefixMatch[1].toUpperCase();
+  }
+
+  // 5. Match full text against options array or entries
+  if (options && (Array.isArray(options) || typeof options === 'object')) {
+    const entries = getOptionEntries(options);
+    for (const [key, opt] of entries) {
+      if (typeof opt === 'string' && opt.trim().toLowerCase() === str.toLowerCase()) {
+        return key;
+      }
+      if (opt && typeof opt === 'object') {
+        const en = String(opt.en || opt.text || opt.label || '').trim().toLowerCase();
+        const hi = String(opt.hi || opt.text_hi || opt.label || '').trim().toLowerCase();
+        if (en && en === str.toLowerCase()) return key;
+        if (hi && hi === str.toLowerCase()) return key;
+      }
+    }
+  }
+
+  return str.toUpperCase();
+}
+
 export function sanitizeLiveQuestion(question) {
   const source = question || {};
   const safeQuestion = { ...source };
-  for (const key of ['id', 'question_id', 'question_text', 'question_text_en', 'question_text_hi', 'question_en', 'question_hi', 'text', 'text_hi', 'subject', 'topic', 'tags', 'passage', 'image_url', 'language', 'explanation', 'explanation_en', 'explanation_hi', 'correct_answer', 'distractor_notes']) {
+  for (const key of ['id', 'question_id', 'question_text', 'question_text_en', 'question_text_hi', 'question_en', 'question_hi', 'text', 'text_hi', 'subject', 'topic', 'tags', 'passage', 'image_url', 'language', 'explanation', 'explanation_en', 'explanation_hi', 'correct_answer', 'correct_option', 'answer', 'distractor_notes']) {
     if (source[key] !== undefined && source[key] !== null) safeQuestion[key] = source[key];
   }
   safeQuestion.id = safeQuestion.id || safeQuestion.question_id;
@@ -224,6 +278,25 @@ export function sanitizeLiveQuestion(question) {
   } else {
     safeQuestion.options = [];
   }
+
+  // Authoritative correct answer resolution and normalization
+  const rawCorrect =
+    source.correct_answer ??
+    source.correct_option ??
+    source.answer ??
+    source.right_option ??
+    source.ans ??
+    source.correctOption ??
+    source.correctAnswer ??
+    source.correct;
+
+  const normalizedAnswer = normalizeCorrectAnswer(rawCorrect, safeQuestion.options);
+  if (normalizedAnswer) {
+    safeQuestion.correct_answer = normalizedAnswer;
+    safeQuestion.correct_option = normalizedAnswer;
+    safeQuestion.answer = normalizedAnswer;
+  }
+
   return safeQuestion;
 }
 

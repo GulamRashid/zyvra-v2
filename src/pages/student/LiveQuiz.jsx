@@ -33,6 +33,7 @@ import {
   getQuestionText,
   hasDevanagari,
   hasLatin,
+  normalizeCorrectAnswer,
   normalizeRpcObject,
   sanitizeLiveQuestion,
   unwrapRpcPayload
@@ -484,7 +485,7 @@ export default function LiveQuiz() {
           const qIds = safeQuestions.map((q) => q.id);
           const { data: fullQuestions } = await supabase
             .from('questions')
-            .select('id, correct_answer, explanation, explanation_en, explanation_hi, distractor_notes')
+            .select('id, correct_answer, correct_option, answer, explanation, explanation_en, explanation_hi, distractor_notes')
             .in('id', qIds);
 
           if (fullQuestions?.length) {
@@ -492,7 +493,15 @@ export default function LiveQuiz() {
             safeQuestions.forEach((q) => {
               const full = map.get(q.id);
               if (full) {
-                if (full.correct_answer) q.correct_answer = full.correct_answer;
+                const ans = normalizeCorrectAnswer(
+                  full.correct_answer ?? full.correct_option ?? full.answer ?? q.correct_answer,
+                  q.options
+                );
+                if (ans) {
+                  q.correct_answer = ans;
+                  q.correct_option = ans;
+                  q.answer = ans;
+                }
                 if (full.explanation) q.explanation = full.explanation;
                 if (full.explanation_en) q.explanation_en = full.explanation_en;
                 if (full.explanation_hi) q.explanation_hi = full.explanation_hi;
@@ -630,7 +639,7 @@ export default function LiveQuiz() {
         const qIds = safeQuestions.map((q) => q.id);
         const { data: fullQuestions } = await supabase
           .from('questions')
-          .select('id, correct_answer, explanation, explanation_en, explanation_hi, distractor_notes')
+          .select('id, correct_answer, correct_option, answer, explanation, explanation_en, explanation_hi, distractor_notes')
           .in('id', qIds);
 
         if (fullQuestions?.length) {
@@ -638,7 +647,15 @@ export default function LiveQuiz() {
           safeQuestions.forEach((q) => {
             const full = map.get(q.id);
             if (full) {
-              if (full.correct_answer) q.correct_answer = full.correct_answer;
+              const ans = normalizeCorrectAnswer(
+                full.correct_answer ?? full.correct_option ?? full.answer ?? q.correct_answer,
+                q.options
+              );
+              if (ans) {
+                q.correct_answer = ans;
+                q.correct_option = ans;
+                q.answer = ans;
+              }
               if (full.explanation) q.explanation = full.explanation;
               if (full.explanation_en) q.explanation_en = full.explanation_en;
               if (full.explanation_hi) q.explanation_hi = full.explanation_hi;
@@ -1595,9 +1612,14 @@ export default function LiveQuiz() {
                   displayedOption = questionTranslations[`option:${key}`];
                 }
 
-                const selected = responses[question?.id]?.selected_option === key;
-                const isImmediate = test?.solution_mode === 'immediate' && Boolean(responses[question?.id]?.selected_option);
-                const isCorrectAnswer = isImmediate && String(question?.correct_answer || '').toUpperCase() === key;
+                const qCorrectAnswer = normalizeCorrectAnswer(
+                  question?.correct_answer ?? question?.correct_option ?? question?.answer,
+                  question?.options
+                );
+                const userSelectedOption = responses[question?.id]?.selected_option;
+                const selected = userSelectedOption === key;
+                const isImmediate = test?.solution_mode === 'immediate' && Boolean(userSelectedOption);
+                const isCorrectAnswer = isImmediate && Boolean(qCorrectAnswer && qCorrectAnswer === key);
                 const isWrongSelected = isImmediate && selected && !isCorrectAnswer;
 
                 return (
@@ -1617,7 +1639,17 @@ export default function LiveQuiz() {
                         )}
                       </span>
                     </span>
-                    <span className="quiz-option-check">{selected && <Check size={18} />}</span>
+                    <span className="quiz-option-check">
+                      {isImmediate ? (
+                        isCorrectAnswer ? (
+                          <Check size={18} className="text-emerald-600 dark:text-emerald-400 font-bold" />
+                        ) : isWrongSelected ? (
+                          <X size={18} className="text-rose-600 dark:text-rose-400 font-bold" />
+                        ) : null
+                      ) : (
+                        selected && <Check size={18} />
+                      )}
+                    </span>
                   </button>
                 );
               });
@@ -1625,90 +1657,99 @@ export default function LiveQuiz() {
           </div>
 
           {/* Immediate Feedback Card in Practice Mode */}
-          {test?.solution_mode === 'immediate' && responses[question.id]?.selected_option && (
-            <div className={`immediate-feedback-card mt-4 p-4 rounded-xl border ${
-              responses[question.id]?.selected_option === question.correct_answer
-                ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800'
-                : 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800'
-            }`}>
-              <div className="flex items-center gap-2 mb-2 font-bold text-sm sm:text-base">
-                {responses[question.id]?.selected_option === question.correct_answer ? (
-                  <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                    <CheckCircle2 size={18} /> {language === 'hi' ? 'सही उत्तर!' : 'Correct Answer!'}
+          {test?.solution_mode === 'immediate' && responses[question.id]?.selected_option && (() => {
+            const selectedOpt = String(responses[question.id]?.selected_option || '').trim().toUpperCase();
+            const correctOpt = normalizeCorrectAnswer(
+              question?.correct_answer ?? question?.correct_option ?? question?.answer,
+              question?.options
+            );
+            const isUserCorrect = Boolean(correctOpt && selectedOpt === correctOpt);
+
+            return (
+              <div className={`immediate-feedback-card mt-4 p-4 rounded-xl border ${
+                isUserCorrect
+                  ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800'
+                  : 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800'
+              }`}>
+                <div className="flex items-center gap-2 mb-2 font-bold text-sm sm:text-base">
+                  {isUserCorrect ? (
+                    <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle2 size={18} /> {language === 'hi' ? 'सही उत्तर!' : 'Correct Answer!'}
+                    </span>
+                  ) : (
+                    <span className="text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                      <CircleX size={18} /> {language === 'hi' ? `गलत उत्तर! सही उत्तर है: ${correctOpt || '—'}` : `Incorrect! Correct answer is: ${correctOpt || '—'}`}
+                    </span>
+                  )}
+                  <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-neutral-200/70 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
+                    {language === 'hi' ? 'अभ्यास मोड' : 'Practice Mode'}
                   </span>
-                ) : (
-                  <span className="text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
-                    <CircleX size={18} /> {language === 'hi' ? `गलत उत्तर! सही उत्तर है: ${question.correct_answer || '—'}` : `Incorrect! Correct answer is: ${question.correct_answer || '—'}`}
-                  </span>
-                )}
-                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-neutral-200/70 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
-                  {language === 'hi' ? 'अभ्यास मोड' : 'Practice Mode'}
-                </span>
-              </div>
+                </div>
 
-              {/* Localized Explanation */}
-              {(() => {
-                const expl = extractLocalizedExplanation(question.explanation, language, question);
-                if (!expl) return null;
-                return (
-                  <div className="immediate-explanation mt-3 pt-3 border-t border-neutral-200/60 dark:border-neutral-700/60 text-sm leading-relaxed">
-                    <strong className="block text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 mb-1">
-                      {language === 'hi' ? 'व्याख्या' : 'Explanation'}
-                    </strong>
-                    <QuestionFormatter text={expl} />
-                  </div>
-                );
-              })()}
-
-              {/* Localized Distractor Notes / Additional Notes */}
-              {(() => {
-                const currentQuestion = question;
-                let notes = currentQuestion?.distractor_notes;
-                if (typeof notes === 'string') {
-                  try {
-                    notes = JSON.parse(notes);
-                  } catch {
-                    notes = null;
-                  }
-                }
-                const hasNotes =
-                  notes &&
-                  typeof notes === 'object' &&
-                  !Array.isArray(notes) &&
-                  Object.keys(notes).length > 0 &&
-                  Object.values(notes).some((n) => {
-                    if (!n) return false;
-                    if (typeof n === 'string') return n.trim().length > 0;
-                    if (typeof n === 'object') return Boolean(n.en?.trim() || n.hi?.trim() || n.text?.trim());
-                    return true;
-                  });
-
-                if (!hasNotes) return null;
-
-                const validEntries = Object.entries(notes)
-                  .map(([optKey, note]) => [optKey, extractLocalizedDistractorNote(note, language)])
-                  .filter(([, locNote]) => Boolean(locNote));
-
-                if (validEntries.length === 0) return null;
-
-                return (
-                  <div className="immediate-distractor-notes mt-2.5 pt-2.5 border-t border-neutral-200/60 dark:border-neutral-700/60 text-xs text-neutral-700 dark:text-neutral-300">
-                    <strong className="block font-semibold mb-1 text-neutral-800 dark:text-neutral-200">
-                      {language === 'hi' ? 'अतिरिक्त नोट्स' : 'Additional Notes'}:
-                    </strong>
-                    <div className="space-y-1">
-                      {validEntries.map(([optKey, locNote]) => (
-                        <div key={optKey} className="flex items-start gap-1">
-                          <span className="font-bold">Option {optKey}:</span>
-                          <span>{locNote}</span>
-                        </div>
-                      ))}
+                {/* Localized Explanation */}
+                {(() => {
+                  const expl = extractLocalizedExplanation(question.explanation, language, question);
+                  if (!expl) return null;
+                  return (
+                    <div className="immediate-explanation mt-3 pt-3 border-t border-neutral-200/60 dark:border-neutral-700/60 text-sm leading-relaxed">
+                      <strong className="block text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 mb-1">
+                        {language === 'hi' ? 'व्याख्या' : 'Explanation'}
+                      </strong>
+                      <QuestionFormatter text={expl} />
                     </div>
-                  </div>
-                );
-              })()}
-            </div>
-          )}
+                  );
+                })()}
+
+                {/* Localized Distractor Notes / Additional Notes */}
+                {(() => {
+                  const currentQuestion = question;
+                  let notes = currentQuestion?.distractor_notes;
+                  if (typeof notes === 'string') {
+                    try {
+                      notes = JSON.parse(notes);
+                    } catch {
+                      notes = null;
+                    }
+                  }
+                  const hasNotes =
+                    notes &&
+                    typeof notes === 'object' &&
+                    !Array.isArray(notes) &&
+                    Object.keys(notes).length > 0 &&
+                    Object.values(notes).some((n) => {
+                      if (!n) return false;
+                      if (typeof n === 'string') return n.trim().length > 0;
+                      if (typeof n === 'object') return Boolean(n.en?.trim() || n.hi?.trim() || n.text?.trim());
+                      return true;
+                    });
+
+                  if (!hasNotes) return null;
+
+                  const validEntries = Object.entries(notes)
+                    .map(([optKey, note]) => [optKey, extractLocalizedDistractorNote(note, language)])
+                    .filter(([, locNote]) => Boolean(locNote));
+
+                  if (validEntries.length === 0) return null;
+
+                  return (
+                    <div className="immediate-distractor-notes mt-2.5 pt-2.5 border-t border-neutral-200/60 dark:border-neutral-700/60 text-xs text-neutral-700 dark:text-neutral-300">
+                      <strong className="block font-semibold mb-1 text-neutral-800 dark:text-neutral-200">
+                        {language === 'hi' ? 'अतिरिक्त नोट्स' : 'Additional Notes'}:
+                      </strong>
+                      <div className="space-y-1">
+                        {validEntries.map(([optKey, locNote]) => (
+                          <div key={optKey} className="flex items-start gap-1">
+                            <span className="font-bold">Option {optKey}:</span>
+                            <span>{locNote}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            );
+          })()}
 
           {/* Action Row */}
           <div className="quiz-question-actions">
