@@ -1217,90 +1217,113 @@ export default function LiveQuiz() {
         />
       )}
 
-      {/* CBT Header */}
-      <header className="quiz-header">
-        <Link to="/tests" className="quiz-brand">
-          <img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" />
-          <span>ZYVRA<span>TEST MODE</span></span>
-        </Link>
+      {/* CBT 2-Row Header */}
+      <header className="quiz-header cbt-two-row-header">
+        {/* ROW 1: Compact Brand + Truncated Title on Left | Compact Action Buttons on Right */}
+        <div className="quiz-header-top-row">
+          <div className="quiz-header-brand-wrap">
+            <Link to={returnTo || "/tests"} className="quiz-brand-compact" title="Exit to tests">
+              <img src="/logo.png" alt="Zyvra" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-contain shadow-xs flex-shrink-0" />
+            </Link>
+            <div className="quiz-title-truncated">
+              <strong title={test?.title}>{test?.title || 'Test Mode'}</strong>
+            </div>
+          </div>
 
-        <div className="quiz-header-title">
-          <strong>{test?.title}</strong>
-          <span>Question {currentIndex + 1} of {questions?.length || 0}</span>
+          <div className="quiz-header-actions-compact">
+            {/* Info Button: View Instructions */}
+            <button
+              type="button"
+              className="icon-button quiz-info-button"
+              onClick={() => setShowInstructionsModal(true)}
+              title="View Exam Instructions"
+              aria-label="View exam instructions"
+            >
+              <Info size={16} />
+            </button>
+
+            {/* Pause / Exit Button */}
+            <button
+              type="button"
+              className="icon-button quiz-pause-icon-button"
+              onClick={() => setShowPauseModal(true)}
+              title="Pause and resume later"
+              aria-label="Pause test"
+            >
+              <Pause size={15} />
+            </button>
+
+            {/* Language Switcher */}
+            <div className="native-language-toggle compact-lang-toggle" role="group" aria-label="Test language">
+              <button
+                type="button"
+                className={language === 'en' ? 'active' : ''}
+                aria-pressed={language === 'en'}
+                onClick={() => setLanguage('en')}
+              >
+                EN
+              </button>
+              <button
+                type="button"
+                className={language === 'hi' ? 'active' : ''}
+                aria-pressed={language === 'hi'}
+                onClick={() => setLanguage('hi')}
+              >
+                HI
+              </button>
+            </div>
+
+            {/* Submit Test Button (Desktop Header) */}
+            <button
+              type="button"
+              className="button button-gold quiz-submit-button hidden md:inline-flex"
+              disabled={submitting}
+              onClick={confirm}
+            >
+              {submitting ? 'Submitting…' : 'Submit test'}
+            </button>
+
+            {/* Palette Toggle (Mobile) */}
+            <button
+              type="button"
+              className="icon-button quiz-palette-toggle"
+              onClick={() => setPaletteOpen(true)}
+              title="Open question palette"
+              aria-label="Open question palette"
+            >
+              <Grid3X3 size={17} />
+            </button>
+          </div>
         </div>
 
-        <div className="quiz-header-actions">
-          {/* Countdown Timer */}
+        {/* ROW 2: Question Counter on Left | Countdown Timer on Right */}
+        <div className="quiz-header-sub-bar">
+          <div className="quiz-question-counter">
+            <span className="counter-label">Question</span>
+            <strong className="counter-current">{currentIndex + 1}</strong>
+            <span className="counter-divider">of</span>
+            <span className="counter-total">{questions?.length || 0}</span>
+          </div>
+
+          <div className="quiz-header-sub-right">
+            <div
+              className={`quiz-timer-pill ${remaining < 300 ? 'timer-warning' : ''}`}
+              aria-live="polite"
+            >
+              <Clock3 size={13} className="timer-icon" />
+              <span className="timer-digits">{formatTime(remaining)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Thin Progress Bar underneath Row 2 */}
+        <div className="quiz-header-progress-track">
           <div
-            className={`quiz-timer ${remaining < 300 ? 'timer-warning' : ''} px-2.5 py-1 text-xs font-mono font-semibold`}
-            aria-live="polite"
-          >
-            <Clock3 size={14} />
-            <span className="text-xs font-mono font-semibold">{formatTime(remaining)}</span>
-          </div>
-
-          {/* Info Button: View Instructions */}
-          <button
-            type="button"
-            className="icon-button quiz-info-button"
-            onClick={() => setShowInstructionsModal(true)}
-            title="View Exam Instructions"
-            aria-label="View exam instructions"
-          >
-            <Info size={17} />
-          </button>
-
-          {/* Pause / Exit Button */}
-          <button
-            type="button"
-            className="button button-outline quiz-pause-button"
-            onClick={() => setShowPauseModal(true)}
-            title="Pause and resume later"
-            aria-label="Pause test"
-          >
-            <Pause size={14} />
-            <span className="hidden sm:inline">Pause / Exit</span>
-          </button>
-
-          {/* Language Switcher */}
-          <div className="native-language-toggle" role="group" aria-label="Test language">
-            <button
-              type="button"
-              className={language === 'en' ? 'active' : ''}
-              aria-pressed={language === 'en'}
-              onClick={() => setLanguage('en')}
-            >
-              EN
-            </button>
-            <button
-              type="button"
-              className={language === 'hi' ? 'active' : ''}
-              aria-pressed={language === 'hi'}
-              onClick={() => setLanguage('hi')}
-            >
-              HI
-            </button>
-          </div>
-
-          {/* Submit Test Button (Desktop Header) */}
-          <button
-            type="button"
-            className="button button-gold quiz-submit-button hidden md:inline-flex"
-            disabled={submitting}
-            onClick={confirm}
-          >
-            {submitting ? 'Submitting…' : 'Submit test'}
-          </button>
-
-          {/* Palette Toggle (Mobile) */}
-          <button
-            type="button"
-            className="icon-button quiz-palette-toggle"
-            onClick={() => setPaletteOpen(true)}
-            aria-label="Open question palette"
-          >
-            <Grid3X3 size={18} />
-          </button>
+            className="quiz-header-progress-fill"
+            style={{
+              width: `${Math.min(100, Math.max(0, ((currentIndex + 1) / Math.max(1, questions?.length || 1)) * 100))}%`
+            }}
+          />
         </div>
       </header>
 

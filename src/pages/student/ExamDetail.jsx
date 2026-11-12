@@ -82,11 +82,50 @@ export default function ExamDetail() {
       {!rootFolders.length && <div className="empty-content"><Folder size={24} /><strong>Syllabus coming soon</strong><span>Learning sections for this exam are being prepared.</span></div>}
       <div className="folder-cards-grid">{rootFolders.map((folder, index) => {
         const counts = countFolder(folder.id);
-        const starts = ['01', '02', '03'];
+        const starts = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'];
         const price = getFolderPricing(folder, folders);
         const hasPurchasedExam = examIsPaid && accessByKey[`exam:${exam?.id}`] === true;
         const isRootUnlocked = hasPurchasedExam || price.amount <= 0 || accessByKey[`folder:${folder.id}`] === true;
-        return <article className="syllabus-card syllabus-purchase-card" key={folder.id}><Link to={`/folder/${folder.id}`} className="syllabus-card-link"><div className="syllabus-number">{starts[index] || String(index + 1).padStart(2, '0')}</div><div className="syllabus-card-icon"><Folder size={20} /></div><div className="syllabus-card-copy"><span className="eyebrow">LEARNING SECTION</span><h3>{folder.title}</h3><p>{folder.description || 'A thoughtfully organised set of topics to guide your preparation.'}</p><div className="syllabus-card-meta"><span><Folder size={13} /> {counts.folders} subfolders</span><span><BookOpen size={13} /> {counts.chapters} chapters</span>{price.amount > 0 && <span className="access-badge access-paid" style={{ marginLeft: 'auto' }}>{isRootUnlocked ? 'Purchased' : price.label}</span>}</div></div><span className="syllabus-card-arrow"><ArrowRight size={17} /></span></Link>{price.amount > 0 && !isRootUnlocked && <button className="button button-outline buy-inline-button" onClick={() => setCheckoutItem({ itemType: 'folder', itemId: folder.id, itemTitle: folder.title, tier: 'Folder Bundle', basePrice: price.amount })}>Buy bundle · ₹{price.amount.toLocaleString('en-IN')}</button>}</article>;
+        return <article className="syllabus-card syllabus-purchase-card" key={folder.id}>
+          <Link to={`/folder/${folder.id}`} className="syllabus-card-link">
+            <div className="syllabus-card-top">
+              <div className="syllabus-card-icon"><Folder size={20} /></div>
+              <div className="syllabus-card-top-right">
+                <span className="syllabus-number">{starts[index] || String(index + 1).padStart(2, '0')}</span>
+                <span className="syllabus-card-arrow"><ArrowRight size={15} /></span>
+              </div>
+            </div>
+            <div className="syllabus-card-copy">
+              <span className="eyebrow">LEARNING SECTION</span>
+              <h3>{folder.title}</h3>
+              <p>{folder.description || 'A thoughtfully organised set of topics to guide your preparation.'}</p>
+              <div className="syllabus-card-meta">
+                <span><Folder size={13} /> {counts.folders} subfolders</span>
+                <span><BookOpen size={13} /> {counts.chapters} chapters</span>
+              </div>
+            </div>
+          </Link>
+          <div className="syllabus-card-footer">
+            <div className="syllabus-card-footer-left">
+              {price.amount > 0 ? (
+                <span className={`access-badge ${isRootUnlocked ? 'access-free' : 'access-paid'}`}>
+                  {isRootUnlocked ? 'Purchased' : price.label}
+                </span>
+              ) : (
+                <span className="access-badge access-free">Free</span>
+              )}
+            </div>
+            {price.amount > 0 && !isRootUnlocked && (
+              <button
+                type="button"
+                className="button button-gold buy-inline-button"
+                onClick={() => setCheckoutItem({ itemType: 'folder', itemId: folder.id, itemTitle: folder.title, tier: 'Folder Bundle', basePrice: price.amount })}
+              >
+                Buy bundle · ₹{price.amount.toLocaleString('en-IN')}
+              </button>
+            )}
+          </div>
+        </article>;
       })}</div>
       <div className="catalog-tip"><Clock3 size={15} /> You can explore free chapters before committing to a study plan.</div>
       {checkoutItem && <CheckoutModal {...checkoutItem} onClose={() => setCheckoutItem(null)} onCompleted={() => setRefreshKey((value) => value + 1)} />}

@@ -70,11 +70,62 @@ export default function FolderView() {
         const count = chapters.filter((chapter) => chapter.folder_id === child.id && isPublished(chapter)).length;
         const childStatus = ['coming-soon', 'coming_soon'].includes(String(child.status || '').toLowerCase());
         const isChildUnlocked = isCurrentFolderUnlocked || childPricing.amount <= 0 || isFolderUnlocked(child.id, folders, purchasedFolderIds) || accessByKey[`folder:${child.id}`] === true;
-        return <article className="folder-list-item purchase-list-item" key={child.id}><Link to={`/folder/${child.id}`} className="folder-list-main"><span className="folder-list-icon"><Folder size={18} /></span><span className="folder-list-copy"><strong>{child.title}</strong><small>{child.description || `${count} chapters to explore`}</small></span><span className="folder-list-meta"><AccessBadge label={childStatus ? 'Coming Soon' : childPricing.amount ? isChildUnlocked ? 'Purchased' : 'Paid' : 'Free'} /><span>{count} chapters</span></span><ChevronRight size={17} /></Link>{childPricing.amount > 0 && !isChildUnlocked && <button className="button button-outline buy-inline-button" onClick={() => setCheckoutItem({ itemType: 'folder', itemId: child.id, itemTitle: child.title, tier: 'Folder Bundle', basePrice: childPricing.amount })}>Buy {`₹${childPricing.amount}`} <ArrowRight size={13} /></button>}</article>;
+        return <article className="folder-list-item purchase-list-item" key={child.id}>
+          <Link to={`/folder/${child.id}`} className="folder-list-main">
+            <span className="folder-list-icon"><Folder size={18} /></span>
+            <span className="folder-list-copy">
+              <strong>{child.title}</strong>
+              <small>{child.description || `${count} chapters to explore`}</small>
+            </span>
+            <span className="folder-list-meta">
+              <AccessBadge label={childStatus ? 'Coming Soon' : childPricing.amount ? isChildUnlocked ? 'Purchased' : 'Paid' : 'Free'} />
+              <span>{count} chapters</span>
+            </span>
+            <ChevronRight size={17} className="folder-nav-chevron" />
+          </Link>
+          {childPricing.amount > 0 && !isChildUnlocked && (
+            <div className="folder-item-footer">
+              <button
+                type="button"
+                className="button button-gold buy-inline-button"
+                onClick={() => setCheckoutItem({ itemType: 'folder', itemId: child.id, itemTitle: child.title, tier: 'Folder Bundle', basePrice: childPricing.amount })}
+              >
+                Buy bundle · ₹{childPricing.amount.toLocaleString('en-IN')} <ArrowRight size={13} />
+              </button>
+            </div>
+          )}
+        </article>;
       })}{folderChapters.map((chapter) => {
         const access = getChapterAccess(chapter, folder, folders);
         const isChapterUnlocked = isCurrentFolderUnlocked || access.amount <= 0 || accessByKey[`chapter:${chapter.id}`] === true;
-        return <article className="folder-list-item purchase-list-item" key={chapter.id}><Link to={`/chapter/${chapter.id}`} className="folder-list-main chapter-list-main"><span className="folder-list-icon chapter-list-icon"><BookOpen size={18} /></span><span className="folder-list-copy"><strong>{chapter.title}</strong><small>{chapter.description || 'Chapter learning hub'}</small><span className="chapter-list-chips"><span className="subject-pill">{chapter.subject || 'General'}</span><span><Clock3 size={12} /> {chapter.estimated_study_time_minutes || '—'} min</span></span></span><span className="folder-list-meta"><AccessBadge label={access.amount > 0 ? isChapterUnlocked ? 'Purchased' : access.label : access.label} /></span><ArrowRight size={16} /></Link>{access.amount > 0 && !isChapterUnlocked && <button className="button button-outline buy-inline-button" onClick={() => setCheckoutItem({ itemType: 'chapter', itemId: chapter.id, itemTitle: chapter.title, tier: 'Chapter', basePrice: access.amount })}>Buy {`₹${access.amount}`} <ArrowRight size={13} /></button>}</article>;
+        return <article className="folder-list-item purchase-list-item" key={chapter.id}>
+          <Link to={`/chapter/${chapter.id}`} className="folder-list-main chapter-list-main">
+            <span className="folder-list-icon chapter-list-icon"><BookOpen size={18} /></span>
+            <span className="folder-list-copy">
+              <strong>{chapter.title}</strong>
+              <small>{chapter.description || 'Chapter learning hub'}</small>
+              <span className="chapter-list-chips">
+                <span className="subject-pill">{chapter.subject || 'General'}</span>
+                <span><Clock3 size={12} /> {chapter.estimated_study_time_minutes || '—'} min</span>
+              </span>
+            </span>
+            <span className="folder-list-meta">
+              <AccessBadge label={access.amount > 0 ? isChapterUnlocked ? 'Purchased' : access.label : access.label} />
+            </span>
+            <ArrowRight size={16} className="chapter-nav-arrow" />
+          </Link>
+          {access.amount > 0 && !isChapterUnlocked && (
+            <div className="folder-item-footer">
+              <button
+                type="button"
+                className="button button-gold buy-inline-button"
+                onClick={() => setCheckoutItem({ itemType: 'chapter', itemId: chapter.id, itemTitle: chapter.title, tier: 'Chapter', basePrice: access.amount })}
+              >
+                Buy chapter · ₹{access.amount.toLocaleString('en-IN')} <ArrowRight size={13} />
+              </button>
+            </div>
+          )}
+        </article>;
       })}</div>
       {parent && <Link className="back-folder-link" to={`/folder/${parent.id}`}><ArrowRight className="back-arrow" size={14} /> Back to {parent.title}</Link>}
       {checkoutItem && <CheckoutModal {...checkoutItem} onClose={() => setCheckoutItem(null)} onCompleted={() => setRefreshKey((value) => value + 1)} />}

@@ -106,7 +106,9 @@ export default function ChapterDetail() {
         user ? supabase.from('student_bookmarks').select('*').eq('user_id', user.id).eq('chapter_id', chapter.id) : Promise.resolve({ data: [], error: null })
       ]);
       if (resourceResult.error) throw resourceResult.error;
-      if (bookmarkResult.error) throw bookmarkResult.error;
+      if (bookmarkResult.error) {
+        console.warn('Unable to load bookmarks:', bookmarkResult.error.message);
+      }
       if (!active) return;
       setResources((resourceResult.data || [])
         .filter((resource) => !['archived', 'draft', 'unpublished'].includes(String(resource.status || '').toLowerCase()))
