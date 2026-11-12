@@ -52,6 +52,7 @@ export default async function handler(req, res) {
 
       // Server-side fallback using supabaseAdmin
       let basePrice = 0;
+      let itemTitle = '';
       if (itemType === 'folder') {
         const { data: folder, error: fErr } = await supabaseAdmin
           .from('folders')
@@ -60,6 +61,7 @@ export default async function handler(req, res) {
           .maybeSingle();
         if (fErr || !folder) throw new Error(fErr?.message || `Folder not found: ${itemId}`);
         basePrice = Number(folder.price || 0);
+        itemTitle = folder.title || '';
       } else if (itemType === 'chapter') {
         const { data: chapter, error: cErr } = await supabaseAdmin
           .from('chapters')
@@ -68,6 +70,7 @@ export default async function handler(req, res) {
           .maybeSingle();
         if (cErr || !chapter) throw new Error(cErr?.message || `Chapter not found: ${itemId}`);
         basePrice = Number(chapter.price || 0);
+        itemTitle = chapter.title || '';
       } else if (itemType === 'exam') {
         const { data: exam, error: eErr } = await supabaseAdmin
           .from('exams')
@@ -76,6 +79,7 @@ export default async function handler(req, res) {
           .maybeSingle();
         if (eErr || !exam) throw new Error(eErr?.message || `Exam not found: ${itemId}`);
         basePrice = Number(exam.price || 0);
+        itemTitle = exam.title || '';
       } else {
         basePrice = 49.00;
       }
@@ -121,6 +125,11 @@ export default async function handler(req, res) {
           user_id: user.id,
           item_type: itemType,
           item_id: String(itemId),
+          item_title: itemTitle || null,
+          base_price: basePrice,
+          coins_used: coinsUsed,
+          discount_amount: discount,
+          final_amount: payable,
           amount: payable,
           amount_paise: amountPaise,
           coins_redeemed: coinsUsed,
@@ -151,7 +160,17 @@ export default async function handler(req, res) {
         receipt: `ord_${receiptCode}`
       });
       razorpayOrderId = razorpayOrder.id;
-      await supabaseAdmin.from('payment_orders').update({ gateway_order_id: razorpayOrderId }).eq('id', internalOrderId);
+      const { data: updatedOrder, error: updateError } = await supabaseAdmin
+        .from('payment_orders')
+        .update({
+          razorpay_order_id: razorpayOrderId,
+          gateway_order_id: razorpayOrderId
+        })
+        .eq('id', internalOrderId)
+        .select('id')
+        .maybeSingle();
+      if (updateError) throw updateError;
+      if (!updatedOrder) throw new Error('The Razorpay order could not be saved to the payment record.');
     } else {
       const razorpayOrder = await razorpay.orders.fetch(razorpayOrderId);
       if (Number(razorpayOrder.amount) !== amountPaise || razorpayOrder.currency !== 'INR') {

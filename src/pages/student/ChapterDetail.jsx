@@ -134,54 +134,45 @@ export default function ChapterDetail() {
   const fetchChapterPracticeQuestions = async () => {
     if (!supabase || !chapter?.id) return [];
 
-    // 1. Query public.questions where chapter_id = currentChapterId AND status = 'published'
-    const { data: directQuestions, error: directError } = await supabase
-      .from('questions')
-      .select('*')
-      .eq('chapter_id', chapter.id)
-      .eq('status', 'published');
-
-    if (directError) {
-      console.warn('Error fetching direct chapter questions:', directError);
-    }
-
-    // 2. ALSO fetch any published questions linked via test_questions for all published tests belonging to currentChapterId
-    const { data: publishedTests, error: testError } = await supabase
-      .from('tests')
-      .select('id')
-      .eq('chapter_id', chapter.id)
-      .in('status', ['published', 'live', 'available']);
+    const [directResult, testsResult] = await Promise.all([
+      supabase.from('questions')
+        .select('*')
+        .eq('chapter_id', chapter.id)
+        .eq('status', 'published'),
+      supabase.from('tests')
+        .select('id')
+        .eq('chapter_id', chapter.id)
+        .in('status', ['published', 'live', 'available'])
+    ]);
+    if (directResult.error) throw directResult.error;
+    if (testsResult.error) throw testsResult.error;
 
     let testLinkedQuestions = [];
-    if (!testError && publishedTests?.length > 0) {
-      const testIds = publishedTests.map((t) => t.id);
-      const { data: tqRows, error: tqError } = await supabase
+    const testIds = (testsResult.data || []).map((test) => test.id);
+    if (testIds.length) {
+      const { data: links, error: linksError } = await supabase
         .from('test_questions')
         .select('question_id')
         .in('test_id', testIds);
+      if (linksError) throw linksError;
 
-      if (!tqError && tqRows?.length > 0) {
-        const questionIds = Array.from(new Set(tqRows.map((r) => r.question_id).filter(Boolean)));
-        if (questionIds.length > 0) {
-          const { data: testQuestions, error: tqQuestionsError } = await supabase
-            .from('questions')
-            .select('*')
-            .in('id', questionIds)
-            .eq('status', 'published');
-
-          if (!tqQuestionsError && testQuestions) {
-            testLinkedQuestions = testQuestions;
-          }
-        }
+      const questionIds = Array.from(new Set((links || []).map((row) => row.question_id).filter(Boolean)));
+      if (questionIds.length) {
+        const { data, error: questionsError } = await supabase
+          .from('questions')
+          .select('*')
+          .in('id', questionIds)
+          .eq('status', 'published');
+        if (questionsError) throw questionsError;
+        testLinkedQuestions = data || [];
       }
     }
 
-    // 3. Deduplicate them by question.id
     const questionMap = new Map();
-    (directQuestions || []).forEach((q) => {
+    (directResult.data || []).forEach((q) => {
       if (q && q.id) questionMap.set(q.id, q);
     });
-    (testLinkedQuestions || []).forEach((q) => {
+    testLinkedQuestions.forEach((q) => {
       if (q && q.id) questionMap.set(q.id, q);
     });
 
