@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, Archive, ArrowDownToLine, ArrowLeft, Atom, BookMarked, BookOpen, Brain, Calculator, ChevronRight, CircleDollarSign, Clock3, FileText, FlaskConical, Folder, FolderOpen, Globe2, GraduationCap, Landmark, Layers3, Pencil, Plus, ScrollText, Search, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Archive, ArrowDownToLine, ArrowLeft, Atom, BookMarked, BookOpen, Brain, Calculator, Check, ChevronRight, CircleDollarSign, Clock3, Copy, FileText, FlaskConical, Folder, FolderOpen, Globe2, GraduationCap, Landmark, Layers3, Pencil, Plus, ScrollText, Search, Trash2, X } from 'lucide-react';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getContentErrorMessage, getFolderPath, getFolderPricing, slugify } from '../../lib/content';
 import { supabase } from '../../lib/supabase';
@@ -38,6 +38,46 @@ const normalizeAccessMode = (mode) => {
   if (clean === 'free') return 'free';
   return 'inherit';
 };
+
+function CopyIdButton({ id, label = 'UUID' }) {
+  const [copied, setCopied] = useState(false);
+
+  const copy = async (event) => {
+    event.stopPropagation();
+    if (!id) return;
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(id);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = id;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch (err) {
+      console.error('Failed to copy ID:', err);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      className={`copy-id-button ${copied ? 'copied' : ''}`}
+      title={copied ? 'Copied to clipboard!' : `Copy ${label} (${id})`}
+      aria-label={`Copy ${label}`}
+      onClick={copy}
+    >
+      {copied ? <Check size={13} /> : <Copy size={13} />}
+      {copied && <span className="copy-id-badge">Copied!</span>}
+    </button>
+  );
+}
 
 function ResourceManagerModal({ chapter, onClose }) {
   const [resources, setResources] = useState([]);
@@ -475,7 +515,7 @@ export default function ContentManager() {
           return <div key={exam.id} className={`exam-rail-row ${selectedExamId === exam.id ? 'selected' : ''}`}>
             <button className="exam-rail-main" onClick={() => beginExam(exam)}><span className="exam-rail-icon">{examIcon(exam)}</span><span className="exam-rail-copy"><strong>{exam.title}</strong><small>{counts.folders} folders · {counts.chapters} chapters</small></span><ChevronRight size={15} /></button>
             <span className={`content-status status-${String(exam.status || 'draft').toLowerCase()}`}>{exam.status || 'draft'}</span>
-            <div className="row-actions"><button type="button" title="Edit exam" aria-label={`Edit ${exam.title}`} onClick={(event) => { event.stopPropagation(); setDialog({ kind: 'exam', item: exam }); }}><Pencil size={14} /></button><button type="button" title="Delete exam" aria-label={`Delete ${exam.title}`} disabled={deletingExam} onClick={(event) => { event.stopPropagation(); handleDeleteClick(exam); }}><Trash2 size={14} /></button><button type="button" title="Archive exam" aria-label={`Archive ${exam.title}`} disabled={savingArchive === exam.id} onClick={(event) => { event.stopPropagation(); archive('exam', exam); }}><Archive size={14} /></button></div>
+            <div className="row-actions"><CopyIdButton id={exam.id} label="exam_id" /><button type="button" title="Edit exam" aria-label={`Edit ${exam.title}`} onClick={(event) => { event.stopPropagation(); setDialog({ kind: 'exam', item: exam }); }}><Pencil size={14} /></button><button type="button" title="Delete exam" aria-label={`Delete ${exam.title}`} disabled={deletingExam} onClick={(event) => { event.stopPropagation(); handleDeleteClick(exam); }}><Trash2 size={14} /></button><button type="button" title="Archive exam" aria-label={`Archive ${exam.title}`} disabled={savingArchive === exam.id} onClick={(event) => { event.stopPropagation(); archive('exam', exam); }}><Archive size={14} /></button></div>
           </div>;
         })}
         {!loading && !exams.length && <div className="empty-content"><GraduationCap size={24} /><strong>Your catalogue is ready</strong><span>Create your first exam to start building the hierarchy.</span><button className="button button-outline" onClick={() => setDialog({ kind: 'exam', item: null })}><Plus size={14} /> Create exam</button></div>}
@@ -484,7 +524,7 @@ export default function ContentManager() {
         {!selectedExam ? <div className="content-empty-state"><div className="placeholder-icon"><Layers3 size={23} /></div><h2>Select an exam to get started.</h2><p>Browse its main folders, nested subfolders and chapters—or create a new exam.</p><div className="content-overview-stats"><span><GraduationCap size={16} />{exams.length} exams</span><span><Folder size={16} />{folders.length} folders</span><span><BookOpen size={16} />{chapters.length} chapters</span></div></div> : <>
           <div className="workspace-title-row"><div><div className="eyebrow">SELECTED EXAM</div><h2>{examIcon(selectedExam)} {selectedExam.title}</h2><p>{selectedExam.description || 'Add a short exam overview for students.'}</p></div><span className={`content-status status-${String(selectedExam.status || 'draft').toLowerCase()}`}>{selectedExam.status || 'draft'}</span></div>
           <nav className="content-breadcrumbs" aria-label="Content hierarchy"><button onClick={() => setPathIds([])} className={!path.length ? 'current' : ''}>{selectedExam.title}</button>{folderCrumbs.map((folder, index) => <span className="breadcrumb-part" key={folder.id}><ChevronRight size={13} /><button className={index === folderCrumbs.length - 1 ? 'current' : ''} onClick={() => navigateToPath(index)}>{folder.title}</button></span>)}</nav>
-          {currentFolder && <div className="selected-folder-meta"><FolderOpen size={17} /><span>{currentFolder.title}</span><span>{getFolderPricing(currentFolder, folders).label}</span></div>}
+          {currentFolder && <div className="selected-folder-meta"><FolderOpen size={17} /><span>{currentFolder.title}</span><CopyIdButton id={currentFolder.id} label="current folder_id" /><span>{getFolderPricing(currentFolder, folders).label}</span></div>}
           <div className="workspace-toolbar"><div><h3>{currentFolder ? 'Folder contents' : 'Main folders'}</h3><span>{filteredFolders.length} folders · {filteredChapters.length} chapters</span></div><div className="workspace-actions"><label className="content-search"><Search size={14} /><input placeholder="Search here…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>{currentFolder && <button className="button button-outline" onClick={() => setDialog({ kind: 'chapter', item: null })}><Plus size={14} /> Chapter</button>}<button className="button button-outline" onClick={() => setDialog({ kind: 'folder', item: null })}><Plus size={14} /> {currentFolder ? 'Subfolder' : 'Folder'}</button></div></div>
           {loading && <div className="field-hint">Refreshing catalogue…</div>}
           <div className="content-entry-list">
@@ -492,9 +532,9 @@ export default function ContentManager() {
               const count = chapters.filter((chapter) => chapter.folder_id === folder.id).length;
               const subCount = folders.filter((child) => child.parent_folder_id === folder.id).length;
               const pricing = getFolderPricing(folder, folders);
-              return <article className="content-entry" key={folder.id}><button className="content-entry-main" onClick={() => { setPathIds([...pathIds, folder.id]); setSearch(''); }}><span className="content-entry-icon folder-entry-icon"><Folder size={18} /></span><span className="content-entry-copy"><strong>{folder.title}</strong><small>{folder.description || 'No description'} · {subCount} subfolders · {count} chapters</small></span><span className="entry-price">{pricing.label}</span><ChevronRight size={17} /></button><div className="content-entry-actions"><span className={`content-status status-${String(folder.status || 'draft').toLowerCase()}`}>{folder.status || 'draft'}</span><button title="Edit folder" aria-label={`Edit ${folder.title}`} onClick={() => setDialog({ kind: 'folder', item: folder })}><Pencil size={14} /></button><button title="Archive folder" aria-label={`Archive ${folder.title}`} disabled={savingArchive === folder.id} onClick={() => archive('folder', folder)}><Archive size={14} /></button></div></article>;
+              return <article className="content-entry" key={folder.id}><button className="content-entry-main" onClick={() => { setPathIds([...pathIds, folder.id]); setSearch(''); }}><span className="content-entry-icon folder-entry-icon"><Folder size={18} /></span><span className="content-entry-copy"><strong>{folder.title}</strong><small>{folder.description || 'No description'} · {subCount} subfolders · {count} chapters</small></span><span className="entry-price">{pricing.label}</span><ChevronRight size={17} /></button><div className="content-entry-actions"><CopyIdButton id={folder.id} label="folder_id" /><span className={`content-status status-${String(folder.status || 'draft').toLowerCase()}`}>{folder.status || 'draft'}</span><button title="Edit folder" aria-label={`Edit ${folder.title}`} onClick={() => setDialog({ kind: 'folder', item: folder })}><Pencil size={14} /></button><button title="Archive folder" aria-label={`Archive ${folder.title}`} disabled={savingArchive === folder.id} onClick={() => archive('folder', folder)}><Archive size={14} /></button></div></article>;
             })}
-            {filteredChapters.map((chapter) => <article className="content-entry chapter-entry" key={chapter.id}><div className="content-entry-main"><span className="content-entry-icon chapter-entry-icon"><BookOpen size={18} /></span><span className="content-entry-copy"><strong>{chapter.title}</strong><small>{chapter.description || 'No description'}</small></span><span className="entry-price"><Clock3 size={13} /> {chapter.estimated_study_time_minutes || '—'} min</span></div><div className="content-entry-actions"><span className="subject-pill">{chapter.subject || 'No subject'}</span><span className={`content-status status-${String(chapter.status || 'draft').toLowerCase()}`}>{chapter.status || 'draft'}</span><button title="Add / Manage Resources" aria-label={`Manage resources for ${chapter.title}`} onClick={() => setResourceChapter(chapter)}><FileText size={14} /></button><button title="Edit chapter" aria-label={`Edit ${chapter.title}`} onClick={() => setDialog({ kind: 'chapter', item: chapter })}><Pencil size={14} /></button><button title="Archive chapter" aria-label={`Archive ${chapter.title}`} disabled={savingArchive === chapter.id} onClick={() => archive('chapter', chapter)}><Archive size={14} /></button></div></article>)}
+            {filteredChapters.map((chapter) => <article className="content-entry chapter-entry" key={chapter.id}><div className="content-entry-main"><span className="content-entry-icon chapter-entry-icon"><BookOpen size={18} /></span><span className="content-entry-copy"><strong>{chapter.title}</strong><small>{chapter.description || 'No description'}</small></span><span className="entry-price"><Clock3 size={13} /> {chapter.estimated_study_time_minutes || '—'} min</span></div><div className="content-entry-actions"><CopyIdButton id={chapter.id} label="chapter_id" /><span className="subject-pill">{chapter.subject || 'No subject'}</span><span className={`content-status status-${String(chapter.status || 'draft').toLowerCase()}`}>{chapter.status || 'draft'}</span><button title="Add / Manage Resources" aria-label={`Manage resources for ${chapter.title}`} onClick={() => setResourceChapter(chapter)}><FileText size={14} /></button><button title="Edit chapter" aria-label={`Edit ${chapter.title}`} onClick={() => setDialog({ kind: 'chapter', item: chapter })}><Pencil size={14} /></button><button title="Archive chapter" aria-label={`Archive ${chapter.title}`} disabled={savingArchive === chapter.id} onClick={() => archive('chapter', chapter)}><Archive size={14} /></button></div></article>)}
             {!filteredFolders.length && !filteredChapters.length && <div className="empty-content workspace-empty"><Folder size={23} /><strong>{currentFolder ? 'This folder is empty' : 'No main folders yet'}</strong><span>Add a folder or chapter to continue building this exam.</span></div>}
           </div>
           {currentFolder && <button className="back-folder-link" onClick={() => setPathIds(pathIds.slice(0, -1))}><ArrowLeft size={14} /> Back to {pathIds.length > 1 ? path[pathIds.length - 2]?.title : selectedExam.title}</button>}
