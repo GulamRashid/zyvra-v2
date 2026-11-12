@@ -968,7 +968,38 @@ export default function LiveQuiz() {
   const displayedQuestionText = language === 'hi'
     ? (questionHindi || questionEnglish)
     : (questionEnglish || questionHindi);
-  const optionEntries = useMemo(() => getOptionEntries(question?.options), [question]);
+
+  const optionEntries = useMemo(() => {
+    let raw = question?.options;
+    if (typeof raw === 'string') {
+      try {
+        raw = JSON.parse(raw);
+      } catch (_) {}
+    }
+    if (raw != null) {
+      const parsed = getOptionEntries(raw);
+      if (parsed.length > 0) return parsed;
+    }
+    return ['A', 'B', 'C', 'D', 'E']
+      .filter((k) => {
+        const lower = k.toLowerCase();
+        return (
+          question?.[`option_${lower}`] !== undefined ||
+          question?.[`option_${lower}_en`] !== undefined ||
+          question?.[`option_${lower}_hi`] !== undefined
+        );
+      })
+      .map((k) => {
+        const lower = k.toLowerCase();
+        return [
+          k,
+          {
+            en: question?.[`option_${lower}_en`] || question?.[`option_${lower}`] || '',
+            hi: question?.[`option_${lower}_hi`] || question?.[`option_${lower}`] || ''
+          }
+        ];
+      });
+  }, [question]);
 
   const attemptedCount = Object.values(responses || {}).filter((response) => response?.selected_option).length;
   const markedCount = Object.values(responses || {}).filter((response) => response?.marked_for_review).length;
@@ -1511,36 +1542,91 @@ export default function LiveQuiz() {
 
           {/* Options */}
           <div className="quiz-options">
-            {optionEntries.map(([key, value]) => {
-              const text = getQuestionText(value, 'en') || getQuestionText(value?.text, 'en') || (typeof value === 'string' ? value : '');
-              const optionHindi = getStoredHindi(value) || questionTranslations[`option:${key}`];
-              const displayedOption = language === 'hi' ? optionHindi || text : text;
-              const selected = responses[question.id]?.selected_option === key;
-              const isImmediate = test?.solution_mode === 'immediate' && Boolean(responses[question.id]?.selected_option);
-              const isCorrectAnswer = isImmediate && String(question.correct_answer || '').toUpperCase() === key;
-              const isWrongSelected = isImmediate && selected && !isCorrectAnswer;
-
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  className={`quiz-option py-3.5 px-4 min-h-[56px] ${selected ? 'selected' : ''} ${key === 'E' ? 'option-e' : ''} ${isCorrectAnswer ? 'correct-answer' : ''} ${isWrongSelected ? 'wrong-answer' : ''}`}
-                  onClick={() => answer(key)}
-                  aria-pressed={selected}
-                >
-                  <span className="quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-bold rounded-full">{key}</span>
-                  <span className="quiz-option-text text-base sm:text-lg leading-relaxed">
-                    <span lang={language}>
-                      <MathRenderer>{displayedOption}</MathRenderer>
-                      {language === 'hi' && !optionHindi && translatingQuestionId === questionId && (
-                        <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />
-                      )}
-                    </span>
-                  </span>
-                  <span className="quiz-option-check">{selected && <Check size={18} />}</span>
-                </button>
+            {(() => {
+              let raw = question?.options;
+              if (typeof raw === 'string') {
+                try {
+                  raw = JSON.parse(raw);
+                } catch (_) {}
+              }
+              const hasOptions = raw != null && (
+                Array.isArray(raw)
+                  ? raw.length > 0
+                  : typeof raw === 'object'
+                    ? Object.keys(raw).length > 0
+                    : false
               );
-            })}
+              let entries = hasOptions ? getOptionEntries(raw) : [];
+
+              // Keep the old option_a / option_b logic ONLY as a fallback if question.options is null / empty
+              if (!entries || entries.length === 0) {
+                entries = ['A', 'B', 'C', 'D', 'E']
+                  .filter((key) => {
+                    const k = key.toLowerCase();
+                    return question?.[`option_${k}`] !== undefined ||
+                           question?.[`option_${k}_en`] !== undefined ||
+                           question?.[`option_${k}_hi`] !== undefined;
+                  })
+                  .map((key) => {
+                    const k = key.toLowerCase();
+                    return [
+                      key,
+                      {
+                        en: question?.[`option_${k}_en`] || question?.[`option_${k}`] || '',
+                        hi: question?.[`option_${k}_hi`] || question?.[`option_${k}`] || ''
+                      }
+                    ];
+                  });
+              }
+
+              const isEnglish = String(language).toUpperCase() === 'EN';
+              const langKey = isEnglish ? 'en' : 'hi';
+              const fallbackKey = isEnglish ? 'hi' : 'en';
+
+              return entries.map(([key, optVal]) => {
+                let displayedOption = '';
+                if (optVal && typeof optVal === 'object') {
+                  displayedOption = optVal[langKey] ?? optVal[`text_${langKey}`] ?? optVal[fallbackKey] ?? optVal.text ?? '';
+                } else if (typeof optVal === 'string') {
+                  displayedOption = optVal;
+                } else {
+                  const k = key.toLowerCase();
+                  displayedOption = question?.[`option_${k}_${langKey}`] ??
+                                    question?.[`option_${k}`] ??
+                                    question?.[`option_${k}_${fallbackKey}`] ?? '';
+                }
+
+                if (!displayedOption && !isEnglish && questionTranslations[`option:${key}`]) {
+                  displayedOption = questionTranslations[`option:${key}`];
+                }
+
+                const selected = responses[question?.id]?.selected_option === key;
+                const isImmediate = test?.solution_mode === 'immediate' && Boolean(responses[question?.id]?.selected_option);
+                const isCorrectAnswer = isImmediate && String(question?.correct_answer || '').toUpperCase() === key;
+                const isWrongSelected = isImmediate && selected && !isCorrectAnswer;
+
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`quiz-option py-3.5 px-4 min-h-[56px] ${selected ? 'selected' : ''} ${key === 'E' ? 'option-e' : ''} ${isCorrectAnswer ? 'correct-answer' : ''} ${isWrongSelected ? 'wrong-answer' : ''}`}
+                    onClick={() => answer(key)}
+                    aria-pressed={selected}
+                  >
+                    <span className="quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-bold rounded-full">{key}</span>
+                    <span className="quiz-option-text text-base sm:text-lg leading-relaxed">
+                      <span lang={language}>
+                        <MathRenderer>{displayedOption}</MathRenderer>
+                        {!isEnglish && !displayedOption && translatingQuestionId === questionId && (
+                          <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />
+                        )}
+                      </span>
+                    </span>
+                    <span className="quiz-option-check">{selected && <Check size={18} />}</span>
+                  </button>
+                );
+              });
+            })()}
           </div>
 
           {/* Immediate Feedback Card in Practice Mode */}

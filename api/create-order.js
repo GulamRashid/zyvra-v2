@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js';
 import { getPaymentServices, readBody, requireUser, sendJson } from './_payment.js';
 
 export default async function handler(req, res) {
@@ -19,8 +20,20 @@ export default async function handler(req, res) {
       return sendJson(res, 400, { error: 'A valid item and coin redemption amount are required.' });
     }
 
-    const { accessToken, supabase, supabaseAdmin, razorpay, keyId } = getPaymentServices(req);
+    const { accessToken, supabase, razorpay, keyId } = getPaymentServices(req);
     const user = await requireUser(supabase, accessToken);
+    const userId = user?.id || body.userId || body.user_id;
+    if (!userId) {
+      return sendJson(res, 401, { error: 'Unable to authenticate user session.' });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseAdminClient = serviceRoleKey
+      ? createClient(supabaseUrl, serviceRoleKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        })
+      : supabase;
 
     let internalOrderId = null;
     let razorpayOrderId = null;
@@ -50,11 +63,11 @@ export default async function handler(req, res) {
     } catch (rpcError) {
       console.warn('create_checkout_order RPC failed or unavailable, engaging server-side fallback:', rpcError?.message || rpcError);
 
-      // Server-side fallback using supabaseAdmin
+      // Server-side fallback using supabaseAdminClient initialized with SUPABASE_SERVICE_ROLE_KEY
       let basePrice = 0;
       let itemTitle = '';
       if (itemType === 'folder') {
-        const { data: folder, error: fErr } = await supabaseAdmin
+        const { data: folder, error: fErr } = await supabaseAdminClient
           .from('folders')
           .select('id, price, title')
           .eq('id', itemId)
@@ -63,7 +76,7 @@ export default async function handler(req, res) {
         basePrice = Number(folder.price || 0);
         itemTitle = folder.title || '';
       } else if (itemType === 'chapter') {
-        const { data: chapter, error: cErr } = await supabaseAdmin
+        const { data: chapter, error: cErr } = await supabaseAdminClient
           .from('chapters')
           .select('id, price, title')
           .eq('id', itemId)
@@ -72,7 +85,7 @@ export default async function handler(req, res) {
         basePrice = Number(chapter.price || 0);
         itemTitle = chapter.title || '';
       } else if (itemType === 'exam') {
-        const { data: exam, error: eErr } = await supabaseAdmin
+        const { data: exam, error: eErr } = await supabaseAdminClient
           .from('exams')
           .select('id, price, title')
           .eq('id', itemId)
@@ -91,7 +104,7 @@ export default async function handler(req, res) {
       let coinsPerRupee = 10;
       let maxDiscountPct = 20;
       try {
-        const { data: confRow } = await supabaseAdmin
+        const { data: confRow } = await supabaseAdminClient
           .from('platform_settings')
           .select('*')
           .or('setting_key.eq.coin_redemption_config,key.eq.coin_redemption_config')
@@ -105,10 +118,10 @@ export default async function handler(req, res) {
 
       let walletBalance = 0;
       try {
-        const { data: wallet } = await supabaseAdmin
+        const { data: wallet } = await supabaseAdminClient
           .from('coin_wallets')
           .select('balance')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .maybeSingle();
         walletBalance = Math.max(0, Math.floor(Number(wallet?.balance || 0)));
       } catch (_) {}
@@ -119,10 +132,10 @@ export default async function handler(req, res) {
       const payable = Math.max(0, basePrice - discount);
       amountPaise = Math.round(payable * 100);
 
-      const { data: insertedOrder, error: insErr } = await supabaseAdmin
+      const { data: insertedOrder, error: insErr } = await supabaseAdminClient
         .from('payment_orders')
         .insert({
-          user_id: user.id,
+          user_id: userId,
           item_type: itemType,
           item_id: String(itemId),
           item_title: itemTitle || null,
@@ -160,7 +173,7 @@ export default async function handler(req, res) {
         receipt: `ord_${receiptCode}`
       });
       razorpayOrderId = razorpayOrder.id;
-      const { data: updatedOrder, error: updateError } = await supabaseAdmin
+      const { data: updatedOrder, error: updateError } = await supabaseAdminClient
         .from('payment_orders')
         .update({
           razorpay_order_id: razorpayOrderId,
