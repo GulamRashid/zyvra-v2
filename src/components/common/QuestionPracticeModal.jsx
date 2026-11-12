@@ -39,9 +39,96 @@ function parseSerializedValue(value) {
 }
 
 function normalizeDistractorNotes(value) {
-  const parsed = parseSerializedValue(value);
-  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
-  return typeof parsed === 'string' && parsed.trim() ? { General: parsed.trim() } : {};
+  let parsed = parseSerializedValue(value);
+  if (typeof parsed === 'string') {
+    try {
+      parsed = JSON.parse(parsed);
+    } catch {
+      return {};
+    }
+  }
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length > 0) {
+    return parsed;
+  }
+  return {};
+}
+
+function getResolvedOptionEntries(currentQuestion) {
+  if (!currentQuestion) return [];
+
+  let raw = currentQuestion.options;
+  if (typeof raw === 'string') {
+    try {
+      raw = JSON.parse(raw);
+    } catch (_) {}
+  }
+
+  // Handle { en: [...], hi: [...] } parallel arrays
+  if (raw && typeof raw === 'object' && !Array.isArray(raw) && (Array.isArray(raw.en) || Array.isArray(raw.hi))) {
+    const enArr = Array.isArray(raw.en) ? raw.en : [];
+    const hiArr = Array.isArray(raw.hi) ? raw.hi : [];
+    const maxLen = Math.max(enArr.length, hiArr.length);
+    raw = Array.from({ length: maxLen }, (_, i) => ({
+      en: enArr[i] || '',
+      hi: hiArr[i] || ''
+    }));
+  }
+
+  let entries = currentQuestion.options != null ? getOptionEntries(raw) : [];
+
+  // If entries are empty, fallback to flat option_a ... option_e on question
+  if (!entries || entries.length === 0) {
+    entries = ['A', 'B', 'C', 'D', 'E']
+      .filter((key) => {
+        const k = key.toLowerCase();
+        return (
+          currentQuestion[`option_${k}`] !== undefined ||
+          currentQuestion[`option_${k}_en`] !== undefined ||
+          currentQuestion[`option_${k}_hi`] !== undefined
+        );
+      })
+      .map((key) => {
+        const k = key.toLowerCase();
+        return [
+          key,
+          {
+            en: currentQuestion[`option_${k}_en`] || currentQuestion[`option_${k}`] || '',
+            hi: currentQuestion[`option_${k}_hi`] || currentQuestion[`option_${k}`] || ''
+          }
+        ];
+      });
+  }
+
+  return entries;
+}
+
+function resolveOptionText(opt, key, currentQuestion, language = 'en') {
+  const isEn = String(language).toUpperCase() === 'EN';
+  const langKey = isEn ? 'en' : 'hi';
+  const fallbackKey = isEn ? 'hi' : 'en';
+
+  let text = '';
+  if (typeof opt === 'string') {
+    text = opt;
+  } else if (opt && typeof opt === 'object') {
+    // Array of objects or map: [{ id: 'A', text: '...', en: '...', hi: '...', label: '...', value: '...' }]
+    const optDirect = opt[langKey] ?? opt[langKey.toUpperCase()] ?? opt[`text_${langKey}`];
+    const optFallback = opt[fallbackKey] ?? opt[fallbackKey.toUpperCase()] ?? opt[`text_${fallbackKey}`];
+    const optGeneric = opt.text ?? opt.label ?? opt.value;
+    text = isEn
+      ? (optDirect ?? optGeneric ?? optFallback ?? '')
+      : (optDirect ?? optFallback ?? optGeneric ?? '');
+  }
+
+  // Fallback to question flat fields if text is still empty
+  if (!text && currentQuestion) {
+    const k = String(key).toLowerCase();
+    text = isEn
+      ? (currentQuestion[`option_${k}_en`] ?? currentQuestion[`option_${k}`] ?? currentQuestion[`option_${k}_hi`] ?? '')
+      : (currentQuestion[`option_${k}_hi`] ?? currentQuestion[`option_${k}`] ?? currentQuestion[`option_${k}_en`] ?? '');
+  }
+
+  return String(text || '').trim();
 }
 
 export default function QuestionPracticeModal({
@@ -105,7 +192,9 @@ export default function QuestionPracticeModal({
     ? (questionHindi || questionEnglish)
     : (questionEnglish || questionHindi);
 
-  const optionEntries = getOptionEntries(currentQ.options);
+  const optionEntries = useMemo(() => {
+    return getResolvedOptionEntries(currentQ);
+  }, [currentQ]);
   const selectedOption = selectedOptions[currentQId] || null;
   const isAnswered = selectedOption !== null;
   const correctAnswer = String(currentQ.correct_answer || '').trim().toUpperCase();
@@ -238,9 +327,7 @@ export default function QuestionPracticeModal({
             {/* Options */}
             <div className="quiz-options practice-options">
               {optionEntries.map(([key, opt]) => {
-                const optEn = getQuestionText(opt, 'en') || getQuestionText(opt?.text, 'en') || (typeof opt === 'string' ? opt : '');
-                const optHi = getStoredHindi(opt) || (typeof opt?.text_hi === 'string' ? opt.text_hi : '');
-                const optText = language === 'hi' ? (optHi || optEn) : (optEn || optHi);
+                const optText = resolveOptionText(opt, key, currentQ, language);
                 const isSelected = selectedOption === key;
                 const isThisCorrect = correctAnswer === key;
 
@@ -264,7 +351,7 @@ export default function QuestionPracticeModal({
                   >
                     <span className="quiz-option-letter">{key}</span>
                     <span className="quiz-option-text">
-                      <MathRenderer content={optText} />
+                      <MathRenderer>{optText}</MathRenderer>
                     </span>
                     {isAnswered && isThisCorrect && (
                       <span className="quiz-option-check text-green-500">
@@ -285,12 +372,12 @@ export default function QuestionPracticeModal({
                 </div>
                 {displayedExplanation && (
                   <div className="practice-explanation-content">
-                    <MathRenderer content={displayedExplanation} />
+                    <MathRenderer>{displayedExplanation}</MathRenderer>
                   </div>
                 )}
                 {localizedDistractorNotes.length > 0 && (
                   <div className="practice-distractor-notes">
-                    <strong>{language === 'hi' ? 'विकल्प विश्लेषण' : 'Option Analysis'}</strong>
+                    <strong>{language === 'hi' ? 'अतिरिक्त नोट्स' : 'Additional Notes'}:</strong>
                     {localizedDistractorNotes.map(([key, note]) => (
                       <div key={key}><b>Option {key}:</b> {note}</div>
                     ))}

@@ -31,12 +31,13 @@ function renderFormulaParts(text, keyPrefix = 'math') {
   return parts.length ? parts : [text];
 }
 
-export default function MathRenderer({ formula, display = false, children, className = '' }) {
+export default function MathRenderer({ formula, content, display = false, children, className = '' }) {
   if (formula !== undefined) {
     return <MathMarkup formula={formula} display={display} className={`math-text ${className}`.trim()} />;
   }
 
-  const text = typeof children === 'string' || typeof children === 'number' ? String(children) : '';
+  const rawText = children !== undefined ? children : (content !== undefined ? content : '');
+  const text = typeof rawText === 'string' || typeof rawText === 'number' ? String(rawText) : '';
   const parts = text.split(delimiters);
   return <span className={`math-text ${className}`.trim()}>
     {parts.map((part, index) => {

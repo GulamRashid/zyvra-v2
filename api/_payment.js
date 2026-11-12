@@ -34,7 +34,8 @@ export function getPaymentServices(req) {
     global: { headers: { Authorization: `Bearer ${accessToken}` } }
   });
   const supabaseAdmin = createClient(url, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false }
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: serviceRoleKey === anonKey ? { headers: { Authorization: `Bearer ${accessToken}` } } : {}
   });
   const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
   return { accessToken, supabase, supabaseAdmin, razorpay, keyId };

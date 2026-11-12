@@ -99,7 +99,7 @@ export function getQuestionText(value, language = 'en') {
 
 export function sanitizeLiveQuestion(question) {
   const source = question || {};
-  const safeQuestion = {};
+  const safeQuestion = { ...source };
   for (const key of ['id', 'question_id', 'question_text', 'question_text_en', 'question_text_hi', 'question_en', 'question_hi', 'text', 'text_hi', 'subject', 'topic', 'tags', 'passage', 'image_url', 'language', 'explanation', 'explanation_en', 'explanation_hi', 'correct_answer', 'distractor_notes']) {
     if (source[key] !== undefined && source[key] !== null) safeQuestion[key] = source[key];
   }
@@ -150,13 +150,44 @@ export function sanitizeLiveQuestion(question) {
 
   // Options sanitization
   let rawOptions = source.options;
-  if (!rawOptions && ['A', 'B', 'C', 'D', 'E'].some((key) => source[`option_${key.toLowerCase()}`] !== undefined || source[`option_${key.toLowerCase()}_en`] !== undefined)) {
+  if (typeof rawOptions === 'string') {
+    try {
+      rawOptions = JSON.parse(rawOptions);
+    } catch (_) {}
+  }
+
+  // Handle { en: [...], hi: [...] } parallel arrays
+  if (rawOptions && typeof rawOptions === 'object' && !Array.isArray(rawOptions) && (Array.isArray(rawOptions.en) || Array.isArray(rawOptions.hi))) {
+    const enArr = Array.isArray(rawOptions.en) ? rawOptions.en : [];
+    const hiArr = Array.isArray(rawOptions.hi) ? rawOptions.hi : [];
+    const maxLen = Math.max(enArr.length, hiArr.length);
+    rawOptions = Array.from({ length: maxLen }, (_, i) => ({
+      en: enArr[i] || '',
+      hi: hiArr[i] || ''
+    }));
+  }
+
+  // Fallback to option_a ... option_e if rawOptions is null or empty
+  const hasValidRawOptions = rawOptions != null && (
+    Array.isArray(rawOptions) ? rawOptions.length > 0 : (typeof rawOptions === 'object' && Object.keys(rawOptions).length > 0)
+  );
+  if (!hasValidRawOptions && ['A', 'B', 'C', 'D', 'E'].some((key) => {
+    const k = key.toLowerCase();
+    return source[`option_${k}`] !== undefined || source[`option_${k}_en`] !== undefined || source[`option_${k}_hi`] !== undefined;
+  })) {
     rawOptions = ['A', 'B', 'C', 'D', 'E']
-      .filter((key) => source[`option_${key.toLowerCase()}`] !== undefined || source[`option_${key.toLowerCase()}_en`] !== undefined)
-      .map((key) => ({
-        en: source[`option_${key.toLowerCase()}_en`] || source[`option_${key.toLowerCase()}`] || '',
-        hi: source[`option_${key.toLowerCase()}_hi`] || ''
-      }));
+      .filter((key) => {
+        const k = key.toLowerCase();
+        return source[`option_${k}`] !== undefined || source[`option_${k}_en`] !== undefined || source[`option_${k}_hi`] !== undefined;
+      })
+      .map((key) => {
+        const k = key.toLowerCase();
+        return {
+          id: key,
+          en: source[`option_${k}_en`] || source[`option_${k}`] || '',
+          hi: source[`option_${k}_hi`] || source[`option_${k}`] || ''
+        };
+      });
   }
 
   const sanitizeOption = (option) => {
@@ -167,7 +198,7 @@ export function sanitizeLiveQuestion(question) {
       }
       return { en: option, hi: '' };
     }
-    let optEn = String(option.en || option.text || '').trim();
+    let optEn = String(option.en || option.text || option.label || option.value || '').trim();
     let optHi = String(option.hi || option.text_hi || '').trim();
 
     if (hasDevanagari(optEn) && !hasLatin(optEn)) {
@@ -179,7 +210,7 @@ export function sanitizeLiveQuestion(question) {
       optHi = '';
     }
 
-    return { en: optEn, hi: optHi };
+    return typeof option === 'object' ? { ...option, en: optEn, hi: optHi } : { en: optEn, hi: optHi };
   };
 
   if (Array.isArray(rawOptions)) {

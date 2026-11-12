@@ -11,6 +11,7 @@ import useContentAccess from '../../hooks/useContentAccess';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
+import { sanitizeLiveQuestion } from '../../lib/tests';
 
 const tabs = [
   { id: 'tests', label: 'tests', icon: CheckCircle2 },
@@ -165,26 +166,53 @@ export default function ChapterDetail() {
         if (testIds.length > 0) {
           const { data: tqRows, error: tqErr } = await supabase
             .from('test_questions')
-            .select('question_id')
+            .select('*, questions(*)')
             .in('test_id', testIds);
 
           if (tqErr) {
-            console.warn('Error fetching test_questions:', tqErr);
-          } else if (tqRows && tqRows.length > 0) {
-            const questionIds = Array.from(new Set(tqRows.map((r) => r.question_id).filter(Boolean)));
-            if (questionIds.length > 0) {
-              const { data: testQuestions, error: tqQuestionsErr } = await supabase
-                .from('questions')
-                .select('*')
-                .in('id', questionIds)
-                .eq('status', 'published');
+            console.warn('Error fetching test_questions with join, falling back to id lookup:', tqErr);
+            const { data: fallbackTqRows } = await supabase
+              .from('test_questions')
+              .select('*')
+              .in('test_id', testIds);
+            if (fallbackTqRows && fallbackTqRows.length > 0) {
+              const questionIds = Array.from(new Set(fallbackTqRows.map((r) => r.question_id).filter(Boolean)));
+              if (questionIds.length > 0) {
+                const { data: testQuestions, error: tqQuestionsErr } = await supabase
+                  .from('questions')
+                  .select('*')
+                  .in('id', questionIds)
+                  .eq('status', 'published');
 
-              if (tqQuestionsErr) {
-                console.warn('Error fetching test-linked questions:', tqQuestionsErr);
-              } else {
-                testLinkedQuestions = testQuestions || [];
+                if (tqQuestionsErr) {
+                  console.warn('Error fetching test-linked questions:', tqQuestionsErr);
+                } else {
+                  testLinkedQuestions = testQuestions || [];
+                }
               }
             }
+          } else if (tqRows && tqRows.length > 0) {
+            const joinedQuestions = [];
+            const missingQIds = [];
+            tqRows.forEach((r) => {
+              if (r.questions) {
+                const q = Array.isArray(r.questions) ? r.questions[0] : r.questions;
+                if (q && (q.status === 'published' || !q.status)) {
+                  joinedQuestions.push(q);
+                }
+              } else if (r.question_id) {
+                missingQIds.push(r.question_id);
+              }
+            });
+            if (missingQIds.length > 0) {
+              const { data: extraQs } = await supabase
+                .from('questions')
+                .select('*')
+                .in('id', Array.from(new Set(missingQIds)))
+                .eq('status', 'published');
+              if (extraQs) joinedQuestions.push(...extraQs);
+            }
+            testLinkedQuestions = joinedQuestions;
           }
         }
       }
@@ -202,7 +230,7 @@ export default function ChapterDetail() {
 
     const combined = Array.from(questionMap.values());
     combined.sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
-    return combined;
+    return combined.map(sanitizeLiveQuestion);
   };
 
   useEffect(() => {
