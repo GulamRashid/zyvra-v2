@@ -100,10 +100,13 @@ export default function TestManager() {
   const [selectedTestId, setSelectedTestId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [query, setQuery] = useState('');
   const [questionSearch, setQuestionSearch] = useState('');
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
   const [editor, setEditor] = useState(null);
+  const [testToDelete, setTestToDelete] = useState(null);
+  const [deletingTest, setDeletingTest] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
 
   const refresh = async () => {
@@ -203,14 +206,94 @@ export default function TestManager() {
       await loadTestQuestions(selectedTest.id);
     } catch (removeError) { setError(getContentErrorMessage(removeError, 'Unable to remove question.')); }
   };
+
+  const executeDeleteTest = async (test) => {
+    if (!test || !supabase) return;
+    setDeletingTest(true);
+    setError('');
+    try {
+      // 1. Delete dependent records cleanly
+      await supabase.from('test_questions').delete().eq('test_id', test.id);
+      await supabase.from('test_attempts').delete().eq('test_id', test.id);
+
+      // 2. Delete test from tests table and verify rows deleted
+      const { data, error: deleteError } = await supabase
+        .from('tests')
+        .delete()
+        .eq('id', test.id)
+        .select();
+
+      if (deleteError) throw deleteError;
+      if (!data || data.length === 0) {
+        throw new Error('Test could not be deleted. Check admin permissions (RLS policy).');
+      }
+
+      // 3. Immediately update state
+      setTests((current) => current.filter((item) => item.id !== test.id));
+      if (selectedTestId === test.id) {
+        setSelectedTestId('');
+        setTestQuestions([]);
+      }
+      setTestToDelete(null);
+      setSuccessMessage(`“${test.title}” was permanently deleted.`);
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (err) {
+      setError(getContentErrorMessage(err, 'Unable to delete this test.'));
+    } finally {
+      setDeletingTest(false);
+    }
+  };
+
   const filteredTests = tests.filter((test) => !query.trim() || `${test.title} ${test.pattern} ${chapterTitle(test.chapter_id)}`.toLowerCase().includes(query.trim().toLowerCase()));
   return <div className="test-manager-page">
     <div className="page-heading"><div><div className="eyebrow">ADMINISTRATION / ASSESSMENT DESIGN</div><h1>Test manager</h1><p>Configure BPSC patterns, scoring rules and question order.</p></div><button className="button button-gold" onClick={() => setEditor({ test: null })}><Plus size={15} /> Create test</button></div>
-    {error && <div className="feedback error-feedback">{error}</div>}
+    {error && <div className="feedback error-feedback" role="alert">{error}</div>}
+    {successMessage && <div className="feedback success-feedback" role="status">{successMessage}</div>}
     <div className="test-manager-layout">
-      <aside className="test-list-panel panel-card"><div className="section-heading"><div><div className="eyebrow">ASSESSMENTS</div><h2>All tests</h2></div><span className="chapter-item-count">{filteredTests.length}</span></div><label className="content-search"><Search size={14} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a test…" /></label>{loading ? <LoadingSkeleton rows={3} /> : filteredTests.map((test) => <button key={test.id} className={`test-list-item ${selectedTestId === test.id ? 'selected' : ''}`} onClick={() => selectTest(test.id)}><span className="test-list-icon"><ClipboardList size={17} /></span><span><strong>{test.title}</strong><small>{chapterTitle(test.chapter_id)} · {test.duration_minutes} min</small></span><span className={`content-status status-${test.status || 'draft'}`}>{test.status || 'draft'}</span></button>)}</aside>
+      <aside className="test-list-panel panel-card">
+        <div className="section-heading"><div><div className="eyebrow">ASSESSMENTS</div><h2>All tests</h2></div><span className="chapter-item-count">{filteredTests.length}</span></div>
+        <label className="content-search"><Search size={14} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a test…" /></label>
+        {loading ? <LoadingSkeleton rows={3} /> : filteredTests.map((test) => (
+          <div key={test.id} className={`test-list-item-row ${selectedTestId === test.id ? 'selected' : ''}`}>
+            <button
+              type="button"
+              className={`test-list-item ${selectedTestId === test.id ? 'selected' : ''}`}
+              onClick={() => selectTest(test.id)}
+            >
+              <span className="test-list-icon"><ClipboardList size={17} /></span>
+              <span><strong>{test.title}</strong><small>{chapterTitle(test.chapter_id)} · {test.duration_minutes} min</small></span>
+              <span className={`content-status status-${test.status || 'draft'}`}>{test.status || 'draft'}</span>
+            </button>
+            <button
+              type="button"
+              className="icon-button test-delete-btn"
+              title={`Delete ${test.title}`}
+              aria-label={`Delete ${test.title}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                setTestToDelete(test);
+              }}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
+        ))}
+      </aside>
       <section className="test-builder-panel panel-card">{!selectedTest ? <div className="content-empty-state"><div className="placeholder-icon"><ClipboardList size={23} /></div><h2>Create a test or select one.</h2><p>Then add eligible published questions and arrange them in the order students will see.</p></div> : <>
-        <div className="workspace-title-row"><div><div className="eyebrow">TEST BUILDER</div><h2>{selectedTest.title}</h2><p>{chapterTitle(selectedTest.chapter_id)} · {testPattern.label}</p></div><button className="button button-outline" onClick={() => setEditor({ test: selectedTest })}>Edit settings</button></div>
+        <div className="workspace-title-row">
+          <div><div className="eyebrow">TEST BUILDER</div><h2>{selectedTest.title}</h2><p>{chapterTitle(selectedTest.chapter_id)} · {testPattern.label}</p></div>
+          <div className="test-builder-actions">
+            <button type="button" className="button button-outline" onClick={() => setEditor({ test: selectedTest })}>Edit settings</button>
+            <button
+              type="button"
+              className="button button-danger-outline"
+              onClick={() => setTestToDelete(selectedTest)}
+              title="Delete this test permanently"
+            >
+              <Trash2 size={14} /> Delete test
+            </button>
+          </div>
+        </div>
         <div className="test-config-chips"><span><Clock3 size={14} /> {selectedTest.duration_minutes} min</span><span><FileQuestion size={14} /> {orderedQuestions.length} questions</span><span>+{selectedTest.positive_marks} / −{selectedTest.negative_marks}</span><span><Coins size={14} /> {selectedTest.coin_reward_enabled ? 'Rewards enabled' : 'No rewards'}</span></div>
         <section className="test-order-section"><div className="section-heading"><div><div className="eyebrow">QUESTION SEQUENCE</div><h2>Test questions</h2></div><span className="chapter-item-count">Drag-free ordering controls</span></div>{!orderedQuestions.length && <div className="empty-content test-empty"><FileQuestion size={22} /><strong>No questions added yet.</strong><span>Use the question bank below to build this test.</span></div>}{orderedQuestions.map(({ id, question }, index) => <div className="test-order-row" key={id}><span className="order-number">{String(index + 1).padStart(2, '0')}</span><div><strong>{question.question_text?.en || question.question_text}</strong><span>{question.subject} · {getOptionEntries(question.options).length} options</span></div><div className="order-controls"><button title="Move up" aria-label="Move question up" disabled={!index || savingOrder} onClick={() => moveQuestion(index, -1)}><ArrowUp size={15} /></button><button title="Move down" aria-label="Move question down" disabled={index === orderedQuestions.length - 1 || savingOrder} onClick={() => moveQuestion(index, 1)}><ArrowDown size={15} /></button><button title="Remove question" aria-label="Remove question" onClick={() => removeQuestion(testQuestions[index])}><Trash2 size={15} /></button></div></div>)}</section>
         <section className="test-question-picker"><div className="section-heading"><div><div className="eyebrow">COMPATIBLE QUESTIONS</div><h2>Question bank</h2></div><span className="chapter-item-count">{testPattern.optionCount}-option · Published</span></div><div className="test-question-picker-toolbar"><label className="content-search"><Search size={14} /><input value={questionSearch} onChange={(event) => setQuestionSearch(event.target.value)} placeholder="Search this chapter’s questions…" /></label><button type="button" className="button button-outline" disabled={!unlinkedQuestions.length} onClick={toggleSelectAll} title={allSelected ? 'Deselect all filtered questions' : 'Select all filtered questions'}>{allSelected ? <CheckSquare size={14} /> : <Square size={14} />} {allSelected ? 'Deselect all' : unlinkedQuestions.length ? `Select all (${unlinkedQuestions.length})` : 'Select all'}</button></div><div className="compatible-list">{unlinkedQuestions.map((question) => <label className="compatible-question" key={question.id}><input type="checkbox" checked={selectedQuestionIds.includes(question.id)} onChange={(event) => setSelectedQuestionIds((current) => event.target.checked ? [...current, question.id] : current.filter((id) => id !== question.id))} /><span><strong>{question.question_text?.en || question.question_text}</strong><small>{question.subject} · {question.difficulty}</small></span></label>)}</div>{!unlinkedQuestions.length && <p className="field-hint">No additional published {testPattern.optionCount}-option questions are mapped to this chapter.</p>}<button className="button button-gold" disabled={!selectedQuestionIds.length} onClick={addSelected}><Plus size={14} /> Add {selectedQuestionIds.length || ''} selected question{selectedQuestionIds.length === 1 ? '' : 's'}</button></section>
@@ -223,5 +306,36 @@ export default function TestManager() {
       onClose={() => setEditor(null)}
       onSaved={saveTest}
     />}
+    {testToDelete && (
+      <div className="modal-backdrop" role="presentation">
+        <div className="content-dialog confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-delete-test-title">
+          <div className="eyebrow text-danger">DANGER ZONE</div>
+          <h2 id="confirm-delete-test-title">Permanently delete test?</h2>
+          <p className="dialog-intro">
+            Are you sure you want to delete <strong>“{testToDelete.title}”</strong>?
+            This action cannot be undone. All linked questions, question order, and student attempts associated with this test will be permanently removed.
+          </p>
+          {error && <div className="feedback error-feedback" role="alert">{error}</div>}
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="button button-outline"
+              disabled={deletingTest}
+              onClick={() => { setTestToDelete(null); setError(''); }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="button button-danger"
+              disabled={deletingTest}
+              onClick={() => executeDeleteTest(testToDelete)}
+            >
+              {deletingTest ? 'Deleting…' : 'Delete test permanently'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   </div>;
 }

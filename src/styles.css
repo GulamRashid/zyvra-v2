@@ -1762,6 +1762,18 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 .test-list-panel, .test-builder-panel { min-width: 0; padding: 15px; }
 .test-list-panel .section-heading h2, .test-order-section .section-heading h2, .test-question-picker .section-heading h2 { font-size: 14px; }
 .test-list-panel > .content-search { margin: 12px 0; }
+.test-list-item-row { display: flex; align-items: center; position: relative; margin: 4px 0; border: 1px solid transparent; border-radius: 9px; transition: background .15s ease, border-color .15s ease; }
+.test-list-item-row:hover, .test-list-item-row.selected { border-color: var(--line); background: var(--panel2); }
+.test-list-item-row .test-list-item { margin: 0; border: none; background: transparent; flex: 1; min-width: 0; }
+.test-list-item-row .test-list-item:hover, .test-list-item-row .test-list-item.selected { border-color: transparent; background: transparent; }
+.test-list-item-row .test-delete-btn { opacity: 0.6; margin-right: 6px; flex-shrink: 0; color: var(--muted); }
+.test-list-item-row:hover .test-delete-btn { opacity: 1; }
+.test-list-item-row .test-delete-btn:hover { color: #ef4444; background: rgba(239, 68, 68, .12); }
+.test-builder-actions { display: flex; align-items: center; gap: 8px; }
+.button-danger-outline { display: inline-flex; align-items: center; gap: 6px; border: 1px solid rgba(239, 68, 68, .4); background: transparent; color: #ef4444; border-radius: 9px; font-weight: 600; font-size: 13px; padding: 8px 14px; cursor: pointer; transition: all .15s ease; }
+.button-danger-outline:hover { background: rgba(239, 68, 68, .12); border-color: #ef4444; }
+.button-danger { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #ef4444; background: #ef4444; color: #fff; border-radius: 9px; font-weight: 600; font-size: 13px; padding: 8px 16px; cursor: pointer; transition: all .15s ease; }
+.button-danger:hover { background: #dc2626; }
 .test-list-item { display: flex; width: 100%; align-items: center; gap: 8px; margin: 4px 0; padding: 8px 6px; border: 1px solid transparent; border-radius: 9px; background: transparent; text-align: left; cursor: pointer; }
 .test-list-item:hover, .test-list-item.selected { border-color: var(--line); background: var(--panel2); }
 .test-list-icon { display: grid; width: 31px; height: 31px; flex: 0 0 auto; place-items: center; border-radius: 8px; background: rgba(228, 184, 95, .09); color: var(--gold); }
@@ -1987,7 +1999,7 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
 @media (max-width: 900px) {
   .test-manager-layout { grid-template-columns: 1fr; }
   .test-list-panel { max-height: 310px; overflow-y: auto; }
-  .test-list-item { display: inline-flex; width: calc(50% - 5px); vertical-align: top; }
+  .test-list-item-row, .test-list-item { display: inline-flex; width: calc(50% - 5px); vertical-align: top; }
 }
 @media (max-width: 760px) {
   .qbank-toolbar { flex-wrap: wrap; }
@@ -2050,7 +2062,7 @@ body.light .exam-hero, body.light .folder-hero, body.light .chapter-hero { borde
   .pricing-settings-card, .payment-orders-card, .coupon-manager-card { padding: 13px; }
 }
 @media (max-width: 560px) {
-  .test-list-item { width: 100%; }
+  .test-list-item-row, .test-list-item { width: 100%; }
   .test-config-grid, .qbank-form-grid { grid-template-columns: 1fr; }
   .qbank-option-fields { grid-template-columns: 1fr; }
   .distractor-grid { grid-template-columns: 1fr; }
