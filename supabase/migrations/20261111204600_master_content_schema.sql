@@ -212,23 +212,23 @@ ALTER TABLE public.test_questions
 
 DO $$
 DECLARE
-  table_name TEXT;
-  id_type TEXT;
+  v_table_name TEXT;
+  v_id_type TEXT;
 BEGIN
-  FOREACH table_name IN ARRAY ARRAY['exams', 'folders', 'chapters', 'chapter_resources', 'questions', 'tests', 'test_questions']
+  FOREACH v_table_name IN ARRAY ARRAY['exams', 'folders', 'chapters', 'chapter_resources', 'questions', 'tests', 'test_questions']
   LOOP
-    SELECT c.udt_name INTO id_type
+    SELECT c.udt_name INTO v_id_type
     FROM information_schema.columns c
     WHERE c.table_schema = 'public'
-      AND c.table_name = table_name
+      AND c.table_name = v_table_name
       AND c.column_name = 'id';
-    IF id_type IS DISTINCT FROM 'uuid' THEN
-      RAISE EXCEPTION 'public.% must use a UUID id column before applying the Zyvra content schema migration (found %).', table_name, COALESCE(id_type, 'missing');
+    IF v_id_type IS DISTINCT FROM 'uuid' THEN
+      RAISE EXCEPTION 'public.% must use a UUID id column before applying the Zyvra content schema migration (found %).', v_table_name, COALESCE(v_id_type, 'missing');
     END IF;
-    EXECUTE format('UPDATE public.%I SET id = gen_random_uuid() WHERE id IS NULL', table_name);
+    EXECUTE format('UPDATE public.%I SET id = gen_random_uuid() WHERE id IS NULL', v_table_name);
     EXECUTE format(
       'ALTER TABLE public.%I ALTER COLUMN id SET DEFAULT gen_random_uuid(), ALTER COLUMN id SET NOT NULL, ALTER COLUMN created_at SET DEFAULT now(), ALTER COLUMN updated_at SET DEFAULT now()',
-      table_name
+      v_table_name
     );
   END LOOP;
 END
@@ -236,17 +236,17 @@ $$;
 
 DO $$
 DECLARE
-  table_name TEXT;
+  v_table_name TEXT;
 BEGIN
-  FOREACH table_name IN ARRAY ARRAY['exams', 'folders', 'chapters', 'chapter_resources', 'questions', 'tests', 'test_questions']
+  FOREACH v_table_name IN ARRAY ARRAY['exams', 'folders', 'chapters', 'chapter_resources', 'questions', 'tests', 'test_questions']
   LOOP
     IF NOT EXISTS (
       SELECT 1
       FROM pg_constraint
-      WHERE conrelid = format('public.%I', table_name)::regclass
+      WHERE conrelid = format('public.%I', v_table_name)::regclass
         AND contype = 'p'
     ) THEN
-      EXECUTE format('ALTER TABLE public.%I ADD CONSTRAINT %I PRIMARY KEY (id)', table_name, table_name || '_pkey');
+      EXECUTE format('ALTER TABLE public.%I ADD CONSTRAINT %I PRIMARY KEY (id)', v_table_name, v_table_name || '_pkey');
     END IF;
   END LOOP;
 END
@@ -355,15 +355,15 @@ $$;
 
 DO $$
 DECLARE
-  table_name TEXT;
+  v_table_name TEXT;
 BEGIN
-  FOREACH table_name IN ARRAY ARRAY['exams', 'folders', 'chapters', 'chapter_resources', 'questions', 'tests', 'test_questions']
+  FOREACH v_table_name IN ARRAY ARRAY['exams', 'folders', 'chapters', 'chapter_resources', 'questions', 'tests', 'test_questions']
   LOOP
-    EXECUTE format('DROP TRIGGER IF EXISTS %I ON public.%I', table_name || '_set_updated_at', table_name);
+    EXECUTE format('DROP TRIGGER IF EXISTS %I ON public.%I', v_table_name || '_set_updated_at', v_table_name);
     EXECUTE format(
       'CREATE TRIGGER %I BEFORE UPDATE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.set_content_updated_at()',
-      table_name || '_set_updated_at',
-      table_name
+      v_table_name || '_set_updated_at',
+      v_table_name
     );
   END LOOP;
 END
@@ -468,7 +468,7 @@ CREATE POLICY "Admins manage tests"
 DROP POLICY IF EXISTS "Questions in published tests are readable" ON public.test_questions;
 CREATE POLICY "Questions in published tests are readable"
   ON public.test_questions FOR SELECT TO anon, authenticated
-  USING (EXISTS (SELECT 1 FROM public.tests t WHERE t.id = test_id AND t.status IN ('published', 'live', 'available')));
+  USING (EXISTS (SELECT 1 FROM public.tests t WHERE t.id = test_questions.test_id AND t.status IN ('published', 'live', 'available')));
 DROP POLICY IF EXISTS "Admins manage test questions" ON public.test_questions;
 CREATE POLICY "Admins manage test questions"
   ON public.test_questions FOR ALL TO authenticated
