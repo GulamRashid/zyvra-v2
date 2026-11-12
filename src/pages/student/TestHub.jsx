@@ -168,7 +168,7 @@ export default function TestHub() {
       const questionCount = questionCounts[test.id] || 0;
       const attempts = attemptsByTestId.get(test.id) || [];
       const completedAttempts = attempts.filter(isComplete);
-      const incompleteAttempt = attempts.find((a) => !isComplete(a) && ['started', 'in_progress', 'pending'].includes(String(a.status || '').toLowerCase()));
+      const incompleteAttempt = attempts.find((a) => !isComplete(a) && ['started', 'in_progress', 'pending', 'paused'].includes(String(a.status || '').toLowerCase()));
       const limit = Number(test.attempt_limit || 1);
       const exhausted = user && completedAttempts.length >= limit;
 

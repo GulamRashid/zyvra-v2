@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDownToLine, ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, BookOpen, CheckCircle2, ChevronRight, Clock3, FileText, LockKeyhole, Play, Sparkles } from 'lucide-react';
+import { ArrowDownToLine, ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, BookOpen, CheckCircle2, ChevronRight, Clock3, FileText, LoaderCircle, LockKeyhole, Play, Sparkles } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getChapterAccess, getFolderPath, getFolderPricing, isFolderUnlocked, isPublished } from '../../lib/content';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import PdfReaderModal from '../../components/common/PdfReaderModal';
 import CheckoutModal from '../../components/common/CheckoutModal';
+import QuestionPracticeModal from '../../components/common/QuestionPracticeModal';
 import useContentAccess from '../../hooks/useContentAccess';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
@@ -27,8 +28,13 @@ export default function ChapterDetail() {
   const [notice, setNotice] = useState('');
   const [chapterTests, setChapterTests] = useState([]);
   const [testAttempts, setTestAttempts] = useState({});
+  const [resumeAttempts, setResumeAttempts] = useState({});
   const [testsLoading, setTestsLoading] = useState(true);
   const [testsError, setTestsError] = useState('');
+  const [practiceQuestions, setPracticeQuestions] = useState([]);
+  const [practiceQuestionsCount, setPracticeQuestionsCount] = useState(0);
+  const [practiceLoading, setPracticeLoading] = useState(false);
+  const [practiceActive, setPracticeActive] = useState(false);
   const [resources, setResources] = useState([]);
   const [resourcesLoading, setResourcesLoading] = useState(true);
   const [resourcesError, setResourcesError] = useState('');
@@ -125,6 +131,104 @@ export default function ChapterDetail() {
     return () => { active = false; };
   }, [chapter?.id, hasNotes, isComingSoon, user]);
 
+  const fetchChapterPracticeQuestions = async () => {
+    if (!supabase || !chapter?.id) return [];
+
+    // 1. Query public.questions where chapter_id = currentChapterId AND status = 'published'
+    const { data: directQuestions, error: directError } = await supabase
+      .from('questions')
+      .select('*')
+      .eq('chapter_id', chapter.id)
+      .eq('status', 'published');
+
+    if (directError) {
+      console.warn('Error fetching direct chapter questions:', directError);
+    }
+
+    // 2. ALSO fetch any published questions linked via test_questions for all published tests belonging to currentChapterId
+    const { data: publishedTests, error: testError } = await supabase
+      .from('tests')
+      .select('id')
+      .eq('chapter_id', chapter.id)
+      .in('status', ['published', 'live', 'available']);
+
+    let testLinkedQuestions = [];
+    if (!testError && publishedTests?.length > 0) {
+      const testIds = publishedTests.map((t) => t.id);
+      const { data: tqRows, error: tqError } = await supabase
+        .from('test_questions')
+        .select('question_id')
+        .in('test_id', testIds);
+
+      if (!tqError && tqRows?.length > 0) {
+        const questionIds = Array.from(new Set(tqRows.map((r) => r.question_id).filter(Boolean)));
+        if (questionIds.length > 0) {
+          const { data: testQuestions, error: tqQuestionsError } = await supabase
+            .from('questions')
+            .select('*')
+            .in('id', questionIds)
+            .eq('status', 'published');
+
+          if (!tqQuestionsError && testQuestions) {
+            testLinkedQuestions = testQuestions;
+          }
+        }
+      }
+    }
+
+    // 3. Deduplicate them by question.id
+    const questionMap = new Map();
+    (directQuestions || []).forEach((q) => {
+      if (q && q.id) questionMap.set(q.id, q);
+    });
+    (testLinkedQuestions || []).forEach((q) => {
+      if (q && q.id) questionMap.set(q.id, q);
+    });
+
+    return Array.from(questionMap.values());
+  };
+
+  useEffect(() => {
+    let active = true;
+    if (!supabase || !chapter?.id || !hasPractice || isComingSoon) return;
+    fetchChapterPracticeQuestions()
+      .then((qs) => {
+        if (active) {
+          setPracticeQuestionsCount(qs.length);
+          setPracticeQuestions(qs);
+        }
+      })
+      .catch((e) => console.warn('Practice questions prefetch note:', e));
+    return () => { active = false; };
+  }, [chapter?.id, hasPractice, isComingSoon]);
+
+  const handleStartPractice = async () => {
+    if (isLocked) {
+      setNotice(language === 'hi' ? 'अभ्यास अनलॉक करने के लिए कृपया अध्याय खरीदें।' : 'Please unlock this chapter to start question practice.');
+      return;
+    }
+    setPracticeLoading(true);
+    setNotice('');
+    try {
+      let qs = practiceQuestions;
+      if (!qs || qs.length === 0) {
+        qs = await fetchChapterPracticeQuestions();
+        setPracticeQuestions(qs);
+        setPracticeQuestionsCount(qs.length);
+      }
+      if (!qs || qs.length === 0) {
+        setNotice(t('chapterPracticePending'));
+        return;
+      }
+      setPracticeActive(true);
+    } catch (err) {
+      console.error('Error starting practice:', err);
+      setNotice('Unable to load practice questions at this moment.');
+    } finally {
+      setPracticeLoading(false);
+    }
+  };
+
   const toggleBookmark = async (resource = null) => {
     if (!user || !supabase) {
       setResourceNotice(t('signInToBookmark'));
@@ -205,13 +309,48 @@ export default function ChapterDetail() {
       const availableTests = data || [];
       setChapterTests(availableTests);
       if (user && availableTests.length) {
-        const attempts = await Promise.all(availableTests.map(async (test) => {
-          const { count, error: countError } = await supabase.from('test_attempts').select('id', { count: 'exact', head: true })
-            .eq('test_id', test.id).eq('user_id', user.id);
-          if (countError) throw countError;
-          return [test.id, count || 0];
-        }));
-        if (active) setTestAttempts(Object.fromEntries(attempts));
+        const testIds = availableTests.map((test) => test.id);
+        const [counts, pausedAttemptsResult] = await Promise.all([
+          Promise.all(availableTests.map(async (test) => {
+            const { count, error: countError } = await supabase.from('test_attempts').select('id', { count: 'exact', head: true })
+              .eq('test_id', test.id).eq('user_id', user.id);
+            if (countError) throw countError;
+            return [test.id, count || 0];
+          })),
+          supabase.from('test_attempts')
+            .select('id, test_id, status, remaining_seconds, current_question_index, state_json, updated_at')
+            .eq('user_id', user.id)
+            .in('test_id', testIds)
+            .in('status', ['paused', 'in_progress'])
+            .is('completed_at', null)
+            .order('updated_at', { ascending: false })
+        ]);
+        if (active) setTestAttempts(Object.fromEntries(counts));
+
+        const pausedRows = pausedAttemptsResult?.data || [];
+        const resumeMap = {};
+        availableTests.forEach((test) => {
+          const dbAttempt = pausedRows.find((a) => a.test_id === test.id);
+          let localSnapshot = null;
+          try {
+            const raw = localStorage.getItem(`zyvra_test_progress_${user.id}_${test.id}`)
+              || localStorage.getItem(`zyvra-paused-attempt-${user.id}-${test.id}`);
+            if (raw) localSnapshot = JSON.parse(raw);
+          } catch (_) {}
+
+          if (dbAttempt || localSnapshot) {
+            const remSecs = localSnapshot?.remainingSeconds ?? dbAttempt?.remaining_seconds ?? (Number(test.duration_minutes || 60) * 60);
+            const rawAns = localSnapshot?.answers || localSnapshot?.responses || dbAttempt?.state_json?.responses || dbAttempt?.state_json?.answers || {};
+            const answeredCount = Object.values(rawAns).filter((a) => (typeof a === 'object' ? a?.selected_option : a)).length;
+            resumeMap[test.id] = {
+              attemptId: dbAttempt?.id || localSnapshot?.attemptId,
+              remainingSeconds: remSecs,
+              answeredCount,
+              currentIndex: localSnapshot?.currentIndex ?? dbAttempt?.current_question_index ?? 0
+            };
+          }
+        });
+        if (active) setResumeAttempts(resumeMap);
       }
       if (active) setTestsLoading(false);
     };
@@ -240,10 +379,18 @@ export default function ChapterDetail() {
         {activeTab === 'tests' && <section className="chapter-tab-panel"><div className="section-heading"><div><div className="eyebrow">{t('checkUnderstanding')}</div><h2>{t('chapterTests')}</h2></div><span className="chapter-item-count">{chapterTests.length} {t('available')}</span></div>{!hasTests ? <div className="empty-content chapter-tab-empty"><CheckCircle2 size={23} /><strong>{t('testsUnavailable')}</strong><span>{t('chooseAnotherTab')}</span></div> : isLocked ? <div className="empty-content chapter-tab-empty"><LockKeyhole size={23} /><strong>{t('unlockLiveTests')}</strong><span>{t('freePreviewsNotes')}</span></div> : testsLoading ? <p className="field-hint">{t('loadingTests')}</p> : testsError ? <div className="feedback error-feedback">{testsError}</div> : !chapterTests.length ? <div className="empty-content chapter-tab-empty"><CheckCircle2 size={23} /><strong>{t('noPublishedTests')}</strong><span>{t('checkBackPractice')}</span></div> : chapterTests.map((test) => {
           const attempts = testAttempts[test.id] || 0;
           const limit = Number(test.attempt_limit || 1);
-          const exhausted = user && attempts >= limit;
-          return <div className="learning-activity chapter-test-item" key={test.id}><span className="activity-type-icon"><CheckCircle2 size={18} /></span><div><strong>{test.title}</strong><span>{test.duration_minutes} {language === 'hi' ? 'मिनट' : 'min'} · {attempts}/{limit} {t('attemptsUsed')}</span></div><span className="activity-tag">{test.pattern === 'bpsc-classic-5' || test.pattern === 'bpsc-mandatory-e' ? 'BPSC' : 'TEST'}</span><Link className={`button ${exhausted ? 'button-outline' : 'button-gold'} chapter-test-start`} aria-disabled={Boolean(exhausted) || !user} onClick={(event) => { if (exhausted || !user) { event.preventDefault(); setNotice(exhausted ? t('limitReached') : t('signInToStartTest')); return; } sessionStorage.setItem('last_quiz_return_url', location.pathname); }} to={exhausted || !user ? '#' : `/quiz/${test.id}`} state={{ returnTo: location.pathname }}>{exhausted ? t('limitReached') : t('startTest')} <Play size={13} /></Link></div>;
+          const pausedInfo = resumeAttempts[test.id];
+          const hasIncomplete = Boolean(pausedInfo);
+          const exhausted = user && !hasIncomplete && attempts >= limit;
+          const formatRemainingTime = (seconds) => {
+            const safe = Math.max(0, Number(seconds) || 0);
+            const m = Math.floor(safe / 60);
+            const s = safe % 60;
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+          };
+          return <div className="learning-activity chapter-test-item" key={test.id}><span className="activity-type-icon"><CheckCircle2 size={18} /></span><div><strong>{test.title}</strong><span>{test.duration_minutes} {language === 'hi' ? 'मिनट' : 'min'}{hasIncomplete ? ` · ${pausedInfo.answeredCount} ${language === 'hi' ? 'उत्तर दिए गए' : 'answered'}` : ''} · {attempts}/{limit} {t('attemptsUsed')}</span></div><span className="activity-tag">{hasIncomplete ? (language === 'hi' ? 'जारी रखें' : 'RESUME') : test.pattern === 'bpsc-classic-5' || test.pattern === 'bpsc-mandatory-e' ? 'BPSC' : 'TEST'}</span><Link className={`button ${exhausted ? 'button-outline' : 'button-gold'} chapter-test-start`} aria-disabled={Boolean(exhausted) || !user} onClick={(event) => { if (exhausted || !user) { event.preventDefault(); setNotice(exhausted ? t('limitReached') : t('signInToStartTest')); return; } sessionStorage.setItem('last_quiz_return_url', location.pathname); }} to={exhausted || !user ? '#' : `/quiz/${test.id}`} state={{ returnTo: location.pathname, autoResume: hasIncomplete }}>{hasIncomplete ? `${language === 'hi' ? 'टेस्ट जारी रखें' : 'Resume Test'} · ${formatRemainingTime(pausedInfo.remainingSeconds)} ${language === 'hi' ? 'बचे' : 'left'}` : exhausted ? t('limitReached') : t('startTest')} <Play size={13} /></Link></div>;
         })}</section>}
-        {activeTab === 'practice' && <section className="chapter-tab-panel practice-set-panel"><div className="section-heading"><div><div className="eyebrow">{t('learnByDoing')}</div><h2>{t('questionPractice')}</h2></div><span className="chapter-item-count">{t('topicPractice')}</span></div>{!hasPractice ? <div className="empty-content chapter-tab-empty"><BookOpen size={23} /><strong>{t('practiceUnavailable')}</strong><span>{t('chooseAnotherTab')}</span></div> : isLocked ? <div className="empty-content chapter-tab-empty"><LockKeyhole size={23} /><strong>{t('unlockPractice')}</strong><span>{t('freePreviewsNotes')}</span></div> : <><div className="practice-set-summary"><div className="practice-set-icon"><Sparkles size={22} /></div><div><h3>{chapter.subject || t('chapter')} {t('questionPractice')}</h3><p>{t('reviewKeyConcepts')}</p></div></div><div className="practice-facts"><span><CheckCircle2 size={14} /> {t('topicQuestions')}</span><span><Clock3 size={14} /> {t('ownPace')}</span><span><BookOpen size={14} /> {t('reviewExplanations')}</span></div><button className="button button-gold chapter-cta" onClick={() => setNotice(t('chapterPracticePending'))}><Play size={15} /> {t('startPractice')}</button></>}</section>}
+        {activeTab === 'practice' && <section className="chapter-tab-panel practice-set-panel"><div className="section-heading"><div><div className="eyebrow">{t('learnByDoing')}</div><h2>{t('questionPractice')}</h2></div><span className="chapter-item-count">{practiceQuestionsCount > 0 ? `${practiceQuestionsCount} ${language === 'hi' ? 'प्रश्न उपलब्ध' : 'questions'}` : t('topicPractice')}</span></div>{!hasPractice ? <div className="empty-content chapter-tab-empty"><BookOpen size={23} /><strong>{t('practiceUnavailable')}</strong><span>{t('chooseAnotherTab')}</span></div> : isLocked ? <div className="empty-content chapter-tab-empty"><LockKeyhole size={23} /><strong>{t('unlockPractice')}</strong><span>{t('freePreviewsNotes')}</span></div> : <><div className="practice-set-summary"><div className="practice-set-icon"><Sparkles size={22} /></div><div><h3>{chapter.subject || t('chapter')} {t('questionPractice')}</h3><p>{t('reviewKeyConcepts')}</p></div></div><div className="practice-facts"><span><CheckCircle2 size={14} /> {practiceQuestionsCount > 0 ? `${practiceQuestionsCount} ${t('topicQuestions')}` : t('topicQuestions')}</span><span><Clock3 size={14} /> {t('ownPace')}</span><span><BookOpen size={14} /> {t('reviewExplanations')}</span></div><button className="button button-gold chapter-cta" disabled={practiceLoading} onClick={handleStartPractice}>{practiceLoading ? <LoaderCircle className="spin" size={15} /> : <Play size={15} />} {t('startPractice')}</button></>}</section>}
         {activeTab === 'notes' && <section className="chapter-tab-panel"><div className="section-heading"><div><div className="eyebrow">{t('readReviseRemember').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div><h2>{t('notesPdfs')}</h2></div><span className="chapter-item-count">{resources.length} {t('resources')}</span></div>{!hasNotes ? <div className="empty-content chapter-tab-empty"><FileText size={23} /><strong>{t('notesUnavailable')}</strong><span>{t('chooseAnotherTab')}</span></div> : resourcesLoading ? <p className="field-hint">{t('loadingResources')}</p> : resourcesError ? <div className="feedback error-feedback">{resourcesError}</div> : !resources.length ? <div className="empty-content chapter-tab-empty"><FileText size={23} /><strong>{t('noPublishedNotes')}</strong><span>{t('resourceCheckBack')}</span></div> : <div className="chapter-resource-list">{resources.map((resource) => {
           const bookmarked = bookmarks.some((bookmark) => bookmark.resource_id === resource.id);
           const isPreview = Boolean(resource.is_free_preview);
@@ -267,5 +414,13 @@ export default function ChapterDetail() {
     </>}
     {reader && <PdfReaderModal resource={reader.resource} url={reader.url} onClose={() => setReader(null)} />}
     {checkoutItem && <CheckoutModal {...checkoutItem} onClose={() => setCheckoutItem(null)} onCompleted={() => setAccessRefreshKey((value) => value + 1)} />}
+    {practiceActive && practiceQuestions.length > 0 && (
+      <QuestionPracticeModal
+        questions={practiceQuestions}
+        chapterTitle={chapter.title}
+        subject={chapter.subject}
+        onClose={() => setPracticeActive(false)}
+      />
+    )}
   </div>;
 }

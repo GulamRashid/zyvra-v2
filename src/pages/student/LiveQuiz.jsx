@@ -276,6 +276,110 @@ export default function LiveQuiz() {
     }
   }, [location.state?.returnTo, test?.chapter_id]);
 
+  // Synchronous state ref for guaranteed persistence across sudden lifecycle events (unload, hide)
+  const stateRef = useRef({
+    attemptId: null,
+    testId,
+    userId: user?.id,
+    currentIndex: 0,
+    responses: {},
+    visitedQuestions: new Set(),
+    remaining: 0,
+    language: 'en',
+    testPhase: 'loading'
+  });
+
+  useEffect(() => {
+    stateRef.current = {
+      attemptId,
+      testId,
+      userId: user?.id,
+      currentIndex,
+      responses,
+      visitedQuestions,
+      remaining,
+      language,
+      testPhase
+    };
+  }, [attemptId, testId, user?.id, currentIndex, responses, visitedQuestions, remaining, language, testPhase]);
+
+  // Dual Persistence: Instant LocalStorage Snapshot + Supabase Cloud Upsert
+  const saveProgressSnapshot = useCallback((overrides = {}, syncCloud = true) => {
+    const cur = stateRef.current;
+    const uid = cur.userId;
+    const tId = cur.testId;
+    const activeAttId = overrides.attemptId ?? cur.attemptId;
+    if (!uid || !tId) return null;
+
+    const resp = overrides.responses ?? cur.responses;
+    const currIdx = overrides.currentIndex ?? cur.currentIndex;
+    const remSecs = overrides.remaining ?? cur.remaining;
+    const lang = overrides.language ?? cur.language;
+    const visitedArr = overrides.visited
+      ? Array.from(overrides.visited)
+      : Array.from(cur.visitedQuestions);
+    const markedArr = Object.keys(resp).filter((k) => Boolean(resp[k]?.marked_for_review));
+
+    const answersMap = {};
+    Object.entries(resp).forEach(([k, v]) => {
+      if (v?.selected_option !== undefined && v?.selected_option !== null) {
+        answersMap[k] = v.selected_option;
+      }
+    });
+
+    const snapshot = {
+      attemptId: activeAttId,
+      testId: tId,
+      userId: uid,
+      status: overrides.status || 'paused',
+      currentIndex: currIdx,
+      answers: answersMap,
+      responses: resp,
+      markedForReview: markedArr,
+      visited: visitedArr,
+      remainingSeconds: remSecs,
+      language: lang,
+      updatedAt: new Date().toISOString()
+    };
+
+    // 1. Instant synchronous dual localStorage persistence
+    try {
+      localStorage.setItem(`zyvra_test_progress_${uid}_${tId}`, JSON.stringify(snapshot));
+      localStorage.setItem(`zyvra-paused-attempt-${uid}-${tId}`, JSON.stringify(snapshot));
+      if (activeAttId) {
+        localStorage.setItem(`zyvra-active-state-${activeAttId}`, JSON.stringify(snapshot));
+      }
+    } catch (storageErr) {
+      console.warn('LocalStorage save failed:', storageErr);
+    }
+
+    // 2. Supabase Cloud Sync
+    if (syncCloud && supabase && activeAttId) {
+      const cloudPayload = {
+        status: overrides.status || 'paused',
+        remaining_seconds: remSecs,
+        current_question_index: currIdx,
+        state_json: snapshot,
+        updated_at: new Date().toISOString()
+      };
+      if (overrides.status === 'paused') {
+        cloudPayload.paused_at = new Date().toISOString();
+      }
+      supabase
+        .from('test_attempts')
+        .update(cloudPayload)
+        .eq('id', activeAttId)
+        .then(({ error: syncErr }) => {
+          if (syncErr) {
+            console.warn('Database attempt update error:', syncErr?.message || syncErr);
+          }
+        })
+        .catch((e) => console.warn('Cloud sync error:', e));
+    }
+
+    return snapshot;
+  }, [supabase]);
+
   // Track visited questions automatically
   useEffect(() => {
     if (testPhase !== 'active' || !questions?.[currentIndex]?.id) return;
@@ -349,18 +453,21 @@ export default function LiveQuiz() {
         .order('created_at', { ascending: false })
         .limit(1);
 
-      const incomplete = existingAttempts?.[0] || null;
+      const dbIncomplete = existingAttempts?.[0] || null;
 
-      // Check localStorage backup
-      let localBackup = null;
+      // Check localStorage snapshot
+      let localSnapshot = null;
       try {
-        const rawLocal = localStorage.getItem(`zyvra-paused-attempt-${user.id}-${testId}`);
-        if (rawLocal) localBackup = JSON.parse(rawLocal);
+        const rawLocal = localStorage.getItem(`zyvra_test_progress_${user.id}_${testId}`)
+          || localStorage.getItem(`zyvra-paused-attempt-${user.id}-${testId}`);
+        if (rawLocal) localSnapshot = JSON.parse(rawLocal);
       } catch (_) {}
 
-      if (incomplete && incomplete.status !== 'completed' && incomplete.status !== 'submitted') {
+      const hasResumeAttempt = (dbIncomplete && dbIncomplete.status !== 'completed' && dbIncomplete.status !== 'submitted') || localSnapshot;
+
+      if (hasResumeAttempt) {
         // Paused or in-progress attempt found: pre-load questions and prompt resume
-        const activeAttemptId = incomplete.id;
+        const activeAttemptId = dbIncomplete?.id || localSnapshot?.attemptId;
         const { data: questionData, error: questionError } = await supabase.rpc('get_live_test_questions', {
           p_test_id: testId,
           p_attempt_id: activeAttemptId
@@ -398,32 +505,70 @@ export default function LiveQuiz() {
           setAttemptId(activeAttemptId);
           setQuestions(safeQuestions);
 
-          // Restore state
-          const stateJson = incomplete.state_json || {};
-          const restoredResponses = stateJson.responses || localBackup?.responses || {};
-          const restoredIndex = incomplete.current_question_index ?? localBackup?.currentIndex ?? 0;
+          // Restore state cleanly from DB and LocalStorage
+          const stateJson = dbIncomplete?.state_json || {};
+          const rawResponses = localSnapshot?.responses || stateJson.responses || {};
+          const rawAnswers = localSnapshot?.answers || stateJson.answers || {};
+          const rawMarked = localSnapshot?.markedForReview || stateJson.markedForReview || [];
+          const markedSet = new Set(Array.isArray(rawMarked) ? rawMarked : Object.keys(rawMarked).filter((k) => rawMarked[k]));
+
+          const restoredResponses = { ...rawResponses };
+          Object.entries(rawAnswers).forEach(([qId, opt]) => {
+            restoredResponses[qId] = {
+              ...(restoredResponses[qId] || {}),
+              selected_option: typeof opt === 'object' ? opt?.selected_option : opt
+            };
+          });
+          markedSet.forEach((qId) => {
+            restoredResponses[qId] = {
+              ...(restoredResponses[qId] || {}),
+              marked_for_review: true
+            };
+          });
+
+          const restoredIndex = localSnapshot?.currentIndex
+            ?? dbIncomplete?.current_question_index
+            ?? stateJson.currentIndex
+            ?? 0;
+
           const restoredVisited = new Set(
-            stateJson.visitedQuestions || localBackup?.visitedQuestions || (safeQuestions[0]?.id ? [safeQuestions[0].id] : [])
+            localSnapshot?.visited
+            || localSnapshot?.visitedQuestions
+            || stateJson.visited
+            || stateJson.visitedQuestions
+            || (safeQuestions[0]?.id ? [safeQuestions[0].id] : [])
           );
-          const restoredRemaining = incomplete.remaining_seconds
-            ?? localBackup?.remainingSeconds
-            ?? getRemaining(getDeadline(testData, incomplete));
+
+          const restoredRemaining = localSnapshot?.remainingSeconds
+            ?? dbIncomplete?.remaining_seconds
+            ?? stateJson.remainingSeconds
+            ?? (Number(testData.duration_minutes || 60) * 60);
+
+          const restoredLang = localSnapshot?.language || stateJson.language;
+          if (restoredLang) setLanguage(restoredLang);
 
           setResponses(restoredResponses);
           setCurrentIndex(Math.min(restoredIndex, Math.max(0, safeQuestions.length - 1)));
           setVisitedQuestions(restoredVisited);
           setRemaining(restoredRemaining);
-          if (stateJson.language) setLanguage(stateJson.language);
 
           setPausedAttemptData({
-            ...incomplete,
+            ...(dbIncomplete || {}),
+            attemptId: activeAttemptId,
             answeredCount: Object.values(restoredResponses).filter((r) => r?.selected_option).length,
             remainingSeconds: restoredRemaining,
             totalQuestions: safeQuestions.length,
-            lastSavedAt: incomplete.paused_at || incomplete.updated_at || incomplete.created_at
+            lastSavedAt: dbIncomplete?.paused_at || dbIncomplete?.updated_at || localSnapshot?.updatedAt || new Date().toISOString()
           });
 
-          setTestPhase('resume_prompt');
+          // If navigated with autoResume (e.g. from ChapterDetail Resume button), start immediately
+          if (location.state?.autoResume) {
+            const endAt = Date.now() + Math.max(10, restoredRemaining) * 1000;
+            setDeadline(endAt);
+            setTestPhase('active');
+          } else {
+            setTestPhase('resume_prompt');
+          }
           setLoading(false);
         }
       } else {
@@ -520,6 +665,13 @@ export default function LiveQuiz() {
         `zyvra-active-attempt-${user.id}-${testId}`,
         JSON.stringify({ id: activeAttemptId, started_at: attempt.started_at || new Date().toISOString() })
       );
+      saveProgressSnapshot({
+        attemptId: activeAttemptId,
+        responses: {},
+        currentIndex: 0,
+        remaining: totalSecs,
+        status: 'in_progress'
+      }, true);
 
       setTestPhase('active');
     } catch (startErr) {
@@ -548,34 +700,17 @@ export default function LiveQuiz() {
     setPausing(true);
     setPauseError('');
 
-    const statePayload = {
-      responses,
-      visitedQuestions: Array.from(visitedQuestions),
-      language,
-      currentIndex,
-      remainingSeconds: remaining,
-      savedAt: new Date().toISOString()
-    };
-
-    // 1. LocalStorage backup
     try {
-      localStorage.setItem(
-        `zyvra-paused-attempt-${user?.id}-${testId}`,
-        JSON.stringify({ attemptId, ...statePayload })
-      );
-    } catch (err) {
-      console.error('Failed to write to localStorage:', err);
-    }
+      const snapshot = saveProgressSnapshot({ status: 'paused' }, true);
+      sessionStorage.removeItem(`zyvra-active-attempt-${user?.id}-${testId}`);
 
-    // 2. Supabase update
-    try {
       const { error: updateError } = await supabase
         .from('test_attempts')
         .update({
           status: 'paused',
           remaining_seconds: remaining,
           current_question_index: currentIndex,
-          state_json: statePayload,
+          state_json: snapshot,
           paused_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })
@@ -584,8 +719,6 @@ export default function LiveQuiz() {
       if (updateError) {
         console.warn('Database update error on pause (proceeding with local save):', updateError);
       }
-
-      sessionStorage.removeItem(`zyvra-active-attempt-${user?.id}-${testId}`);
 
       navigate(returnTo, {
         replace: true,
@@ -598,47 +731,36 @@ export default function LiveQuiz() {
     }
   };
 
-  // Periodic 15s background sync to Supabase
+  // Periodic 10s background sync to Supabase
   useEffect(() => {
     if (!attemptId || !supabase || testPhase !== 'active' || submitting || pausing) return undefined;
 
-    const interval = window.setInterval(async () => {
-      try {
-        const statePayload = {
-          responses,
-          visitedQuestions: Array.from(visitedQuestions),
-          language,
-          currentIndex,
-          remainingSeconds: remaining,
-          savedAt: new Date().toISOString()
-        };
-
-        await supabase
-          .from('test_attempts')
-          .update({
-            status: 'in_progress',
-            remaining_seconds: remaining,
-            current_question_index: currentIndex,
-            state_json: statePayload,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', attemptId);
-      } catch (syncErr) {
-        console.debug('Background attempt sync note:', syncErr);
-      }
-    }, 15000);
+    const interval = window.setInterval(() => {
+      saveProgressSnapshot({ status: 'in_progress' }, true);
+    }, 10000);
 
     return () => window.clearInterval(interval);
-  }, [attemptId, supabase, testPhase, submitting, pausing, responses, visitedQuestions, language, currentIndex, remaining]);
+  }, [attemptId, supabase, testPhase, submitting, pausing, saveProgressSnapshot]);
 
-  // Intercept browser back button & page unload
+  // Intercept browser back button, tab hide, and page unload
   useEffect(() => {
     if (testPhase !== 'active') return undefined;
 
     const handleBeforeUnload = (event) => {
+      saveProgressSnapshot({ status: 'paused' }, true);
       event.preventDefault();
       event.returnValue = 'You have an active test. Your progress is saved, but are you sure you want to leave?';
       return event.returnValue;
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        saveProgressSnapshot({ status: 'paused' }, true);
+      }
+    };
+
+    const handlePageHide = () => {
+      saveProgressSnapshot({ status: 'paused' }, true);
     };
 
     window.history.pushState(null, '', window.location.href);
@@ -649,13 +771,17 @@ export default function LiveQuiz() {
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('popstate', handlePopState);
 
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [testPhase]);
+  }, [testPhase, saveProgressSnapshot]);
 
   // Hindi translation on question change
   useEffect(() => {
@@ -767,9 +893,23 @@ export default function LiveQuiz() {
       if (user) {
         sessionStorage.removeItem(`zyvra-active-attempt-${user.id}-${testId}`);
         localStorage.removeItem(`zyvra-paused-attempt-${user.id}-${testId}`);
+        localStorage.removeItem(`zyvra_test_progress_${user.id}_${testId}`);
       }
       sessionStorage.removeItem(`zyvra-responses-${attemptId}`);
       localStorage.removeItem(`zyvra-active-state-${attemptId}`);
+
+      try {
+        await supabase
+          .from('test_attempts')
+          .update({
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', attemptId);
+      } catch (markErr) {
+        console.warn('Completed status update note:', markErr);
+      }
 
       navigate(`/quiz/result/${attemptId}`, { replace: true, state: { returnTo } });
     } catch (submitError) {
@@ -832,35 +972,43 @@ export default function LiveQuiz() {
   const markedCount = Object.values(responses || {}).filter((response) => response?.marked_for_review).length;
 
   const answer = (option) => {
-    setResponses((current) => ({
-      ...current,
+    const nextVal = responses[question.id]?.selected_option === option ? null : option;
+    const nextResponses = {
+      ...responses,
       [question.id]: {
-        ...current[question.id],
-        selected_option: current[question.id]?.selected_option === option ? null : option
+        ...responses[question.id],
+        selected_option: nextVal
       }
-    }));
+    };
+    setResponses(nextResponses);
+    saveProgressSnapshot({ responses: nextResponses }, true);
   };
 
   const toggleReview = () => {
-    setResponses((current) => ({
-      ...current,
+    const nextResponses = {
+      ...responses,
       [question.id]: {
-        ...current[question.id],
-        marked_for_review: !current[question.id]?.marked_for_review
+        ...responses[question.id],
+        marked_for_review: !responses[question.id]?.marked_for_review
       }
-    }));
+    };
+    setResponses(nextResponses);
+    saveProgressSnapshot({ responses: nextResponses }, true);
   };
 
   const clearResponse = () => {
-    setResponses((current) => ({
-      ...current,
-      [question.id]: { ...current[question.id], selected_option: null }
-    }));
+    const nextResponses = {
+      ...responses,
+      [question.id]: { ...responses[question.id], selected_option: null }
+    };
+    setResponses(nextResponses);
+    saveProgressSnapshot({ responses: nextResponses }, true);
   };
 
   const goTo = (index) => {
     setCurrentIndex(index);
     setPaletteOpen(false);
+    saveProgressSnapshot({ currentIndex: index }, true);
   };
 
   const confirm = () => {

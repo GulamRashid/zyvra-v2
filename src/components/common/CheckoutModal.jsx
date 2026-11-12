@@ -110,15 +110,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
     if (!Number.isFinite(pricing.base) || pricing.base <= 0) { setError('This item does not have a valid price. Contact support.'); return; }
     setBusy(true);
     try {
-      const keyId = import.meta.env.VITE_RAZORPAY_KEY_ID;
-      const localTestMode = !keyId && import.meta.env.DEV && ['localhost', '127.0.0.1'].includes(window.location.hostname);
-      if (localTestMode) {
-        setSimulated(true);
-        setComplete(true);
-        setBusy(false);
-        return;
-      }
-      if (!keyId && !localTestMode) throw new Error('Razorpay is not configured. Add VITE_RAZORPAY_KEY_ID to enable secure checkout.');
+      const envKeyId = import.meta.env.VITE_RAZORPAY_KEY_ID;
       const accessToken = await getAccessToken();
       const order = await postPaymentRequest('/api/create-order', {
         amount: pricing.payable,
@@ -131,15 +123,24 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
       const razorpayOrderId = order.razorpay_order_id;
       if (!orderId) throw new Error('The payment service did not return an order reference.');
 
-      if (!keyId) throw new Error('Razorpay is not configured. Add VITE_RAZORPAY_KEY_ID to enable secure checkout.');
+      const activeKeyId = order.keyId || order.key_id || envKeyId;
+      const localTestMode = !activeKeyId && import.meta.env.DEV && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+      if (localTestMode) {
+        setSimulated(true);
+        setComplete(true);
+        setBusy(false);
+        return;
+      }
+      if (!activeKeyId) throw new Error('Razorpay is not configured. Add VITE_RAZORPAY_KEY_ID or configure RAZORPAY_KEY_ID to enable secure checkout.');
       if (!razorpayOrderId) throw new Error('The payment service did not return a Razorpay order ID.');
-      if (!Number.isInteger(Number(order.amount_paise)) || Number(order.amount_paise) <= 0) throw new Error('The payment service returned an invalid order amount.');
-      if (Number(order.amount_paise) !== Math.round(pricing.payable * 100)) throw new Error('The server price changed. Close checkout and reopen it to review the latest total.');
+      const orderPaise = Number(order.amount_paise || order.amount);
+      if (!Number.isInteger(orderPaise) || orderPaise <= 0) throw new Error('The payment service returned an invalid order amount.');
+      if (orderPaise !== Math.round(pricing.payable * 100)) throw new Error('The server price changed. Close checkout and reopen it to review the latest total.');
       await loadRazorpayScript();
       const checkoutInstance = new window.Razorpay({
-        key: keyId,
+        key: activeKeyId,
         order_id: razorpayOrderId,
-        amount: Number(order.amount_paise),
+        amount: orderPaise,
         currency: order.currency || 'INR',
         name: 'ZYVRA',
         description: `${tier}: ${itemTitle}`,
