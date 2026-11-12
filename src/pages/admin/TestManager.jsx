@@ -10,7 +10,7 @@ const initialTest = {
   title: '', instructions: '', pattern: TEST_PATTERNS[0].value, duration_minutes: 60,
   attempt_limit: 1, positive_marks: 1, negative_marks: 0.25,
   mandatory_option_e_penalty: 0.25, coin_reward_enabled: true,
-  chapter_id: '', status: 'draft'
+  chapter_id: '', solution_mode: 'after_submit', status: 'draft'
 };
 
 function slugifyTestTitle(title) {
@@ -56,6 +56,7 @@ function TestEditor({ test, chapters, linkedOptionCounts, onClose, onSaved }) {
       mandatory_option_e_penalty: values.pattern === 'bpsc-mandatory-e' ? Number(values.mandatory_option_e_penalty) : 0,
       coin_reward_enabled: Boolean(values.coin_reward_enabled),
       chapter_id: values.chapter_id,
+      solution_mode: values.solution_mode || 'after_submit',
       status: String(values.status || 'draft').toLowerCase()
     };
     setSaving(true);
@@ -78,6 +79,13 @@ function TestEditor({ test, chapters, linkedOptionCounts, onClose, onSaved }) {
     <div className="test-config-grid"><label className="field-label">Duration (minutes) *<input className="text-input" type="number" min="1" max="1440" step="1" value={values.duration_minutes} onChange={(event) => setField('duration_minutes', event.target.value)} required /></label><label className="field-label">Attempt limit *<input className="text-input" type="number" min="1" max="100" step="1" value={values.attempt_limit} onChange={(event) => setField('attempt_limit', event.target.value)} required /></label><label className="field-label">Positive marks *<input className="text-input" type="number" min="0.01" step="0.01" value={values.positive_marks} onChange={(event) => setField('positive_marks', event.target.value)} required /></label><label className="field-label">Negative marks *<input className="text-input" type="number" min="0" step="0.01" value={values.negative_marks} onChange={(event) => setField('negative_marks', event.target.value)} required /></label></div>
     <label className="field-label">Instructions<textarea className="text-input content-textarea" rows="3" value={values.instructions || ''} onChange={(event) => setField('instructions', event.target.value)} placeholder="Instructions shown before the student starts." /></label>
     <label className="content-switch"><input type="checkbox" checked={Boolean(values.coin_reward_enabled)} onChange={(event) => setField('coin_reward_enabled', event.target.checked)} /><span>Enable Zyvra Coins reward (qualification and first-attempt rules enforced by server)</span></label>
+    <label className="field-label">Answer & explanation display
+      <select className="text-input" value={values.solution_mode || 'after_submit'} onChange={(event) => setField('solution_mode', event.target.value)}>
+        <option value="after_submit">Exam Mode — show answers & explanations only after test submission</option>
+        <option value="immediate">Practice Mode — show answer & explanation immediately upon selecting an option</option>
+      </select>
+      <small>Practice mode reveals correct answer, explanation, and option notes right as the student picks an answer.</small>
+    </label>
     <label className="field-label">Availability<select className="text-input" value={values.status} onChange={(event) => { setField('status', event.target.value); setError(''); }}><option value="draft">Draft</option><option value="published">Published</option><option value="scheduled">Scheduled</option><option value="paused">Paused</option></select></label>
     {error && <div className="feedback error-feedback" role="alert">{error}</div>}
     <div className="modal-actions"><button type="button" className="button button-outline" onClick={onClose}>Cancel</button><button className="button button-gold" disabled={saving}>{saving ? 'Saving…' : test ? 'Save test' : 'Create test'}</button></div>

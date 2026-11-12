@@ -284,6 +284,9 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
       if (kind === 'folder' && values.pricing_mode === 'inherit' && !values.parent_folder_id) {
         throw new Error('A top-level folder has no parent price to inherit. Choose Free or Paid-Own.');
       }
+      if (kind === 'exam' && values.access_mode === 'paid_own' && !(Number(values.price) > 0)) {
+        throw new Error('Enter a price greater than zero for paid exam access.');
+      }
       if (values.pricing_mode === 'paid_own' && !(Number(values.price) > 0)) {
         throw new Error('Enter a price greater than zero for Paid-Own access.');
       }
@@ -310,7 +313,14 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
         display_order: Math.max(0, Math.trunc(Number(values.display_order) || 0)),
         status: String(values.status || 'draft').toLowerCase()
       };
-      if (kind === 'exam') Object.assign(payload, { icon: values.icon || 'BookOpen' });
+      if (kind === 'exam') {
+        const isPaid = values.access_mode === 'paid_own';
+        Object.assign(payload, {
+          icon: values.icon || 'BookOpen',
+          access_mode: isPaid ? 'paid_own' : 'free',
+          price: isPaid ? Math.max(0, Number(values.price) || 0) : null
+        });
+      }
       if (kind === 'folder') {
         const pricingMode = normalizePricingMode(values.pricing_mode);
         Object.assign(payload, {
@@ -380,7 +390,20 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
     <p className="dialog-intro">Fields marked required keep the learning hierarchy clear and searchable.</p>
     <label className="field-label">Title <span className="required-mark">*</span><input className="text-input" value={values.title} onChange={autoSlug} minLength="2" maxLength="100" required placeholder={kind === 'exam' ? 'e.g. Bihar Public Service Commission' : kind === 'chapter' ? 'e.g. Fundamental Rights' : 'e.g. NCERT Foundation'} /></label>
     <label className="field-label">Slug <span className="required-mark">*</span><input className="text-input" value={values.slug} onChange={(event) => setField('slug', event.target.value)} onBlur={() => setField('slug', slugify(values.slug))} required maxLength="100" pattern="[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*" placeholder="lowercase-words-with-hyphens" /><small>Unique in its hierarchy level. Used in links.</small></label>
-    {kind === 'exam' && <><label className="field-label">Lucide icon<select className="text-input compact-select" value={values.icon} onChange={(event) => setField('icon', event.target.value)}>{iconNames.map((name) => <option key={name}>{name}</option>)}</select></label><p className="icon-preview"><span>{values.icon}</span>{(() => { const Icon = examIcons[values.icon] || BookOpen; return <Icon size={20} />; })()}</p><p className="field-hint">Exam access is managed through folder and chapter pricing.</p></>}
+    {kind === 'exam' && <><label className="field-label">Lucide icon<select className="text-input compact-select" value={values.icon} onChange={(event) => setField('icon', event.target.value)}>{iconNames.map((name) => <option key={name}>{name}</option>)}</select></label><p className="icon-preview"><span>{values.icon}</span>{(() => { const Icon = examIcons[values.icon] || BookOpen; return <Icon size={20} />; })()}</p>
+      <label className="field-label">Exam access mode
+        <select className="text-input" value={values.access_mode || 'free'} onChange={(event) => setField('access_mode', event.target.value)}>
+          <option value="free">Free — entire exam syllabus is free to explore</option>
+          <option value="paid_own">Paid-Own — set complete exam bundle price</option>
+        </select>
+      </label>
+      {values.access_mode === 'paid_own' && (
+        <label className="field-label">Exam bundle price (INR) <span className="required-mark">*</span>
+          <input className="text-input" type="number" min="0.01" step="0.01" value={values.price} onChange={(event) => setField('price', event.target.value)} required placeholder="e.g. 499" />
+        </label>
+      )}
+      <p className="field-hint">Purchasing an exam automatically unlocks all folders and chapters inside it.</p>
+    </>}
     {kind === 'folder' && <>
       <label className="field-label">Exam <span className="required-mark">*</span><select className="text-input" value={values.exam_id} onChange={(event) => setValues((current) => ({ ...current, exam_id: event.target.value, parent_folder_id: '' }))} required><option value="">Select an exam</option>{exams.filter((exam) => exam.status !== 'archived').map((exam) => <option value={exam.id} key={exam.id}>{exam.title}</option>)}</select></label>
       <label className="field-label">Parent folder<select className="text-input" value={values.parent_folder_id} onChange={(event) => setField('parent_folder_id', event.target.value)}><option value="">None — top-level folder</option>{childFolders.map((folder) => <option value={folder.id} key={folder.id}>{getFolderPath(folder, folders).map((part) => part.title).join(' / ')}</option>)}</select><small>No parent price is applied unless you explicitly choose Inherit Parent.</small></label>
@@ -542,12 +565,17 @@ export default function ContentManager() {
       const examFolders = folders.filter((folder) => folder.exam_id === exam.id);
       const folderIds = examFolders.map((folder) => folder.id);
       if (folderIds.length) {
+        const examChapters = chapters.filter((c) => folderIds.includes(c.folder_id));
+        const chapterIds = examChapters.map((c) => c.id);
+        if (chapterIds.length) {
+          await supabase.from('chapter_resources').delete().in('chapter_id', chapterIds);
+        }
         const { error: chaptersError } = await supabase.from('chapters').delete().in('folder_id', folderIds);
         if (chaptersError) throw chaptersError;
       }
       const { error: foldersError } = await supabase.from('folders').delete().eq('exam_id', exam.id);
       if (foldersError) throw foldersError;
-      const { error: examError } = await supabase.from('exams').delete().eq('id', exam.id);
+      const { data: deletedRows, error: examError } = await supabase.from('exams').delete().eq('id', exam.id).select();
       if (examError) throw examError;
 
       removeExam(exam.id);
@@ -557,6 +585,7 @@ export default function ContentManager() {
       }
       setExamToDelete(null);
       setSuccessMessage(`“${exam.title || 'Exam'}” and its nested folders and chapters were permanently deleted.`);
+      await refresh();
     } catch (deleteError) {
       setActionError(getContentErrorMessage(deleteError, 'Unable to delete this exam and its nested content.'));
       refresh().catch((refreshError) => setActionError(refreshError?.message || 'Unable to refresh the content hierarchy.'));

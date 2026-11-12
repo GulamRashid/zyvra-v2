@@ -1,11 +1,78 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDownToLine, BookOpen, Check, ChevronDown, ChevronUp, FileQuestion, Filter, Plus, Search, Trash2, Upload, X } from 'lucide-react';
+import { AlertTriangle, ArrowDownToLine, BookOpen, Check, ChevronDown, ChevronRight, ChevronUp, FileQuestion, Filter, Layers, LayoutGrid, List, Plus, Search, Trash2, Upload, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { getOptionEntries, validateImportQuestion } from '../../lib/tests';
-import { getContentErrorMessage } from '../../lib/content';
+import { getOptionEntries, hasDevanagari, hasLatin, validateImportQuestion } from '../../lib/tests';
+import { getContentErrorMessage, getFolderPath } from '../../lib/content';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import QuestionFormatter from '../../components/common/QuestionFormatter';
+
+export function getChapterHierarchyPath(chapterId, chaptersMap, foldersMap, examsMap) {
+  if (!chapterId) {
+    return {
+      examId: null,
+      folderIds: [],
+      chapterId: null,
+      breadcrumb: 'Unassigned Chapter',
+      parts: [],
+      isUnassigned: true
+    };
+  }
+
+  const getFromMap = (map, id) => {
+    if (!map || !id) return null;
+    return map instanceof Map ? map.get(id) : Array.isArray(map) ? map.find((item) => item.id === id) : map[id];
+  };
+
+  const chapter = getFromMap(chaptersMap, chapterId);
+  if (!chapter) {
+    return {
+      examId: null,
+      folderIds: [],
+      chapterId: null,
+      breadcrumb: 'Unassigned Chapter',
+      parts: [],
+      isUnassigned: true
+    };
+  }
+
+  const folderChain = [];
+  const folderIds = [];
+  let currentFolderId = chapter.folder_id;
+  const visited = new Set();
+
+  while (currentFolderId && !visited.has(currentFolderId)) {
+    visited.add(currentFolderId);
+    const folder = getFromMap(foldersMap, currentFolderId);
+    if (!folder) break;
+    folderChain.unshift(folder);
+    folderIds.unshift(folder.id);
+    currentFolderId = folder.parent_folder_id || folder.parent_id || null;
+  }
+
+  const rootFolder = folderChain[0];
+  const examId = rootFolder?.exam_id || null;
+  const exam = examId ? getFromMap(examsMap, examId) : null;
+
+  const parts = [];
+  if (exam) parts.push({ type: 'exam', id: exam.id, title: exam.title });
+  folderChain.forEach((f) => parts.push({ type: 'folder', id: f.id, title: f.title }));
+  parts.push({ type: 'chapter', id: chapter.id, title: chapter.title });
+
+  const breadcrumb = parts.map((p) => p.title).join(' › ');
+
+  return {
+    examId,
+    examTitle: exam?.title || null,
+    folderIds,
+    chapterId: chapter.id,
+    chapterTitle: chapter.title,
+    parts,
+    breadcrumb: breadcrumb || 'Unassigned Chapter',
+    isUnassigned: false
+  };
+}
 
 const emptyQuestion = {
   question_text: '', question_text_hi: '', options: [{ en: '', hi: '' }, { en: '', hi: '' }, { en: '', hi: '' }, { en: '', hi: '' }],
@@ -62,12 +129,42 @@ function parseCsvToObjects(text) {
       const val = values[idx] !== undefined ? values[idx].replace(/^["']|["']$/g, '').trim() : '';
       obj[header] = val;
     });
+
+    // Map English and Hindi question columns strictly
+    const qEn = obj.question_en || obj.question_text_en || obj.text_en || '';
+    const qHi = obj.question_hi || obj.question_text_hi || obj.text_hi || obj.question_hindi || '';
+    const qRaw = obj.question_text || obj.question || obj.text || '';
+
+    if (qEn) {
+      obj.question_text = qEn;
+      obj.question_en = qEn;
+    } else if (qRaw) {
+      if (hasDevanagari(qRaw) && !hasLatin(qRaw)) {
+        if (!obj.question_text_hi && !qHi) obj.question_text_hi = qRaw;
+      } else {
+        obj.question_text = qRaw;
+        obj.question_en = qRaw;
+      }
+    }
+
+    if (qHi) {
+      obj.question_text_hi = qHi;
+      obj.question_hi = qHi;
+    }
+
     if (!obj.options) {
       const opts = [];
       ['a', 'b', 'c', 'd', 'e'].forEach((letter) => {
-        const enVal = obj[`option_${letter}`] !== undefined ? obj[`option_${letter}`] : obj[letter];
-        const hiVal = obj[`option_${letter}_hi`] !== undefined ? obj[`option_${letter}_hi`] : (obj[`${letter}_hi`] || '');
-        if (enVal !== undefined && enVal !== '') {
+        let enVal = obj[`option_${letter}_en`] ?? obj[`option_${letter}`] ?? obj[`${letter}_en`] ?? obj[letter] ?? '';
+        let hiVal = obj[`option_${letter}_hi`] ?? obj[`${letter}_hi`] ?? obj[`option_${letter}_hindi`] ?? '';
+
+        // If enVal was accidentally assigned Hindi text while hiVal is empty
+        if (hasDevanagari(enVal) && !hasLatin(enVal)) {
+          if (!hiVal) hiVal = enVal;
+          enVal = '';
+        }
+
+        if (enVal !== '' || hiVal !== '') {
           opts.push({ en: enVal, hi: hiVal });
         }
       });
@@ -85,10 +182,12 @@ function parseCsvToObjects(text) {
 
 function normalizeQuestion(row) {
   const entries = getOptionEntries(row.options);
+  const qEn = row.question_en || row.question_text_en || (typeof row.question_text === 'string' && (hasLatin(row.question_text) || !hasDevanagari(row.question_text)) ? row.question_text : row.question_text?.en || '');
+  const qHi = row.question_hi || row.question_text_hi || (typeof row.question_text === 'string' && hasDevanagari(row.question_text) ? row.question_text : row.question_text?.hi || '');
   return {
     ...row,
-    question_text: typeof row.question_text === 'string' ? row.question_text : row.question_text?.en || '',
-    question_text_hi: row.question_text_hi || row.question_text?.hi || '',
+    question_text: qEn || (typeof row.question_text === 'string' ? row.question_text : ''),
+    question_text_hi: qHi || '',
     options: entries.length ? entries.map(([, option]) => typeof option === 'string' ? { en: option, hi: '' } : { en: option?.en || option?.text || '', hi: option?.hi || '' }) : emptyQuestion.options,
     correct_answer: String(Array.isArray(row.correct_answer) ? row.correct_answer[0] : row.correct_answer || 'A').toUpperCase(),
     distractor_notes: row.distractor_notes || {},
@@ -96,7 +195,7 @@ function normalizeQuestion(row) {
   };
 }
 
-function QuestionDialog({ question, chapters, onClose, onSaved }) {
+function QuestionDialog({ question, chapters, onClose, onSaved, onDelete }) {
   const [values, setValues] = useState(() => question ? normalizeQuestion(question) : { ...emptyQuestion, options: emptyQuestion.options.map((option) => ({ ...option })) });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -158,7 +257,30 @@ function QuestionDialog({ question, chapters, onClose, onSaved }) {
     <details className="distractor-details"><summary>Distractor notes <ChevronDown size={15} /></summary><div className="distractor-grid">{values.options.map((_, index) => { const key = String.fromCharCode(65 + index); return key !== values.correct_answer && <label className="field-label" key={key}>Option {key}<textarea className="text-input" rows="2" value={values.distractor_notes[key] || ''} onChange={(event) => setValues((current) => ({ ...current, distractor_notes: { ...current.distractor_notes, [key]: event.target.value } }))} placeholder="Why this option is incorrect." /></label>; })}</div></details>
     <label className="field-label">Tags<input className="text-input" value={values.tags} onChange={(event) => setField('tags', event.target.value)} placeholder="constitution, fundamental-rights (comma separated)" /></label>
     {error && <div className="feedback error-feedback">{error}</div>}
-    <div className="modal-actions"><button type="button" className="button button-outline" onClick={onClose}>Cancel</button><button className="button button-gold" disabled={saving}>{saving ? 'Saving…' : question ? 'Save question' : 'Add question'}</button></div>
+    <div className="modal-actions">
+      {question && (
+        <button
+          type="button"
+          className="button button-danger"
+          disabled={saving}
+          onClick={async () => {
+            if (!onDelete) return;
+            setSaving(true);
+            try {
+              const deleted = await onDelete([question.id]);
+              if (deleted) onClose();
+            } finally {
+              setSaving(false);
+            }
+          }}
+          style={{ marginRight: 'auto' }}
+        >
+          <Trash2 size={14} /> Delete question
+        </button>
+      )}
+      <button type="button" className="button button-outline" onClick={onClose} disabled={saving}>Cancel</button>
+      <button className="button button-gold" disabled={saving}>{saving ? 'Saving…' : question ? 'Save question' : 'Add question'}</button>
+    </div>
   </form></div>;
 }
 
@@ -205,22 +327,41 @@ function ImportDialog({ chapters, onClose, onImported }) {
   };
 
   const handleImportQuestions = async () => {
-    const validRows = (preview || []).filter((item) => item.valid).map(({ row }) => ({
-      question_text: String(row.question_text || '').trim(),
-      question_text_hi: String(row.question_text_hi || '').trim() || null,
-      options: row.options.map((option) => ({
-        en: typeof option === 'string' ? option.trim() : String(option.en || option.text || option.hi || option.text_hi || '').trim(),
-        hi: typeof option === 'object' && option ? String(option.hi || option.text_hi || '').trim() : ''
-      })),
-      correct_answer: String(Array.isArray(row.correct_answer) ? row.correct_answer[0] : row.correct_answer || 'A').trim().toUpperCase(),
-      explanation: String(row.explanation || '').trim() || null,
-      distractor_notes: row.distractor_notes && typeof row.distractor_notes === 'object' && !Array.isArray(row.distractor_notes) ? row.distractor_notes : {},
-      subject: String(row.subject || '').trim(),
-      difficulty: String(row.difficulty || 'medium').toLowerCase(),
-      chapter_id: row.chapter_id,
-      tags: (Array.isArray(row.tags) ? row.tags : (typeof row.tags === 'string' ? row.tags.split(',') : [])).map((tag) => String(tag).trim()).filter(Boolean),
-      status: importStatus
-    }));
+    const validRows = (preview || []).filter((item) => item.valid).map(({ row }) => {
+      let qEn = String(row.question_en || row.question_text_en || row.question_text || '').trim();
+      let qHi = String(row.question_hi || row.question_text_hi || '').trim() || null;
+
+      // Script integrity: ensure English column does not have pure Hindi
+      if (hasDevanagari(qEn) && !hasLatin(qEn)) {
+        if (!qHi) qHi = qEn;
+        const altEn = row.question_en || row.question_text_en;
+        qEn = (typeof altEn === 'string' && hasLatin(altEn)) ? altEn.trim() : '';
+      }
+
+      return {
+        question_text: qEn || String(row.question_text || '').trim(),
+        question_text_hi: qHi,
+        options: (row.options || []).map((option) => {
+          let optEn = typeof option === 'string' ? option.trim() : String(option.en || option.text || '').trim();
+          let optHi = typeof option === 'object' && option ? String(option.hi || option.text_hi || '').trim() : '';
+
+          if (hasDevanagari(optEn) && !hasLatin(optEn)) {
+            if (!optHi) optHi = optEn;
+            optEn = '';
+          }
+
+          return { en: optEn, hi: optHi };
+        }),
+        correct_answer: String(Array.isArray(row.correct_answer) ? row.correct_answer[0] : row.correct_answer || 'A').trim().toUpperCase(),
+        explanation: String(row.explanation || '').trim() || null,
+        distractor_notes: row.distractor_notes && typeof row.distractor_notes === 'object' && !Array.isArray(row.distractor_notes) ? row.distractor_notes : {},
+        subject: String(row.subject || '').trim(),
+        difficulty: String(row.difficulty || 'medium').toLowerCase(),
+        chapter_id: row.chapter_id,
+        tags: (Array.isArray(row.tags) ? row.tags : (typeof row.tags === 'string' ? row.tags.split(',') : [])).map((tag) => String(tag).trim()).filter(Boolean),
+        status: importStatus
+      };
+    });
     if (!validRows.length) {
       window.alert('No valid rows to import');
       setError('There are no valid rows to import.');
@@ -292,13 +433,28 @@ function ImportDialog({ chapters, onClose, onImported }) {
 }
 
 export default function QBankManager() {
-  const { chapters, loading: chaptersLoading } = useContentCatalog();
+  const { exams, folders, chapters, loading: chaptersLoading } = useContentCatalog();
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Search & Attribute Filters
   const [search, setSearch] = useState('');
   const [subject, setSubject] = useState('all');
   const [difficulty, setDifficulty] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [optionCountFilter, setOptionCountFilter] = useState('all');
+
+  // Cascading Hierarchy Filters
+  const [selectedExamId, setSelectedExamId] = useState('all');
+  const [selectedFolderId, setSelectedFolderId] = useState('all');
+  const [selectedChapterId, setSelectedChapterId] = useState('all');
+
+  // View Mode & Collapse State
+  const [viewMode, setViewMode] = useState('list'); // 'list' | 'grouped'
+  const [collapsedChapters, setCollapsedChapters] = useState(new Set());
+
+  // Dialogs & Actions
   const [dialog, setDialog] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
@@ -313,14 +469,111 @@ export default function QBankManager() {
     setLoading(false);
   };
   useEffect(() => { refresh().catch((loadError) => { setError(getContentErrorMessage(loadError, 'Unable to load the question bank.')); setLoading(false); }); }, []);
-  const subjects = [...new Set(questions.map((question) => question.subject).filter(Boolean))].sort();
+
+  // Maps for O(1) Hierarchy Lookups
+  const examsMap = useMemo(() => new Map((exams || []).map((e) => [e.id, e])), [exams]);
+  const foldersMap = useMemo(() => new Map((folders || []).map((f) => [f.id, f])), [folders]);
+  const chaptersMap = useMemo(() => new Map((chapters || []).map((c) => [c.id, c])), [chapters]);
+
+  // Precompute hierarchy lineage for every question
+  const questionHierarchyMap = useMemo(() => {
+    const map = new Map();
+    (questions || []).forEach((q) => {
+      map.set(q.id, getChapterHierarchyPath(q.chapter_id, chaptersMap, foldersMap, examsMap));
+    });
+    return map;
+  }, [questions, chaptersMap, foldersMap, examsMap]);
+
+  // Cascading Available Folders
+  const availableFolders = useMemo(() => {
+    let list = folders || [];
+    if (selectedExamId !== 'all') {
+      list = list.filter((f) => f.exam_id === selectedExamId);
+    }
+    return list.map((folder) => {
+      const pathParts = getFolderPath(folder, folders);
+      const examTitle = examsMap.get(folder.exam_id)?.title || '';
+      const fullPath = pathParts.map((p) => p.title).join(' / ');
+      return {
+        ...folder,
+        fullPath: selectedExamId === 'all' && examTitle ? `${examTitle} › ${fullPath}` : fullPath
+      };
+    }).sort((a, b) => a.fullPath.localeCompare(b.fullPath));
+  }, [folders, selectedExamId, examsMap]);
+
+  // Cascading Available Chapters
+  const availableChapters = useMemo(() => {
+    let list = chapters || [];
+    if (selectedFolderId !== 'all') {
+      const subFolderIds = new Set([selectedFolderId]);
+      let added = true;
+      while (added) {
+        added = false;
+        (folders || []).forEach((f) => {
+          const parentId = f.parent_folder_id || f.parent_id;
+          if (parentId && subFolderIds.has(parentId) && !subFolderIds.has(f.id)) {
+            subFolderIds.add(f.id);
+            added = true;
+          }
+        });
+      }
+      list = list.filter((c) => subFolderIds.has(c.folder_id));
+    } else if (selectedExamId !== 'all') {
+      const examFolderIds = new Set((folders || []).filter((f) => f.exam_id === selectedExamId).map((f) => f.id));
+      list = list.filter((c) => examFolderIds.has(c.folder_id));
+    }
+    return [...list].sort((a, b) => a.title.localeCompare(b.title));
+  }, [chapters, folders, selectedFolderId, selectedExamId]);
+
+  const subjects = useMemo(() => [...new Set(questions.map((question) => question.subject).filter(Boolean))].sort(), [questions]);
+
+  // Filtered Questions with full cascading logic
   const filteredQuestions = useMemo(() => questions.filter((question) => {
+    const hierarchy = questionHierarchyMap.get(question.id);
+
+    // Cascading hierarchy filters
+    if (selectedExamId !== 'all' && hierarchy?.examId !== selectedExamId) return false;
+    if (selectedFolderId !== 'all' && !hierarchy?.folderIds?.includes(selectedFolderId)) return false;
+    if (selectedChapterId !== 'all' && question.chapter_id !== selectedChapterId) return false;
+
+    // Status filter
+    if (statusFilter !== 'all' && (question.status || 'draft') !== statusFilter) return false;
+
+    // Option count filter
+    const optionCount = getOptionEntries(question.options).length;
+    if (optionCountFilter !== 'all' && optionCount !== Number(optionCountFilter)) return false;
+
+    // Subject & difficulty
     if (subject !== 'all' && question.subject !== subject) return false;
     if (difficulty !== 'all' && String(question.difficulty).toLowerCase() !== difficulty) return false;
+
+    // Search query matching question text, tags, subject, or breadcrumb path
     const query = search.trim().toLowerCase();
-    return !query || `${question.question_text?.en || question.question_text || ''} ${question.question_text_hi || ''} ${question.subject || ''} ${question.tags || ''}`.toLowerCase().includes(query);
-  }), [questions, subject, difficulty, search]);
-  const chapterTitle = (chapterId) => chapters.find((chapter) => chapter.id === chapterId)?.title || 'Unmapped chapter';
+    if (!query) return true;
+
+    const searchableText = `${question.question_text?.en || question.question_text || ''} ${question.question_text_hi || ''} ${question.subject || ''} ${question.tags || ''} ${hierarchy?.breadcrumb || ''}`.toLowerCase();
+    return searchableText.includes(query);
+  }), [questions, questionHierarchyMap, selectedExamId, selectedFolderId, selectedChapterId, statusFilter, optionCountFilter, subject, difficulty, search]);
+
+  // Chapter-Grouped questions mapping
+  const chapterGroups = useMemo(() => {
+    const groups = new Map();
+    filteredQuestions.forEach((question) => {
+      const h = questionHierarchyMap.get(question.id);
+      const groupKey = h?.chapterId || 'unassigned';
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, {
+          chapterId: h?.chapterId || null,
+          chapterTitle: h?.chapterTitle || 'Unassigned Questions',
+          breadcrumb: h?.breadcrumb || 'Unassigned Chapter',
+          isUnassigned: Boolean(h?.isUnassigned),
+          questions: []
+        });
+      }
+      groups.get(groupKey).questions.push(question);
+    });
+    return Array.from(groups.values());
+  }, [filteredQuestions, questionHierarchyMap]);
 
   const allFilteredSelected = filteredQuestions.length > 0 && filteredQuestions.every((q) => selectedQuestionIds.includes(q.id));
   const someFilteredSelected = filteredQuestions.some((q) => selectedQuestionIds.includes(q.id));
@@ -354,54 +607,108 @@ export default function QBankManager() {
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (!selectedQuestionIds.length || !supabase) return;
-    const count = selectedQuestionIds.length;
-    if (!window.confirm(`Are you sure you want to permanently delete ${count} selected question${count === 1 ? '' : 's'}? This action cannot be undone.`)) {
-      return;
-    }
+  const checkLinkedTests = async (questionIds) => {
+    if (!questionIds.length || !supabase) return [];
+    const { data: links, error: linksError } = await supabase
+      .from('test_questions')
+      .select('test_id, question_id')
+      .in('question_id', questionIds);
+    if (linksError) throw linksError;
+    if (!links || !links.length) return [];
+
+    const testIds = [...new Set(links.map((link) => link.test_id))];
+    const { data: testsData, error: testsError } = await supabase
+      .from('tests')
+      .select('id, title, status')
+      .in('id', testIds);
+    if (testsError) throw testsError;
+
+    return (testsData || []).map((test) => {
+      const linkedQuestionsCount = links.filter((link) => link.test_id === test.id).length;
+      return { ...test, linkedQuestionsCount };
+    });
+  };
+
+  const handleDeleteQuestions = async (targetIds) => {
+    if (!targetIds || !targetIds.length || !supabase) return false;
     setBulkBusy(true);
     setError('');
+
     try {
+      const linkedTests = await checkLinkedTests(targetIds);
+      const activeStatuses = ['published', 'scheduled', 'live', 'available'];
+      const activeTests = linkedTests.filter((test) =>
+        activeStatuses.includes(String(test.status || '').toLowerCase())
+      );
+
+      const count = targetIds.length;
+      let confirmMessage = '';
+
+      if (linkedTests.length > 0) {
+        const testList = linkedTests
+          .map((t) => `• "${t.title}" (${t.status || 'draft'}${activeStatuses.includes(String(t.status || '').toLowerCase()) ? ' - ACTIVE' : ''})`)
+          .slice(0, 6)
+          .join('\n');
+        const moreSuffix = linkedTests.length > 6 ? `\n...and ${linkedTests.length - 6} more test(s)` : '';
+
+        confirmMessage =
+          `⚠️ WARNING: ${count === 1 ? 'This question is' : `${count} questions are`} currently linked to ${linkedTests.length} test(s)` +
+          (activeTests.length > 0 ? ` (${activeTests.length} active test${activeTests.length === 1 ? '' : 's'} affected):` : ':') +
+          `\n\n${testList}${moreSuffix}\n\n` +
+          `Deleting ${count === 1 ? 'this question' : 'these questions'} will permanently delete ${count === 1 ? 'it' : 'them'} from the Question Bank and automatically remove ${count === 1 ? 'it' : 'them'} from all linked tests.\n\n` +
+          `Are you sure you want to proceed with deletion?`;
+      } else {
+        confirmMessage = `Are you sure you want to permanently delete ${count} question${count === 1 ? '' : 's'}? This action cannot be undone.`;
+      }
+
+      if (!window.confirm(confirmMessage)) {
+        return false;
+      }
+
       const { error: deleteError } = await supabase
         .from('questions')
         .delete()
-        .in('id', selectedQuestionIds);
+        .in('id', targetIds);
       if (deleteError) throw deleteError;
+
+      const deletedSet = new Set(targetIds);
+      setSelectedQuestionIds((current) => current.filter((id) => !deletedSet.has(id)));
       await refresh();
-      setSelectedQuestionIds([]);
+      return true;
     } catch (err) {
-      setError(getContentErrorMessage(err, 'Unable to delete selected questions.'));
+      setError(getContentErrorMessage(err, 'Unable to delete question(s).'));
+      return false;
     } finally {
       setBulkBusy(false);
     }
   };
 
-  return <div className="qbank-page">
-    <div className="page-heading"><div><div className="eyebrow">ADMINISTRATION / QUESTION OPERATIONS</div><h1>Question bank</h1><p>Author, review and organise reusable questions for tests and practice.</p></div><div className="qbank-heading-actions"><button className="button button-outline" onClick={() => setImportOpen(true)}><Upload size={15} /> Bulk import</button><button className="button button-gold" onClick={() => setDialog({ question: null })}><Plus size={15} /> Author question</button></div></div>
-    {error && <div className="feedback error-feedback">{error}</div>}
-    <div className="qbank-toolbar panel-card">
-      <label className="qbank-select-all-label">
-        <input
-          type="checkbox"
-          checked={allFilteredSelected}
-          ref={(el) => {
-            if (el) el.indeterminate = !allFilteredSelected && someFilteredSelected;
-          }}
-          onChange={toggleSelectAllFiltered}
-          disabled={!filteredQuestions.length}
-        />
-        <span>Select all ({filteredQuestions.length})</span>
-      </label>
-      <label className="content-search"><Search size={15} /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search question text, tags or topics…" /></label>
-      <label className="filter-select"><span>Subject</span><select className="text-input" value={subject} onChange={(event) => setSubject(event.target.value)}><option value="all">All subjects</option>{subjects.map((item) => <option key={item}>{item}</option>)}</select></label>
-      <label className="filter-select"><span>Difficulty</span><select className="text-input" value={difficulty} onChange={(event) => setDifficulty(event.target.value)}><option value="all">All levels</option><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></label>
-      <span className="qbank-result-count">{filteredQuestions.length} questions</span>
-    </div>
-    {loading || chaptersLoading ? <LoadingSkeleton rows={4} /> : !filteredQuestions.length ? <div className="empty-content qbank-empty"><FileQuestion size={25} /><strong>{questions.length ? 'No questions match those filters.' : 'Your question bank starts here.'}</strong><span>{questions.length ? 'Change your filters or search.' : 'Author a question or import a validated JSON or CSV batch.'}</span></div> : <div className="qbank-list">{filteredQuestions.map((question) => {
-      const options = getOptionEntries(question.options);
-      const text = typeof question.question_text === 'string' ? question.question_text : question.question_text?.en;
-      return <article className={`qbank-item panel-card ${selectedQuestionIds.includes(question.id) ? 'is-selected' : ''}`} key={question.id}>
+  const renderQuestionCard = (question) => {
+    const options = getOptionEntries(question.options);
+    const text = typeof question.question_text === 'string' ? question.question_text : question.question_text?.en;
+    const hierarchy = questionHierarchyMap.get(question.id) || { isUnassigned: true, breadcrumb: 'Unassigned Chapter', parts: [] };
+
+    return (
+      <article className={`qbank-item panel-card ${selectedQuestionIds.includes(question.id) ? 'is-selected' : ''}`} key={question.id}>
+        {/* Full Syllabus Lineage Breadcrumb at top of card */}
+        <div className="qbank-card-lineage">
+          {hierarchy.isUnassigned ? (
+            <span className="lineage-pill unassigned-pill" title="This question has no valid chapter assignment">
+              <AlertTriangle size={12} /> Unassigned Chapter
+            </span>
+          ) : (
+            <span className="lineage-pill" title={hierarchy.breadcrumb}>
+              <Layers size={12} className="lineage-icon" />
+              {hierarchy.parts.map((part, pIdx) => (
+                <span key={part.id || pIdx} className="lineage-crumb">
+                  {pIdx > 0 && <span className="lineage-separator">›</span>}
+                  <span className={`lineage-part lineage-${part.type}`}>{part.title}</span>
+                </span>
+              ))}
+            </span>
+          )}
+        </div>
+
         <div className="qbank-item-header">
           <div className="qbank-item-header-left">
             <label className="qbank-item-checkbox-label" title="Select question">
@@ -423,29 +730,311 @@ export default function QBankManager() {
               <span className="subject-pill">{question.subject || 'General'}</span>
               <span className={`difficulty-pill difficulty-${String(question.difficulty || 'medium').toLowerCase()}`}>{question.difficulty || 'medium'}</span>
               <span className={`content-status status-${question.status || 'draft'}`}>{question.status || 'draft'}</span>
+              <span className="options-count-pill">{options.length}-option</span>
             </div>
           </div>
-          <button className="button button-outline" onClick={() => setDialog({ question })}>Edit</button>
+          <div className="qbank-item-actions">
+            <button className="button button-outline" onClick={() => setDialog({ question })}>Edit</button>
+            <button
+              type="button"
+              className="button button-quiet qbank-delete-single-btn"
+              title="Delete question"
+              onClick={() => handleDeleteQuestions([question.id])}
+              disabled={bulkBusy}
+            >
+              <Trash2 size={13} />
+            </button>
+          </div>
         </div>
-        <h2>{text || 'Untitled question'}</h2>
-        {question.question_text_hi && <p className="qbank-hindi">{question.question_text_hi}</p>}
+
+        <div className="qbank-question-heading">
+          <QuestionFormatter text={text || 'Untitled question'} />
+        </div>
+        {question.question_text_hi && (
+          <div className="qbank-hindi mt-2">
+            <QuestionFormatter text={question.question_text_hi} />
+          </div>
+        )}
+
         <div className="qbank-item-meta">
-          <span><BookOpen size={13} /> {chapterTitle(question.chapter_id)}</span>
+          <span><BookOpen size={13} /> {hierarchy.isUnassigned ? 'Unassigned chapter' : hierarchy.chapterTitle}</span>
           <span>{options.length} options</span>
+          {question.tags && <span className="meta-tags">Tags: {Array.isArray(question.tags) ? question.tags.join(', ') : question.tags}</span>}
         </div>
+
         <div className="qbank-options-preview">
-          {options.map(([key, option]) => <span className={key === question.correct_answer ? 'is-answer' : ''} key={key}><b>{key}</b> {typeof option === 'string' ? option : option?.en || option?.text || ''}</span>)}
+          {options.map(([key, option]) => (
+            <span className={key === question.correct_answer ? 'is-answer' : ''} key={key}>
+              <b>{key}</b> {typeof option === 'string' ? option : option?.en || option?.text || ''}
+            </span>
+          ))}
         </div>
+
         <details className="admin-answer-preview">
           <summary>Answer & explanation <ChevronDown size={14} /></summary>
           <p><strong>Correct answer: {Array.isArray(question.correct_answer) ? question.correct_answer.join(', ') : question.correct_answer}</strong></p>
           <p>{question.explanation || 'No explanation has been added.'}</p>
-          {question.distractor_notes && Object.entries(question.distractor_notes).map(([key, note]) => <small key={key}>Option {key}: {note}</small>)}
+          {question.distractor_notes && Object.entries(question.distractor_notes).map(([key, note]) => (
+            <small key={key}>Option {key}: {note}</small>
+          ))}
         </details>
-      </article>;
-    })}</div>}
-    {dialog && <QuestionDialog question={dialog.question} chapters={chapters} onClose={() => setDialog(null)} onSaved={refresh} />}
-    {importOpen && <ImportDialog chapters={chapters} onClose={() => setImportOpen(false)} onImported={refresh} />}
+      </article>
+    );
+  };
+
+  return <div className="qbank-page">
+    <div className="page-heading">
+      <div>
+        <div className="eyebrow">ADMINISTRATION / QUESTION OPERATIONS</div>
+        <h1>Question bank</h1>
+        <p>Author, review and organise reusable questions for tests and practice.</p>
+      </div>
+      <div className="qbank-heading-actions">
+        <button className="button button-outline" onClick={() => setImportOpen(true)}><Upload size={15} /> Bulk import</button>
+        <button className="button button-gold" onClick={() => setDialog({ question: null })}><Plus size={15} /> Author question</button>
+      </div>
+    </div>
+
+    {error && <div className="feedback error-feedback">{error}</div>}
+
+    <div className="qbank-toolbar panel-card">
+      <div className="qbank-toolbar-primary">
+        <label className="qbank-select-all-label">
+          <input
+            type="checkbox"
+            checked={allFilteredSelected}
+            ref={(el) => {
+              if (el) el.indeterminate = !allFilteredSelected && someFilteredSelected;
+            }}
+            onChange={toggleSelectAllFiltered}
+            disabled={!filteredQuestions.length}
+          />
+          <span>Select all ({filteredQuestions.length})</span>
+        </label>
+        <label className="content-search">
+          <Search size={15} />
+          <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search questions, breadcrumbs, tags…" />
+        </label>
+        <div className="view-mode-toggle" role="group" aria-label="View mode">
+          <button
+            type="button"
+            className={`view-mode-btn ${viewMode === 'list' ? 'active' : ''}`}
+            onClick={() => setViewMode('list')}
+            title="List View"
+          >
+            <List size={13} /> <span>List</span>
+          </button>
+          <button
+            type="button"
+            className={`view-mode-btn ${viewMode === 'grouped' ? 'active' : ''}`}
+            onClick={() => setViewMode('grouped')}
+            title="Group by Chapter"
+          >
+            <LayoutGrid size={13} /> <span>Group by Chapter</span>
+          </button>
+        </div>
+        <span className="qbank-result-count">{filteredQuestions.length} questions</span>
+      </div>
+
+      <div className="qbank-toolbar-cascade">
+        {/* Exam */}
+        <label className="filter-select">
+          <span>Exam</span>
+          <select
+            className="text-input"
+            value={selectedExamId}
+            onChange={(event) => {
+              setSelectedExamId(event.target.value);
+              setSelectedFolderId('all');
+              setSelectedChapterId('all');
+            }}
+          >
+            <option value="all">All exams</option>
+            {exams.map((exam) => (
+              <option value={exam.id} key={exam.id}>{exam.title}</option>
+            ))}
+          </select>
+        </label>
+
+        {/* Folder / Sub-folder */}
+        <label className="filter-select">
+          <span>Folder</span>
+          <select
+            className="text-input"
+            value={selectedFolderId}
+            onChange={(event) => {
+              setSelectedFolderId(event.target.value);
+              setSelectedChapterId('all');
+            }}
+          >
+            <option value="all">All folders</option>
+            {availableFolders.map((folder) => (
+              <option value={folder.id} key={folder.id}>{folder.fullPath}</option>
+            ))}
+          </select>
+        </label>
+
+        {/* Chapter */}
+        <label className="filter-select">
+          <span>Chapter</span>
+          <select
+            className="text-input"
+            value={selectedChapterId}
+            onChange={(event) => setSelectedChapterId(event.target.value)}
+          >
+            <option value="all">All chapters</option>
+            {availableChapters.map((chapter) => (
+              <option value={chapter.id} key={chapter.id}>{chapter.title}</option>
+            ))}
+          </select>
+        </label>
+
+        {/* Status */}
+        <label className="filter-select">
+          <span>Status</span>
+          <select className="text-input" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <option value="all">All statuses</option>
+            <option value="published">Published</option>
+            <option value="draft">Draft</option>
+            <option value="review">Review</option>
+          </select>
+        </label>
+
+        {/* Options pattern */}
+        <label className="filter-select">
+          <span>Options</span>
+          <select className="text-input" value={optionCountFilter} onChange={(event) => setOptionCountFilter(event.target.value)}>
+            <option value="all">All options</option>
+            <option value="4">4-option</option>
+            <option value="5">5-option</option>
+          </select>
+        </label>
+
+        {/* Subject */}
+        <label className="filter-select">
+          <span>Subject</span>
+          <select className="text-input" value={subject} onChange={(event) => setSubject(event.target.value)}>
+            <option value="all">All subjects</option>
+            {subjects.map((item) => <option key={item}>{item}</option>)}
+          </select>
+        </label>
+
+        {/* Difficulty */}
+        <label className="filter-select">
+          <span>Difficulty</span>
+          <select className="text-input" value={difficulty} onChange={(event) => setDifficulty(event.target.value)}>
+            <option value="all">All levels</option>
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    {loading || chaptersLoading ? (
+      <LoadingSkeleton rows={4} />
+    ) : !filteredQuestions.length ? (
+      <div className="empty-content qbank-empty">
+        <FileQuestion size={25} />
+        <strong>{questions.length ? 'No questions match those filters.' : 'Your question bank starts here.'}</strong>
+        <span>{questions.length ? 'Change your filters or search.' : 'Author a question or import a validated JSON or CSV batch.'}</span>
+      </div>
+    ) : viewMode === 'grouped' ? (
+      <div className="qbank-grouped-container">
+        {chapterGroups.map((group) => {
+          const isCollapsed = collapsedChapters.has(group.chapterId || 'unassigned');
+          const groupQuestionIds = group.questions.map((q) => q.id);
+          const allInGroupSelected = groupQuestionIds.length > 0 && groupQuestionIds.every((id) => selectedQuestionIds.includes(id));
+          const someInGroupSelected = groupQuestionIds.some((id) => selectedQuestionIds.includes(id));
+
+          const toggleSelectAllInGroup = () => {
+            if (allInGroupSelected) {
+              const idSet = new Set(groupQuestionIds);
+              setSelectedQuestionIds((curr) => curr.filter((id) => !idSet.has(id)));
+            } else {
+              setSelectedQuestionIds((curr) => Array.from(new Set([...curr, ...groupQuestionIds])));
+            }
+          };
+
+          const toggleCollapse = () => {
+            setCollapsedChapters((curr) => {
+              const next = new Set(curr);
+              const key = group.chapterId || 'unassigned';
+              if (next.has(key)) next.delete(key);
+              else next.add(key);
+              return next;
+            });
+          };
+
+          return (
+            <section className="qbank-chapter-group panel-card" key={group.chapterId || 'unassigned'}>
+              <div className="chapter-group-header">
+                <button
+                  type="button"
+                  className="chapter-group-collapse-btn"
+                  onClick={toggleCollapse}
+                  aria-label={isCollapsed ? 'Expand chapter group' : 'Collapse chapter group'}
+                >
+                  {isCollapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                </button>
+                <label className="chapter-group-select-label" title="Select all in chapter">
+                  <input
+                    type="checkbox"
+                    className="qbank-item-checkbox"
+                    checked={allInGroupSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = !allInGroupSelected && someInGroupSelected;
+                    }}
+                    onChange={toggleSelectAllInGroup}
+                  />
+                  <span className="sr-only">Select all in chapter</span>
+                </label>
+                <div className="chapter-group-info" onClick={toggleCollapse} style={{ cursor: 'pointer' }}>
+                  <span className="chapter-group-breadcrumb">
+                    {group.isUnassigned ? (
+                      <span className="lineage-pill unassigned-pill"><AlertTriangle size={12} /> Unassigned Questions</span>
+                    ) : (
+                      <span className="lineage-pill"><BookOpen size={12} /> {group.breadcrumb}</span>
+                    )}
+                  </span>
+                </div>
+                <span className="chapter-group-count">{group.questions.length} question{group.questions.length === 1 ? '' : 's'}</span>
+              </div>
+
+              {!isCollapsed && (
+                <div className="chapter-group-questions">
+                  {group.questions.map((question) => renderQuestionCard(question))}
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+    ) : (
+      <div className="qbank-list">
+        {filteredQuestions.map((question) => renderQuestionCard(question))}
+      </div>
+    )}
+
+    {dialog && (
+      <QuestionDialog
+        question={dialog.question}
+        chapters={chapters}
+        onClose={() => setDialog(null)}
+        onSaved={refresh}
+        onDelete={handleDeleteQuestions}
+      />
+    )}
+
+    {importOpen && (
+      <ImportDialog
+        chapters={chapters}
+        onClose={() => setImportOpen(false)}
+        onImported={refresh}
+      />
+    )}
+
     {selectedQuestionIds.length > 0 && (
       <div className="qbank-bulk-bar" role="toolbar" aria-label="Bulk actions">
         <div className="bulk-bar-info">
@@ -476,7 +1065,7 @@ export default function QBankManager() {
             type="button"
             className="button button-danger"
             disabled={bulkBusy}
-            onClick={handleBulkDelete}
+            onClick={() => handleDeleteQuestions(selectedQuestionIds)}
           >
             <Trash2 size={14} /> Delete Selected
           </button>

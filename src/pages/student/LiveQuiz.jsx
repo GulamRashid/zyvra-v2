@@ -1,10 +1,42 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, ChevronLeft, ChevronRight, Clock3, Flag, Grid3X3, ListChecks, LoaderCircle, LockKeyhole, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  Award,
+  Check,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  CircleX,
+  Clock3,
+  Flag,
+  Grid3X3,
+  Info,
+  ListChecks,
+  LoaderCircle,
+  LockKeyhole,
+  Pause,
+  Play,
+  Target,
+  X
+} from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import MathRenderer from '../../components/common/MathRenderer';
-import { getOptionEntries, getQuestionText, normalizeRpcObject, sanitizeLiveQuestion, unwrapRpcPayload } from '../../lib/tests';
+import QuestionFormatter from '../../components/common/QuestionFormatter';
+import {
+  TEST_PATTERNS,
+  extractLocalizedDistractorNote,
+  extractLocalizedExplanation,
+  getOptionEntries,
+  getQuestionText,
+  hasDevanagari,
+  hasLatin,
+  normalizeRpcObject,
+  sanitizeLiveQuestion,
+  unwrapRpcPayload
+} from '../../lib/tests';
 import { translateText } from '../../lib/translator';
 
 const pendingAttemptStarts = new Map();
@@ -42,32 +74,199 @@ function getStoredHindi(value) {
   return value && typeof value === 'object' ? value.hi || value.text_hi || '' : '';
 }
 
+function formatTime(seconds) {
+  const safeSecs = Math.max(0, Number(seconds) || 0);
+  const hrs = Math.floor(safeSecs / 3600);
+  const mins = Math.floor((safeSecs % 3600) / 60);
+  const secs = safeSecs % 60;
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+function getPatternLabel(patternValue) {
+  const found = TEST_PATTERNS.find((item) => item.value === patternValue);
+  return found ? found.label : patternValue || 'Standard 4-Option';
+}
+
+function formatInline(str) {
+  if (!str) return '';
+  const parts = str.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
+
+function FormattedInstructions({ text }) {
+  if (!text || !text.trim()) {
+    return (
+      <div className="instructions-default-body">
+        <h4 className="instructions-h4">General Instructions</h4>
+        <ul className="instructions-list">
+          <li>The countdown timer at the top indicates the remaining time available for completing the exam.</li>
+          <li>The Question Palette displayed on the right shows the status of every question using distinct CBT colors.</li>
+          <li>Click any question number in the palette to navigate to that question directly.</li>
+          <li>Click an option to select your answer. You can change your selection or click <strong>Clear response</strong> anytime.</li>
+          <li>Click <strong>Mark for review</strong> if you wish to flag a question and revisit it before final submission.</li>
+          <li>You may pause your exam and resume later without losing your responses or remaining time.</li>
+        </ul>
+      </div>
+    );
+  }
+
+  const lines = text.split('\n');
+  const elements = [];
+  let currentList = null;
+  let listKey = 0;
+
+  const flushList = () => {
+    if (currentList) {
+      if (currentList.type === 'ul') {
+        elements.push(
+          <ul key={`list-${listKey++}`} className="instructions-list">
+            {currentList.items.map((item, idx) => (
+              <li key={idx}>{formatInline(item)}</li>
+            ))}
+          </ul>
+        );
+      } else {
+        elements.push(
+          <ol key={`list-${listKey++}`} className="instructions-list ordered">
+            {currentList.items.map((item, idx) => (
+              <li key={idx}>{formatInline(item)}</li>
+            ))}
+          </ol>
+        );
+      }
+      currentList = null;
+    }
+  };
+
+  lines.forEach((rawLine, index) => {
+    const line = rawLine.trim();
+    if (!line) {
+      flushList();
+      return;
+    }
+
+    if (line.startsWith('### ')) {
+      flushList();
+      elements.push(<h4 key={index} className="instructions-h4">{formatInline(line.slice(4))}</h4>);
+    } else if (line.startsWith('## ')) {
+      flushList();
+      elements.push(<h3 key={index} className="instructions-h3">{formatInline(line.slice(3))}</h3>);
+    } else if (line.startsWith('# ')) {
+      flushList();
+      elements.push(<h2 key={index} className="instructions-h2">{formatInline(line.slice(2))}</h2>);
+    } else if (line.startsWith('- ') || line.startsWith('* ')) {
+      if (!currentList || currentList.type !== 'ul') {
+        flushList();
+        currentList = { type: 'ul', items: [] };
+      }
+      currentList.items.push(line.slice(2));
+    } else if (/^\d+\.\s*/.test(line)) {
+      if (!currentList || currentList.type !== 'ol') {
+        flushList();
+        currentList = { type: 'ol', items: [] };
+      }
+      currentList.items.push(line.replace(/^\d+\.\s*/, ''));
+    } else {
+      flushList();
+      elements.push(<p key={index} className="instructions-p">{formatInline(line)}</p>);
+    }
+  });
+
+  flushList();
+
+  return <div className="instructions-parsed-body">{elements}</div>;
+}
+
+function PaletteLegend({ compact = false }) {
+  return (
+    <div className={`cbt-palette-legend ${compact ? 'compact' : ''}`}>
+      <div className="legend-item">
+        <span className="legend-badge answered">1</span>
+        <div className="legend-text">
+          <strong>Answered</strong>
+          {!compact && <span>You have answered the question.</span>}
+        </div>
+      </div>
+      <div className="legend-item">
+        <span className="legend-badge not-answered">2</span>
+        <div className="legend-text">
+          <strong>Not Answered</strong>
+          {!compact && <span>You have not answered the question.</span>}
+        </div>
+      </div>
+      <div className="legend-item">
+        <span className="legend-badge marked">3</span>
+        <div className="legend-text">
+          <strong>Marked for Review</strong>
+          {!compact && <span>Marked for review without an answer.</span>}
+        </div>
+      </div>
+      <div className="legend-item">
+        <span className="legend-badge answered-marked">
+          4<span className="eval-dot" />
+        </span>
+        <div className="legend-text">
+          <strong>Answered & Marked</strong>
+          {!compact && <span>Answered & marked for review (will be evaluated).</span>}
+        </div>
+      </div>
+      <div className="legend-item">
+        <span className="legend-badge not-visited">5</span>
+        <div className="legend-text">
+          <strong>Not Visited</strong>
+          {!compact && <span>You have not visited the question yet.</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LiveQuiz() {
   const { testId } = useParams();
   const { user, supabase } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [test, setTest] = useState(null);
+  const [totalQuestionCount, setTotalQuestionCount] = useState(0);
   const [attemptId, setAttemptId] = useState('');
   const [questions, setQuestions] = useState([]);
   const [responses, setResponses] = useState({});
+  const [visitedQuestions, setVisitedQuestions] = useState(new Set());
   const [currentIndex, setCurrentIndex] = useState(0);
   const [deadline, setDeadline] = useState(0);
   const [remaining, setRemaining] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [pausing, setPausing] = useState(false);
+  const [pauseError, setPauseError] = useState('');
   const [error, setError] = useState(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const [showPauseModal, setShowPauseModal] = useState(false);
+  const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+  const [declared, setDeclared] = useState(false);
+  const [startingTest, setStartingTest] = useState(false);
+  const [testPhase, setTestPhase] = useState('loading'); // 'loading' | 'instructions' | 'resume_prompt' | 'active'
+  const [pausedAttemptData, setPausedAttemptData] = useState(null);
+
   const submitLock = useRef(false);
   const [timeExpired, setTimeExpired] = useState(false);
   const [language, setLanguage] = useState('en');
   const [translatedData, setTranslatedData] = useState({});
   const [translatingQuestionId, setTranslatingQuestionId] = useState('');
   const inFlightTranslations = useRef(new Map());
+
   const question = questions?.[currentIndex] || null;
 
-  const returnTo = location.state?.returnTo || sessionStorage.getItem('last_quiz_return_url') || (test?.chapter_id ? `/chapter/${test.chapter_id}` : '/tests');
+  const returnTo = location.state?.returnTo
+    || sessionStorage.getItem('last_quiz_return_url')
+    || (test?.chapter_id ? `/chapter/${test.chapter_id}` : '/tests');
 
   useEffect(() => {
     if (location.state?.returnTo) {
@@ -77,8 +276,22 @@ export default function LiveQuiz() {
     }
   }, [location.state?.returnTo, test?.chapter_id]);
 
+  // Track visited questions automatically
+  useEffect(() => {
+    if (testPhase !== 'active' || !questions?.[currentIndex]?.id) return;
+    const currentQId = questions[currentIndex].id;
+    setVisitedQuestions((prev) => {
+      if (prev.has(currentQId)) return prev;
+      const next = new Set(prev);
+      next.add(currentQId);
+      return next;
+    });
+  }, [currentIndex, testPhase, questions]);
+
+  // Initial load: test details, incomplete attempt probe
   useEffect(() => {
     let active = true;
+
     const initialize = async () => {
       if (!user) {
         setError({
@@ -96,9 +309,14 @@ export default function LiveQuiz() {
         setLoading(false);
         return;
       }
-      const { data: testData, error: testError } = await supabase.from('tests')
-        .select('id,title,chapter_id,instructions,pattern,duration_minutes,attempt_limit,positive_marks,negative_marks,mandatory_option_e_penalty,coin_reward_enabled,status')
-        .eq('id', testId).maybeSingle();
+
+      // 1. Fetch test metadata
+      const { data: testData, error: testError } = await supabase
+        .from('tests')
+        .select('id,title,chapter_id,instructions,pattern,duration_minutes,attempt_limit,positive_marks,negative_marks,mandatory_option_e_penalty,coin_reward_enabled,solution_mode,status')
+        .eq('id', testId)
+        .maybeSingle();
+
       if (testError) throw testError;
       if (!testData || !['published', 'live', 'available'].includes(String(testData.status).toLowerCase())) {
         setError({
@@ -108,53 +326,112 @@ export default function LiveQuiz() {
         setLoading(false);
         return;
       }
-      const storageKey = `zyvra-active-attempt-${user.id}-${testId}`;
-      const savedAttempt = sessionStorage.getItem(storageKey);
-      let savedAttemptData = {};
-      if (savedAttempt) {
-        try {
-          savedAttemptData = JSON.parse(savedAttempt);
-        } catch {
-          savedAttemptData = { id: savedAttempt };
-        }
-      }
-      let activeAttemptId = savedAttemptData.id || '';
-      let attempt = {};
-      if (!activeAttemptId) {
-        const attemptData = await startAttemptOnce(supabase, testId, user.id);
-        activeAttemptId = getAttemptId(attemptData);
-        const attemptResponse = normalizeRpcObject(attemptData);
-        attempt = attemptResponse.attempt || attemptResponse;
-        if (!activeAttemptId) throw new Error('The server did not return an attempt ID. No quiz was started.');
-        savedAttemptData = { id: activeAttemptId, started_at: attempt.started_at || attempt.created_at || null };
-        sessionStorage.setItem(storageKey, JSON.stringify(savedAttemptData));
-      }
-      if (!active) return;
-      const { data: questionData, error: questionError } = await supabase.rpc('get_live_test_questions', {
-        p_test_id: testId,
-        p_attempt_id: activeAttemptId
-      });
-      if (questionError) throw questionError;
-      const payload = unwrapRpcPayload(questionData);
-      const questionRows = Array.isArray(payload) ? payload : payload?.questions;
-      const safeRows = Array.isArray(questionRows) ? questionRows : [];
-      const safeQuestions = safeRows.map(sanitizeLiveQuestion);
+
+      // 2. Fetch question count
+      const { count: qCount } = await supabase
+        .from('test_questions')
+        .select('id', { count: 'exact', head: true })
+        .eq('test_id', testId);
+
+      const totalCount = qCount || 0;
       if (active) {
         setTest(testData);
-        setAttemptId(activeAttemptId);
-        setQuestions(safeQuestions);
-        const savedResponses = sessionStorage.getItem(`zyvra-responses-${activeAttemptId}`);
-        if (savedResponses) {
-          try {
-            const parsedResponses = JSON.parse(savedResponses);
-            setResponses(parsedResponses && typeof parsedResponses === 'object' && !Array.isArray(parsedResponses) ? parsedResponses : {});
+        setTotalQuestionCount(totalCount);
+      }
+
+      // 3. Check for existing incomplete or paused attempt
+      const { data: existingAttempts } = await supabase
+        .from('test_attempts')
+        .select('id, test_id, user_id, status, started_at, completed_at, remaining_seconds, current_question_index, state_json, paused_at, created_at, updated_at')
+        .eq('user_id', user.id)
+        .eq('test_id', testId)
+        .is('completed_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const incomplete = existingAttempts?.[0] || null;
+
+      // Check localStorage backup
+      let localBackup = null;
+      try {
+        const rawLocal = localStorage.getItem(`zyvra-paused-attempt-${user.id}-${testId}`);
+        if (rawLocal) localBackup = JSON.parse(rawLocal);
+      } catch (_) {}
+
+      if (incomplete && incomplete.status !== 'completed' && incomplete.status !== 'submitted') {
+        // Paused or in-progress attempt found: pre-load questions and prompt resume
+        const activeAttemptId = incomplete.id;
+        const { data: questionData, error: questionError } = await supabase.rpc('get_live_test_questions', {
+          p_test_id: testId,
+          p_attempt_id: activeAttemptId
+        });
+
+        if (questionError) throw questionError;
+
+        const payload = unwrapRpcPayload(questionData);
+        const questionRows = Array.isArray(payload) ? payload : payload?.questions;
+        const safeRows = Array.isArray(questionRows) ? questionRows : [];
+        const safeQuestions = safeRows.map(sanitizeLiveQuestion);
+
+        if (testData?.solution_mode === 'immediate' && safeQuestions.length > 0) {
+          const qIds = safeQuestions.map((q) => q.id);
+          const { data: fullQuestions } = await supabase
+            .from('questions')
+            .select('id, correct_answer, explanation, explanation_hi, distractor_notes')
+            .in('id', qIds);
+
+          if (fullQuestions?.length) {
+            const map = new Map(fullQuestions.map((fq) => [fq.id, fq]));
+            safeQuestions.forEach((q) => {
+              const full = map.get(q.id);
+              if (full) {
+                if (full.correct_answer) q.correct_answer = full.correct_answer;
+                if (full.explanation) q.explanation = full.explanation;
+                if (full.explanation_hi) q.explanation_hi = full.explanation_hi;
+                if (full.distractor_notes) q.distractor_notes = full.distractor_notes;
+              }
+            });
           }
-          catch (parseError) { console.error('Unable to restore saved responses:', parseError); }
         }
-        const endAt = getDeadline(testData, attempt.started_at ? attempt : savedAttemptData);
-        setDeadline(endAt);
-        setRemaining(getRemaining(endAt));
-        setLoading(false);
+
+        if (active) {
+          setAttemptId(activeAttemptId);
+          setQuestions(safeQuestions);
+
+          // Restore state
+          const stateJson = incomplete.state_json || {};
+          const restoredResponses = stateJson.responses || localBackup?.responses || {};
+          const restoredIndex = incomplete.current_question_index ?? localBackup?.currentIndex ?? 0;
+          const restoredVisited = new Set(
+            stateJson.visitedQuestions || localBackup?.visitedQuestions || (safeQuestions[0]?.id ? [safeQuestions[0].id] : [])
+          );
+          const restoredRemaining = incomplete.remaining_seconds
+            ?? localBackup?.remainingSeconds
+            ?? getRemaining(getDeadline(testData, incomplete));
+
+          setResponses(restoredResponses);
+          setCurrentIndex(Math.min(restoredIndex, Math.max(0, safeQuestions.length - 1)));
+          setVisitedQuestions(restoredVisited);
+          setRemaining(restoredRemaining);
+          if (stateJson.language) setLanguage(stateJson.language);
+
+          setPausedAttemptData({
+            ...incomplete,
+            answeredCount: Object.values(restoredResponses).filter((r) => r?.selected_option).length,
+            remainingSeconds: restoredRemaining,
+            totalQuestions: safeQuestions.length,
+            lastSavedAt: incomplete.paused_at || incomplete.updated_at || incomplete.created_at
+          });
+
+          setTestPhase('resume_prompt');
+          setLoading(false);
+        }
+      } else {
+        // Fresh test attempt: show pre-test instructions screen before timer starts
+        if (active) {
+          setTestPhase('instructions');
+          setLoading(false);
+        }
       }
     };
 
@@ -169,22 +446,235 @@ export default function LiveQuiz() {
         setLoading(false);
       }
     });
-    return () => { active = false; };
+
+    return () => {
+      active = false;
+    };
   }, [testId, user, supabase]);
 
+  // Start fresh test attempt after declaration
+  const handleStartTest = async () => {
+    if (startingTest || !user || !supabase || !test) return;
+    setStartingTest(true);
+    setError(null);
+
+    try {
+      const attemptData = await startAttemptOnce(supabase, testId, user.id);
+      const activeAttemptId = getAttemptId(attemptData);
+      const attemptResponse = normalizeRpcObject(attemptData);
+      const attempt = attemptResponse.attempt || attemptResponse;
+
+      if (!activeAttemptId) {
+        throw new Error('The server did not return an attempt ID. No quiz was started.');
+      }
+
+      const { data: questionData, error: questionError } = await supabase.rpc('get_live_test_questions', {
+        p_test_id: testId,
+        p_attempt_id: activeAttemptId
+      });
+
+      if (questionError) throw questionError;
+
+      const payload = unwrapRpcPayload(questionData);
+      const questionRows = Array.isArray(payload) ? payload : payload?.questions;
+      const safeRows = Array.isArray(questionRows) ? questionRows : [];
+      const safeQuestions = safeRows.map(sanitizeLiveQuestion);
+
+      if (test?.solution_mode === 'immediate' && safeQuestions.length > 0) {
+        const qIds = safeQuestions.map((q) => q.id);
+        const { data: fullQuestions } = await supabase
+          .from('questions')
+          .select('id, correct_answer, explanation, explanation_hi, distractor_notes')
+          .in('id', qIds);
+
+        if (fullQuestions?.length) {
+          const map = new Map(fullQuestions.map((fq) => [fq.id, fq]));
+          safeQuestions.forEach((q) => {
+            const full = map.get(q.id);
+            if (full) {
+              if (full.correct_answer) q.correct_answer = full.correct_answer;
+              if (full.explanation) q.explanation = full.explanation;
+              if (full.explanation_hi) q.explanation_hi = full.explanation_hi;
+              if (full.distractor_notes) q.distractor_notes = full.distractor_notes;
+            }
+          });
+        }
+      }
+
+      setAttemptId(activeAttemptId);
+      setQuestions(safeQuestions);
+      setResponses({});
+      setCurrentIndex(0);
+      if (safeQuestions.length > 0) {
+        setVisitedQuestions(new Set([safeQuestions[0].id]));
+      }
+
+      const durationMinutes = Number(test.duration_minutes || 60);
+      const totalSecs = durationMinutes * 60;
+      const endAt = Date.now() + totalSecs * 1000;
+      setDeadline(endAt);
+      setRemaining(totalSecs);
+
+      // Save session marker
+      sessionStorage.setItem(
+        `zyvra-active-attempt-${user.id}-${testId}`,
+        JSON.stringify({ id: activeAttemptId, started_at: attempt.started_at || new Date().toISOString() })
+      );
+
+      setTestPhase('active');
+    } catch (startErr) {
+      console.error('Failed to start test attempt:', startErr);
+      setError({
+        message: 'Could not start examination. ' + (startErr.message || 'Please try again.'),
+        technical: startErr.message || String(startErr)
+      });
+    } finally {
+      setStartingTest(false);
+    }
+  };
+
+  // Resume paused test
+  const handleResumeTest = () => {
+    if (!remaining || !questions.length) return;
+    setError(null);
+    const endAt = Date.now() + Math.max(10, remaining) * 1000;
+    setDeadline(endAt);
+    setTestPhase('active');
+  };
+
+  // Pause test & save state
+  const pauseAndExit = async () => {
+    if (pausing || !attemptId || !supabase) return;
+    setPausing(true);
+    setPauseError('');
+
+    const statePayload = {
+      responses,
+      visitedQuestions: Array.from(visitedQuestions),
+      language,
+      currentIndex,
+      remainingSeconds: remaining,
+      savedAt: new Date().toISOString()
+    };
+
+    // 1. LocalStorage backup
+    try {
+      localStorage.setItem(
+        `zyvra-paused-attempt-${user?.id}-${testId}`,
+        JSON.stringify({ attemptId, ...statePayload })
+      );
+    } catch (err) {
+      console.error('Failed to write to localStorage:', err);
+    }
+
+    // 2. Supabase update
+    try {
+      const { error: updateError } = await supabase
+        .from('test_attempts')
+        .update({
+          status: 'paused',
+          remaining_seconds: remaining,
+          current_question_index: currentIndex,
+          state_json: statePayload,
+          paused_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', attemptId);
+
+      if (updateError) {
+        console.warn('Database update error on pause (proceeding with local save):', updateError);
+      }
+
+      sessionStorage.removeItem(`zyvra-active-attempt-${user?.id}-${testId}`);
+
+      navigate(returnTo, {
+        replace: true,
+        state: { notice: 'Test paused. Your responses and remaining time have been saved.' }
+      });
+    } catch (err) {
+      console.error('Error pausing attempt:', err);
+      setPauseError('Could not sync progress to cloud. Your progress is saved locally. You may still exit.');
+      setPausing(false);
+    }
+  };
+
+  // Periodic 15s background sync to Supabase
+  useEffect(() => {
+    if (!attemptId || !supabase || testPhase !== 'active' || submitting || pausing) return undefined;
+
+    const interval = window.setInterval(async () => {
+      try {
+        const statePayload = {
+          responses,
+          visitedQuestions: Array.from(visitedQuestions),
+          language,
+          currentIndex,
+          remainingSeconds: remaining,
+          savedAt: new Date().toISOString()
+        };
+
+        await supabase
+          .from('test_attempts')
+          .update({
+            status: 'in_progress',
+            remaining_seconds: remaining,
+            current_question_index: currentIndex,
+            state_json: statePayload,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', attemptId);
+      } catch (syncErr) {
+        console.debug('Background attempt sync note:', syncErr);
+      }
+    }, 15000);
+
+    return () => window.clearInterval(interval);
+  }, [attemptId, supabase, testPhase, submitting, pausing, responses, visitedQuestions, language, currentIndex, remaining]);
+
+  // Intercept browser back button & page unload
+  useEffect(() => {
+    if (testPhase !== 'active') return undefined;
+
+    const handleBeforeUnload = (event) => {
+      event.preventDefault();
+      event.returnValue = 'You have an active test. Your progress is saved, but are you sure you want to leave?';
+      return event.returnValue;
+    };
+
+    window.history.pushState(null, '', window.location.href);
+
+    const handlePopState = () => {
+      window.history.pushState(null, '', window.location.href);
+      setShowPauseModal(true);
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [testPhase]);
+
+  // Hindi translation on question change
   useEffect(() => {
     if (language !== 'hi' || !question) return undefined;
 
     const questionId = String(question.id || question.question_id || currentIndex);
     const entries = [];
-    const questionEnglish = question.question_text_en
+    const questionEnglish = (question.question_en && (hasLatin(question.question_en) || !hasDevanagari(question.question_en)) ? question.question_en : '')
+      || (question.question_text_en && (hasLatin(question.question_text_en) || !hasDevanagari(question.question_text_en)) ? question.question_text_en : '')
       || getQuestionText(question.question_text, 'en')
-      || question.text
+      || (typeof question.text === 'string' && !hasDevanagari(question.text) ? question.text : '')
       || '';
-    const questionHindi = question.question_text_hi
+    const questionHindi = (typeof question.question_text_hi === 'string' && question.question_text_hi.trim() ? question.question_text_hi : '')
+      || (typeof question.question_hi === 'string' && question.question_hi.trim() ? question.question_hi : '')
       || getStoredHindi(question.question_text)
-      || question.text_hi
+      || (typeof question.text_hi === 'string' && question.text_hi.trim() ? question.text_hi : '')
+      || (typeof question.question_text === 'string' && hasDevanagari(question.question_text) ? question.question_text : '')
       || '';
+
     if (!questionHindi && questionEnglish && !translatedData[questionId]?.question) {
       entries.push(['question', questionEnglish]);
     }
@@ -198,8 +688,9 @@ export default function LiveQuiz() {
         entries.push([`option:${key}`, optionEnglish]);
       }
     }
+
     if (!entries.length) {
-      setTranslatingQuestionId((current) => current === questionId ? '' : current);
+      setTranslatingQuestionId((current) => (current === questionId ? '' : current));
       return undefined;
     }
 
@@ -215,46 +706,71 @@ export default function LiveQuiz() {
       return request.then((value) => [field, value]);
     });
 
-    Promise.all(translations).then((values) => {
-      setTranslatedData((current) => ({
-        ...current,
-        [questionId]: { ...current[questionId], ...Object.fromEntries(values) }
-      }));
-    }).finally(() => {
-      setTranslatingQuestionId((current) => current === questionId ? '' : current);
-    });
+    Promise.all(translations)
+      .then((values) => {
+        setTranslatedData((current) => ({
+          ...current,
+          [questionId]: { ...current[questionId], ...Object.fromEntries(values) }
+        }));
+      })
+      .finally(() => {
+        setTranslatingQuestionId((current) => (current === questionId ? '' : current));
+      });
+
     return undefined;
   }, [language, question, currentIndex, translatedData]);
 
+  // Local storage auto-save on state change
   useEffect(() => {
     if (!attemptId) return;
     try {
       sessionStorage.setItem(`zyvra-responses-${attemptId}`, JSON.stringify(responses));
+      localStorage.setItem(
+        `zyvra-active-state-${attemptId}`,
+        JSON.stringify({
+          responses,
+          visitedQuestions: Array.from(visitedQuestions),
+          currentIndex,
+          remaining,
+          updatedAt: Date.now()
+        })
+      );
     } catch (storageError) {
       console.error('Unable to save in-progress responses locally:', storageError);
     }
-  }, [attemptId, responses]);
+  }, [attemptId, responses, visitedQuestions, currentIndex, remaining]);
 
+  // Submit test
   const submit = useCallback(async (expired = false) => {
     if (submitLock.current || !attemptId || !supabase) return;
     submitLock.current = true;
     setSubmitting(true);
     setError(null);
     setConfirmSubmit(false);
+    setShowPauseModal(false);
     if (expired) setTimeExpired(true);
-    const p_responses = questions.map((question) => ({
-      question_id: question.id,
-      selected_option: responses[question.id]?.selected_option || null,
-      marked_for_review: Boolean(responses[question.id]?.marked_for_review)
+
+    const p_responses = questions.map((q) => ({
+      question_id: q.id,
+      selected_option: responses[q.id]?.selected_option || null,
+      marked_for_review: Boolean(responses[q.id]?.marked_for_review)
     }));
+
     try {
       const { error: submitError } = await supabase.rpc('submit_test_attempt', {
         p_attempt_id: attemptId,
         p_responses
       });
+
       if (submitError) throw submitError;
-      if (user) sessionStorage.removeItem(`zyvra-active-attempt-${user.id}-${testId}`);
+
+      if (user) {
+        sessionStorage.removeItem(`zyvra-active-attempt-${user.id}-${testId}`);
+        localStorage.removeItem(`zyvra-paused-attempt-${user.id}-${testId}`);
+      }
       sessionStorage.removeItem(`zyvra-responses-${attemptId}`);
+      localStorage.removeItem(`zyvra-active-state-${attemptId}`);
+
       navigate(`/quiz/result/${attemptId}`, { replace: true, state: { returnTo } });
     } catch (submitError) {
       submitLock.current = false;
@@ -266,8 +782,10 @@ export default function LiveQuiz() {
     }
   }, [attemptId, supabase, questions, responses, user, testId, navigate, returnTo]);
 
+  // Countdown timer effect
   useEffect(() => {
-    if (!deadline || submitting) return undefined;
+    if (testPhase !== 'active' || !deadline || submitting || pausing) return undefined;
+
     const interval = window.setInterval(() => {
       const next = getRemaining(deadline);
       setRemaining(next);
@@ -276,29 +794,91 @@ export default function LiveQuiz() {
         submit(true);
       }
     }, 1000);
-    return () => window.clearInterval(interval);
-  }, [deadline, submitting, submit]);
 
-  const displayedQuestion = getQuestionText(question?.question_text, 'en') || question?.text || '';
+    return () => window.clearInterval(interval);
+  }, [testPhase, deadline, submitting, pausing, submit]);
+
   const questionId = String(question?.id || question?.question_id || currentIndex);
   const questionTranslations = translatedData[questionId] || {};
-  const questionHindi = question?.question_text_hi || getStoredHindi(question?.question_text) || question?.text_hi || questionTranslations.question;
-  const displayedQuestionText = language === 'hi' ? questionHindi || displayedQuestion : displayedQuestion;
+
+  // Strict English question resolution
+  const qEnCandidate = getQuestionText(question?.question_text, 'en')
+    || (question?.question_en && (hasLatin(question.question_en) || !hasDevanagari(question.question_en)) ? question.question_en : '')
+    || (question?.question_text_en && (hasLatin(question.question_text_en) || !hasDevanagari(question.question_text_en)) ? question.question_text_en : '')
+    || (typeof question?.text === 'string' && !hasDevanagari(question.text) ? question.text : '')
+    || (typeof question?.question_text === 'string' && !hasDevanagari(question.question_text) ? question.question_text : '');
+
+  const questionEnglish = qEnCandidate || (typeof question?.question_en === 'string' ? question.question_en : '') || question?.text || '';
+
+  // Strict Hindi question resolution
+  const qHiCandidate = (typeof question?.question_text_hi === 'string' && question.question_text_hi.trim() ? question.question_text_hi : '')
+    || (typeof question?.question_hi === 'string' && question.question_hi.trim() ? question.question_hi : '')
+    || getStoredHindi(question?.question_text)
+    || (typeof question?.text_hi === 'string' && question.text_hi.trim() ? question.text_hi : '')
+    || (typeof question?.question_text === 'string' && hasDevanagari(question.question_text) ? question.question_text : '')
+    || questionTranslations.question
+    || '';
+
+  const questionHindi = qHiCandidate || '';
+
+  // When language === 'en', strictly pick English text
+  // When language === 'hi', pick Hindi (or translation or fallback to English)
+  const displayedQuestionText = language === 'hi'
+    ? (questionHindi || questionEnglish)
+    : (questionEnglish || questionHindi);
   const optionEntries = useMemo(() => getOptionEntries(question?.options), [question]);
+
   const attemptedCount = Object.values(responses || {}).filter((response) => response?.selected_option).length;
   const markedCount = Object.values(responses || {}).filter((response) => response?.marked_for_review).length;
-  const formatTime = (seconds) => `${String(Math.floor(seconds / 3600)).padStart(2, '0')}:${String(Math.floor((seconds % 3600) / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-  const answer = (option) => setResponses((current) => ({ ...current, [question.id]: { ...current[question.id], selected_option: current[question.id]?.selected_option === option ? null : option } }));
-  const toggleReview = () => setResponses((current) => ({ ...current, [question.id]: { ...current[question.id], marked_for_review: !current[question.id]?.marked_for_review } }));
-  const clearResponse = () => setResponses((current) => ({ ...current, [question.id]: { ...current[question.id], selected_option: null } }));
-  const goTo = (index) => { setCurrentIndex(index); setPaletteOpen(false); };
+
+  const answer = (option) => {
+    setResponses((current) => ({
+      ...current,
+      [question.id]: {
+        ...current[question.id],
+        selected_option: current[question.id]?.selected_option === option ? null : option
+      }
+    }));
+  };
+
+  const toggleReview = () => {
+    setResponses((current) => ({
+      ...current,
+      [question.id]: {
+        ...current[question.id],
+        marked_for_review: !current[question.id]?.marked_for_review
+      }
+    }));
+  };
+
+  const clearResponse = () => {
+    setResponses((current) => ({
+      ...current,
+      [question.id]: { ...current[question.id], selected_option: null }
+    }));
+  };
+
+  const goTo = (index) => {
+    setCurrentIndex(index);
+    setPaletteOpen(false);
+  };
+
   const confirm = () => {
     if (remaining === 0) submit(true);
     else setConfirmSubmit(true);
   };
 
-  if (loading) return <main className="quiz-loading"><LoadingSkeleton rows={5} /></main>;
-  if (error && !questions?.length) {
+  // Loading Screen
+  if (loading) {
+    return (
+      <main className="quiz-loading">
+        <LoadingSkeleton rows={5} />
+      </main>
+    );
+  }
+
+  // Error Screen
+  if (error && !test) {
     const isObject = typeof error === 'object' && error !== null;
     const errorMessage = isObject ? error.message : error;
     const technicalError = isObject ? error.technical : '';
@@ -321,72 +901,789 @@ export default function LiveQuiz() {
       </main>
     );
   }
-  if (test && !questions?.length) return <main className="quiz-error-page"><div className="quiz-error-card"><div className="locked-icon"><ListChecks size={23} /></div><h1>Test not ready</h1><p>No questions available in this test yet.</p><Link className="button button-outline" to={test.chapter_id ? `/chapter/${test.chapter_id}` : '/tests'}><ArrowLeft size={15} /> Back to Chapter</Link></div></main>;
-  if (!test || !question) return <main className="quiz-error-page"><div className="quiz-error-card"><div className="locked-icon"><LockKeyhole size={23} /></div><h1>Question unavailable</h1><p>We could not load this question. Please return to the test list and try again.</p><Link className="button button-outline" to="/tests"><ArrowLeft size={15} /> Back to tests</Link></div></main>;
 
-  return <main className="live-quiz">
-    {paletteOpen && <button className="drawer-scrim quiz-scrim" aria-label="Close question palette" onClick={() => setPaletteOpen(false)} />}
-    <header className="quiz-header">
-      <Link to="/tests" className="quiz-brand"><img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" /><span>ZYVRA<span>TEST MODE</span></span></Link>
-      <div className="quiz-header-title"><strong>{test?.title}</strong><span>Question {currentIndex + 1} of {questions?.length || 0}</span></div>
-      <div className="quiz-header-actions">
-        <div className={`quiz-timer ${remaining < 300 ? 'timer-warning' : ''} px-2.5 py-1 text-xs font-mono font-semibold`} aria-live="polite"><Clock3 size={14} /><span className="text-xs font-mono font-semibold">{formatTime(remaining)}</span></div>
-        <button className="button button-gold quiz-submit-button hidden md:inline-flex" disabled={submitting} onClick={confirm}>{submitting ? 'Submitting…' : 'Submit test'}</button>
-        <button className="icon-button quiz-palette-toggle" onClick={() => setPaletteOpen(true)} aria-label="Open question palette"><Grid3X3 size={18} /></button>
-        <div className="native-language-toggle" role="group" aria-label="Test language">
-          <button type="button" className={language === 'en' ? 'active' : ''} aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>EN</button>
-          <button type="button" className={language === 'hi' ? 'active' : ''} aria-pressed={language === 'hi'} onClick={() => setLanguage('hi')}>HI</button>
-        </div>
-      </div>
-    </header>
-    <div className="quiz-instructions">{test?.instructions || 'Choose the best answer. You can mark questions for review and return to them before submitting.'}<span>{attemptedCount}/{questions?.length || 0} answered</span></div>
-    {timeExpired && <div className="feedback error-feedback quiz-feedback">Time is up. Your responses are being submitted.</div>}
-    {error && <div className="feedback error-feedback quiz-feedback">{typeof error === 'object' ? error.message : error}</div>}
-    <div className="quiz-body">
-      <section className="quiz-question-panel">
-        <div className="quiz-question-meta text-sm font-semibold"><span>QUESTION {String(currentIndex + 1).padStart(2, '0')}</span>{question?.subject && <span className="subject-pill text-xs font-semibold">{question.subject}</span>}{question?.topic && <span className="text-xs">{question.topic}</span>}</div>
-        <h1 className="quiz-question-text text-lg sm:text-xl font-medium leading-relaxed" lang={language} aria-busy={translatingQuestionId === questionId}><MathRenderer>{displayedQuestionText}</MathRenderer>{language === 'hi' && !questionHindi && translatingQuestionId === questionId && <LoaderCircle className="translation-inline-spinner" size={14} aria-label="Translating" />}</h1>
-        <div className="quiz-options">{optionEntries.map(([key, value]) => {
-          const text = getQuestionText(value, 'en') || getQuestionText(value?.text, 'en') || (typeof value === 'string' ? value : '');
-          const optionHindi = getStoredHindi(value) || questionTranslations[`option:${key}`];
-          const displayedOption = language === 'hi' ? optionHindi || text : text;
-          const selected = responses[question.id]?.selected_option === key;
-          return <button key={key} className={`quiz-option py-3.5 px-4 min-h-[56px] ${selected ? 'selected' : ''} ${key === 'E' ? 'option-e' : ''}`} onClick={() => answer(key)} aria-pressed={selected}><span className="quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-bold rounded-full">{key}</span><span className="quiz-option-text text-base sm:text-lg leading-relaxed"><span lang={language}><MathRenderer>{displayedOption}</MathRenderer>{language === 'hi' && !optionHindi && translatingQuestionId === questionId && <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />}</span></span><span className="quiz-option-check">{selected && <Check size={18} />}</span></button>;
-        })}</div>
-        <div className="quiz-question-actions"><button className={`review-toggle py-2 px-3 text-sm font-medium ${responses[question.id]?.marked_for_review ? 'marked' : ''}`} onClick={toggleReview}><Flag size={15} /> {responses[question.id]?.marked_for_review ? 'Marked for review' : 'Mark for review'}</button><button className="clear-response py-2 px-3 text-sm font-medium" onClick={clearResponse} disabled={!responses[question.id]?.selected_option}>Clear response</button></div>
-        <div className="quiz-navigation">
-          <button className="button button-outline min-h-[44px] px-4 text-sm font-medium" onClick={() => goTo(Math.max(0, currentIndex - 1))} disabled={!currentIndex}>
-            <ChevronLeft size={16} /> Previous
-          </button>
-          <span className="text-sm font-semibold">{currentIndex + 1} <small className="text-xs">/ {questions.length}</small></span>
-          {currentIndex === questions.length - 1 ? (
-            <button
-              type="button"
-              className="button button-gold min-h-[44px] px-5 text-sm font-bold shadow-md quiz-bottom-submit"
-              disabled={submitting}
-              onClick={confirm}
-            >
-              {submitting ? 'Submitting…' : 'Submit test'}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="button button-gold min-h-[44px] px-4 text-sm font-medium"
-              onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
-            >
-              Next <ChevronRight size={16} />
-            </button>
+  // PHASE 1: PRE-TEST INSTRUCTIONS SCREEN (Before Timer Starts)
+  if (testPhase === 'instructions') {
+    return (
+      <main className="quiz-instructions-screen">
+        <header className="instructions-header">
+          <Link to={returnTo} className="quiz-brand">
+            <img src="/logo.png" alt="Zyvra" className="w-8 h-8 rounded-xl object-contain shadow-sm" />
+            <span>ZYVRA<span>EXAM INSTRUCTIONS</span></span>
+          </Link>
+          <Link to={returnTo} className="button button-outline text-xs min-h-[36px]">
+            <ArrowLeft size={14} /> Exit to Tests
+          </Link>
+        </header>
+
+        <div className="instructions-container">
+          <div className="instructions-hero">
+            <div className="instructions-hero-title">
+              <div className="eyebrow">COMPUTER BASED TEST (CBT)</div>
+              <h1>{test?.title}</h1>
+              <div className="flex flex-wrap gap-2 items-center mt-1">
+                <span className="pattern-pill text-xs">{getPatternLabel(test?.pattern)}</span>
+                {test?.chapter_id && <span className="subject-pill text-xs">Chapter Test</span>}
+              </div>
+            </div>
+
+            <div className="instructions-stat-grid">
+              <div className="instruction-stat-card">
+                <Clock3 className="stat-icon text-gold" size={20} />
+                <div>
+                  <strong>{test?.duration_minutes || 60} Mins</strong>
+                  <span>Total Duration</span>
+                </div>
+              </div>
+              <div className="instruction-stat-card">
+                <Target className="stat-icon text-accent" size={20} />
+                <div>
+                  <strong>{totalQuestionCount || questions?.length || 0} Questions</strong>
+                  <span>Total Questions</span>
+                </div>
+              </div>
+              <div className="instruction-stat-card">
+                <Award className="stat-icon text-gold" size={20} />
+                <div>
+                  <strong>{((totalQuestionCount || questions?.length || 0) * (test?.positive_marks || 1)).toFixed(0)} Marks</strong>
+                  <span>Maximum Score</span>
+                </div>
+              </div>
+              <div className="instruction-stat-card">
+                <ListChecks className="stat-icon text-text" size={20} />
+                <div>
+                  <strong>+{test?.positive_marks ?? 1} / -{test?.negative_marks ?? 0}</strong>
+                  <span>Marking Scheme</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {test?.mandatory_option_e_penalty && (
+            <div className="bpsc-notice-banner">
+              <AlertTriangle size={18} className="text-gold flex-shrink-0" />
+              <div>
+                <strong>BPSC Mandatory Option E Rule Active:</strong>
+                <span> Leaving both an answer and Option E unselected carries a negative penalty of -{test.negative_marks} marks. If unsure, select Option E to avoid penalty.</span>
+              </div>
+            </div>
           )}
+
+          <div className="instructions-main-panel">
+            <section className="instructions-content-section">
+              <h2 className="instructions-section-title">
+                <Info size={18} className="text-gold" /> Please Read The Instructions Carefully
+              </h2>
+              <div className="instructions-scrollable">
+                <FormattedInstructions text={test?.instructions} />
+              </div>
+            </section>
+
+            <section className="instructions-legend-section">
+              <h3 className="instructions-section-title">
+                <Grid3X3 size={18} className="text-gold" /> Question Palette Symbol Guide
+              </h3>
+              <PaletteLegend compact={false} />
+            </section>
+          </div>
+
+          <div className="instructions-declaration-card">
+            <div className="declaration-language-select">
+              <span className="font-semibold text-sm">Default Test Language:</span>
+              <div className="native-language-toggle">
+                <button
+                  type="button"
+                  className={language === 'en' ? 'active' : ''}
+                  onClick={() => setLanguage('en')}
+                >
+                  English (EN)
+                </button>
+                <button
+                  type="button"
+                  className={language === 'hi' ? 'active' : ''}
+                  onClick={() => setLanguage('hi')}
+                >
+                  Hindi (हिंदी)
+                </button>
+              </div>
+            </div>
+
+            <label className="declaration-checkbox-label">
+              <input
+                type="checkbox"
+                checked={declared}
+                onChange={(e) => setDeclared(e.target.checked)}
+              />
+              <span>
+                I have read and understood all the instructions above. All computer hardware allotted to me is in proper working condition. I declare that I will strictly follow all rules and regulations of this examination.
+              </span>
+            </label>
+
+            {error && (
+              <div className="feedback error-feedback mt-3">
+                {typeof error === 'object' ? error.message : error}
+              </div>
+            )}
+
+            <div className="declaration-footer">
+              <Link to={returnTo} className="button button-outline">
+                Cancel & Exit
+              </Link>
+              <button
+                type="button"
+                className="button button-gold start-test-btn"
+                disabled={!declared || startingTest}
+                onClick={handleStartTest}
+              >
+                {startingTest ? (
+                  <>
+                    <LoaderCircle className="animate-spin" size={16} /> Preparing Test…
+                  </>
+                ) : (
+                  <>
+                    <Play size={16} /> I Am Ready To Begin (Start Test)
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
-      </section>
-      <aside className={`quiz-palette ${paletteOpen ? 'palette-open' : ''}`}><div className="palette-heading"><div><div className="eyebrow">YOUR PROGRESS</div><h2>Question palette</h2></div><button className="icon-button palette-close" onClick={() => setPaletteOpen(false)} aria-label="Close palette"><X size={18} /></button></div><div className="palette-legend"><span><i className="legend-attempted" /> Answered</span><span><i className="legend-unattempted" /> Unanswered</span><span><i className="legend-marked" /> Review</span><span><i className="legend-option-e" /> Option E</span></div><div className="palette-grid">{questions.map((item, index) => {
-        const response = responses[item.id];
-        const isOptionE = response?.selected_option === 'E';
-        const state = response?.marked_for_review ? 'marked' : isOptionE ? 'option-e' : response?.selected_option ? 'attempted' : 'unattempted';
-        return <button key={item.id} className={`palette-number ${state} ${isOptionE ? 'option-e-selected' : ''} ${currentIndex === index ? 'current' : ''}`} onClick={() => goTo(index)} aria-label={`Question ${index + 1}: ${state}${isOptionE ? ', Option E selected' : ''}`} title={`Question ${index + 1} — ${state}${isOptionE ? ', Option E selected' : ''}`}>{index + 1}</button>;
-      })}</div><div className="palette-summary"><span><Check size={14} /> {attemptedCount} answered</span><span><Flag size={14} /> {markedCount} for review</span></div><div className="palette-footer"><span>{questions.length - attemptedCount} unanswered</span><button className="button button-gold" onClick={confirm}>Submit test</button></div></aside>
-    </div>
-    {confirmSubmit && <div className="modal-backdrop"><section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="submit-confirm-title"><button className="modal-close" onClick={() => setConfirmSubmit(false)} aria-label="Close"><X size={18} /></button><div className="locked-icon"><ListChecks size={22} /></div><h2 id="submit-confirm-title">Submit your test?</h2><p>You have answered {attemptedCount} of {questions.length} questions and marked {markedCount} for review. Unanswered questions will be submitted blank.</p>{error && <div className="feedback error-feedback">{typeof error === 'object' ? error.message : error}</div>}<div className="modal-actions"><button className="button button-outline" onClick={() => setConfirmSubmit(false)}>Continue test</button><button className="button button-gold" disabled={submitting} onClick={() => submit(false)}>{submitting ? 'Submitting…' : 'Submit test'}</button></div></section></div>}
-    {submitting && <div className="quiz-submitting-overlay"><div className="quiz-submit-spinner" /><span>Submitting your responses securely…</span></div>}
-  </main>;
+      </main>
+    );
+  }
+
+  // PHASE 2: RESUME PROMPT SCREEN (Incomplete Attempt Detected)
+  if (testPhase === 'resume_prompt') {
+    return (
+      <main className="quiz-instructions-screen resume-prompt-screen">
+        <header className="instructions-header">
+          <Link to={returnTo} className="quiz-brand">
+            <img src="/logo.png" alt="Zyvra" className="w-8 h-8 rounded-xl object-contain shadow-sm" />
+            <span>ZYVRA<span>RESUME TEST</span></span>
+          </Link>
+          <Link to={returnTo} className="button button-outline text-xs min-h-[36px]">
+            <ArrowLeft size={14} /> Exit to Tests
+          </Link>
+        </header>
+
+        <div className="instructions-container resume-container">
+          <div className="resume-hero-card">
+            <div className="resume-icon-badge">
+              <Clock3 size={32} className="text-gold" />
+            </div>
+            <h2>Incomplete Test Attempt Detected</h2>
+            <p>
+              You have a previously paused attempt for <strong>{test?.title}</strong>. Your responses, question progress, and remaining time are preserved.
+            </p>
+
+            <div className="resume-stats-grid">
+              <div className="resume-stat">
+                <span className="stat-label">Time Remaining</span>
+                <strong className="stat-value text-gold">{formatTime(remaining)}</strong>
+              </div>
+              <div className="resume-stat">
+                <span className="stat-label">Answered</span>
+                <strong className="stat-value text-green">{attemptedCount} of {questions.length}</strong>
+              </div>
+              <div className="resume-stat">
+                <span className="stat-label">Marked for Review</span>
+                <strong className="stat-value text-purple">{markedCount}</strong>
+              </div>
+              <div className="resume-stat">
+                <span className="stat-label">Resume From</span>
+                <strong className="stat-value">Question {currentIndex + 1}</strong>
+              </div>
+            </div>
+
+            <div className="resume-actions">
+              <button
+                type="button"
+                className="button button-gold resume-btn-large"
+                onClick={handleResumeTest}
+              >
+                <Play size={18} /> Resume Test Now
+              </button>
+
+              <div className="resume-secondary-actions">
+                <button
+                  type="button"
+                  className="button button-outline text-xs"
+                  onClick={() => setShowInstructionsModal(true)}
+                >
+                  <Info size={14} /> View Instructions
+                </button>
+                <button
+                  type="button"
+                  className="button button-danger text-xs"
+                  onClick={() => setConfirmSubmit(true)}
+                >
+                  Submit Current Attempt
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal: Instructions */}
+        {showInstructionsModal && (
+          <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="instructions-modal-title">
+            <section className="instructions-modal">
+              <div className="instructions-modal-header">
+                <div className="flex items-center gap-2">
+                  <Info className="text-gold" size={20} />
+                  <h2 id="instructions-modal-title" className="text-base font-bold">Exam Instructions</h2>
+                </div>
+                <button className="modal-close" onClick={() => setShowInstructionsModal(false)} aria-label="Close instructions">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="instructions-modal-body">
+                <FormattedInstructions text={test?.instructions} />
+                <h3 className="text-sm font-bold mt-4 mb-2 text-text">Question Palette Legend</h3>
+                <PaletteLegend compact={false} />
+              </div>
+              <div className="instructions-modal-footer">
+                <button type="button" className="button button-gold" onClick={() => setShowInstructionsModal(false)}>
+                  Close
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* Modal: Confirm Submit */}
+        {confirmSubmit && (
+          <div className="modal-backdrop">
+            <section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="submit-confirm-title">
+              <button className="modal-close" onClick={() => setConfirmSubmit(false)} aria-label="Close">
+                <X size={18} />
+              </button>
+              <div className="locked-icon"><ListChecks size={22} /></div>
+              <h2 id="submit-confirm-title">Submit your test?</h2>
+              <p>You have answered {attemptedCount} of {questions.length} questions and marked {markedCount} for review. Unanswered questions will be submitted blank.</p>
+              {error && <div className="feedback error-feedback">{typeof error === 'object' ? error.message : error}</div>}
+              <div className="modal-actions">
+                <button className="button button-outline" onClick={() => setConfirmSubmit(false)}>Cancel</button>
+                <button className="button button-gold" disabled={submitting} onClick={() => submit(false)}>
+                  {submitting ? 'Submitting…' : 'Confirm Submission'}
+                </button>
+              </div>
+            </section>
+          </div>
+        )}
+      </main>
+    );
+  }
+
+  // Not ready fallback
+  if (test && !questions?.length) {
+    return (
+      <main className="quiz-error-page">
+        <div className="quiz-error-card">
+          <div className="locked-icon"><ListChecks size={23} /></div>
+          <h1>Test not ready</h1>
+          <p>No questions available in this test yet.</p>
+          <Link className="button button-outline" to={test.chapter_id ? `/chapter/${test.chapter_id}` : '/tests'}>
+            <ArrowLeft size={15} /> Back to Chapter
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (!test || !question) {
+    return (
+      <main className="quiz-error-page">
+        <div className="quiz-error-card">
+          <div className="locked-icon"><LockKeyhole size={23} /></div>
+          <h1>Question unavailable</h1>
+          <p>We could not load this question. Please return to the test list and try again.</p>
+          <Link className="button button-outline" to="/tests">
+            <ArrowLeft size={15} /> Back to tests
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  // PHASE 3: ACTIVE CBT RUNNER
+  return (
+    <main className="live-quiz">
+      {paletteOpen && (
+        <button
+          className="drawer-scrim quiz-scrim"
+          aria-label="Close question palette"
+          onClick={() => setPaletteOpen(false)}
+        />
+      )}
+
+      {/* CBT Header */}
+      <header className="quiz-header">
+        <Link to="/tests" className="quiz-brand">
+          <img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" />
+          <span>ZYVRA<span>TEST MODE</span></span>
+        </Link>
+
+        <div className="quiz-header-title">
+          <strong>{test?.title}</strong>
+          <span>Question {currentIndex + 1} of {questions?.length || 0}</span>
+        </div>
+
+        <div className="quiz-header-actions">
+          {/* Countdown Timer */}
+          <div
+            className={`quiz-timer ${remaining < 300 ? 'timer-warning' : ''} px-2.5 py-1 text-xs font-mono font-semibold`}
+            aria-live="polite"
+          >
+            <Clock3 size={14} />
+            <span className="text-xs font-mono font-semibold">{formatTime(remaining)}</span>
+          </div>
+
+          {/* Info Button: View Instructions */}
+          <button
+            type="button"
+            className="icon-button quiz-info-button"
+            onClick={() => setShowInstructionsModal(true)}
+            title="View Exam Instructions"
+            aria-label="View exam instructions"
+          >
+            <Info size={17} />
+          </button>
+
+          {/* Pause / Exit Button */}
+          <button
+            type="button"
+            className="button button-outline quiz-pause-button"
+            onClick={() => setShowPauseModal(true)}
+            title="Pause and resume later"
+            aria-label="Pause test"
+          >
+            <Pause size={14} />
+            <span className="hidden sm:inline">Pause / Exit</span>
+          </button>
+
+          {/* Language Switcher */}
+          <div className="native-language-toggle" role="group" aria-label="Test language">
+            <button
+              type="button"
+              className={language === 'en' ? 'active' : ''}
+              aria-pressed={language === 'en'}
+              onClick={() => setLanguage('en')}
+            >
+              EN
+            </button>
+            <button
+              type="button"
+              className={language === 'hi' ? 'active' : ''}
+              aria-pressed={language === 'hi'}
+              onClick={() => setLanguage('hi')}
+            >
+              HI
+            </button>
+          </div>
+
+          {/* Submit Test Button (Desktop Header) */}
+          <button
+            type="button"
+            className="button button-gold quiz-submit-button hidden md:inline-flex"
+            disabled={submitting}
+            onClick={confirm}
+          >
+            {submitting ? 'Submitting…' : 'Submit test'}
+          </button>
+
+          {/* Palette Toggle (Mobile) */}
+          <button
+            type="button"
+            className="icon-button quiz-palette-toggle"
+            onClick={() => setPaletteOpen(true)}
+            aria-label="Open question palette"
+          >
+            <Grid3X3 size={18} />
+          </button>
+        </div>
+      </header>
+
+      {/* Note: The inline raw markdown instructions block above Question 1 has been permanently removed */}
+
+      {timeExpired && (
+        <div className="feedback error-feedback quiz-feedback">Time is up. Your responses are being submitted.</div>
+      )}
+      {error && (
+        <div className="feedback error-feedback quiz-feedback">
+          {typeof error === 'object' ? error.message : error}
+        </div>
+      )}
+
+      {/* CBT Body */}
+      <div className="quiz-body">
+        {/* Active Question Panel */}
+        <section className="quiz-question-panel">
+          <div className="quiz-question-meta text-sm font-semibold">
+            <span>QUESTION {String(currentIndex + 1).padStart(2, '0')}</span>
+            {question?.subject && <span className="subject-pill text-xs font-semibold">{question.subject}</span>}
+            {question?.topic && <span className="text-xs">{question.topic}</span>}
+          </div>
+
+          <div
+            className="quiz-question-text text-lg sm:text-xl font-medium leading-relaxed"
+            lang={language}
+            aria-busy={translatingQuestionId === questionId}
+          >
+            <QuestionFormatter text={displayedQuestionText} />
+            {language === 'hi' && !questionHindi && translatingQuestionId === questionId && (
+              <LoaderCircle className="translation-inline-spinner" size={14} aria-label="Translating" />
+            )}
+          </div>
+
+          {/* Options */}
+          <div className="quiz-options">
+            {optionEntries.map(([key, value]) => {
+              const text = getQuestionText(value, 'en') || getQuestionText(value?.text, 'en') || (typeof value === 'string' ? value : '');
+              const optionHindi = getStoredHindi(value) || questionTranslations[`option:${key}`];
+              const displayedOption = language === 'hi' ? optionHindi || text : text;
+              const selected = responses[question.id]?.selected_option === key;
+              const isImmediate = test?.solution_mode === 'immediate' && Boolean(responses[question.id]?.selected_option);
+              const isCorrectAnswer = isImmediate && String(question.correct_answer || '').toUpperCase() === key;
+              const isWrongSelected = isImmediate && selected && !isCorrectAnswer;
+
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className={`quiz-option py-3.5 px-4 min-h-[56px] ${selected ? 'selected' : ''} ${key === 'E' ? 'option-e' : ''} ${isCorrectAnswer ? 'correct-answer' : ''} ${isWrongSelected ? 'wrong-answer' : ''}`}
+                  onClick={() => answer(key)}
+                  aria-pressed={selected}
+                >
+                  <span className="quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-bold rounded-full">{key}</span>
+                  <span className="quiz-option-text text-base sm:text-lg leading-relaxed">
+                    <span lang={language}>
+                      <MathRenderer>{displayedOption}</MathRenderer>
+                      {language === 'hi' && !optionHindi && translatingQuestionId === questionId && (
+                        <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />
+                      )}
+                    </span>
+                  </span>
+                  <span className="quiz-option-check">{selected && <Check size={18} />}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Immediate Feedback Card in Practice Mode */}
+          {test?.solution_mode === 'immediate' && responses[question.id]?.selected_option && (
+            <div className={`immediate-feedback-card mt-4 p-4 rounded-xl border ${
+              responses[question.id]?.selected_option === question.correct_answer
+                ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800'
+                : 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800'
+            }`}>
+              <div className="flex items-center gap-2 mb-2 font-bold text-sm sm:text-base">
+                {responses[question.id]?.selected_option === question.correct_answer ? (
+                  <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                    <CheckCircle2 size={18} /> {language === 'hi' ? 'सही उत्तर!' : 'Correct Answer!'}
+                  </span>
+                ) : (
+                  <span className="text-rose-700 dark:text-rose-400 flex items-center gap-1.5">
+                    <CircleX size={18} /> {language === 'hi' ? `गलत उत्तर! सही उत्तर है: ${question.correct_answer || '—'}` : `Incorrect! Correct answer is: ${question.correct_answer || '—'}`}
+                  </span>
+                )}
+                <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-neutral-200/70 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
+                  {language === 'hi' ? 'अभ्यास मोड' : 'Practice Mode'}
+                </span>
+              </div>
+
+              {/* Localized Explanation */}
+              {(() => {
+                const expl = extractLocalizedExplanation(question.explanation, language, question);
+                if (!expl) return null;
+                return (
+                  <div className="immediate-explanation mt-3 pt-3 border-t border-neutral-200/60 dark:border-neutral-700/60 text-sm leading-relaxed">
+                    <strong className="block text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 mb-1">
+                      {language === 'hi' ? 'व्याख्या' : 'Explanation'}
+                    </strong>
+                    <QuestionFormatter text={expl} />
+                  </div>
+                );
+              })()}
+
+              {/* Localized Distractor Notes */}
+              {question.distractor_notes && Object.keys(question.distractor_notes).length > 0 && (
+                <div className="immediate-distractor-notes mt-2.5 pt-2.5 border-t border-neutral-200/60 dark:border-neutral-700/60 text-xs text-neutral-700 dark:text-neutral-300">
+                  <strong className="block font-semibold mb-1 text-neutral-800 dark:text-neutral-200">
+                    {language === 'hi' ? 'विकल्प विश्लेषण' : 'Option Analysis'}:
+                  </strong>
+                  <div className="space-y-1">
+                    {Object.entries(question.distractor_notes).map(([optKey, note]) => {
+                      const locNote = extractLocalizedDistractorNote(note, language);
+                      if (!locNote) return null;
+                      return (
+                        <div key={optKey} className="flex items-start gap-1">
+                          <span className="font-bold">Option {optKey}:</span>
+                          <span>{locNote}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Action Row */}
+          <div className="quiz-question-actions">
+            <button
+              type="button"
+              className={`review-toggle py-2 px-3 text-sm font-medium ${responses[question.id]?.marked_for_review ? 'marked' : ''}`}
+              onClick={toggleReview}
+            >
+              <Flag size={15} /> {responses[question.id]?.marked_for_review ? 'Marked for review' : 'Mark for review'}
+            </button>
+            <button
+              type="button"
+              className="clear-response py-2 px-3 text-sm font-medium"
+              onClick={clearResponse}
+              disabled={!responses[question.id]?.selected_option}
+            >
+              Clear response
+            </button>
+          </div>
+
+          {/* Navigation Bar */}
+          <div className="quiz-navigation">
+            <button
+              type="button"
+              className="button button-outline min-h-[44px] px-4 text-sm font-medium"
+              onClick={() => goTo(Math.max(0, currentIndex - 1))}
+              disabled={!currentIndex}
+            >
+              <ChevronLeft size={16} /> Previous
+            </button>
+
+            <span className="text-sm font-semibold">
+              {currentIndex + 1} <small className="text-xs">/ {questions.length}</small>
+            </span>
+
+            {currentIndex === questions.length - 1 ? (
+              <button
+                type="button"
+                className="button button-gold min-h-[44px] px-5 text-sm font-bold shadow-md quiz-bottom-submit"
+                disabled={submitting}
+                onClick={confirm}
+              >
+                {submitting ? 'Submitting…' : 'Submit test'}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="button button-gold min-h-[44px] px-4 text-sm font-medium"
+                onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
+              >
+                Next <ChevronRight size={16} />
+              </button>
+            )}
+          </div>
+        </section>
+
+        {/* Question Palette Sidebar */}
+        <aside className={`quiz-palette ${paletteOpen ? 'palette-open' : ''}`}>
+          <div className="palette-heading">
+            <div>
+              <div className="eyebrow">YOUR PROGRESS</div>
+              <h2>Question palette</h2>
+            </div>
+            <button className="icon-button palette-close" onClick={() => setPaletteOpen(false)} aria-label="Close palette">
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Standard 5-State Legend in Sidebar */}
+          <PaletteLegend compact={true} />
+
+          {/* Question Grid */}
+          <div className="palette-grid">
+            {questions.map((item, index) => {
+              const qId = item.id;
+              const response = responses[qId];
+              const isOptionE = response?.selected_option === 'E';
+              const hasAnswer = Boolean(response?.selected_option);
+              const isMarked = Boolean(response?.marked_for_review);
+              const isVisited = visitedQuestions.has(qId) || hasAnswer || isMarked || currentIndex === index;
+
+              let stateClass = 'not-visited';
+              let stateLabel = 'Not Visited';
+
+              if (hasAnswer && isMarked) {
+                stateClass = 'answered-marked';
+                stateLabel = 'Answered & Marked for Review';
+              } else if (isMarked) {
+                stateClass = 'marked';
+                stateLabel = 'Marked for Review';
+              } else if (hasAnswer) {
+                stateClass = 'answered';
+                stateLabel = 'Answered';
+              } else if (isVisited) {
+                stateClass = 'not-answered';
+                stateLabel = 'Not Answered';
+              }
+
+              return (
+                <button
+                  key={qId}
+                  type="button"
+                  className={`palette-number ${stateClass} ${isOptionE ? 'option-e-selected' : ''} ${currentIndex === index ? 'current' : ''}`}
+                  onClick={() => goTo(index)}
+                  aria-label={`Question ${index + 1}: ${stateLabel}${isOptionE ? ', Option E selected' : ''}`}
+                  title={`Question ${index + 1} — ${stateLabel}${isOptionE ? ', Option E selected' : ''}`}
+                >
+                  {index + 1}
+                  {stateClass === 'answered-marked' && <span className="eval-dot" />}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Palette Summary */}
+          <div className="palette-summary">
+            <span><Check size={14} /> {attemptedCount} answered</span>
+            <span><Flag size={14} /> {markedCount} for review</span>
+          </div>
+
+          <div className="palette-footer">
+            <span>{questions.length - attemptedCount} unanswered</span>
+            <button type="button" className="button button-gold" onClick={confirm}>Submit test</button>
+          </div>
+        </aside>
+      </div>
+
+      {/* Modal: Pause / Exit Modal */}
+      {showPauseModal && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="pause-modal-title">
+          <section className="pause-modal">
+            <button className="modal-close" onClick={() => setShowPauseModal(false)} aria-label="Close pause modal">
+              <X size={18} />
+            </button>
+            <div className="pause-icon">
+              <Pause size={24} />
+            </div>
+            <h2 id="pause-modal-title">Pause or Exit Test?</h2>
+            <p>
+              Your current responses, visited questions, and remaining time ({formatTime(remaining)}) can be saved so you can resume later.
+            </p>
+
+            <div className="pause-summary-grid">
+              <div className="stat-card">
+                <span className="stat-value">{questions.length}</span>
+                <span className="stat-label">Total Questions</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value text-green">{attemptedCount}</span>
+                <span className="stat-label">Answered</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value text-salmon">{questions.length - attemptedCount}</span>
+                <span className="stat-label">Unanswered</span>
+              </div>
+              <div className="stat-card">
+                <span className="stat-value text-purple">{markedCount}</span>
+                <span className="stat-label">Marked for Review</span>
+              </div>
+            </div>
+
+            {pauseError && <div className="feedback error-feedback">{pauseError}</div>}
+
+            <div className="pause-modal-actions">
+              <button
+                type="button"
+                className="button button-gold"
+                disabled={pausing}
+                onClick={pauseAndExit}
+              >
+                {pausing ? 'Saving Progress…' : 'Pause & Save (Resume Later)'}
+              </button>
+              <button
+                type="button"
+                className="button button-danger"
+                disabled={pausing || submitting}
+                onClick={() => {
+                  setShowPauseModal(false);
+                  setConfirmSubmit(true);
+                }}
+              >
+                Submit Test Now
+              </button>
+              <button
+                type="button"
+                className="button button-outline"
+                disabled={pausing}
+                onClick={() => setShowPauseModal(false)}
+              >
+                Continue Test
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* Modal: In-Test Instructions Modal */}
+      {showInstructionsModal && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="in-test-instructions-title">
+          <section className="instructions-modal">
+            <div className="instructions-modal-header">
+              <div className="flex items-center gap-2">
+                <Info className="text-gold" size={20} />
+                <h2 id="in-test-instructions-title" className="text-base font-bold">Exam Instructions</h2>
+              </div>
+              <button className="modal-close" onClick={() => setShowInstructionsModal(false)} aria-label="Close instructions">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="instructions-modal-body">
+              <FormattedInstructions text={test?.instructions} />
+              <h3 className="text-sm font-bold mt-4 mb-2 text-text">Question Palette Legend</h3>
+              <PaletteLegend compact={false} />
+            </div>
+            <div className="instructions-modal-footer">
+              <button type="button" className="button button-gold" onClick={() => setShowInstructionsModal(false)}>
+                Back to Test
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* Modal: Final Submit Confirmation */}
+      {confirmSubmit && (
+        <div className="modal-backdrop">
+          <section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="submit-confirm-title">
+            <button className="modal-close" onClick={() => setConfirmSubmit(false)} aria-label="Close">
+              <X size={18} />
+            </button>
+            <div className="locked-icon"><ListChecks size={22} /></div>
+            <h2 id="submit-confirm-title">Submit your test?</h2>
+            <p>
+              You have answered {attemptedCount} of {questions.length} questions and marked {markedCount} for review.
+              Unanswered questions will be submitted blank.
+            </p>
+            {error && <div className="feedback error-feedback">{typeof error === 'object' ? error.message : error}</div>}
+            <div className="modal-actions">
+              <button type="button" className="button button-outline" onClick={() => setConfirmSubmit(false)}>
+                Continue test
+              </button>
+              <button type="button" className="button button-gold" disabled={submitting} onClick={() => submit(false)}>
+                {submitting ? 'Submitting…' : 'Submit test'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {/* Fullscreen Submitting Overlay */}
+      {submitting && (
+        <div className="quiz-submitting-overlay">
+          <div className="quiz-submit-spinner" />
+          <span>Submitting your responses securely…</span>
+        </div>
+      )}
+    </main>
+  );
 }

@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, BadgeCheck, BookOpen, CheckCircle2, ChevronLeft, ChevronRight, CircleX, Clock3, Coins, LoaderCircle, Sparkles, Target, Trophy } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { getOptionEntries, normalizeRpcObject, unwrapRpcPayload } from '../../lib/tests';
+import { extractLocalizedDistractorNote, extractLocalizedExplanation, getOptionEntries, normalizeRpcObject, unwrapRpcPayload } from '../../lib/tests';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import QuestionFormatter from '../../components/common/QuestionFormatter';
 import { translateText } from '../../lib/translator';
 
 const valueOf = (result, ...keys) => {
@@ -23,39 +24,70 @@ function getLocalizedEnglish(value) {
 function SolutionCard({ item, index, language, translations, translating }) {
   const question = item.question || item;
   const options = getOptionEntries(question.options);
-  const explanation = item.explanation || question.explanation;
+  const rawExplanation = item.explanation || question.explanation;
   const questionText = question.question_text_en
     || getLocalizedEnglish(question.question_text)
     || question.text
     || '';
   const questionHindi = question.question_text_hi || getStoredHindi(question.question_text) || question.text_hi || '';
-  const explanationText = getLocalizedEnglish(explanation);
-  const explanationHindi = question.explanation_hi || getStoredHindi(explanation) || getStoredHindi(question.explanation);
   const displayedQuestion = language === 'hi' ? questionHindi || translations.question || questionText : questionText;
-  const displayedExplanation = language === 'hi' ? explanationHindi || translations.explanation || explanationText : explanationText;
+  
+  // Extract strictly language-filtered explanation
+  const filteredExplanation = extractLocalizedExplanation(rawExplanation, language, question)
+    || (language === 'hi' ? translations.explanation : '');
+
   const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? item.selected_answers ?? item.response?.selected_answers ?? null;
   const correct = item.correct_answer ?? item.answer_key ?? item.correct_option ?? null;
   const correctKey = Array.isArray(correct) ? correct[0] : correct;
   const chosenKey = Array.isArray(selected) ? selected[0] : selected;
   const hasSelection = Array.isArray(selected) ? selected.length > 0 : Boolean(selected);
   const isCorrect = item.is_correct ?? item.response?.is_correct ?? (hasSelection && String(chosenKey).toUpperCase() === String(correctKey).toUpperCase());
+
   return <article className="solution-card">
     <div className="solution-question-heading">
       <span className={`solution-result-icon ${isCorrect ? 'correct' : hasSelection ? 'incorrect' : 'skipped'}`}>{isCorrect ? <CheckCircle2 size={18} /> : hasSelection ? <CircleX size={18} /> : <span>—</span>}</span>
-      <div><span className="eyebrow">QUESTION {String(index + 1).padStart(2, '0')}</span>
-        <h3 className="text-base sm:text-lg font-semibold leading-relaxed" lang={language} aria-busy={translating}>{displayedQuestion || 'Question text unavailable.'}{language === 'hi' && !questionHindi && !translations.question && translating && <LoaderCircle className="translation-inline-spinner" size={14} aria-label="Translating" />}</h3>
+      <div className="w-full"><span className="eyebrow">QUESTION {String(index + 1).padStart(2, '0')}</span>
+        <div className="text-base sm:text-lg font-semibold leading-relaxed mt-1" lang={language} aria-busy={translating}>
+          <QuestionFormatter text={displayedQuestion || 'Question text unavailable.'} />
+          {language === 'hi' && !questionHindi && !translations.question && translating && <LoaderCircle className="translation-inline-spinner" size={14} aria-label="Translating" />}
+        </div>
       </div>
     </div>
     <div className="solution-options">{options.map(([key, option]) => {
-    const text = getLocalizedEnglish(option);
-    const hindiText = getStoredHindi(option) || translations[`option:${key}`];
-    const displayedOption = language === 'hi' ? hindiText || text : text;
-    const selectedOption = String(chosenKey || '').toUpperCase() === key;
-    const correctOption = String(correctKey || '').toUpperCase() === key;
-    return <div key={key} className={`solution-option text-sm sm:text-base py-3 px-4 ${correctOption ? 'correct-answer' : ''} ${selectedOption && !correctOption ? 'wrong-answer' : ''}`}><b>{key}</b><span lang={language}>{displayedOption}{language === 'hi' && !getStoredHindi(option) && !translations[`option:${key}`] && translating && <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />}</span>{selectedOption && <em className="text-xs sm:text-sm font-semibold">Your answer</em>}{correctOption && <em className="text-xs sm:text-sm font-semibold">Correct answer</em>}</div>;
-  })}</div>
+      const text = getLocalizedEnglish(option);
+      const hindiText = getStoredHindi(option) || translations[`option:${key}`];
+      const displayedOption = language === 'hi' ? hindiText || text : text;
+      const selectedOption = String(chosenKey || '').toUpperCase() === key;
+      const correctOption = String(correctKey || '').toUpperCase() === key;
+      return <div key={key} className={`solution-option text-sm sm:text-base py-3 px-4 ${correctOption ? 'correct-answer' : ''} ${selectedOption && !correctOption ? 'wrong-answer' : ''}`}><b>{key}</b><span lang={language}>{displayedOption}{language === 'hi' && !getStoredHindi(option) && !translations[`option:${key}`] && translating && <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />}</span>{selectedOption && <em className="text-xs sm:text-sm font-semibold">Your answer</em>}{correctOption && <em className="text-xs sm:text-sm font-semibold">Correct answer</em>}</div>;
+    })}</div>
     <div className="solution-answer-row text-xs sm:text-sm"><span>Your answer: <strong>{Array.isArray(selected) && selected.length ? selected.join(', ') : chosenKey || 'Not answered'}</strong></span><span>Correct answer: <strong>{Array.isArray(correct) ? correct.join(', ') : correctKey || 'Unavailable'}</strong></span>{question.subject && <span className="subject-pill">{question.subject}</span>}</div>
-    {explanation && <div className="solution-explanation"><strong className="text-sm font-bold">Explanation</strong><p className="text-sm sm:text-base leading-relaxed text-neutral-700 dark:text-neutral-300" lang={language}>{displayedExplanation}{language === 'hi' && !explanationHindi && !translations.explanation && translating && <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />}</p></div>}
+    {filteredExplanation && (
+      <div className="solution-explanation">
+        <strong className="text-sm font-bold block mb-1">Explanation ({language === 'hi' ? 'हिंदी व्याख्या' : 'English'})</strong>
+        <div className="text-sm sm:text-base leading-relaxed text-neutral-700 dark:text-neutral-300" lang={language}>
+          <QuestionFormatter text={filteredExplanation} />
+          {language === 'hi' && !filteredExplanation && translating && <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />}
+        </div>
+      </div>
+    )}
+    {question.distractor_notes && Object.keys(question.distractor_notes).length > 0 && (
+      <div className="solution-distractor-notes mt-3 p-3 bg-neutral-100/70 dark:bg-neutral-800/60 rounded-xl text-xs sm:text-sm border border-neutral-200 dark:border-neutral-700/60">
+        <strong className="block mb-1.5 font-semibold text-neutral-800 dark:text-neutral-200">Option Analysis / विकल्प विश्लेषण:</strong>
+        <div className="space-y-1">
+          {Object.entries(question.distractor_notes).map(([optKey, note]) => {
+            const localizedNote = extractLocalizedDistractorNote(note, language);
+            if (!localizedNote) return null;
+            return (
+              <div key={optKey} className="flex items-start gap-1.5 text-neutral-600 dark:text-neutral-300">
+                <span className="font-bold text-neutral-800 dark:text-neutral-200">Option {optKey}:</span>
+                <span>{localizedNote}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
   </article>;
 }
 

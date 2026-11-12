@@ -7,11 +7,7 @@ import useContentCatalog from '../../hooks/useContentCatalog';
 import { isPublished } from '../../lib/content';
 import OnboardingModal from './OnboardingModal';
 
-const pathways = [
-  { key: 'bpsc', title: 'BPSC TRE', match: /bpsc/i, tags: ['BPSC', 'TRE', 'General Studies'], tone: 'gold' },
-  { key: 'ctet', title: 'CTET', match: /ctet/i, tags: ['CTET', 'Teaching Aptitude', 'NCERT'], tone: 'green' },
-  { key: 'state', title: 'State Exams', match: /state/i, tags: ['State PSC', 'General Studies', 'Current Affairs'], tone: 'blue' }
-];
+const pathwayTones = ['gold', 'green', 'blue', 'violet'];
 
 const quickActions = [
   { title: 'liveTests', meta: 'Timed practice built around your exam', path: '/tests', Icon: ClipboardList, tone: 'gold' },
@@ -157,17 +153,21 @@ export default function StudentHome() {
     }, {});
   }, [availableTests, chapters, folders]);
 
-  const featuredPathways = useMemo(() => pathways.map((pathway) => {
-    const exam = exams.find((item) => isPublished(item) && pathway.match.test(`${item.title} ${item.slug}`));
-    const examFolders = exam ? folders.filter((folder) => folder.exam_id === exam.id && !folder.parent_folder_id && isPublished(folder)) : [];
-    const syllabusTags = examFolders.slice(0, 2).map((folder) => folder.title);
-    return {
-      ...pathway,
-      exam,
-      count: exam ? testCounts[exam.id] || 0 : 0,
-      tags: syllabusTags.length ? syllabusTags : pathway.tags
-    };
-  }), [exams, folders, testCounts]);
+  const featuredPathways = useMemo(() => {
+    const liveExams = exams.filter((exam) => isPublished(exam) && exam.status !== 'archived');
+    return liveExams.map((exam, index) => {
+      const examFolders = folders.filter((folder) => folder.exam_id === exam.id && !folder.parent_folder_id && isPublished(folder));
+      const syllabusTags = examFolders.slice(0, 3).map((folder) => folder.title);
+      return {
+        key: exam.id,
+        title: exam.title,
+        exam,
+        count: testCounts[exam.id] || 0,
+        tags: syllabusTags.length ? syllabusTags : [exam.title, 'Syllabus Track'],
+        tone: pathwayTones[index % pathwayTones.length]
+      };
+    });
+  }, [exams, folders, testCounts]);
 
   const resumeTarget = resumeAttempt
     ? { title: resumeAttempt.testTitle, subtitle: 'Unfinished test · Pick up your attempt', path: `/quiz/${resumeAttempt.test_id}`, label: 'liveTests' }
@@ -233,12 +233,16 @@ export default function StudentHome() {
 
     <section className="section-block pathway-section">
       <div className="section-heading"><div><div className="eyebrow">CHOOSE YOUR NEXT MILESTONE</div><h2>{t('featuredPathways')}</h2></div><Link to="/explore" className="inline-link">{t('exploreExams')} <ArrowRight size={15} /></Link></div>
-      <div className="pathway-grid">{featuredPathways.map(({ key, title, exam, count, tags, tone }) => <Link className={`pathway-card ${tone}`} key={key} to={exam ? `/explore/${encodeURIComponent(exam.slug)}` : '/explore'}>
-        <div className="pathway-card-top"><span className="pathway-icon"><GraduationCap size={19} /></span><span className="pathway-tests">{count} {t('testsCount')}</span></div>
-        <h3>{exam?.title || title}</h3>
-        <div className="pathway-tags">{tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
-        <span className="pathway-link">{t('syllabus')} <ArrowRight size={14} /></span>
-      </Link>)}</div>
+      {featuredPathways.length ? (
+        <div className="pathway-grid">{featuredPathways.map(({ key, title, exam, count, tags, tone }) => <Link className={`pathway-card ${tone}`} key={key} to={`/explore/${encodeURIComponent(exam.slug)}`}>
+          <div className="pathway-card-top"><span className="pathway-icon"><GraduationCap size={19} /></span><span className="pathway-tests">{count} {t('testsCount')}</span></div>
+          <h3>{title}</h3>
+          <div className="pathway-tags">{tags.map((tag) => <span key={tag}>{tag}</span>)}</div>
+          <span className="pathway-link">{t('syllabus')} <ArrowRight size={14} /></span>
+        </Link>)}</div>
+      ) : (
+        <div className="empty-content"><GraduationCap size={24} /><strong>More milestones coming soon.</strong><span>Exams and syllabus tracks are being prepared.</span><Link className="button button-outline" to="/explore">Explore all content</Link></div>
+      )}
     </section>
 
     <section className="section-block">

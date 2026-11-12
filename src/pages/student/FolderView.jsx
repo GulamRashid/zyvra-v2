@@ -50,9 +50,9 @@ export default function FolderView() {
       .map(([key]) => key.replace('folder:', ''));
   }, [accessByKey]);
 
-  const hasExamAccess = !examIsPaid || accessByKey[`exam:${exam?.id}`] === true;
-  const isRootPurchased = rootFolder ? (hasExamAccess || rootPricing.amount <= 0 || isFolderUnlocked(rootFolder.id, folders, purchasedFolderIds) || accessByKey[`folder:${rootFolder.id}`] === true) : false;
-  const isCurrentFolderUnlocked = hasExamAccess || pricing.amount <= 0 || isFolderUnlocked(folder?.id, folders, purchasedFolderIds) || accessByKey[`folder:${folder?.id}`] === true;
+  const hasPurchasedExam = examIsPaid && accessByKey[`exam:${exam?.id}`] === true;
+  const isRootPurchased = rootFolder ? (hasPurchasedExam || rootPricing.amount <= 0 || isFolderUnlocked(rootFolder.id, folders, purchasedFolderIds) || accessByKey[`folder:${rootFolder.id}`] === true) : false;
+  const isCurrentFolderUnlocked = hasPurchasedExam || pricing.amount <= 0 || isFolderUnlocked(folder?.id, folders, purchasedFolderIds) || accessByKey[`folder:${folder?.id}`] === true;
 
   return <div className="catalog-page">
     <nav className="student-breadcrumbs"><Link to="/explore">Explore</Link><ChevronRight size={14} />{exam && <><Link to={`/explore/${encodeURIComponent(exam.slug)}`}>{exam.title}</Link><ChevronRight size={14} /></>}{path.map((item, index) => <span className="breadcrumb-part" key={item.id}>{index > 0 && <ChevronRight size={14} />}{index === path.length - 1 ? <span>{item.title}</span> : <Link to={`/folder/${item.id}`}>{item.title}</Link>}</span>)}</nav>

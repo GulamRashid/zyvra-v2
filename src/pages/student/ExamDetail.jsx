@@ -52,15 +52,40 @@ export default function ExamDetail() {
     {loading && <LoadingSkeleton rows={4} />}
     {!loading && !error && !exam && <div className="empty-content"><GraduationCap size={25} /><strong>We couldn’t find this exam.</strong><span>It may be unpublished or no longer available.</span><Link className="button button-outline" to="/explore"><ArrowLeft size={15} /> Browse exams</Link></div>}
     {!loading && !error && exam && <>
-      <section className="exam-hero"><div className="exam-hero-icon"><Icon size={31} /></div><div className="eyebrow">YOUR SYLLABUS, CLEARLY ORGANISED</div><h1>{exam.title}</h1><p>{exam.description || 'Explore the syllabus and start building a steady study rhythm.'}</p><div className="exam-hero-stats"><span><Folder size={15} /> {rootFolders.length} main sections</span><span><BookOpen size={15} /> {chapters.filter((chapter) => examFolderIds.has(chapter.folder_id) && isPublished(chapter)).length} learning chapters</span></div>{examIsPaid && !hasExamAccess && <button className="button button-gold exam-buy-button" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'exam', itemId: exam.id, itemTitle: exam.title, tier: 'Exam Pass', basePrice: examPrice })}><LockKeyhole size={15} /> Unlock Exam Pass · ₹{examPrice.toLocaleString('en-IN')} <ArrowRight size={14} /></button>}</section>
+      <section className="exam-hero"><div className="exam-hero-icon"><Icon size={31} /></div><div className="eyebrow">YOUR SYLLABUS, CLEARLY ORGANISED</div><h1>{exam.title}</h1><p>{exam.description || 'Explore the syllabus and start building a steady study rhythm.'}</p><div className="exam-hero-stats"><span><Folder size={15} /> {rootFolders.length} main sections</span><span><BookOpen size={15} /> {chapters.filter((chapter) => examFolderIds.has(chapter.folder_id) && isPublished(chapter)).length} learning chapters</span></div>{examIsPaid && !hasExamAccess && <button className="button button-gold exam-buy-button" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'exam', itemId: exam.id, itemTitle: exam.title, tier: 'Complete Exam Bundle', basePrice: examPrice })}><LockKeyhole size={15} /> Unlock Complete {exam.title} · ₹{examPrice.toLocaleString('en-IN')} <ArrowRight size={14} /></button>}</section>
       {accessError && <div className="feedback error-feedback">{accessError}</div>}
+      {examIsPaid && !hasExamAccess && (
+        <section className="paywall-banner exam-paywall-banner">
+          <span className="paywall-icon"><LockKeyhole size={19} /></span>
+          <div>
+            <strong>Unlock Complete {exam.title} · ₹{examPrice.toLocaleString('en-IN')}</strong>
+            <span>Gain full, unrestricted access to all {rootFolders.length} sections, including all nested sub-folders, chapters, and tests under this exam.</span>
+          </div>
+          <div className="paywall-actions">
+            <button
+              className="button button-gold"
+              disabled={!user || accessLoading}
+              onClick={() => setCheckoutItem({
+                itemType: 'exam',
+                itemId: exam.id,
+                itemTitle: exam.title,
+                tier: 'Complete Exam Bundle',
+                basePrice: examPrice
+              })}
+            >
+              {accessLoading ? 'Checking access…' : `Unlock Complete ${exam.title} · ₹${examPrice.toLocaleString('en-IN')}`} <ArrowRight size={14} />
+            </button>
+          </div>
+        </section>
+      )}
       <div className="section-heading catalog-section-heading"><div><div className="eyebrow">THE LEARNING PATH</div><h2>Explore the syllabus</h2></div><Link to="/explore" className="inline-link"><ArrowLeft size={14} /> All exams</Link></div>
       {!rootFolders.length && <div className="empty-content"><Folder size={24} /><strong>Syllabus coming soon</strong><span>Learning sections for this exam are being prepared.</span></div>}
       <div className="folder-cards-grid">{rootFolders.map((folder, index) => {
         const counts = countFolder(folder.id);
         const starts = ['01', '02', '03'];
         const price = getFolderPricing(folder, folders);
-        const isRootUnlocked = hasExamAccess || price.amount <= 0 || accessByKey[`folder:${folder.id}`] === true;
+        const hasPurchasedExam = examIsPaid && accessByKey[`exam:${exam?.id}`] === true;
+        const isRootUnlocked = hasPurchasedExam || price.amount <= 0 || accessByKey[`folder:${folder.id}`] === true;
         return <article className="syllabus-card syllabus-purchase-card" key={folder.id}><Link to={`/folder/${folder.id}`} className="syllabus-card-link"><div className="syllabus-number">{starts[index] || String(index + 1).padStart(2, '0')}</div><div className="syllabus-card-icon"><Folder size={20} /></div><div className="syllabus-card-copy"><span className="eyebrow">LEARNING SECTION</span><h3>{folder.title}</h3><p>{folder.description || 'A thoughtfully organised set of topics to guide your preparation.'}</p><div className="syllabus-card-meta"><span><Folder size={13} /> {counts.folders} subfolders</span><span><BookOpen size={13} /> {counts.chapters} chapters</span>{price.amount > 0 && <span className="access-badge access-paid" style={{ marginLeft: 'auto' }}>{isRootUnlocked ? 'Purchased' : price.label}</span>}</div></div><span className="syllabus-card-arrow"><ArrowRight size={17} /></span></Link>{price.amount > 0 && !isRootUnlocked && <button className="button button-outline buy-inline-button" onClick={() => setCheckoutItem({ itemType: 'folder', itemId: folder.id, itemTitle: folder.title, tier: 'Folder Bundle', basePrice: price.amount })}>Buy bundle · ₹{price.amount.toLocaleString('en-IN')}</button>}</article>;
       })}</div>
       <div className="catalog-tip"><Clock3 size={15} /> You can explore free chapters before committing to a study plan.</div>
