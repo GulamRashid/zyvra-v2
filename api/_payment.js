@@ -18,14 +18,14 @@ export function readBody(req) {
 
 export function getPaymentServices(req) {
   const authorization = req.headers.authorization || '';
-  const accessToken = authorization.match(/^Bearer\s+(.+)$/i)?.[1];
+  const accessToken = authorization.trim().match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
   if (!accessToken) throw new Error('Sign in before starting checkout.');
 
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || anonKey;
-  const keyId = process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
+  const anonKey = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || anonKey || '').trim();
+  const keyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || '').trim();
+  const keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
   if (!url || !anonKey) throw new Error('Supabase server configuration is incomplete.');
   if (!keyId || !keySecret) throw new Error('Razorpay server configuration is incomplete.');
 
@@ -38,7 +38,7 @@ export function getPaymentServices(req) {
     global: serviceRoleKey === anonKey ? { headers: { Authorization: `Bearer ${accessToken}` } } : {}
   });
   const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
-  return { accessToken, supabase, supabaseAdmin, razorpay, keyId };
+  return { accessToken, supabase, supabaseAdmin, razorpay, keyId, keySecret };
 }
 
 export async function requireUser(supabase, accessToken) {
