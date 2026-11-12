@@ -10,6 +10,11 @@ export function normalizeRpcObject(data) {
 }
 
 export function getOptionEntries(options) {
+  if (typeof options === 'string') {
+    try {
+      options = JSON.parse(options);
+    } catch (_) {}
+  }
   if (Array.isArray(options)) return options.map((option, index) => [String.fromCharCode(65 + index), option]);
   if (options && typeof options === 'object') {
     return Object.entries(options)

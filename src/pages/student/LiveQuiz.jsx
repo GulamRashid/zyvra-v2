@@ -1543,60 +1543,48 @@ export default function LiveQuiz() {
           {/* Options */}
           <div className="quiz-options">
             {(() => {
-              let raw = question?.options;
-              if (typeof raw === 'string') {
-                try {
-                  raw = JSON.parse(raw);
-                } catch (_) {}
-              }
-              const hasOptions = raw != null && (
-                Array.isArray(raw)
-                  ? raw.length > 0
-                  : typeof raw === 'object'
-                    ? Object.keys(raw).length > 0
-                    : false
-              );
-              let entries = hasOptions ? getOptionEntries(raw) : [];
+              const currentQuestion = question;
+              let entries = currentQuestion?.options ? getOptionEntries(currentQuestion.options) : [];
 
-              // Keep the old option_a / option_b logic ONLY as a fallback if question.options is null / empty
+              // Keep old option_a / option_b only as a fallback if question.options is null / empty
               if (!entries || entries.length === 0) {
                 entries = ['A', 'B', 'C', 'D', 'E']
                   .filter((key) => {
                     const k = key.toLowerCase();
-                    return question?.[`option_${k}`] !== undefined ||
-                           question?.[`option_${k}_en`] !== undefined ||
-                           question?.[`option_${k}_hi`] !== undefined;
+                    return currentQuestion?.[`option_${k}`] !== undefined ||
+                           currentQuestion?.[`option_${k}_en`] !== undefined ||
+                           currentQuestion?.[`option_${k}_hi`] !== undefined;
                   })
                   .map((key) => {
                     const k = key.toLowerCase();
                     return [
                       key,
                       {
-                        en: question?.[`option_${k}_en`] || question?.[`option_${k}`] || '',
-                        hi: question?.[`option_${k}_hi`] || question?.[`option_${k}`] || ''
+                        en: currentQuestion?.[`option_${k}_en`] || currentQuestion?.[`option_${k}`] || '',
+                        hi: currentQuestion?.[`option_${k}_hi`] || currentQuestion?.[`option_${k}`] || ''
                       }
                     ];
                   });
               }
 
-              const isEnglish = String(language).toUpperCase() === 'EN';
-              const langKey = isEnglish ? 'en' : 'hi';
-              const fallbackKey = isEnglish ? 'hi' : 'en';
+              const isEn = String(language).toUpperCase() === 'EN';
 
-              return entries.map(([key, optVal]) => {
+              return entries.map(([key, opt]) => {
                 let displayedOption = '';
-                if (optVal && typeof optVal === 'object') {
-                  displayedOption = optVal[langKey] ?? optVal[`text_${langKey}`] ?? optVal[fallbackKey] ?? optVal.text ?? '';
-                } else if (typeof optVal === 'string') {
-                  displayedOption = optVal;
+                if (opt && typeof opt === 'object') {
+                  const optEn = opt.en ?? opt.EN ?? opt.En ?? opt.text_en ?? opt.text ?? '';
+                  const optHi = opt.hi ?? opt.HI ?? opt.Hi ?? opt.text_hi ?? opt.text ?? optEn;
+                  displayedOption = isEn ? (opt.en ?? opt.EN ?? optEn) : (opt.hi ?? opt.HI ?? optHi);
+                } else if (typeof opt === 'string') {
+                  displayedOption = opt;
                 } else {
                   const k = key.toLowerCase();
-                  displayedOption = question?.[`option_${k}_${langKey}`] ??
-                                    question?.[`option_${k}`] ??
-                                    question?.[`option_${k}_${fallbackKey}`] ?? '';
+                  displayedOption = isEn
+                    ? (currentQuestion?.[`option_${k}_en`] ?? currentQuestion?.[`option_${k}`] ?? currentQuestion?.[`option_${k}_hi`] ?? '')
+                    : (currentQuestion?.[`option_${k}_hi`] ?? currentQuestion?.[`option_${k}`] ?? currentQuestion?.[`option_${k}_en`] ?? '');
                 }
 
-                if (!displayedOption && !isEnglish && questionTranslations[`option:${key}`]) {
+                if (!displayedOption && !isEn && questionTranslations[`option:${key}`]) {
                   displayedOption = questionTranslations[`option:${key}`];
                 }
 
@@ -1617,7 +1605,7 @@ export default function LiveQuiz() {
                     <span className="quiz-option-text text-base sm:text-lg leading-relaxed">
                       <span lang={language}>
                         <MathRenderer>{displayedOption}</MathRenderer>
-                        {!isEnglish && !displayedOption && translatingQuestionId === questionId && (
+                        {!isEn && !displayedOption && translatingQuestionId === questionId && (
                           <LoaderCircle className="translation-inline-spinner" size={12} aria-label="Translating" />
                         )}
                       </span>
@@ -1665,26 +1653,53 @@ export default function LiveQuiz() {
                 );
               })()}
 
-              {/* Localized Distractor Notes */}
-              {question.distractor_notes && Object.keys(question.distractor_notes).length > 0 && (
-                <div className="immediate-distractor-notes mt-2.5 pt-2.5 border-t border-neutral-200/60 dark:border-neutral-700/60 text-xs text-neutral-700 dark:text-neutral-300">
-                  <strong className="block font-semibold mb-1 text-neutral-800 dark:text-neutral-200">
-                    {language === 'hi' ? 'विकल्प विश्लेषण' : 'Option Analysis'}:
-                  </strong>
-                  <div className="space-y-1">
-                    {Object.entries(question.distractor_notes).map(([optKey, note]) => {
-                      const locNote = extractLocalizedDistractorNote(note, language);
-                      if (!locNote) return null;
-                      return (
+              {/* Localized Distractor Notes / Additional Notes */}
+              {(() => {
+                const currentQuestion = question;
+                let notes = currentQuestion?.distractor_notes;
+                if (typeof notes === 'string') {
+                  try {
+                    notes = JSON.parse(notes);
+                  } catch {
+                    notes = null;
+                  }
+                }
+                const hasNotes =
+                  notes &&
+                  typeof notes === 'object' &&
+                  !Array.isArray(notes) &&
+                  Object.keys(notes).length > 0 &&
+                  Object.values(notes).some((n) => {
+                    if (!n) return false;
+                    if (typeof n === 'string') return n.trim().length > 0;
+                    if (typeof n === 'object') return Boolean(n.en?.trim() || n.hi?.trim() || n.text?.trim());
+                    return true;
+                  });
+
+                if (!hasNotes) return null;
+
+                const validEntries = Object.entries(notes)
+                  .map(([optKey, note]) => [optKey, extractLocalizedDistractorNote(note, language)])
+                  .filter(([, locNote]) => Boolean(locNote));
+
+                if (validEntries.length === 0) return null;
+
+                return (
+                  <div className="immediate-distractor-notes mt-2.5 pt-2.5 border-t border-neutral-200/60 dark:border-neutral-700/60 text-xs text-neutral-700 dark:text-neutral-300">
+                    <strong className="block font-semibold mb-1 text-neutral-800 dark:text-neutral-200">
+                      {language === 'hi' ? 'अतिरिक्त नोट्स' : 'Additional Notes'}:
+                    </strong>
+                    <div className="space-y-1">
+                      {validEntries.map(([optKey, locNote]) => (
                         <div key={optKey} className="flex items-start gap-1">
                           <span className="font-bold">Option {optKey}:</span>
                           <span>{locNote}</span>
                         </div>
-                      );
-                    })}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
           )}
 
