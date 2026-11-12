@@ -18,12 +18,16 @@ export default function ExamDetail() {
   const [checkoutItem, setCheckoutItem] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const exam = useMemo(() => exams.find((item) => item.slug === examSlug && isPublished(item)), [exams, examSlug]);
-  const rootFolders = folders.filter((folder) => folder.exam_id === exam?.id && !folder.parent_folder_id && isPublished(folder));
+  const rootFolders = folders.filter((folder) => folder.exam_id === exam?.id && !folder.parent_folder_id && !folder.parent_id && isPublished(folder));
   const examFolderIds = new Set(folders.filter((folder) => folder.exam_id === exam?.id && isPublished(folder)).map((folder) => folder.id));
   const Icon = examIcons[exam?.icon] || GraduationCap;
   const examPrice = Number(exam?.price || 0);
   const examIsPaid = examPrice > 0 || exam?.access_mode === 'paid-own' || exam?.access_mode === 'paid_own' || exam?.pricing_mode === 'paid-own' || exam?.pricing_mode === 'paid_own';
-  const { accessByKey, loading: accessLoading, error: accessError } = useContentAccess(exam && examIsPaid ? [{ type: 'exam', id: exam.id, paid: true }] : [], user, supabase, refreshKey);
+  const accessItems = useMemo(() => [
+    ...(exam && examIsPaid ? [{ type: 'exam', id: exam.id, paid: true }] : []),
+    ...rootFolders.filter((f) => getFolderPricing(f, folders).amount > 0).map((f) => ({ type: 'folder', id: f.id, paid: true }))
+  ], [exam, examIsPaid, rootFolders, folders]);
+  const { accessByKey, loading: accessLoading, error: accessError } = useContentAccess(accessItems, user, supabase, refreshKey);
   const hasExamAccess = !examIsPaid || accessByKey[`exam:${exam?.id}`] === true;
   const countFolder = (rootId) => {
     const descendantIds = new Set([rootId]);
@@ -56,7 +60,8 @@ export default function ExamDetail() {
         const counts = countFolder(folder.id);
         const starts = ['01', '02', '03'];
         const price = getFolderPricing(folder, folders);
-        return <article className="syllabus-card syllabus-purchase-card" key={folder.id}><Link to={`/folder/${folder.id}`} className="syllabus-card-link"><div className="syllabus-number">{starts[index] || String(index + 1).padStart(2, '0')}</div><div className="syllabus-card-icon"><Folder size={20} /></div><div className="syllabus-card-copy"><span className="eyebrow">LEARNING SECTION</span><h3>{folder.title}</h3><p>{folder.description || 'A thoughtfully organised set of topics to guide your preparation.'}</p><div className="syllabus-card-meta"><span><Folder size={13} /> {counts.folders} subfolders</span><span><BookOpen size={13} /> {counts.chapters} chapters</span></div></div><span className="syllabus-card-arrow"><ArrowRight size={17} /></span></Link>{price.amount > 0 && !hasExamAccess && <button className="button button-outline buy-inline-button" onClick={() => setCheckoutItem({ itemType: 'folder', itemId: folder.id, itemTitle: folder.title, tier: 'Folder Bundle', basePrice: price.amount })}>Buy bundle · ₹{price.amount.toLocaleString('en-IN')}</button>}</article>;
+        const isRootUnlocked = hasExamAccess || price.amount <= 0 || accessByKey[`folder:${folder.id}`] === true;
+        return <article className="syllabus-card syllabus-purchase-card" key={folder.id}><Link to={`/folder/${folder.id}`} className="syllabus-card-link"><div className="syllabus-number">{starts[index] || String(index + 1).padStart(2, '0')}</div><div className="syllabus-card-icon"><Folder size={20} /></div><div className="syllabus-card-copy"><span className="eyebrow">LEARNING SECTION</span><h3>{folder.title}</h3><p>{folder.description || 'A thoughtfully organised set of topics to guide your preparation.'}</p><div className="syllabus-card-meta"><span><Folder size={13} /> {counts.folders} subfolders</span><span><BookOpen size={13} /> {counts.chapters} chapters</span>{price.amount > 0 && <span className="access-badge access-paid" style={{ marginLeft: 'auto' }}>{isRootUnlocked ? 'Purchased' : price.label}</span>}</div></div><span className="syllabus-card-arrow"><ArrowRight size={17} /></span></Link>{price.amount > 0 && !isRootUnlocked && <button className="button button-outline buy-inline-button" onClick={() => setCheckoutItem({ itemType: 'folder', itemId: folder.id, itemTitle: folder.title, tier: 'Folder Bundle', basePrice: price.amount })}>Buy bundle · ₹{price.amount.toLocaleString('en-IN')}</button>}</article>;
       })}</div>
       <div className="catalog-tip"><Clock3 size={15} /> You can explore free chapters before committing to a study plan.</div>
       {checkoutItem && <CheckoutModal {...checkoutItem} onClose={() => setCheckoutItem(null)} onCompleted={() => setRefreshKey((value) => value + 1)} />}

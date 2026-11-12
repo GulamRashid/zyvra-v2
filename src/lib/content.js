@@ -35,9 +35,40 @@ export function getFolderPath(folder, folders) {
   while (current && !visited.has(current.id)) {
     visited.add(current.id);
     path.unshift(current);
-    current = folders.find((item) => item.id === current.parent_folder_id);
+    const parentId = current.parent_folder_id || current.parent_id;
+    current = folders.find((item) => item.id === parentId);
   }
   return path;
+}
+
+export function isFolderUnlocked(folderId, foldersMapOrArray, purchasedFolderIds = []) {
+  if (!folderId) return false;
+  const purchasedSet = purchasedFolderIds instanceof Set
+    ? purchasedFolderIds
+    : new Set(Array.isArray(purchasedFolderIds) ? purchasedFolderIds : []);
+
+  if (purchasedSet.has(folderId)) return true;
+
+  const getFolder = typeof foldersMapOrArray?.get === 'function'
+    ? (id) => foldersMapOrArray.get(id)
+    : Array.isArray(foldersMapOrArray)
+      ? (id) => foldersMapOrArray.find((f) => f.id === id)
+      : (id) => foldersMapOrArray?.[id];
+
+  let current = getFolder(folderId);
+  const visited = new Set();
+
+  while (current && !visited.has(current.id)) {
+    visited.add(current.id);
+    if (purchasedSet.has(current.id)) {
+      return true;
+    }
+    const parentId = current.parent_folder_id || current.parent_id;
+    if (!parentId) break;
+    current = getFolder(parentId);
+  }
+
+  return false;
 }
 
 export function getFolderPricing(folder, folders) {
@@ -45,10 +76,11 @@ export function getFolderPricing(folder, folders) {
   if (folder.pricing_mode === 'paid-own' || folder.pricing_mode === 'paid_own') {
     return { label: folder.price > 0 ? `Paid · ₹${Number(folder.price).toLocaleString('en-IN')}` : 'Paid · price not set', amount: Number(folder.price) || 0, source: folder };
   }
-  if (!['inherit', 'inherit-parent', 'inherit_parent'].includes(folder.pricing_mode) || !folder.parent_folder_id) {
+  const parentId = folder.parent_folder_id || folder.parent_id;
+  if (!['inherit', 'inherit-parent', 'inherit_parent'].includes(folder.pricing_mode) || !parentId) {
     return { label: 'Free · no inherited price', amount: 0, source: null };
   }
-  const parent = folders.find((item) => item.id === folder.parent_folder_id);
+  const parent = folders.find((item) => item.id === parentId);
   if (!parent) return { label: 'Free · parent unavailable', amount: 0, source: null };
   const inherited = getFolderPricing(parent, folders);
   if (inherited.amount > 0) {

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowDownToLine, ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, BookOpen, CheckCircle2, ChevronRight, Clock3, FileText, LockKeyhole, Play, Sparkles } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import useContentCatalog from '../../hooks/useContentCatalog';
-import { getChapterAccess, getFolderPath, isPublished } from '../../lib/content';
+import { getChapterAccess, getFolderPath, getFolderPricing, isFolderUnlocked, isPublished } from '../../lib/content';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import PdfReaderModal from '../../components/common/PdfReaderModal';
 import CheckoutModal from '../../components/common/CheckoutModal';
@@ -45,9 +45,27 @@ export default function ChapterDetail() {
   const folderPath = folder ? getFolderPath(folder, folders) : [];
   const hierarchyPublished = folderPath.every(isPublished);
   const access = getChapterAccess(chapter, folder, folders);
-  const accessItems = useMemo(() => access.amount > 0 && chapter ? [{ type: 'chapter', id: chapter.id, paid: true }] : [], [access.amount, chapter?.id]);
+  const examPrice = Number(exam?.price || 0);
+  const examIsPaid = examPrice > 0 || exam?.access_mode === 'paid-own' || exam?.access_mode === 'paid_own' || exam?.pricing_mode === 'paid-own' || exam?.pricing_mode === 'paid_own';
+
+  const accessItems = useMemo(() => [
+    ...(exam && examIsPaid ? [{ type: 'exam', id: exam.id, paid: true }] : []),
+    ...folderPath.filter((p) => getFolderPricing(p, folders).amount > 0).map((p) => ({ type: 'folder', id: p.id, paid: true })),
+    ...(access.amount > 0 && chapter ? [{ type: 'chapter', id: chapter.id, paid: true }] : [])
+  ], [exam, examIsPaid, folderPath, access.amount, chapter?.id, folders]);
+
   const { accessByKey, loading: accessLoading, error: accessError } = useContentAccess(accessItems, user, supabase, accessRefreshKey);
-  const isLocked = access.amount > 0 && accessByKey[`chapter:${chapter?.id}`] !== true;
+
+  const purchasedFolderIds = useMemo(() => {
+    return Object.entries(accessByKey)
+      .filter(([key, granted]) => granted === true && key.startsWith('folder:'))
+      .map(([key]) => key.replace('folder:', ''));
+  }, [accessByKey]);
+
+  const hasExamAccess = !examIsPaid || accessByKey[`exam:${exam?.id}`] === true;
+  const hasParentFolderAccess = hasExamAccess || (folder ? isFolderUnlocked(folder.id, folders, purchasedFolderIds) : false);
+  const isUnlocked = hasParentFolderAccess || access.amount <= 0 || accessByKey[`chapter:${chapter?.id}`] === true;
+  const isLocked = !isUnlocked;
   const isComingSoon = access.label === 'Coming Soon';
   const hasTests = folder?.allow_tests !== false;
   const hasPractice = folder?.allow_practice !== false;
