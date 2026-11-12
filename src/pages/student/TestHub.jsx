@@ -116,7 +116,7 @@ export default function TestHub() {
       if (user) {
         const { data: attemptRows, error: attemptError } = await supabase
           .from('test_attempts')
-          .select('id, test_id, user_id, score, total_score, total_marks, percentage, status, started_at, completed_at, created_at')
+          .select('id, test_id, user_id, score, max_score, total_score, total_marks, percentage, status, started_at, submitted_at, completed_at, created_at')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
 

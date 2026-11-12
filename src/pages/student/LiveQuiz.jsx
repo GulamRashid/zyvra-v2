@@ -951,6 +951,7 @@ export default function LiveQuiz() {
           .update({
             status: 'completed',
             completed_at: new Date().toISOString(),
+            submitted_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
           .eq('id', attemptId);
