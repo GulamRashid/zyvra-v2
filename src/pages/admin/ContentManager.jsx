@@ -135,11 +135,26 @@ function ResourceManagerModal({ chapter, onClose }) {
       status: values.status
     };
     try {
-      const query = editing
-        ? supabase.from('chapter_resources').update(payload).eq('id', editing.id)
-        : supabase.from('chapter_resources').insert(payload);
-      const { error: saveError } = await query;
-      if (saveError) throw saveError;
+      if (editing?.id) {
+        const { data, error: updateError } = await supabase
+          .from('chapter_resources')
+          .update(payload)
+          .eq('id', editing.id)
+          .select();
+        if (updateError) throw updateError;
+        if (!data || data.length === 0) {
+          throw new Error('Update blocked by permissions or resource not found in database.');
+        }
+      } else {
+        const { data, error: insertError } = await supabase
+          .from('chapter_resources')
+          .insert(payload)
+          .select();
+        if (insertError) throw insertError;
+        if (!data || data.length === 0) {
+          throw new Error('Insert blocked by permissions or failed to save resource.');
+        }
+      }
       await refresh();
       reset();
     } catch (saveError) {
@@ -162,7 +177,7 @@ function ResourceManagerModal({ chapter, onClose }) {
     <button className="modal-close" type="button" aria-label="Close resource manager" onClick={onClose}><X size={18} /></button>
     <div className="eyebrow">CHAPTER RESOURCES</div><h2 id="resource-manager-title">Manage resources</h2><p className="dialog-intro">{chapter.title} · Link notes, PDFs and revision sheets.</p>
     {loading ? <p className="field-hint">Loading resources…</p> : resources.length ? <div className="resource-admin-list">{resources.map((resource) => <div className="resource-admin-row" key={resource.id}><FileText size={17} /><span><strong>{resource.title}</strong><small>{formatResourceType(resource.resource_type)} · {resource.file_size || 'Size not set'} · {resource.status || 'published'}</small></span><button type="button" className="icon-button" aria-label={`Edit ${resource.title}`} onClick={() => edit(resource)}><Pencil size={15} /></button><button type="button" className="icon-button" aria-label={`Archive ${resource.title}`} onClick={() => archive(resource)}><Archive size={15} /></button></div>)}</div> : <div className="empty-content"><FileText size={20} /><strong>No resources linked yet.</strong><span>Add the first PDF or revision sheet below.</span></div>}
-    <form className="resource-admin-form" onSubmit={save}>
+    <form className="resource-admin-form" onSubmit={save} noValidate>
       <div className="resource-admin-form-heading"><h3>{editing ? 'Edit resource' : 'Add a resource'}</h3>{editing && <button className="text-button" type="button" onClick={reset}>Cancel edit</button>}</div>
       <div className="content-form-row"><label className="field-label">Title <input className="text-input" value={values.title} onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))} required minLength="2" maxLength="120" placeholder="e.g. Fundamental Rights — Quick Notes" /></label><label className="field-label">File type<select className="text-input" value={values.resource_type} onChange={(event) => setValues((current) => ({ ...current, resource_type: event.target.value }))}><option value="pdf">PDF</option><option value="formula_sheet">Formula Sheet</option><option value="revision_sheet">Revision Sheet</option><option value="notes">Notes</option></select></label></div>
       <label className="field-label">Document URL or storage path <input className="text-input" value={values.file_url} onChange={(event) => setValues((current) => ({ ...current, file_url: event.target.value }))} required placeholder="https://… or storage/object/path.pdf" /></label>
@@ -186,28 +201,32 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
       exam_id: item.exam_id || '',
       parent_folder_id: item.parent_folder_id || item.folder_id || '',
       price: item.price ?? '',
-      estimated_study_time_minutes: item.estimated_study_time_minutes ?? 20
+      estimated_study_time_minutes: item.estimated_study_time_minutes ?? item.estimated_minutes ?? 20
     } : {
       ...initialForm,
       exam_id: defaultExamId || exams[0]?.id || '',
       parent_folder_id: defaultParentId || ''
     };
-    try {
-      const draft = sessionStorage.getItem(draftKey);
-      if (draft) return { ...fallback, ...JSON.parse(draft) };
-    } catch {
-      // ignore
+    if (!item) {
+      try {
+        const draft = sessionStorage.getItem(draftKey);
+        if (draft) return { ...fallback, ...JSON.parse(draft) };
+      } catch {
+        // ignore
+      }
     }
     return fallback;
   });
 
   useEffect(() => {
-    try {
-      sessionStorage.setItem(draftKey, JSON.stringify(values));
-    } catch {
-      // ignore
+    if (!item) {
+      try {
+        sessionStorage.setItem(draftKey, JSON.stringify(values));
+      } catch {
+        // ignore
+      }
     }
-  }, [draftKey, values]);
+  }, [draftKey, values, item]);
 
   const clearDraft = () => {
     try {
@@ -233,72 +252,128 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
     ? exams.filter((exam) => exam.id !== item?.id)
     : kind === 'folder'
       ? folders.filter((folder) => folder.id !== item?.id && folder.exam_id === values.exam_id && (folder.parent_folder_id || null) === (values.parent_folder_id || null))
-      : chapters.filter((chapter) => chapter.id !== item?.id && chapter.folder_id === values.parent_folder_id);
+      : chapters.filter((chapter) => chapter.id !== item?.id && (chapter.folder_id || null) === (values.parent_folder_id || null));
   const setField = (field, value) => setValues((current) => ({ ...current, [field]: value }));
   const autoSlug = (event) => {
     setField('title', event.target.value);
     if (!item || values.slug === slugify(item.title)) setField('slug', slugify(event.target.value));
   };
   const save = async (event) => {
-    event.preventDefault();
+    if (event) event.preventDefault();
     setError('');
-    const title = values.title.trim();
-    const slug = slugify(values.slug);
-    if (title.length < 2 || title.length > 100) { setError('Title must be between 2 and 100 characters.'); return; }
-    if (!slug || slug.length > 100) { setError('Enter a valid slug using letters, numbers and hyphens.'); return; }
-    if (slugCandidates.some((candidate) => String(candidate.slug).toLowerCase() === slug)) { setError('That slug is already used at this hierarchy level. Choose a unique slug.'); return; }
-    if (kind === 'folder' && !values.exam_id) { setError('Choose an exam for this folder.'); return; }
-    if (kind === 'chapter' && !values.parent_folder_id) { setError('Choose a parent folder for this chapter.'); return; }
-    if (kind === 'folder' && values.pricing_mode === 'inherit' && !values.parent_folder_id) { setError('A top-level folder has no parent price to inherit. Choose Free or Paid-Own.'); return; }
-    if (values.pricing_mode === 'paid_own' && !(Number(values.price) > 0)) { setError('Enter a price greater than zero for Paid-Own access.'); return; }
-    if (kind === 'chapter' && values.access_mode === 'paid_own' && !(Number(values.price) > 0)) { setError('Enter a price greater than zero for paid chapter access.'); return; }
-    if (kind === 'chapter' && (!values.subject.trim() || values.subject.trim().length > 50)) { setError('Enter a subject tag of 1–50 characters.'); return; }
-    if (kind === 'chapter' && (!Number.isInteger(Number(values.estimated_study_time_minutes)) || Number(values.estimated_study_time_minutes) < 1 || Number(values.estimated_study_time_minutes) > 1440)) { setError('Estimated study time must be between 1 and 1440 minutes.'); return; }
-    if (!supabase) { setError('Supabase is not configured. Add your project URL and anon key before saving content.'); return; }
-
-    const payload = {
-      title,
-      slug,
-      description: values.description.trim() || null,
-      display_order: Math.max(0, Math.trunc(Number(values.display_order) || 0)),
-      status: String(values.status || 'draft')
-    };
-    if (kind === 'exam') Object.assign(payload, { icon: values.icon });
-    if (kind === 'folder') Object.assign(payload, {
-      exam_id: values.exam_id,
-      parent_folder_id: values.parent_folder_id || null,
-      parent_id: values.parent_folder_id || null,
-      allow_tests: Boolean(values.allow_tests),
-      allow_practice: Boolean(values.allow_practice),
-      allow_notes: Boolean(values.allow_notes),
-      pricing_mode: values.pricing_mode,
-      price: values.pricing_mode === 'paid_own' ? Number(values.price) : null
-    });
-    if (kind === 'chapter') Object.assign(payload, {
-      folder_id: values.parent_folder_id,
-      subject: values.subject.trim(),
-      estimated_study_time_minutes: Number(values.estimated_study_time_minutes),
-      access_mode: values.access_mode,
-      price: values.access_mode === 'paid_own' ? Number(values.price) : null
-    });
-    setBusy(true);
     try {
+      const title = (values.title || '').trim();
+      const rawSlug = values.slug || slugify(title);
+      const slug = slugify(rawSlug);
+
+      if (title.length < 2 || title.length > 100) {
+        throw new Error('Title must be between 2 and 100 characters.');
+      }
+      if (!slug || slug.length > 100) {
+        throw new Error('Enter a valid slug using lowercase letters, numbers and hyphens.');
+      }
+      if (slugCandidates.some((candidate) => String(candidate.slug).toLowerCase() === slug)) {
+        throw new Error('That slug is already used at this hierarchy level. Choose a unique slug.');
+      }
+      if (kind === 'folder' && !values.exam_id) {
+        throw new Error('Choose an exam for this folder.');
+      }
+      if (kind === 'chapter' && !values.parent_folder_id) {
+        throw new Error('Choose a parent folder for this chapter.');
+      }
+      if (kind === 'folder' && values.pricing_mode === 'inherit' && !values.parent_folder_id) {
+        throw new Error('A top-level folder has no parent price to inherit. Choose Free or Paid-Own.');
+      }
+      if (values.pricing_mode === 'paid_own' && !(Number(values.price) > 0)) {
+        throw new Error('Enter a price greater than zero for Paid-Own access.');
+      }
+      if (kind === 'chapter' && values.access_mode === 'paid_own' && !(Number(values.price) > 0)) {
+        throw new Error('Enter a price greater than zero for paid chapter access.');
+      }
+      if (kind === 'chapter' && (!(values.subject || '').trim() || (values.subject || '').trim().length > 50)) {
+        throw new Error('Enter a subject tag of 1–50 characters.');
+      }
+      const studyMins = Number(values.estimated_study_time_minutes || values.estimated_minutes || 20);
+      if (kind === 'chapter' && (!Number.isInteger(studyMins) || studyMins < 1 || studyMins > 1440)) {
+        throw new Error('Estimated study time must be between 1 and 1440 minutes.');
+      }
+      if (!supabase) {
+        throw new Error('Supabase is not configured. Add your project URL and anon key before saving content.');
+      }
+
+      setBusy(true);
+
+      const payload = {
+        title,
+        slug,
+        description: values.description ? String(values.description).trim() || null : null,
+        display_order: Math.max(0, Math.trunc(Number(values.display_order) || 0)),
+        status: String(values.status || 'draft').toLowerCase()
+      };
+      if (kind === 'exam') Object.assign(payload, { icon: values.icon || 'BookOpen' });
+      if (kind === 'folder') {
+        const pricingMode = normalizePricingMode(values.pricing_mode);
+        Object.assign(payload, {
+          exam_id: values.exam_id,
+          parent_folder_id: values.parent_folder_id || null,
+          parent_id: values.parent_folder_id || null,
+          allow_tests: Boolean(values.allow_tests),
+          allow_practice: Boolean(values.allow_practice),
+          allow_notes: Boolean(values.allow_notes),
+          pricing_mode: pricingMode,
+          price: pricingMode === 'paid_own' ? Math.max(0, Number(values.price) || 0) : null
+        });
+      }
+      if (kind === 'chapter') {
+        const accessMode = normalizeAccessMode(values.access_mode);
+        Object.assign(payload, {
+          folder_id: values.parent_folder_id,
+          subject: (values.subject || 'General').trim(),
+          estimated_study_time_minutes: studyMins,
+          access_mode: accessMode,
+          price: accessMode === 'paid_own' ? Math.max(0, Number(values.price) || 0) : null
+        });
+      }
+
       const table = kind === 'exam' ? 'exams' : kind === 'folder' ? 'folders' : 'chapters';
-      const query = item
-        ? supabase.from(table).update(payload).eq('id', item.id)
-        : supabase.from(table).insert(payload);
-      const { error: saveError } = await query;
-      if (saveError) throw saveError;
-      await onSaved();
+      let savedRow = null;
+
+      if (item?.id) {
+        const { data, error: updateError } = await supabase
+          .from(table)
+          .update(payload)
+          .eq('id', item.id)
+          .select();
+        if (updateError) throw updateError;
+        if (!data || data.length === 0) {
+          throw new Error(`Update blocked by permissions or ${kind} not found in database.`);
+        }
+        savedRow = data[0];
+      } else {
+        const { data, error: insertError } = await supabase
+          .from(table)
+          .insert(payload)
+          .select();
+        if (insertError) throw insertError;
+        if (!data || data.length === 0) {
+          throw new Error(`Insert blocked by permissions or failed to create ${kind}.`);
+        }
+        savedRow = data[0];
+      }
+
+      await onSaved?.(savedRow, kind, item?.id ? 'update' : 'create');
       clearDraft();
       onClose();
     } catch (saveError) {
+      console.error(`Failed to save ${kind}:`, saveError);
       setError(getContentErrorMessage(saveError, `Unable to save ${kind}.`));
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   };
 
   const title = kind === 'exam' ? 'exam' : kind === 'folder' ? (values.parent_folder_id ? 'folder / subfolder' : 'main folder') : 'chapter';
-  return <div className="modal-backdrop" role="presentation"><form className="content-dialog" role="dialog" aria-modal="true" aria-labelledby="content-dialog-title" onSubmit={save}>
+  return <div className="modal-backdrop" role="presentation"><form className="content-dialog" role="dialog" aria-modal="true" aria-labelledby="content-dialog-title" onSubmit={save} noValidate>
     <button className="modal-close" type="button" aria-label="Close dialog" onClick={handleClose}><X size={18} /></button>
     <div className="eyebrow">{item ? 'EDIT CONTENT' : 'ADD TO YOUR HIERARCHY'}</div>
     <h2 id="content-dialog-title">{item ? 'Edit' : 'Create'} {title}</h2>
@@ -489,7 +564,13 @@ export default function ContentManager() {
       setDeletingExam(false);
     }
   };
-  const onSaved = async () => { await refresh(); };
+  const onSaved = async (savedItem, actionKind, actionType) => {
+    setActionError('');
+    await refresh();
+    const name = savedItem?.title || actionKind || 'Item';
+    const action = actionType === 'update' ? 'updated' : 'created';
+    setSuccessMessage(`“${name}” was successfully ${action}.`);
+  };
   const examIcon = (exam) => {
     const Icon = examIcons[exam.icon] || GraduationCap;
     return <Icon size={19} />;
