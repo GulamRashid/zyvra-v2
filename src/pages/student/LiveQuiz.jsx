@@ -1572,16 +1572,23 @@ export default function LiveQuiz() {
               return entries.map(([key, opt]) => {
                 let displayedOption = '';
                 if (opt && typeof opt === 'object') {
-                  const optEn = opt.en ?? opt.EN ?? opt.En ?? opt.text_en ?? opt.text ?? '';
-                  const optHi = opt.hi ?? opt.HI ?? opt.Hi ?? opt.text_hi ?? opt.text ?? optEn;
-                  displayedOption = isEn ? (opt.en ?? opt.EN ?? optEn) : (opt.hi ?? opt.HI ?? optHi);
+                  const optEn = String(opt.en || opt.EN || opt.En || opt.text_en || opt.text || opt.label || opt.value || opt.code || opt.title || '').trim();
+                  const optHi = String(opt.hi || opt.HI || opt.Hi || opt.text_hi || opt.text || opt.label || opt.value || opt.code || opt.title || '').trim();
+                  displayedOption = isEn ? (optEn || optHi) : (optHi || optEn);
+
+                  if (!displayedOption) {
+                    const dict = Object.entries(opt).filter(([k]) => !['id', 'key', 'index'].includes(k.toLowerCase()));
+                    if (dict.length > 0 && dict.every(([k, v]) => (typeof v === 'string' || typeof v === 'number') && k.length <= 4)) {
+                      displayedOption = dict.map(([k, v]) => `${k.toUpperCase()}-${v}`).join(', ');
+                    }
+                  }
                 } else if (typeof opt === 'string') {
                   displayedOption = opt;
                 } else {
                   const k = key.toLowerCase();
-                  displayedOption = isEn
-                    ? (currentQuestion?.[`option_${k}_en`] ?? currentQuestion?.[`option_${k}`] ?? currentQuestion?.[`option_${k}_hi`] ?? '')
-                    : (currentQuestion?.[`option_${k}_hi`] ?? currentQuestion?.[`option_${k}`] ?? currentQuestion?.[`option_${k}_en`] ?? '');
+                  const flatEn = String(currentQuestion?.[`option_${k}_en`] || currentQuestion?.[`option_${k}`] || '').trim();
+                  const flatHi = String(currentQuestion?.[`option_${k}_hi`] || '').trim();
+                  displayedOption = isEn ? (flatEn || flatHi) : (flatHi || flatEn);
                 }
 
                 if (!displayedOption && !isEn && questionTranslations[`option:${key}`]) {

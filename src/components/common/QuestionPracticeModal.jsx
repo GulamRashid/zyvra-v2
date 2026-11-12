@@ -104,28 +104,35 @@ function getResolvedOptionEntries(currentQuestion) {
 
 function resolveOptionText(opt, key, currentQuestion, language = 'en') {
   const isEn = String(language).toUpperCase() === 'EN';
-  const langKey = isEn ? 'en' : 'hi';
-  const fallbackKey = isEn ? 'hi' : 'en';
-
   let text = '';
+
   if (typeof opt === 'string') {
     text = opt;
   } else if (opt && typeof opt === 'object') {
-    // Array of objects or map: [{ id: 'A', text: '...', en: '...', hi: '...', label: '...', value: '...' }]
-    const optDirect = opt[langKey] ?? opt[langKey.toUpperCase()] ?? opt[`text_${langKey}`];
-    const optFallback = opt[fallbackKey] ?? opt[fallbackKey.toUpperCase()] ?? opt[`text_${fallbackKey}`];
-    const optGeneric = opt.text ?? opt.label ?? opt.value;
-    text = isEn
-      ? (optDirect ?? optGeneric ?? optFallback ?? '')
-      : (optDirect ?? optFallback ?? optGeneric ?? '');
+    const enText = String(
+      opt.en || opt.EN || opt.text_en || opt.text || opt.label || opt.value || opt.code || opt.title || opt.val || ''
+    ).trim();
+    const hiText = String(
+      opt.hi || opt.HI || opt.text_hi || opt.text || opt.label || opt.value || opt.code || opt.title || opt.val || ''
+    ).trim();
+
+    text = isEn ? (enText || hiText) : (hiText || enText);
+
+    // If still empty, check if opt is a matching map like { A: 2, B: 1, C: 4, D: 3 } or { a: "1", b: "2" }
+    if (!text) {
+      const entries = Object.entries(opt).filter(([k]) => !['id', 'key', 'index'].includes(k.toLowerCase()));
+      if (entries.length > 0 && entries.every(([k, v]) => (typeof v === 'string' || typeof v === 'number') && k.length <= 4)) {
+        text = entries.map(([k, v]) => `${k.toUpperCase()}-${v}`).join(', ');
+      }
+    }
   }
 
   // Fallback to question flat fields if text is still empty
   if (!text && currentQuestion) {
     const k = String(key).toLowerCase();
-    text = isEn
-      ? (currentQuestion[`option_${k}_en`] ?? currentQuestion[`option_${k}`] ?? currentQuestion[`option_${k}_hi`] ?? '')
-      : (currentQuestion[`option_${k}_hi`] ?? currentQuestion[`option_${k}`] ?? currentQuestion[`option_${k}_en`] ?? '');
+    const flatEn = String(currentQuestion[`option_${k}_en`] || currentQuestion[`option_${k}`] || '').trim();
+    const flatHi = String(currentQuestion[`option_${k}_hi`] || '').trim();
+    text = isEn ? (flatEn || flatHi) : (flatHi || flatEn);
   }
 
   return String(text || '').trim();
@@ -253,15 +260,15 @@ export default function QuestionPracticeModal({
       >
         {/* Header */}
         <header className="practice-runner-header">
-          <div className="practice-runner-title-wrap">
+          <div className="practice-runner-title-wrap flex-1 min-w-0">
             <div className="practice-badge">
               <Sparkles size={16} />
             </div>
-            <div>
-              <h2 id="practice-modal-title" className="practice-title">
+            <div className="min-w-0 flex-1 overflow-hidden">
+              <h2 id="practice-modal-title" className="practice-title truncate">
                 {chapterTitle || 'Question Practice'}
               </h2>
-              <div className="practice-subtext">
+              <div className="practice-subtext truncate">
                 {subject && <span className="subject-pill">{subject}</span>}
                 <span>Question {currentIndex + 1} of {safeQuestions.length}</span>
                 <span>· {answeredCount} answered</span>
@@ -269,7 +276,7 @@ export default function QuestionPracticeModal({
             </div>
           </div>
 
-          <div className="practice-header-actions">
+          <div className="practice-header-actions flex-shrink-0 flex items-center gap-2">
             <div className="native-language-toggle compact-lang-toggle" role="group" aria-label="Language">
               <button
                 type="button"
@@ -291,7 +298,7 @@ export default function QuestionPracticeModal({
 
             <button
               type="button"
-              className="icon-button modal-close"
+              className="icon-button practice-modal-close"
               aria-label="Close practice"
               onClick={onClose}
             >

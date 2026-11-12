@@ -640,6 +640,9 @@ export function ThemeLanguageProvider({ children }) {
     const applyTheme = () => {
       const light = theme === 'light' || (theme === 'system' && system.matches);
       document.body.classList.toggle('light', light);
+      document.body.classList.toggle('dark', !light);
+      root.classList.toggle('light', light);
+      root.classList.toggle('dark', !light);
       root.style.colorScheme = light ? 'light' : 'dark';
     };
     applyTheme();

@@ -136,6 +136,7 @@ export default async function handler(req, res) {
         .from('payment_orders')
         .insert({
           user_id: userId,
+          order_type: itemType || 'direct',
           item_type: itemType,
           item_id: String(itemId),
           item_title: itemTitle || null,

@@ -53,6 +53,29 @@ body.light strong,
 body.light b,
 body.light .card-heading h3,
 body.light .section-heading h2,
+body.light .quiz-question-text,
+body.light .practice-question-text,
+body.light .question-formatted-container,
+body.light .question-preamble,
+body.light .question-postamble,
+body.light .statement-content,
+body.light .matching-table-card {
+  color: #0f172a !important;
+}
+
+body.light .matching-table-card {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+
+body.light .matching-table-card .grid {
+  color: #0f172a !important;
+}
+
+body.light .statement-badge {
+  background: #fef3c7 !important;
+  color: #78350f !important;
+}
 body.light .welcome-row h1,
 body.light .page-heading h1,
 body.light .continue-content h2,
@@ -3147,6 +3170,7 @@ body.light .palette-number.not-visited {
   align-items: center;
   gap: 12px;
   min-width: 0;
+  flex: 1;
 }
 .practice-badge {
   display: grid;
@@ -3165,6 +3189,7 @@ body.light .palette-number.not-visited {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--text);
 }
 .practice-subtext {
   display: flex;
@@ -3173,12 +3198,34 @@ body.light .palette-number.not-visited {
   font-size: 12px;
   color: var(--muted);
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .practice-header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+}
+.practice-modal-close {
+  position: static !important;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.practice-modal-close:hover {
+  color: var(--text);
+  border-color: var(--gold);
 }
 .practice-progress-bar {
   width: 100%;
@@ -3226,8 +3273,12 @@ body.light .palette-number.not-visited {
 .practice-question-text {
   font-size: 16px;
   line-height: 1.6;
-  color: var(--text);
+  color: #0f172a;
   margin-bottom: 20px;
+}
+:root.dark .practice-question-text,
+body.dark .practice-question-text {
+  color: var(--text);
 }
 .practice-options {
   display: grid;
