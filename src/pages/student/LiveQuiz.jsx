@@ -484,7 +484,7 @@ export default function LiveQuiz() {
           const qIds = safeQuestions.map((q) => q.id);
           const { data: fullQuestions } = await supabase
             .from('questions')
-            .select('id, correct_answer, explanation, explanation_hi, distractor_notes')
+            .select('id, correct_answer, explanation, explanation_en, explanation_hi, distractor_notes')
             .in('id', qIds);
 
           if (fullQuestions?.length) {
@@ -494,6 +494,7 @@ export default function LiveQuiz() {
               if (full) {
                 if (full.correct_answer) q.correct_answer = full.correct_answer;
                 if (full.explanation) q.explanation = full.explanation;
+                if (full.explanation_en) q.explanation_en = full.explanation_en;
                 if (full.explanation_hi) q.explanation_hi = full.explanation_hi;
                 if (full.distractor_notes) q.distractor_notes = full.distractor_notes;
               }
@@ -629,7 +630,7 @@ export default function LiveQuiz() {
         const qIds = safeQuestions.map((q) => q.id);
         const { data: fullQuestions } = await supabase
           .from('questions')
-          .select('id, correct_answer, explanation, explanation_hi, distractor_notes')
+          .select('id, correct_answer, explanation, explanation_en, explanation_hi, distractor_notes')
           .in('id', qIds);
 
         if (fullQuestions?.length) {
@@ -639,6 +640,7 @@ export default function LiveQuiz() {
             if (full) {
               if (full.correct_answer) q.correct_answer = full.correct_answer;
               if (full.explanation) q.explanation = full.explanation;
+              if (full.explanation_en) q.explanation_en = full.explanation_en;
               if (full.explanation_hi) q.explanation_hi = full.explanation_hi;
               if (full.distractor_notes) q.distractor_notes = full.distractor_notes;
             }

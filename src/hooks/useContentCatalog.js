@@ -41,6 +41,40 @@ export default function useContentCatalog() {
     });
   }, []);
 
+  const removeFolder = useCallback((folderId) => {
+    setCatalog((current) => {
+      const childrenByParent = new Map();
+      current.folders.forEach((f) => {
+        const parent = f.parent_folder_id || f.parent_id;
+        const list = childrenByParent.get(parent) || [];
+        list.push(f.id);
+        childrenByParent.set(parent, list);
+      });
+      const toRemove = new Set();
+      const queue = [folderId];
+      while (queue.length > 0) {
+        const id = queue.shift();
+        if (toRemove.has(id)) continue;
+        toRemove.add(id);
+        const children = childrenByParent.get(id) || [];
+        queue.push(...children);
+      }
+      return {
+        exams: current.exams,
+        folders: current.folders.filter((f) => !toRemove.has(f.id)),
+        chapters: current.chapters.filter((c) => !toRemove.has(c.folder_id))
+      };
+    });
+  }, []);
+
+  const removeChapter = useCallback((chapterId) => {
+    setCatalog((current) => ({
+      exams: current.exams,
+      folders: current.folders,
+      chapters: current.chapters.filter((c) => c.id !== chapterId)
+    }));
+  }, []);
+
   useEffect(() => {
     let active = true;
     const load = async () => {
@@ -78,5 +112,5 @@ export default function useContentCatalog() {
     };
   }, [refresh]);
 
-  return { ...catalog, loading, error, refresh, removeExam };
+  return { ...catalog, loading, error, refresh, removeExam, removeFolder, removeChapter };
 }

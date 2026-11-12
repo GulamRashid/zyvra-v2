@@ -427,7 +427,7 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
 }
 
 export default function ContentManager() {
-  const { exams, folders, chapters, loading, error, refresh, removeExam } = useContentCatalog();
+  const { exams, folders, chapters, loading, error, refresh, removeExam, removeFolder, removeChapter } = useContentCatalog();
   const [selectedExamId, setSelectedExamId] = useState(() => {
     try {
       return sessionStorage.getItem('zyvra_cm_exam_id') || '';
@@ -536,10 +536,19 @@ export default function ContentManager() {
     setSuccessMessage('');
     setExamToDelete(exam);
   };
-  const handleDeleteContentClick = (kind, item) => {
+  const handleDeleteFolder = (folder) => {
     setActionError('');
     setSuccessMessage('');
-    setContentToDelete({ kind, item });
+    setContentToDelete({ kind: 'folder', item: folder });
+  };
+  const handleDeleteChapter = (chapter) => {
+    setActionError('');
+    setSuccessMessage('');
+    setContentToDelete({ kind: 'chapter', item: chapter });
+  };
+  const handleDeleteContentClick = (kind, item) => {
+    if (kind === 'folder') handleDeleteFolder(item);
+    else handleDeleteChapter(item);
   };
   const archive = async (kind, item) => {
     const typeLabel = kind === 'exam' ? 'exam' : kind === 'folder' ? 'folder' : 'chapter';
@@ -575,6 +584,7 @@ export default function ContentManager() {
         const examChapters = chapters.filter((c) => folderIds.includes(c.folder_id));
         const chapterIds = examChapters.map((c) => c.id);
         if (chapterIds.length) {
+          await supabase.from('questions').update({ chapter_id: null }).in('chapter_id', chapterIds);
           await supabase.from('chapter_resources').delete().in('chapter_id', chapterIds);
         }
         const { error: chaptersError } = await supabase.from('chapters').delete().in('folder_id', folderIds);
@@ -600,104 +610,78 @@ export default function ContentManager() {
       setDeletingExam(false);
     }
   };
-  const deleteContent = async () => {
-    if (!contentToDelete?.item?.id) return;
+
+  const executeDeleteChapter = async (chapter) => {
+    if (!chapter?.id) return;
     if (!supabase) {
       setActionError('Supabase is not configured. Connect it before deleting content.');
       return;
     }
-
-    const { kind, item } = contentToDelete;
-    const label = kind === 'folder' ? 'folder' : 'chapter';
     setActionError('');
     setDeletingContent(true);
     try {
-      let chapterIds = [];
-      let folderIds = [];
+      const chapterId = chapter.id;
 
-      if (kind === 'folder') {
-        const { data: allFolders, error: foldersError } = await supabase
-          .from('folders')
-          .select('id,parent_folder_id')
-          .eq('exam_id', item.exam_id);
-        if (foldersError) throw foldersError;
+      // 1. Unlink questions so they remain safely in the Question Bank without a chapter assignment
+      const { error: unlinkError } = await supabase
+        .from('questions')
+        .update({ chapter_id: null })
+        .eq('chapter_id', chapterId);
+      if (unlinkError) console.warn('Unlink chapter questions note:', unlinkError.message);
 
-        const childrenByParent = new Map();
-        (allFolders || []).forEach((folder) => {
-          const children = childrenByParent.get(folder.parent_folder_id) || [];
-          children.push(folder.id);
-          childrenByParent.set(folder.parent_folder_id, children);
-        });
-        const pending = [item.id];
-        const seen = new Set();
-        while (pending.length) {
-          const folderId = pending.pop();
-          if (seen.has(folderId)) continue;
-          seen.add(folderId);
-          pending.push(...(childrenByParent.get(folderId) || []));
-        }
-        folderIds = Array.from(seen);
+      // 2. Delete chapter resources
+      const { error: resError } = await supabase
+        .from('chapter_resources')
+        .delete()
+        .eq('chapter_id', chapterId);
+      if (resError) console.warn('Delete chapter resources note:', resError.message);
 
-        const { data: chaptersInFolders, error: chaptersError } = await supabase
-          .from('chapters')
-          .select('id')
-          .in('folder_id', folderIds);
-        if (chaptersError) throw chaptersError;
-        chapterIds = (chaptersInFolders || []).map((chapter) => chapter.id);
-      } else {
-        chapterIds = [item.id];
+      // 3. Delete student bookmarks
+      try {
+        await supabase.from('student_bookmarks').delete().eq('chapter_id', chapterId);
+      } catch (_) {}
+
+      // 4. Delete chapter tests and their dependent records
+      const { data: tests, error: testsLoadError } = await supabase
+        .from('tests')
+        .select('id')
+        .eq('chapter_id', chapterId);
+      if (testsLoadError) throw testsLoadError;
+
+      const testIds = (tests || []).map((t) => t.id).filter(Boolean);
+      if (testIds.length > 0) {
+        try {
+          await supabase.from('test_questions').delete().in('test_id', testIds);
+        } catch (_) {}
+        try {
+          await supabase.from('test_attempts').delete().in('test_id', testIds);
+        } catch (_) {}
+        const { error: testsDeleteError } = await supabase
+          .from('tests')
+          .delete()
+          .in('id', testIds);
+        if (testsDeleteError) throw testsDeleteError;
       }
 
-      if (chapterIds.length) {
-        const [resourcesResult, questionsResult, testsResult] = await Promise.all([
-          supabase.from('chapter_resources').delete().in('chapter_id', chapterIds).select('id'),
-          supabase.from('questions').update({ chapter_id: null }).in('chapter_id', chapterIds).select('id'),
-          supabase.from('tests').select('id').in('chapter_id', chapterIds)
-        ]);
-        if (resourcesResult.error) throw resourcesResult.error;
-        if (questionsResult.error) throw questionsResult.error;
-        if (testsResult.error) throw testsResult.error;
-
-        const testIds = (testsResult.data || []).map((test) => test.id);
-        if (testIds.length) {
-          const { data: deletedTests, error: deleteTestsError } = await supabase
-            .from('tests')
-            .delete()
-            .in('id', testIds)
-            .select('id');
-          if (deleteTestsError) throw deleteTestsError;
-          if (deletedTests?.length !== testIds.length) {
-            throw new Error('Some chapter tests could not be deleted. Check admin permissions and try again.');
-          }
-        }
-
-        if (kind === 'folder') {
-          const { data: deletedChapters, error: deleteChaptersError } = await supabase
-            .from('chapters')
-            .delete()
-            .in('id', chapterIds)
-            .select('id');
-          if (deleteChaptersError) throw deleteChaptersError;
-          if (deletedChapters?.length !== chapterIds.length) {
-            throw new Error('Some chapters could not be deleted. Check admin permissions and try again.');
-          }
-        }
+      // 5. Verify deletion via .delete().eq('id', id).select()
+      const { data: deletedRows, error: chapterError } = await supabase
+        .from('chapters')
+        .delete()
+        .eq('id', chapterId)
+        .select('id');
+      if (chapterError) throw chapterError;
+      if (!deletedRows || deletedRows.length === 0) {
+        throw new Error('Chapter could not be deleted or was not found in database.');
       }
 
-      const { data: deletedFolder, error: deleteError } = kind === 'folder'
-        ? await supabase.from('folders').delete().eq('id', item.id).select('id')
-        : await supabase.from('chapters').delete().eq('id', item.id).select('id');
-      if (deleteError) throw deleteError;
-      if (!deletedFolder?.length) {
-        throw new Error(`The ${label} was not deleted. Check admin permissions and try again.`);
-      }
-
-      if (resourceChapter?.id === item.id) setResourceChapter(null);
+      if (resourceChapter?.id === chapterId) setResourceChapter(null);
       setContentToDelete(null);
-      setSuccessMessage(`“${item.title || label}” and its dependent content were permanently deleted.`);
+      removeChapter?.(chapterId);
+      setSuccessMessage(`“${chapter.title || 'Chapter'}” and its resources/tests were permanently deleted.`);
       await refresh();
     } catch (deleteError) {
-      setActionError(getContentErrorMessage(deleteError, `Unable to delete this ${label} and its dependent content.`));
+      console.error('Failed to delete chapter:', deleteError);
+      setActionError(getContentErrorMessage(deleteError, 'Unable to delete this chapter and its dependent content.'));
       try {
         await refresh();
       } catch (refreshError) {
@@ -705,6 +689,161 @@ export default function ContentManager() {
       }
     } finally {
       setDeletingContent(false);
+    }
+  };
+
+  const executeDeleteFolder = async (folder) => {
+    if (!folder?.id) return;
+    if (!supabase) {
+      setActionError('Supabase is not configured. Connect it before deleting content.');
+      return;
+    }
+    setActionError('');
+    setDeletingContent(true);
+    try {
+      // 1. Recursively find all child/sub-folder IDs
+      const { data: allFoldersData, error: foldersError } = await supabase
+        .from('folders')
+        .select('id, parent_folder_id, parent_id')
+        .eq('exam_id', folder.exam_id);
+      if (foldersError) throw foldersError;
+
+      const sourceFolders = allFoldersData || folders || [];
+      const childrenByParent = new Map();
+      sourceFolders.forEach((f) => {
+        const parent = f.parent_folder_id || f.parent_id;
+        const list = childrenByParent.get(parent) || [];
+        list.push(f.id);
+        childrenByParent.set(parent, list);
+      });
+
+      const descendantIds = [];
+      const queue = [folder.id];
+      const visited = new Set();
+      while (queue.length > 0) {
+        const current = queue.shift();
+        if (visited.has(current)) continue;
+        visited.add(current);
+        if (current !== folder.id) {
+          descendantIds.push(current);
+        }
+        const children = childrenByParent.get(current) || [];
+        queue.push(...children);
+      }
+
+      const allFolderIds = [folder.id, ...descendantIds];
+
+      // 2. Find all chapters inside ANY of these folders
+      const { data: folderChapters, error: chaptersError } = await supabase
+        .from('chapters')
+        .select('id')
+        .in('folder_id', allFolderIds);
+      if (chaptersError) throw chaptersError;
+
+      const chapterIds = (folderChapters || []).map((c) => c.id).filter(Boolean);
+
+      // 3. For all these chapters: unlink questions, delete resources, bookmarks, tests, chapters
+      if (chapterIds.length > 0) {
+        // Unlink questions so they remain safe in Question Bank
+        const { error: unlinkError } = await supabase
+          .from('questions')
+          .update({ chapter_id: null })
+          .in('chapter_id', chapterIds);
+        if (unlinkError) console.warn('Unlink questions note:', unlinkError.message);
+
+        // Delete chapter resources
+        const { error: resError } = await supabase
+          .from('chapter_resources')
+          .delete()
+          .in('chapter_id', chapterIds);
+        if (resError) console.warn('Delete resources note:', resError.message);
+
+        // Delete bookmarks
+        try {
+          await supabase.from('student_bookmarks').delete().in('chapter_id', chapterIds);
+        } catch (_) {}
+
+        // Find tests
+        const { data: tests, error: testsLoadError } = await supabase
+          .from('tests')
+          .select('id')
+          .in('chapter_id', chapterIds);
+        if (testsLoadError) throw testsLoadError;
+
+        const testIds = (tests || []).map((t) => t.id).filter(Boolean);
+        if (testIds.length > 0) {
+          try {
+            await supabase.from('test_questions').delete().in('test_id', testIds);
+          } catch (_) {}
+          try {
+            await supabase.from('test_attempts').delete().in('test_id', testIds);
+          } catch (_) {}
+          const { error: testsDelError } = await supabase
+            .from('tests')
+            .delete()
+            .in('id', testIds);
+          if (testsDelError) throw testsDelError;
+        }
+
+        // Delete chapters
+        const { error: chDelError } = await supabase
+          .from('chapters')
+          .delete()
+          .in('id', chapterIds);
+        if (chDelError) throw chDelError;
+      }
+
+      // 4. Delete descendant sub-folders bottom-up
+      const subFolderIds = allFolderIds.filter((id) => id !== folder.id);
+      if (subFolderIds.length > 0) {
+        const reversed = [...subFolderIds].reverse();
+        const { error: subFolderError } = await supabase
+          .from('folders')
+          .delete()
+          .in('id', reversed);
+        if (subFolderError) throw subFolderError;
+      }
+
+      // 5. Verify deletion of the target folder via .delete().eq('id', id).select()
+      const { data: deletedFolder, error: folderDeleteError } = await supabase
+        .from('folders')
+        .delete()
+        .eq('id', folder.id)
+        .select('id');
+      if (folderDeleteError) throw folderDeleteError;
+      if (!deletedFolder || deletedFolder.length === 0) {
+        throw new Error('Folder could not be deleted or was not found in database.');
+      }
+
+      // If navigation path was inside the deleted folder or its subfolders, step back
+      if (pathIds.some((pId) => allFolderIds.includes(pId))) {
+        const firstIdx = pathIds.findIndex((pId) => allFolderIds.includes(pId));
+        setPathIds(pathIds.slice(0, firstIdx));
+      }
+
+      setContentToDelete(null);
+      removeFolder?.(folder.id);
+      setSuccessMessage(`“${folder.title || 'Folder'}” and all nested contents were permanently deleted.`);
+      await refresh();
+    } catch (deleteError) {
+      console.error('Failed to delete folder:', deleteError);
+      setActionError(getContentErrorMessage(deleteError, 'Unable to delete this folder and its nested content.'));
+      try {
+        await refresh();
+      } catch (refreshError) {
+        setActionError(getContentErrorMessage(refreshError, 'Deletion failed and the content hierarchy could not be refreshed.'));
+      }
+    } finally {
+      setDeletingContent(false);
+    }
+  };
+
+  const deleteContent = async () => {
+    if (!contentToDelete?.item?.id) return;
+    if (contentToDelete.kind === 'folder') {
+      await executeDeleteFolder(contentToDelete.item);
+    } else {
+      await executeDeleteChapter(contentToDelete.item);
     }
   };
   const onSaved = async (savedItem, actionKind, actionType) => {
@@ -756,9 +895,9 @@ export default function ContentManager() {
               const count = chapters.filter((chapter) => chapter.folder_id === folder.id).length;
               const subCount = folders.filter((child) => child.parent_folder_id === folder.id).length;
               const pricing = getFolderPricing(folder, folders);
-              return <article className="content-entry" key={folder.id}><button className="content-entry-main" onClick={() => { setPathIds([...pathIds, folder.id]); setSearch(''); }}><span className="content-entry-icon folder-entry-icon"><Folder size={18} /></span><span className="content-entry-copy"><strong>{folder.title}</strong><small>{folder.description || 'No description'} · {subCount} subfolders · {count} chapters</small></span><span className="entry-price">{pricing.label}</span><ChevronRight size={17} /></button><div className="content-entry-actions"><CopyIdButton id={folder.id} label="folder_id" /><span className={`content-status status-${String(folder.status || 'draft').toLowerCase()}`}>{folder.status || 'draft'}</span><button title="Edit folder" aria-label={`Edit ${folder.title}`} onClick={() => setDialog({ kind: 'folder', item: folder })}><Pencil size={14} /></button><button type="button" title="Delete folder and its contents" aria-label={`Delete ${folder.title}`} disabled={deletingContent} onClick={() => handleDeleteContentClick('folder', folder)}><Trash2 size={14} /></button><button title="Archive folder" aria-label={`Archive ${folder.title}`} disabled={savingArchive === folder.id} onClick={() => archive('folder', folder)}><Archive size={14} /></button></div></article>;
+              return <article className="content-entry" key={folder.id}><button className="content-entry-main" onClick={() => { setPathIds([...pathIds, folder.id]); setSearch(''); }}><span className="content-entry-icon folder-entry-icon"><Folder size={18} /></span><span className="content-entry-copy"><strong>{folder.title}</strong><small>{folder.description || 'No description'} · {subCount} subfolders · {count} chapters</small></span><span className="entry-price">{pricing.label}</span><ChevronRight size={17} /></button><div className="content-entry-actions"><CopyIdButton id={folder.id} label="folder_id" /><span className={`content-status status-${String(folder.status || 'draft').toLowerCase()}`}>{folder.status || 'draft'}</span><button title="Edit folder" aria-label={`Edit ${folder.title}`} onClick={() => setDialog({ kind: 'folder', item: folder })}><Pencil size={14} /></button><button type="button" title="Delete folder and its contents" aria-label={`Delete ${folder.title}`} disabled={deletingContent} onClick={() => handleDeleteFolder(folder)}><Trash2 size={14} /></button><button title="Archive folder" aria-label={`Archive ${folder.title}`} disabled={savingArchive === folder.id} onClick={() => archive('folder', folder)}><Archive size={14} /></button></div></article>;
             })}
-            {filteredChapters.map((chapter) => <article className="content-entry chapter-entry" key={chapter.id}><div className="content-entry-main"><span className="content-entry-icon chapter-entry-icon"><BookOpen size={18} /></span><span className="content-entry-copy"><strong>{chapter.title}</strong><small>{chapter.description || 'No description'}</small></span><span className="entry-price"><Clock3 size={13} /> {chapter.estimated_study_time_minutes || '—'} min</span></div><div className="content-entry-actions"><CopyIdButton id={chapter.id} label="chapter_id" /><span className="subject-pill">{chapter.subject || 'No subject'}</span><span className={`content-status status-${String(chapter.status || 'draft').toLowerCase()}`}>{chapter.status || 'draft'}</span><button title="Add / Manage Resources" aria-label={`Manage resources for ${chapter.title}`} onClick={() => setResourceChapter(chapter)}><FileText size={14} /></button><button title="Edit chapter" aria-label={`Edit ${chapter.title}`} onClick={() => setDialog({ kind: 'chapter', item: chapter })}><Pencil size={14} /></button><button type="button" title="Delete chapter and its contents" aria-label={`Delete ${chapter.title}`} disabled={deletingContent} onClick={() => handleDeleteContentClick('chapter', chapter)}><Trash2 size={14} /></button><button title="Archive chapter" aria-label={`Archive ${chapter.title}`} disabled={savingArchive === chapter.id} onClick={() => archive('chapter', chapter)}><Archive size={14} /></button></div></article>)}
+            {filteredChapters.map((chapter) => <article className="content-entry chapter-entry" key={chapter.id}><div className="content-entry-main"><span className="content-entry-icon chapter-entry-icon"><BookOpen size={18} /></span><span className="content-entry-copy"><strong>{chapter.title}</strong><small>{chapter.description || 'No description'}</small></span><span className="entry-price"><Clock3 size={13} /> {chapter.estimated_study_time_minutes || '—'} min</span></div><div className="content-entry-actions"><CopyIdButton id={chapter.id} label="chapter_id" /><span className="subject-pill">{chapter.subject || 'No subject'}</span><span className={`content-status status-${String(chapter.status || 'draft').toLowerCase()}`}>{chapter.status || 'draft'}</span><button title="Add / Manage Resources" aria-label={`Manage resources for ${chapter.title}`} onClick={() => setResourceChapter(chapter)}><FileText size={14} /></button><button title="Edit chapter" aria-label={`Edit ${chapter.title}`} onClick={() => setDialog({ kind: 'chapter', item: chapter })}><Pencil size={14} /></button><button type="button" title="Delete chapter and its contents" aria-label={`Delete ${chapter.title}`} disabled={deletingContent} onClick={() => handleDeleteChapter(chapter)}><Trash2 size={14} /></button><button title="Archive chapter" aria-label={`Archive ${chapter.title}`} disabled={savingArchive === chapter.id} onClick={() => archive('chapter', chapter)}><Archive size={14} /></button></div></article>)}
             {!filteredFolders.length && !filteredChapters.length && <div className="empty-content workspace-empty"><Folder size={23} /><strong>{currentFolder ? 'This folder is empty' : 'No main folders yet'}</strong><span>Add a folder or chapter to continue building this exam.</span></div>}
           </div>
           {currentFolder && <button className="back-folder-link" onClick={() => setPathIds(pathIds.slice(0, -1))}><ArrowLeft size={14} /> Back to {pathIds.length > 1 ? path[pathIds.length - 2]?.title : selectedExam.title}</button>}

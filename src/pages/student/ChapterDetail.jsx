@@ -134,51 +134,75 @@ export default function ChapterDetail() {
   const fetchChapterPracticeQuestions = async () => {
     if (!supabase || !chapter?.id) return [];
 
-    const [directResult, testsResult] = await Promise.all([
-      supabase.from('questions')
+    let directQuestions = [];
+    try {
+      const { data, error } = await supabase
+        .from('questions')
         .select('*')
         .eq('chapter_id', chapter.id)
-        .eq('status', 'published')
-        .in('usage_scope', ['both', 'practice_only']),
-      supabase.from('tests')
-        .select('id')
-        .eq('chapter_id', chapter.id)
-        .in('status', ['published', 'live', 'available'])
-    ]);
-    if (directResult.error) throw directResult.error;
-    if (testsResult.error) throw testsResult.error;
+        .eq('status', 'published');
+      if (error) {
+        console.warn('Error fetching direct chapter questions:', error);
+      } else {
+        directQuestions = data || [];
+      }
+    } catch (err) {
+      console.warn('Direct questions fetch error:', err);
+    }
 
     let testLinkedQuestions = [];
-    const testIds = (testsResult.data || []).map((test) => test.id);
-    if (testIds.length) {
-      const { data: links, error: linksError } = await supabase
-        .from('test_questions')
-        .select('question_id')
-        .in('test_id', testIds);
-      if (linksError) throw linksError;
+    try {
+      const { data: tests, error: testErr } = await supabase
+        .from('tests')
+        .select('id')
+        .eq('chapter_id', chapter.id)
+        .in('status', ['published', 'live', 'available']);
 
-      const questionIds = Array.from(new Set((links || []).map((row) => row.question_id).filter(Boolean)));
-      if (questionIds.length) {
-        const { data, error: questionsError } = await supabase
-          .from('questions')
-          .select('*')
-          .in('id', questionIds)
-          .eq('status', 'published')
-          .in('usage_scope', ['both', 'practice_only']);
-        if (questionsError) throw questionsError;
-        testLinkedQuestions = data || [];
+      if (testErr) {
+        console.warn('Error fetching chapter tests for practice:', testErr);
+      } else if (tests && tests.length > 0) {
+        const testIds = tests.map((t) => t.id).filter(Boolean);
+        if (testIds.length > 0) {
+          const { data: tqRows, error: tqErr } = await supabase
+            .from('test_questions')
+            .select('question_id')
+            .in('test_id', testIds);
+
+          if (tqErr) {
+            console.warn('Error fetching test_questions:', tqErr);
+          } else if (tqRows && tqRows.length > 0) {
+            const questionIds = Array.from(new Set(tqRows.map((r) => r.question_id).filter(Boolean)));
+            if (questionIds.length > 0) {
+              const { data: testQuestions, error: tqQuestionsErr } = await supabase
+                .from('questions')
+                .select('*')
+                .in('id', questionIds)
+                .eq('status', 'published');
+
+              if (tqQuestionsErr) {
+                console.warn('Error fetching test-linked questions:', tqQuestionsErr);
+              } else {
+                testLinkedQuestions = testQuestions || [];
+              }
+            }
+          }
+        }
       }
+    } catch (err) {
+      console.warn('Test questions fetch error:', err);
     }
 
     const questionMap = new Map();
-    (directResult.data || []).forEach((q) => {
+    directQuestions.forEach((q) => {
       if (q && q.id) questionMap.set(q.id, q);
     });
     testLinkedQuestions.forEach((q) => {
       if (q && q.id) questionMap.set(q.id, q);
     });
 
-    return Array.from(questionMap.values());
+    const combined = Array.from(questionMap.values());
+    combined.sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
+    return combined;
   };
 
   useEffect(() => {

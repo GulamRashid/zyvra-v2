@@ -48,6 +48,24 @@ export default async function handler(req, res) {
     if (!confirmed) {
       return sendJson(res, 400, { success: false, error: result?.message || 'The payment service did not confirm this purchase.' });
     }
+
+    try {
+      const { supabaseAdmin } = getPaymentServices(req);
+      if (supabaseAdmin) {
+        await supabaseAdmin
+          .from('payment_orders')
+          .update({
+            razorpay_payment_id: paymentId,
+            razorpay_signature: signature,
+            gateway_payment_id: paymentId,
+            payment_signature: signature,
+            status: 'paid',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', internalOrderId);
+      }
+    } catch (_) {}
+
     return sendJson(res, 200, { success: true });
   } catch (error) {
     console.error('Unable to verify checkout payment:', error);
