@@ -15,6 +15,8 @@ import {
 import MathRenderer from './MathRenderer';
 import QuestionFormatter from './QuestionFormatter';
 import {
+  extractLocalizedDistractorNote,
+  extractLocalizedExplanation,
   getOptionEntries,
   getQuestionText,
   hasDevanagari,
@@ -25,6 +27,21 @@ import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 
 function getStoredHindi(value) {
   return value && typeof value === 'object' ? value.hi || value.text_hi || '' : '';
+}
+
+function parseSerializedValue(value) {
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+function normalizeDistractorNotes(value) {
+  const parsed = parseSerializedValue(value);
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed;
+  return typeof parsed === 'string' && parsed.trim() ? { General: parsed.trim() } : {};
 }
 
 export default function QuestionPracticeModal({
@@ -40,7 +57,11 @@ export default function QuestionPracticeModal({
   const [language, setLanguage] = useState('en');
 
   const safeQuestions = useMemo(() => {
-    return (questions || []).map(sanitizeLiveQuestion);
+    return (questions || []).map((question) => sanitizeLiveQuestion({
+      ...question,
+      options: parseSerializedValue(question?.options),
+      distractor_notes: normalizeDistractorNotes(question?.distractor_notes)
+    }));
   }, [questions]);
 
   const currentQ = safeQuestions[currentIndex] || null;
@@ -92,11 +113,14 @@ export default function QuestionPracticeModal({
   const isExplanationShown = showExplanationMap[currentQId] || isAnswered;
 
   // Explanation text
-  const explanationEn = currentQ.explanation_en || currentQ.explanation || '';
-  const explanationHi = currentQ.explanation_hi || getStoredHindi(currentQ.explanation) || '';
-  const displayedExplanation = language === 'hi'
-    ? (explanationHi || explanationEn)
-    : (explanationEn || explanationHi);
+  const displayedExplanation = extractLocalizedExplanation(
+    parseSerializedValue(currentQ.explanation),
+    language,
+    currentQ
+  );
+  const localizedDistractorNotes = Object.entries(currentQ.distractor_notes || {})
+    .map(([key, note]) => [key, extractLocalizedDistractorNote(note, language)])
+    .filter(([, note]) => note);
 
   const handleSelectOption = (key) => {
     setSelectedOptions((prev) => ({
@@ -214,7 +238,7 @@ export default function QuestionPracticeModal({
             {/* Options */}
             <div className="quiz-options practice-options">
               {optionEntries.map(([key, opt]) => {
-                const optEn = getQuestionText(opt, 'en') || (typeof opt === 'string' ? opt : opt?.text || '');
+                const optEn = getQuestionText(opt, 'en') || getQuestionText(opt?.text, 'en') || (typeof opt === 'string' ? opt : '');
                 const optHi = getStoredHindi(opt) || (typeof opt?.text_hi === 'string' ? opt.text_hi : '');
                 const optText = language === 'hi' ? (optHi || optEn) : (optEn || optHi);
                 const isSelected = selectedOption === key;
@@ -253,7 +277,7 @@ export default function QuestionPracticeModal({
             </div>
 
             {/* Explanation Section */}
-            {isExplanationShown && (displayedExplanation || currentQ.distractor_notes) && (
+            {isExplanationShown && (displayedExplanation || localizedDistractorNotes.length > 0) && (
               <div className="practice-explanation-card">
                 <div className="practice-explanation-header">
                   <BookOpen size={16} />
@@ -264,9 +288,12 @@ export default function QuestionPracticeModal({
                     <MathRenderer content={displayedExplanation} />
                   </div>
                 )}
-                {currentQ.distractor_notes && (
+                {localizedDistractorNotes.length > 0 && (
                   <div className="practice-distractor-notes">
-                    <small>Additional Notes: {typeof currentQ.distractor_notes === 'object' ? JSON.stringify(currentQ.distractor_notes) : currentQ.distractor_notes}</small>
+                    <strong>{language === 'hi' ? 'विकल्प विश्लेषण' : 'Option Analysis'}</strong>
+                    {localizedDistractorNotes.map(([key, note]) => (
+                      <div key={key}><b>Option {key}:</b> {note}</div>
+                    ))}
                   </div>
                 )}
               </div>

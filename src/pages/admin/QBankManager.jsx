@@ -76,8 +76,17 @@ export function getChapterHierarchyPath(chapterId, chaptersMap, foldersMap, exam
 
 const emptyQuestion = {
   question_text: '', question_text_hi: '', options: [{ en: '', hi: '' }, { en: '', hi: '' }, { en: '', hi: '' }, { en: '', hi: '' }],
-  correct_answer: 'A', explanation: '', distractor_notes: {}, subject: '', difficulty: 'medium', chapter_id: '', status: 'draft', tags: ''
+  correct_answer: 'A', explanation: '', distractor_notes: {}, subject: '', difficulty: 'medium', chapter_id: '', status: 'draft', usage_scope: 'both', tags: ''
 };
+const usageScopes = ['both', 'practice_only', 'test_only'];
+const usageScopeLabel = (scope) => ({
+  both: 'Both',
+  practice_only: 'Practice Only',
+  test_only: 'Test Only'
+}[usageScopes.includes(String(scope || '').toLowerCase()) ? String(scope || '').toLowerCase() : 'both']);
+const normalizeUsageScope = (scope) => usageScopes.includes(String(scope || '').toLowerCase())
+  ? String(scope).toLowerCase()
+  : 'both';
 const TEMPLATE = JSON.stringify([{
   question_text: 'Which article guarantees equality before law?',
   question_text_hi: 'कानून के समक्ष समानता किस अनुच्छेद में दी गई है?',
@@ -87,12 +96,13 @@ const TEMPLATE = JSON.stringify([{
   distractor_notes: { A: 'Defines the State.', C: 'Lists freedoms.', D: 'Protects life and personal liberty.' },
   subject: 'Polity',
   difficulty: 'easy',
+  usage_scope: 'both',
   chapter_id: 'replace-with-chapter-uuid',
   tags: ['constitution', 'fundamental-rights']
 }], null, 2);
 
-const CSV_TEMPLATE = `question_text,option_a,option_b,option_c,option_d,correct_answer,subject,difficulty,chapter_id,explanation,tags
-"Which article guarantees equality before law?","Article 12","Article 14","Article 19","Article 21","B","Polity","easy","replace-with-chapter-uuid","Article 14 guarantees equality before law.","constitution,fundamental-rights"`;
+const CSV_TEMPLATE = `question_text,option_a,option_b,option_c,option_d,correct_answer,subject,difficulty,usage_scope,chapter_id,explanation,tags
+"Which article guarantees equality before law?","Article 12","Article 14","Article 19","Article 21","B","Polity","easy","both","replace-with-chapter-uuid","Article 14 guarantees equality before law.","constitution,fundamental-rights"`;
 
 function parseCsvToObjects(text) {
   const lines = text.trim().split(/\r?\n/).filter((line) => line.trim().length > 0);
@@ -191,6 +201,7 @@ function normalizeQuestion(row) {
     options: entries.length ? entries.map(([, option]) => typeof option === 'string' ? { en: option, hi: '' } : { en: option?.en || option?.text || '', hi: option?.hi || '' }) : emptyQuestion.options,
     correct_answer: String(Array.isArray(row.correct_answer) ? row.correct_answer[0] : row.correct_answer || 'A').toUpperCase(),
     distractor_notes: row.distractor_notes || {},
+    usage_scope: normalizeUsageScope(row.usage_scope),
     tags: Array.isArray(row.tags) ? row.tags.join(', ') : row.tags || ''
   };
 }
@@ -227,6 +238,7 @@ function QuestionDialog({ question, chapters, onClose, onSaved, onDelete }) {
       difficulty: String(values.difficulty || 'medium').toLowerCase(),
       chapter_id: values.chapter_id,
       status: values.status,
+      usage_scope: normalizeUsageScope(values.usage_scope),
       tags: values.tags.split(',').map((tag) => tag.trim()).filter(Boolean)
     };
     setSaving(true);
@@ -252,7 +264,7 @@ function QuestionDialog({ question, chapters, onClose, onSaved, onDelete }) {
       const key = String.fromCharCode(65 + index);
       return <div className={`qbank-option-row ${values.correct_answer === key ? 'correct-option' : ''}`} key={key}><span className="option-key">{key}</span><div className="qbank-option-fields"><input className="text-input" value={option.en} onChange={(event) => setOption(index, 'en', event.target.value)} placeholder={`Option ${key} (English) *`} required /><input className="text-input" value={option.hi} onChange={(event) => setOption(index, 'hi', event.target.value)} placeholder={`Option ${key} (Hindi)`} /></div><label className="correct-radio" title={`Set ${key} as the answer`}><input type="radio" name="correct-answer" value={key} checked={values.correct_answer === key} onChange={() => setField('correct_answer', key)} /><Check size={14} /></label></div>;
     })}</div>
-    <div className="qbank-form-grid"><label className="field-label">Subject *<input className="text-input" value={values.subject} onChange={(event) => setField('subject', event.target.value)} required placeholder="e.g. Polity" /></label><label className="field-label">Difficulty<select className="text-input" value={values.difficulty} onChange={(event) => setField('difficulty', event.target.value)}><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></label><label className="field-label">Chapter mapping *<select className="text-input" value={values.chapter_id} onChange={(event) => setField('chapter_id', event.target.value)} required><option value="">Select a chapter</option>{chapters.map((chapter) => <option value={chapter.id} key={chapter.id}>{chapter.title}</option>)}</select></label><label className="field-label">Status<select className="text-input" value={values.status} onChange={(event) => setField('status', event.target.value)}><option value="draft">Draft</option><option value="review">Review</option><option value="published">Published</option><option value="unpublished">Unpublished</option></select></label></div>
+    <div className="qbank-form-grid"><label className="field-label">Subject *<input className="text-input" value={values.subject} onChange={(event) => setField('subject', event.target.value)} required placeholder="e.g. Polity" /></label><label className="field-label">Difficulty<select className="text-input" value={values.difficulty} onChange={(event) => setField('difficulty', event.target.value)}><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></label><label className="field-label">Chapter mapping *<select className="text-input" value={values.chapter_id} onChange={(event) => setField('chapter_id', event.target.value)} required><option value="">Select a chapter</option>{chapters.map((chapter) => <option value={chapter.id} key={chapter.id}>{chapter.title}</option>)}</select></label><label className="field-label">Status<select className="text-input" value={values.status} onChange={(event) => setField('status', event.target.value)}><option value="draft">Draft</option><option value="review">Review</option><option value="published">Published</option><option value="unpublished">Unpublished</option></select></label><label className="field-label">Usage scope<select className="text-input" value={values.usage_scope} onChange={(event) => setField('usage_scope', event.target.value)}><option value="both">Both</option><option value="practice_only">Practice Only</option><option value="test_only">Test Only</option></select></label></div>
     <label className="field-label">Explanation<textarea className="text-input content-textarea" rows="3" value={values.explanation || ''} onChange={(event) => setField('explanation', event.target.value)} placeholder="Explain why the selected answer is correct." /></label>
     <details className="distractor-details"><summary>Distractor notes <ChevronDown size={15} /></summary><div className="distractor-grid">{values.options.map((_, index) => { const key = String.fromCharCode(65 + index); return key !== values.correct_answer && <label className="field-label" key={key}>Option {key}<textarea className="text-input" rows="2" value={values.distractor_notes[key] || ''} onChange={(event) => setValues((current) => ({ ...current, distractor_notes: { ...current.distractor_notes, [key]: event.target.value } }))} placeholder="Why this option is incorrect." /></label>; })}</div></details>
     <label className="field-label">Tags<input className="text-input" value={values.tags} onChange={(event) => setField('tags', event.target.value)} placeholder="constitution, fundamental-rights (comma separated)" /></label>
@@ -289,6 +301,7 @@ function ImportDialog({ chapters, onClose, onImported }) {
   const [json, setJson] = useState('');
   const [preview, setPreview] = useState(null);
   const [importStatus, setImportStatus] = useState('published');
+  const [importUsageScope, setImportUsageScope] = useState('both');
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState('');
 
@@ -315,10 +328,15 @@ function ImportDialog({ chapters, onClose, onImported }) {
       const seen = new Set();
       const checked = rows.map((row, index) => {
         const result = validateImportQuestion(row, index, seen);
+        const usageScope = String(row?.usage_scope || importUsageScope).trim().toLowerCase();
+        const usageScopeValid = usageScopes.includes(usageScope);
+        if (!usageScopeValid) {
+          result.errors.push(`Row ${index + 1}: usage_scope must be both, practice_only, or test_only.`);
+        }
         const chapterValid = chapters.some((chapter) => chapter.id === row?.chapter_id);
         if (!chapterValid) result.errors.push(`Row ${index + 1}: chapter_id must match a chapter in this catalogue.`);
-        result.valid = result.valid && chapterValid;
-        return { row, ...result };
+        result.valid = result.valid && chapterValid && usageScopeValid;
+        return { row: { ...row, usage_scope: usageScope }, ...result };
       });
       setPreview(checked);
     } catch (parseError) {
@@ -358,6 +376,7 @@ function ImportDialog({ chapters, onClose, onImported }) {
         subject: String(row.subject || '').trim(),
         difficulty: String(row.difficulty || 'medium').toLowerCase(),
         chapter_id: row.chapter_id,
+        usage_scope: normalizeUsageScope(row.usage_scope || importUsageScope),
         tags: (Array.isArray(row.tags) ? row.tags : (typeof row.tags === 'string' ? row.tags.split(',') : [])).map((tag) => String(tag).trim()).filter(Boolean),
         status: importStatus
       };
@@ -404,30 +423,33 @@ function ImportDialog({ chapters, onClose, onImported }) {
   const validCount = preview?.filter((item) => item.valid).length || 0;
   return <div className="modal-backdrop import-modal-backdrop"><section className="content-dialog import-dialog" role="dialog" aria-modal="true" aria-labelledby="import-title">
     <header className="import-modal-header"><div><div className="eyebrow">SAFE BULK AUTHORING</div><h2 id="import-title">Import questions from CSV or JSON</h2></div><button className="modal-close" type="button" aria-label="Close dialog" onClick={onClose}><X size={18} /></button></header>
-    <p className="dialog-intro">Review all rows before saving. Questions will be imported with status: <strong>{importStatus}</strong>.</p>
+    <p className="dialog-intro">Review all rows before saving. Questions will be imported with status: <strong>{importStatus}</strong> and usage scope from each row or the default below.</p>
     <div className="import-template-row">
-      <span>Expected: question_text, option_a..d/e, correct_answer (A–E), subject, chapter_id</span>
+      <span>Optional usage_scope: both, practice_only, or test_only (defaults to both).</span>
       <div style={{ display: 'flex', gap: '8px' }}>
         <button type="button" className="text-button" onClick={() => setJson(CSV_TEMPLATE)}><ArrowDownToLine size={14} /> CSV template</button>
         <button type="button" className="text-button" onClick={() => setJson(TEMPLATE)}><ArrowDownToLine size={14} /> JSON template</button>
       </div>
     </div>
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', padding: '8px 12px', border: '1px solid var(--line)', borderRadius: '8px', background: 'var(--bg)' }}>
-      <span style={{ fontSize: '11px', color: 'var(--muted)', fontWeight: 500 }}>Default import status:</span>
-      <select
-        className="text-input"
-        style={{ width: 'auto', minHeight: '30px', padding: '4px 10px', fontSize: '11px' }}
-        value={importStatus}
-        onChange={(event) => setImportStatus(event.target.value)}
-      >
-        <option value="published">Published (immediately available in tests)</option>
-        <option value="draft">Draft</option>
-      </select>
+    <div className="qbank-form-grid">
+      <label className="field-label">Default import status
+        <select className="text-input" value={importStatus} onChange={(event) => setImportStatus(event.target.value)}>
+          <option value="published">Published</option>
+          <option value="draft">Draft</option>
+        </select>
+      </label>
+      <label className="field-label">Default usage scope
+        <select className="text-input" value={importUsageScope} onChange={(event) => setImportUsageScope(event.target.value)}>
+          <option value="both">Both</option>
+          <option value="practice_only">Practice Only</option>
+          <option value="test_only">Test Only</option>
+        </select>
+      </label>
     </div>
     <textarea className="text-input import-json-input" value={json} onChange={(event) => { setJson(event.target.value); setPreview(null); }} rows="10" spellCheck="false" placeholder="Paste CSV (with headers) or a JSON array of question objects…" />
     <button className="button button-outline" onClick={validate}><Filter size={15} /> Validate & preview</button>
     {error && <div className="feedback error-feedback">{error}</div>}
-    {preview && <div className="import-preview"><div className="import-preview-heading"><strong>Import preview</strong><span>{validCount} valid · {preview.length - validCount} rejected</span></div>{preview.map((item, index) => <div className={`import-preview-row ${item.valid ? 'valid' : 'invalid'}`} key={item.row?.id || index}><span>{item.valid ? <Check size={14} /> : <X size={14} />}</span><div><strong>{item.row?.question_text || `Row ${index + 1}`}</strong>{item.errors.map((message) => <small key={message}>{message}</small>)}</div></div>)}</div>}
+    {preview && <div className="import-preview"><div className="import-preview-heading"><strong>Import preview</strong><span>{validCount} valid · {preview.length - validCount} rejected</span></div>{preview.map((item, index) => <div className={`import-preview-row ${item.valid ? 'valid' : 'invalid'}`} key={item.row?.id || index}><span>{item.valid ? <Check size={14} /> : <X size={14} />}</span><div><strong>{item.row?.question_text || `Row ${index + 1}`}</strong><small>Usage: {usageScopeLabel(item.row?.usage_scope)}</small>{item.errors.map((message) => <small key={message}>{message}</small>)}</div></div>)}</div>}
     <footer className="import-modal-actions"><button type="button" className="button button-outline" onClick={onClose}>Cancel</button><button type="button" className="button button-gold" onClick={handleImportQuestions} disabled={isImporting || !validCount}>{isImporting ? 'Importing...' : `Import ${validCount} question${validCount === 1 ? '' : 's'} (${importStatus})`}</button></footer>
   </section></div>;
 }
@@ -444,6 +466,7 @@ export default function QBankManager() {
   const [difficulty, setDifficulty] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [optionCountFilter, setOptionCountFilter] = useState('all');
+  const [usageScopeFilter, setUsageScopeFilter] = useState('all');
 
   // Cascading Hierarchy Filters
   const [selectedExamId, setSelectedExamId] = useState('all');
@@ -542,6 +565,7 @@ export default function QBankManager() {
     // Option count filter
     const optionCount = getOptionEntries(question.options).length;
     if (optionCountFilter !== 'all' && optionCount !== Number(optionCountFilter)) return false;
+    if (usageScopeFilter !== 'all' && normalizeUsageScope(question.usage_scope) !== usageScopeFilter) return false;
 
     // Subject & difficulty
     if (subject !== 'all' && question.subject !== subject) return false;
@@ -553,7 +577,7 @@ export default function QBankManager() {
 
     const searchableText = `${question.question_text?.en || question.question_text || ''} ${question.question_text_hi || ''} ${question.subject || ''} ${question.tags || ''} ${hierarchy?.breadcrumb || ''}`.toLowerCase();
     return searchableText.includes(query);
-  }), [questions, questionHierarchyMap, selectedExamId, selectedFolderId, selectedChapterId, statusFilter, optionCountFilter, subject, difficulty, search]);
+  }), [questions, questionHierarchyMap, selectedExamId, selectedFolderId, selectedChapterId, statusFilter, optionCountFilter, usageScopeFilter, subject, difficulty, search]);
 
   // Chapter-Grouped questions mapping
   const chapterGroups = useMemo(() => {
@@ -730,6 +754,7 @@ export default function QBankManager() {
               <span className="subject-pill">{question.subject || 'General'}</span>
               <span className={`difficulty-pill difficulty-${String(question.difficulty || 'medium').toLowerCase()}`}>{question.difficulty || 'medium'}</span>
               <span className={`content-status status-${question.status || 'draft'}`}>{question.status || 'draft'}</span>
+              <span className="content-status">{usageScopeLabel(question.usage_scope)}</span>
               <span className="options-count-pill">{options.length}-option</span>
             </div>
           </div>
@@ -897,6 +922,16 @@ export default function QBankManager() {
             <option value="published">Published</option>
             <option value="draft">Draft</option>
             <option value="review">Review</option>
+          </select>
+        </label>
+
+        <label className="filter-select">
+          <span>Usage scope</span>
+          <select className="text-input" value={usageScopeFilter} onChange={(event) => setUsageScopeFilter(event.target.value)}>
+            <option value="all">All scopes</option>
+            <option value="both">Both</option>
+            <option value="practice_only">Practice Only</option>
+            <option value="test_only">Test Only</option>
           </select>
         </label>
 

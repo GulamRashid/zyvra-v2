@@ -138,7 +138,8 @@ export default function ChapterDetail() {
       supabase.from('questions')
         .select('*')
         .eq('chapter_id', chapter.id)
-        .eq('status', 'published'),
+        .eq('status', 'published')
+        .in('usage_scope', ['both', 'practice_only']),
       supabase.from('tests')
         .select('id')
         .eq('chapter_id', chapter.id)
@@ -162,7 +163,8 @@ export default function ChapterDetail() {
           .from('questions')
           .select('*')
           .in('id', questionIds)
-          .eq('status', 'published');
+          .eq('status', 'published')
+          .in('usage_scope', ['both', 'practice_only']);
         if (questionsError) throw questionsError;
         testLinkedQuestions = data || [];
       }
