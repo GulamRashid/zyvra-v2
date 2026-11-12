@@ -1,5 +1,5 @@
-import { lazy, Suspense } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { lazy, Suspense, useEffect, useRef } from 'react';
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import StudentLayout from './components/layouts/StudentLayout';
 import AdminLayout from './components/layouts/AdminLayout';
 import ProtectedRoute from './components/layouts/ProtectedRoute';
@@ -107,6 +107,46 @@ function AppRoutes() {
   </Routes></Suspense>;
 }
 
+function RouteStatePreserver() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasRestoredRef = useRef(false);
+
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    hasRestoredRef.current = true;
+
+    if (location.pathname === '/') {
+      try {
+        const savedRoute = sessionStorage.getItem('zyvra_active_route');
+        if (savedRoute && savedRoute !== '/' && !savedRoute.startsWith('/auth')) {
+          navigate(savedRoute, { replace: true });
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }, [location.pathname, navigate]);
+
+  useEffect(() => {
+    const fullPath = location.pathname + location.search;
+    if (fullPath.startsWith('/auth')) return;
+    try {
+      sessionStorage.setItem('zyvra_active_route', fullPath);
+    } catch {
+      // ignore
+    }
+  }, [location.pathname, location.search]);
+
+  return null;
+}
+
 export default function App() {
-  return <><AppRoutes /><PwaInstallBanner /></>;
+  return (
+    <>
+      <RouteStatePreserver />
+      <AppRoutes />
+      <PwaInstallBanner />
+    </>
+  );
 }

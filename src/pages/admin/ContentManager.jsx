@@ -136,20 +136,51 @@ function ResourceManagerModal({ chapter, onClose }) {
 }
 
 function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, defaultParentId, onClose, onSaved }) {
-  const [values, setValues] = useState(() => item ? {
-    ...initialForm,
-    ...item,
-    pricing_mode: normalizePricingMode(item.pricing_mode),
-    access_mode: normalizeAccessMode(item.access_mode),
-    exam_id: item.exam_id || '',
-    parent_folder_id: item.parent_folder_id || item.folder_id || '',
-    price: item.price ?? '',
-    estimated_study_time_minutes: item.estimated_study_time_minutes ?? 20
-  } : {
-    ...initialForm,
-    exam_id: defaultExamId || exams[0]?.id || '',
-    parent_folder_id: defaultParentId || ''
+  const draftKey = `zyvra_cm_draft_${kind}_${item?.id || 'new'}`;
+  const [values, setValues] = useState(() => {
+    const fallback = item ? {
+      ...initialForm,
+      ...item,
+      pricing_mode: normalizePricingMode(item.pricing_mode),
+      access_mode: normalizeAccessMode(item.access_mode),
+      exam_id: item.exam_id || '',
+      parent_folder_id: item.parent_folder_id || item.folder_id || '',
+      price: item.price ?? '',
+      estimated_study_time_minutes: item.estimated_study_time_minutes ?? 20
+    } : {
+      ...initialForm,
+      exam_id: defaultExamId || exams[0]?.id || '',
+      parent_folder_id: defaultParentId || ''
+    };
+    try {
+      const draft = sessionStorage.getItem(draftKey);
+      if (draft) return { ...fallback, ...JSON.parse(draft) };
+    } catch {
+      // ignore
+    }
+    return fallback;
   });
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(draftKey, JSON.stringify(values));
+    } catch {
+      // ignore
+    }
+  }, [draftKey, values]);
+
+  const clearDraft = () => {
+    try {
+      sessionStorage.removeItem(draftKey);
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleClose = () => {
+    clearDraft();
+    onClose();
+  };
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const childFolders = folders.filter((folder) => {
@@ -218,6 +249,7 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
       const { error: saveError } = await query;
       if (saveError) throw saveError;
       await onSaved();
+      clearDraft();
       onClose();
     } catch (saveError) {
       setError(getContentErrorMessage(saveError, `Unable to save ${kind}.`));
@@ -226,7 +258,7 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
 
   const title = kind === 'exam' ? 'exam' : kind === 'folder' ? (values.parent_folder_id ? 'folder / subfolder' : 'main folder') : 'chapter';
   return <div className="modal-backdrop" role="presentation"><form className="content-dialog" role="dialog" aria-modal="true" aria-labelledby="content-dialog-title" onSubmit={save}>
-    <button className="modal-close" type="button" aria-label="Close dialog" onClick={onClose}><X size={18} /></button>
+    <button className="modal-close" type="button" aria-label="Close dialog" onClick={handleClose}><X size={18} /></button>
     <div className="eyebrow">{item ? 'EDIT CONTENT' : 'ADD TO YOUR HIERARCHY'}</div>
     <h2 id="content-dialog-title">{item ? 'Edit' : 'Create'} {title}</h2>
     <p className="dialog-intro">Fields marked required keep the learning hierarchy clear and searchable.</p>
@@ -251,22 +283,98 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
     <label className="field-label">Description<textarea className="text-input content-textarea" value={values.description} onChange={(event) => setField('description', event.target.value)} rows="3" maxLength="1000" placeholder="A short, student-friendly overview." /></label>
     <div className="content-form-row"><label className="field-label">Display order<input className="text-input" type="number" min="0" step="1" value={values.display_order} onChange={(event) => setField('display_order', event.target.value)} /></label><label className="field-label">Status<select className="text-input" value={values.status} onChange={(event) => setField('status', event.target.value)}><option value="published">Published</option><option value="draft">Draft</option><option value="unpublished">Unpublished</option><option value="archived">Archived</option></select></label></div>
     {error && <div className="feedback error-feedback">{error}</div>}
-    <div className="modal-actions"><button type="button" className="button button-outline" onClick={onClose}>Cancel</button><button type="submit" className="button button-gold" disabled={busy}>{busy ? 'Saving…' : item ? 'Save changes' : 'Create'}</button></div>
+    <div className="modal-actions"><button type="button" className="button button-outline" onClick={handleClose}>Cancel</button><button type="submit" className="button button-gold" disabled={busy}>{busy ? 'Saving…' : item ? 'Save changes' : 'Create'}</button></div>
   </form></div>;
 }
 
 export default function ContentManager() {
   const { exams, folders, chapters, loading, error, refresh, removeExam } = useContentCatalog();
-  const [selectedExamId, setSelectedExamId] = useState('');
-  const [pathIds, setPathIds] = useState([]);
+  const [selectedExamId, setSelectedExamId] = useState(() => {
+    try {
+      return sessionStorage.getItem('zyvra_cm_exam_id') || '';
+    } catch {
+      return '';
+    }
+  });
+  const [pathIds, setPathIds] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('zyvra_cm_path_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
   const [search, setSearch] = useState('');
-  const [dialog, setDialog] = useState(null);
-  const [resourceChapter, setResourceChapter] = useState(null);
+  const [dialog, setDialog] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('zyvra_cm_dialog');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [resourceChapter, setResourceChapter] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem('zyvra_cm_resource_chapter');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [actionError, setActionError] = useState('');
   const [savingArchive, setSavingArchive] = useState('');
   const [examToDelete, setExamToDelete] = useState(null);
   const [deletingExam, setDeletingExam] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    try {
+      if (selectedExamId) {
+        sessionStorage.setItem('zyvra_cm_exam_id', selectedExamId);
+      } else {
+        sessionStorage.removeItem('zyvra_cm_exam_id');
+      }
+    } catch { /* ignore */ }
+  }, [selectedExamId]);
+
+  useEffect(() => {
+    try {
+      if (pathIds && pathIds.length > 0) {
+        sessionStorage.setItem('zyvra_cm_path_ids', JSON.stringify(pathIds));
+      } else {
+        sessionStorage.removeItem('zyvra_cm_path_ids');
+      }
+    } catch { /* ignore */ }
+  }, [pathIds]);
+
+  useEffect(() => {
+    try {
+      if (dialog) {
+        sessionStorage.setItem('zyvra_cm_dialog', JSON.stringify(dialog));
+      } else {
+        sessionStorage.removeItem('zyvra_cm_dialog');
+      }
+    } catch { /* ignore */ }
+  }, [dialog]);
+
+  useEffect(() => {
+    try {
+      if (resourceChapter) {
+        sessionStorage.setItem('zyvra_cm_resource_chapter', JSON.stringify(resourceChapter));
+      } else {
+        sessionStorage.removeItem('zyvra_cm_resource_chapter');
+      }
+    } catch { /* ignore */ }
+  }, [resourceChapter]);
+
+  useEffect(() => {
+    if (!loading && exams.length > 0 && selectedExamId) {
+      if (!exams.some((exam) => exam.id === selectedExamId)) {
+        setSelectedExamId('');
+        setPathIds([]);
+      }
+    }
+  }, [loading, exams, selectedExamId]);
   useEffect(() => {
     if (!successMessage) return undefined;
     const timeout = window.setTimeout(() => setSuccessMessage(''), 4500);

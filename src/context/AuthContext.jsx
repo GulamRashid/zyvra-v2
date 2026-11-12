@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { supabase, supabaseConfigurationError } from '../lib/supabase';
 import { useThemeLanguage } from './ThemeLanguageContext';
 import { ensureReferralCode, processReferralAward } from '../lib/referrals';
@@ -13,6 +13,8 @@ export function AuthProvider({ children }) {
   const [guest, setGuest] = useState(false);
   const [guestDemoEnabled, setGuestDemoEnabled] = useState(false);
   const { setTheme, setLanguage } = useThemeLanguage();
+  const isHydratedRef = useRef(false);
+  const userRef = useRef(null);
 
   const loadAccount = useCallback(async (activeSession) => {
     if (!activeSession?.user || !supabase) {
@@ -53,30 +55,60 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!supabase) {
+      isHydratedRef.current = true;
       setLoading(false);
       return undefined;
     }
     let active = true;
     const initialize = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      if (!active) return;
-      setSession(data.session);
-      await loadAccount(data.session);
-      if (active) setLoading(false);
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (!active) return;
+        setSession(data.session);
+        userRef.current = data.session?.user?.id || null;
+        await loadAccount(data.session);
+      } catch (error) {
+        console.error('Unable to initialize account session:', error);
+      } finally {
+        if (active) {
+          isHydratedRef.current = true;
+          setLoading(false);
+        }
+      }
     };
-    initialize().catch((error) => {
-      console.error('Unable to initialize account session:', error);
-      if (active) setLoading(false);
-    });
+    initialize();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      if (!active) return;
+      const nextUserId = nextSession?.user?.id || null;
+      const prevUserId = userRef.current;
+      userRef.current = nextUserId;
+
       setSession(nextSession);
-      setGuest(false);
-      sessionStorage.removeItem('zyvra-guest');
-      setLoading(Boolean(nextSession));
-      queueMicrotask(() => loadAccount(nextSession)
-        .catch((error) => console.error('Unable to load account:', error))
-        .finally(() => setLoading(false)));
+      if (nextSession) {
+        setGuest(false);
+        sessionStorage.removeItem('zyvra-guest');
+      }
+
+      const isDifferentUser = prevUserId !== nextUserId;
+      // Do not set loading = true during background token refreshes or tab switches for the same user.
+      if (!isHydratedRef.current) {
+        // Initial hydration is in progress
+      } else if (isDifferentUser && nextUserId) {
+        setLoading(true);
+      }
+
+      queueMicrotask(() => {
+        loadAccount(nextSession)
+          .catch((error) => console.error('Unable to load account:', error))
+          .finally(() => {
+            if (active && (!isHydratedRef.current || isDifferentUser)) {
+              isHydratedRef.current = true;
+              setLoading(false);
+            }
+          });
+      });
     });
     return () => {
       active = false;
@@ -114,6 +146,11 @@ export function AuthProvider({ children }) {
     setGuest(true);
   };
   const signOut = async () => {
+    sessionStorage.removeItem('zyvra_active_route');
+    sessionStorage.removeItem('zyvra_cm_exam_id');
+    sessionStorage.removeItem('zyvra_cm_path_ids');
+    sessionStorage.removeItem('zyvra_cm_dialog');
+    sessionStorage.removeItem('zyvra_cm_resource_chapter');
     if (guest) {
       sessionStorage.removeItem('zyvra-guest');
       setGuest(false);
