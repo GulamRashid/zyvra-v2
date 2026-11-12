@@ -485,7 +485,7 @@ export default function LiveQuiz() {
           const qIds = Array.from(new Set(safeQuestions.flatMap((q) => [q.question_id, q.id]).filter(Boolean)));
           const { data: fullQuestions, error: fqError } = await supabase
             .from('questions')
-            .select('id, correct_answer, correct_option, answer, explanation, explanation_en, explanation_hi, distractor_notes')
+            .select('id, correct_answer, explanation, explanation_hi, distractor_notes, distractor_notes_hi')
             .in('id', qIds);
 
           if (fqError) {
@@ -502,7 +502,7 @@ export default function LiveQuiz() {
               const full = map.get(q.question_id) || map.get(q.id);
               if (full) {
                 const ans = normalizeCorrectAnswer(
-                  full.correct_answer ?? full.correct_option ?? full.answer ?? q.correct_answer,
+                  full.correct_answer ?? q.correct_answer,
                   q.options
                 );
                 if (ans) {
@@ -511,9 +511,9 @@ export default function LiveQuiz() {
                   q.answer = ans;
                 }
                 if (full.explanation) q.explanation = full.explanation;
-                if (full.explanation_en) q.explanation_en = full.explanation_en;
                 if (full.explanation_hi) q.explanation_hi = full.explanation_hi;
                 if (full.distractor_notes) q.distractor_notes = full.distractor_notes;
+                if (full.distractor_notes_hi) q.distractor_notes_hi = full.distractor_notes_hi;
               }
             });
           }
@@ -653,7 +653,7 @@ export default function LiveQuiz() {
         const qIds = Array.from(new Set(safeQuestions.flatMap((q) => [q.question_id, q.id]).filter(Boolean)));
         const { data: fullQuestions, error: fqError } = await supabase
           .from('questions')
-          .select('id, correct_answer, correct_option, answer, explanation, explanation_en, explanation_hi, distractor_notes')
+          .select('id, correct_answer, explanation, explanation_hi, distractor_notes, distractor_notes_hi')
           .in('id', qIds);
 
         if (fqError) {
@@ -670,7 +670,7 @@ export default function LiveQuiz() {
             const full = map.get(q.question_id) || map.get(q.id);
             if (full) {
               const ans = normalizeCorrectAnswer(
-                full.correct_answer ?? full.correct_option ?? full.answer ?? q.correct_answer,
+                full.correct_answer ?? q.correct_answer,
                 q.options
               );
               if (ans) {
@@ -679,9 +679,9 @@ export default function LiveQuiz() {
                 q.answer = ans;
               }
               if (full.explanation) q.explanation = full.explanation;
-              if (full.explanation_en) q.explanation_en = full.explanation_en;
               if (full.explanation_hi) q.explanation_hi = full.explanation_hi;
               if (full.distractor_notes) q.distractor_notes = full.distractor_notes;
+              if (full.distractor_notes_hi) q.distractor_notes_hi = full.distractor_notes_hi;
             }
           });
         }
@@ -1066,19 +1066,23 @@ export default function LiveQuiz() {
       const targetId = question.question_id || question.id;
       supabase
         .from('questions')
-        .select('id, correct_answer, correct_option, answer, explanation, distractor_notes')
+        .select('id, correct_answer, explanation, explanation_hi, distractor_notes, distractor_notes_hi')
         .eq('id', targetId)
         .maybeSingle()
         .then(({ data }) => {
           if (data) {
             const ans = normalizeCorrectAnswer(
-              data.correct_answer ?? data.correct_option ?? data.answer,
+              data.correct_answer,
               question.options
             );
             if (ans) {
               question.correct_answer = ans;
               question.correct_option = ans;
               question.answer = ans;
+              if (data.explanation) question.explanation = data.explanation;
+              if (data.explanation_hi) question.explanation_hi = data.explanation_hi;
+              if (data.distractor_notes) question.distractor_notes = data.distractor_notes;
+              if (data.distractor_notes_hi) question.distractor_notes_hi = data.distractor_notes_hi;
               setQuestions((prev) => [...prev]);
             }
           }

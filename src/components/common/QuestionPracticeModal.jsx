@@ -177,13 +177,13 @@ export default function QuestionPracticeModal({
 
     supabase
       .from('questions')
-      .select('id, correct_answer, correct_option, answer, explanation, distractor_notes')
+      .select('id, correct_answer, explanation, explanation_hi, distractor_notes, distractor_notes_hi')
       .eq('id', targetId)
       .maybeSingle()
       .then(({ data }) => {
         if (data) {
           const ans = normalizeCorrectAnswer(
-            data.correct_answer ?? data.correct_option ?? data.answer,
+            data.correct_answer,
             currentQ.options
           );
           if (ans) {
