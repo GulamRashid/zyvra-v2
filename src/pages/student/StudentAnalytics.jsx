@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { getFriendlyErrorMessage } from '../../lib/errors';
 
 const QUERY_PAGE_SIZE = 1000;
 const ID_BATCH_SIZE = 500;
@@ -121,7 +122,7 @@ export default function StudentAnalytics() {
     };
     loadAnalytics().catch((loadError) => {
       if (active) {
-        setError(loadError.message || 'Unable to load your performance analytics.');
+        setError(getFriendlyErrorMessage(loadError, 'Unable to load your performance analytics.'));
         setLoading(false);
       }
     });

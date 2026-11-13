@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { getFriendlyErrorMessage } from '../../lib/errors';
 
 const LEDGER_PAGE_SIZE = 1000;
 
@@ -51,7 +52,7 @@ export default function StudentWallet() {
     };
     loadLedger().catch((loadError) => {
       if (active) {
-        setError(loadError.message || 'Unable to load your coin ledger.');
+        setError(getFriendlyErrorMessage(loadError, 'Unable to load your coin ledger.'));
         setLoading(false);
       }
     });

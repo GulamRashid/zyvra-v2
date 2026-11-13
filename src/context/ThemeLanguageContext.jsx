@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { getFriendlyErrorMessage } from '../lib/errors';
 
 const ThemeLanguageContext = createContext(null);
 const translations = {
@@ -680,7 +681,7 @@ export function ThemeLanguageProvider({ children }) {
         .update({ preferred_language: nextLanguage }).eq('id', session.user.id);
       if (error) throw error;
     } catch (error) {
-      setLanguageError(error.message || 'Language preference could not be synced to your profile.');
+      setLanguageError(getFriendlyErrorMessage(error, 'Language preference could not be synced to your profile.'));
       throw error;
     }
   }, []);

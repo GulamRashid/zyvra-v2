@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 import { normalizeAccessResult } from '../../lib/commerce';
+import { getFriendlyErrorMessage } from '../../lib/errors';
 
 const CATEGORY_CONFIG = [
   { id: 'math', titleKey: 'tbCategoryMath', subtitleKey: 'tbCategoryMathDesc', Icon: Calculator, color: 'gold' },
@@ -161,7 +162,7 @@ export default function StudentToolbox() {
     setToolAccess(Object.fromEntries(results.map(({ id, allowed }) => [id, allowed])));
     setToolboxLoaded(true);
     const failed = results.find((result) => result.error);
-    if (failed) setAccessError(failed.error.message || t('tbAccessError'));
+    if (failed) setAccessError(getFriendlyErrorMessage(failed.error, t('tbAccessError')));
   };
 
   useEffect(() => {
@@ -188,7 +189,7 @@ export default function StudentToolbox() {
       if (settingsResult.error) throw settingsResult.error;
       if (!active) return;
       if (bookmarkResult.error) {
-          setError(`${t('tbBookmarksLoadError')}: ${bookmarkResult.error.message}`);
+          setError(getFriendlyErrorMessage(bookmarkResult.error, t('tbBookmarksLoadError')));
       } else {
           setBookmarks(bookmarkResult.data || []);
       }
@@ -228,8 +229,8 @@ export default function StudentToolbox() {
     };
     load().catch((loadError) => {
       if (active) {
-        setError(loadError.message || t('tbLoadError'));
-        setAccessError(loadError.message || t('tbPricingUnavailable'));
+        setError(getFriendlyErrorMessage(loadError, t('tbLoadError')));
+        setAccessError(getFriendlyErrorMessage(loadError, t('tbPricingUnavailable')));
         setSettingsUnavailable(true);
         setToolboxLoaded(true);
         setLoading(false);
@@ -243,7 +244,7 @@ export default function StudentToolbox() {
     if (!user?.id || !toolboxLoaded || !hasPremiumTools) return undefined;
     const interval = window.setInterval(() => {
       refreshToolAccess(toolPricing, comboPricing.price > 0).catch((accessLoadError) => {
-        setAccessError(accessLoadError.message || t('tbAccessError'));
+        setAccessError(getFriendlyErrorMessage(accessLoadError, t('tbAccessError')));
       });
     }, 60_000);
     return () => window.clearInterval(interval);

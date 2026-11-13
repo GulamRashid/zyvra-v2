@@ -3,6 +3,7 @@ import { BadgeCheck, Coins, CreditCard, LoaderCircle, LockKeyhole, X } from 'luc
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { formatRupees, parseCoinRedemptionConfig } from '../../lib/commerce';
+import { getFriendlyErrorMessage } from '../../lib/errors';
 import { loadRazorpayScript } from '../../utils/razorpay';
 
 async function postPaymentRequest(endpoint, payload, accessToken) {
@@ -63,7 +64,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
     };
     loadCheckoutData().catch((loadError) => {
       if (active) {
-        setError(loadError.message || 'Unable to prepare checkout.');
+        setError(getFriendlyErrorMessage(loadError, 'Unable to prepare checkout.'));
         setLoading(false);
       }
     });
@@ -157,7 +158,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
               accessToken
             });
           } catch (completionError) {
-            setError(completionError.message || 'Payment verification failed. Contact support with your payment ID.');
+            setError(getFriendlyErrorMessage(completionError, 'Payment verification failed. Contact support with your payment ID.'));
           } finally {
             setBusy(false);
           }
@@ -170,7 +171,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
       });
       checkoutInstance.open();
     } catch (checkoutError) {
-      setError(checkoutError.message || 'Unable to start checkout. Please try again.');
+      setError(getFriendlyErrorMessage(checkoutError, 'Unable to start checkout. Please try again.'));
       setBusy(false);
     }
   };

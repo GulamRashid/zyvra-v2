@@ -9,6 +9,7 @@ import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 import { sanitizeLiveQuestion } from '../../lib/tests';
 import { prefetchLiveQuiz } from '../../lib/prefetchLiveQuiz';
+import { getFriendlyErrorMessage } from '../../lib/errors';
 
 const tabs = [
   { id: 'tests', label: 'tests', icon: CheckCircle2 },
@@ -140,7 +141,7 @@ export default function ChapterDetail() {
     };
     loadResources().catch((loadError) => {
       if (active) {
-        setResourcesError(loadError.message || 'Unable to load chapter resources.');
+        setResourcesError(getFriendlyErrorMessage(loadError, 'Unable to load chapter resources.'));
         setResourcesLoading(false);
       }
     });
@@ -228,7 +229,7 @@ export default function ChapterDetail() {
         setNotice(resource ? '' : t('chapterSaved'));
       }
     } catch (bookmarkError) {
-      setResourceNotice(bookmarkError.message || 'Unable to update your bookmark.');
+      setResourceNotice(getFriendlyErrorMessage(bookmarkError, 'Unable to update your bookmark.'));
     } finally {
       setBookmarkBusy('');
     }
@@ -255,7 +256,7 @@ export default function ChapterDetail() {
       }
       setReader({ resource, url });
     } catch (openError) {
-      setResourceNotice(openError.message || 'Unable to open this document.');
+      setResourceNotice(getFriendlyErrorMessage(openError, 'Unable to open this document.'));
     } finally {
       setReaderLoading('');
     }
@@ -330,7 +331,7 @@ export default function ChapterDetail() {
     setTestsLoading(true);
     loadTests().catch((loadError) => {
       if (active) {
-        setTestsError(loadError.message || 'Unable to load tests for this chapter.');
+        setTestsError(getFriendlyErrorMessage(loadError, 'Unable to load tests for this chapter.'));
         setTestsLoading(false);
       }
     });

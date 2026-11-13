@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Check, Languages, Moon, Sun, Monitor } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
+import { getFriendlyErrorMessage } from '../../lib/errors';
 
 const exams = ['BPSC', 'SSC', 'CTET', 'NCERT'];
 
@@ -54,7 +55,7 @@ export default function OnboardingModal() {
       setOpen(false);
     } catch (saveError) {
       console.error('Failed to complete onboarding:', saveError);
-      setError(saveError.message || 'We could not save your preferences. Please try again.');
+      setError(getFriendlyErrorMessage(saveError, 'We could not save your preferences. Please try again.'));
     } finally {
       setSaving(false);
     }

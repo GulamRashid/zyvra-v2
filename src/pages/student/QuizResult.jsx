@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
+import { getFriendlyErrorMessage } from '../../lib/errors';
 import {
   getOptionEntries,
   normalizeCorrectAnswer,
@@ -88,7 +89,7 @@ export default function QuizResult() {
 
     loadResult().catch((err) => {
       if (active) {
-        setError(err.message || 'Unable to load test result.');
+        setError(getFriendlyErrorMessage(err, 'Unable to load test result.'));
         setLoading(false);
       }
     });
