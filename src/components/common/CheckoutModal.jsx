@@ -184,7 +184,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
       }}
     >
       <section
-        className="w-full max-w-md p-5 sm:p-6 rounded-3xl dark:bg-[#04140e] bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 shadow-xl relative space-y-4 max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-md p-5 sm:p-6 rounded-3xl dark:bg-[#04140e] bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 shadow-xl relative space-y-4 max-h-[calc(100dvh-24px)] overflow-y-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="checkout-title"

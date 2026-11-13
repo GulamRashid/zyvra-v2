@@ -657,7 +657,7 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
 .danger-symbol { background: rgba(234, 117, 103, .1); color: #f19b8f; }
 .confirm-modal .field-label { margin-top: 16px; }
 .modal-close { position: absolute; top: 14px; right: 14px; display: grid; width: 30px; height: 30px; place-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--muted); cursor: pointer; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+.modal-actions { position: sticky; bottom: 0; z-index: 1; display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; padding-top: 12px; background: var(--panel); }
 
 /* Student module placeholders */
 .placeholder-hero { position: relative; overflow: hidden; padding: 28px; }
@@ -1011,7 +1011,7 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
 .empty-content > span { max-width: 290px; font-size: 9px; }
 .empty-content .button { margin-top: 7px; }
 .workspace-empty { margin-top: 14px; }
-.content-dialog { position: relative; display: grid; width: min(100%, 610px); max-height: min(92vh, 880px); gap: 11px; overflow-y: auto; padding: 25px; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); box-shadow: var(--shadow); }
+.content-dialog { position: relative; display: grid; width: min(100%, 610px); max-height: min(calc(100dvh - 40px), 880px); gap: 11px; overflow-y: auto; padding: 25px; border: 1px solid var(--line); border-radius: 17px; background: var(--panel); box-shadow: var(--shadow); }
 .delete-confirm-icon { display: grid; width: 42px; height: 42px; place-items: center; border: 1px solid rgba(239, 91, 91, .24); border-radius: 12px; background: rgba(239, 91, 91, .1); color: #ef7373; }
 .button-danger { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 7px; padding: 0 13px; border: 1px solid #c64040; border-radius: 9px; background: #c64040; color: #fff; cursor: pointer; font: 700 10px 'DM Sans', sans-serif; transition: background .16s ease, border-color .16s ease; }
 .button-danger:hover:not(:disabled) { border-color: #a92f2f; background: #a92f2f; }
@@ -1176,7 +1176,7 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
 .pdf-reader-frame { display: grid; min-height: 0; flex: 1; overflow: auto; place-items: start center; padding: 12px; background: var(--bg); user-select: none; -webkit-user-select: none; }
 .pdf-reader-frame iframe { width: calc(100% * var(--pdf-zoom)); height: calc(100% * var(--pdf-zoom)); min-height: 100%; flex: 0 0 auto; border: 0; background: #fff; }
 .pdf-reader-footnote { padding: 7px 12px; border-top: 1px solid var(--line); color: var(--muted); text-align: center; font-size: 8px; }
-.resource-manager-dialog { max-height: min(94vh, 880px); }
+.resource-manager-dialog { max-height: min(calc(100dvh - 40px), 880px); }
 .resource-admin-list { display: grid; max-height: 190px; gap: 6px; overflow: auto; }
 .resource-admin-row { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
 .resource-admin-row > svg { flex: 0 0 auto; color: var(--gold); }
@@ -1495,7 +1495,7 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
 .syllabus-purchase-card .buy-inline-button { justify-self: end; margin: 0; }
 .exam-buy-button { margin-top: 16px; }
 .checkout-backdrop { z-index: 90; }
-.checkout-modal { position: relative; width: min(100%, 470px); max-height: min(92vh, 750px); overflow-y: auto; padding: 25px; border: 1px solid rgba(228, 184, 95, .2); border-radius: 17px; background: var(--panel); box-shadow: var(--shadow); }
+.checkout-modal { position: relative; width: min(100%, 470px); max-height: min(calc(100dvh - 40px), 750px); overflow-y: auto; padding: 25px; border: 1px solid rgba(228, 184, 95, .2); border-radius: 17px; background: var(--panel); box-shadow: var(--shadow); }
 .checkout-modal > .eyebrow { color: var(--gold); }
 .checkout-modal > h2 { margin: 6px 36px 16px 0; font: 700 19px Manrope, sans-serif; }
 .checkout-modal .modal-close:disabled { cursor: progress; opacity: .55; }
@@ -1931,7 +1931,7 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
 .qbank-empty { padding: 38px; }
 .qbank-dialog, .import-dialog { gap: 12px; }
 .import-modal-backdrop { padding: 12px; }
-.content-dialog.import-dialog { width: calc(100% - 1.5rem); max-width: 36rem; max-height: 90vh; overflow-y: auto; margin: 0 auto; padding: 1rem; border-radius: 1rem; }
+.content-dialog.import-dialog { width: calc(100% - 1.5rem); max-width: 36rem; max-height: calc(100dvh - 24px); overflow-y: auto; margin: 0 auto; padding: 1rem; border-radius: 1rem; }
 .import-modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; padding-right: 38px; }
 .import-modal-header > div { min-width: 0; }
 .import-modal-header .modal-close { position: static; flex: 0 0 auto; margin: 0 -38px 0 0; }
@@ -1957,7 +1957,7 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
 .import-template-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 8px; }
 .import-template-row .text-button { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .import-json-input { width: 100%; min-height: 140px; resize: vertical; padding: 12px; border-radius: 9px; font: 12px/1.5 Consolas, 'Courier New', monospace; }
-.import-modal-actions { display: flex; flex-direction: column-reverse; align-items: stretch; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.import-modal-actions { position: sticky; bottom: 0; z-index: 1; display: flex; flex-direction: column-reverse; align-items: stretch; justify-content: flex-end; gap: 10px; margin-top: 16px; padding-top: 12px; background: var(--panel); }
 .import-modal-actions .button { width: 100%; justify-content: center; }
 .import-preview { display: grid; max-height: 230px; gap: 5px; overflow-y: auto; padding: 9px; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); }
 .import-preview-heading { display: flex; justify-content: space-between; padding-bottom: 6px; border-bottom: 1px solid var(--line); font-size: 9px; }
@@ -3229,7 +3229,7 @@ body.light .test-hub-hero { border-color: #b6d2c0; background: radial-gradient(e
 /* Modals */
 .instructions-modal {
   width: min(100%, 720px);
-  max-height: 85vh;
+  max-height: calc(100dvh - 40px);
   display: flex;
   flex-direction: column;
   background: var(--panel);
@@ -3246,14 +3246,20 @@ body.light .test-hub-hero { border-color: #b6d2c0; background: radial-gradient(e
   border-bottom: 1px solid var(--line);
 }
 .instructions-modal-body {
+  min-height: 0;
+  flex: 1 1 auto;
   padding: 20px;
   overflow-y: auto;
   font-size: 13.5px;
   line-height: 1.6;
 }
 .instructions-modal-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   padding: 14px 20px;
   border-top: 1px solid var(--line);
+  background: var(--panel);
   display: flex;
   justify-content: flex-end;
 }
@@ -3644,6 +3650,16 @@ body.light .admin-orders-page .data-table {
   }
 }
 
+  .student-page-content {
+    padding-bottom: calc(61px + env(safe-area-inset-bottom) + 24px);
+  }
+
+  @media (min-width: 761px) {
+    .student-page-content {
+      padding-bottom: 32px;
+    }
+  }
+
 /* Question Practice Runner Modal */
 .practice-modal-backdrop {
   position: fixed;
@@ -3661,7 +3677,7 @@ body.light .admin-orders-page .data-table {
   flex-direction: column;
   width: 100%;
   max-width: 860px;
-  height: 90vh;
+  height: min(90dvh, 820px);
   max-height: 820px;
   border: 1px solid var(--line);
   border-radius: 16px;
@@ -3827,6 +3843,9 @@ body.dark .practice-question-text {
   color: var(--muted);
 }
 .practice-runner-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;

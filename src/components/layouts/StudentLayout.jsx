@@ -144,7 +144,7 @@ export default function StudentLayout() {
           </div>
         </header>
 
-        <main className="content-area pb-24 md:pb-8">
+        <main className="content-area student-page-content">
           <Outlet />
         </main>
 
