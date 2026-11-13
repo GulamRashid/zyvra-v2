@@ -29,6 +29,7 @@ import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import MountainSunsetAura from '../../components/common/MountainSunsetAura';
 import OnboardingModal from './OnboardingModal';
+import { getRecommendedPractice } from '../../lib/recommendations';
 
 function isComplete(attempt) {
   const status = String(attempt?.status || '').toLowerCase();
@@ -128,6 +129,7 @@ export default function StudentHome() {
   const navigate = useNavigate();
 
   const [attempts, setAttempts] = useState([]);
+  const [allAttempts, setAllAttempts] = useState([]);
   const [availableTests, setAvailableTests] = useState([]);
   const [resumeAttempt, setResumeAttempt] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(Boolean(supabase && user));
@@ -172,7 +174,7 @@ export default function StudentHome() {
       try {
         const { data: tests, error: testsError } = await supabase
           .from('tests')
-          .select('id,title,chapter_id,status,duration_minutes,is_free,price')
+          .select('id,title,chapter_id,status,duration_minutes,is_free,price,coin_reward_enabled')
           .in('status', ['published', 'live', 'available']);
         if (testsError) throw testsError;
 
@@ -180,6 +182,7 @@ export default function StudentHome() {
         setAvailableTests(tests || []);
 
         if (!user) {
+          setAllAttempts([]);
           setDashboardLoading(false);
           return;
         }
@@ -194,6 +197,7 @@ export default function StudentHome() {
 
         if (!active) return;
         const userAttempts = rows || [];
+        setAllAttempts(userAttempts);
         setAttempts(userAttempts.filter(isComplete));
 
         const incomplete = userAttempts.find(
@@ -347,6 +351,12 @@ export default function StudentHome() {
     };
   }, [resumeAttempt, attempts, availableTests, savedChapter, chapters]);
 
+  const recommendation = useMemo(() => getRecommendedPractice({
+    attempts: allAttempts,
+    tests: availableTests,
+    chapters
+  }), [allAttempts, availableTests, chapters]);
+
   // Real Dynamic Exams mapped strictly from Database
   const dynamicExams = useMemo(() => {
     return exams.map((exam) => ({
@@ -398,7 +408,7 @@ export default function StudentHome() {
             <span>{dashboardError}</span>
             <button
               type="button"
-              className="shrink-0 rounded-xl border border-rose-300 px-3 py-1.5 text-xs font-bold hover:bg-rose-100 dark:border-rose-400/40 dark:hover:bg-rose-950/50"
+              className="shrink-0 min-h-[44px] rounded-xl border border-rose-300 px-3 py-1.5 text-xs font-bold hover:bg-rose-100 dark:border-rose-400/40 dark:hover:bg-rose-950/50"
               onClick={() => setOverviewRetry((count) => count + 1)}
             >
               Try again
@@ -548,57 +558,94 @@ export default function StudentHome() {
           </div>
         </section>
 
-        {/* Continue Where You Left Section */}
+        {/* Recommended practice / Continue Where You Left Section */}
         <section className="space-y-2.5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm sm:text-lg font-bold dark:text-white text-slate-900 tracking-tight flex items-center gap-2">
-              <span>{language === 'hi' ? 'जहाँ से छोड़ा था वहाँ से शुरू करें' : 'Continue Where You Left'}</span>
+              <span>{recommendation
+                ? (language === 'hi' ? 'आज का सुझाव' : 'Recommended for today')
+                : (language === 'hi' ? 'जहाँ से छोड़ा था वहाँ से शुरू करें' : 'Continue Where You Left')}</span>
             </h3>
             <Link
               to="/tests"
               className="text-sm font-semibold dark:text-emerald-400 text-emerald-700 hover:text-emerald-800 dark:hover:text-emerald-300 flex items-center gap-1 transition-colors min-h-[32px]"
             >
-              <span>{language === 'hi' ? 'सभी देखें' : 'View All'}</span>
+              <span>{recommendation
+                ? (language === 'hi' ? 'दूसरा लक्ष्य चुनें' : 'Choose another goal')
+                : (language === 'hi' ? 'सभी देखें' : 'View All')}</span>
               <ChevronRight size={14} />
             </Link>
           </div>
 
-          <div className="dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 rounded-3xl p-6 sm:p-8 flex items-center justify-between gap-3 sm:gap-4 transition-colors">
-            <div className="flex items-center gap-3 sm:gap-3.5 flex-1 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400" />
-              </div>
-              <div className="flex-1 min-w-0 space-y-1">
-                <h4 className="text-xs sm:text-base font-bold dark:text-white text-slate-900 truncate">
-                  {continueItem.title}
-                </h4>
-                <div className="text-xs dark:text-emerald-400/80 text-slate-600 font-medium truncate">
-                  {continueItem.subtitle}
+          {dashboardLoading ? (
+            <div className="dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 rounded-3xl p-6 sm:p-8 min-h-[148px] animate-pulse">
+              <div className="h-5 w-2/3 rounded bg-emerald-500/10" />
+              <div className="mt-4 h-4 w-1/2 rounded bg-emerald-500/10" />
+              <div className="mt-5 h-10 w-32 rounded-xl bg-emerald-500/10" />
+            </div>
+          ) : recommendation ? (
+            <div className="dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 rounded-3xl p-6 sm:p-8 transition-colors">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                <div className="min-w-0">
+                  <div className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                    {language === 'hi' ? 'आज का recommended' : 'Today’s recommended'}
+                  </div>
+                  <h4 className="mt-2 text-base sm:text-lg font-bold dark:text-white text-slate-900 truncate">
+                    {recommendation.title}
+                  </h4>
+                  <p className="mt-1 text-sm dark:text-emerald-200/80 text-slate-600 font-medium truncate">
+                    {recommendation.chapterTitle} · {recommendation.durationMinutes} min
+                  </p>
+                  {recommendation.test.coin_reward_enabled && (
+                    <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">
+                      Coins reward available for qualifying attempts.
+                    </p>
+                  )}
                 </div>
-                {/* Progress bar */}
-                <div className="w-full max-w-xs h-1.5 dark:bg-emerald-950 bg-slate-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                    style={{ width: `${continueItem.progress}%` }}
-                  />
-                </div>
+                <Link
+                  to={recommendation.path}
+                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-700 px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-600"
+                >
+                  {recommendation.kind === 'resume' ? 'Resume' : 'Start'}
+                  <ArrowRight size={15} strokeWidth={2.5} />
+                </Link>
               </div>
             </div>
-
-            {/* Progress % and Play Button */}
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <span className="text-xs font-extrabold dark:text-emerald-300 text-emerald-700">
-                {continueItem.progress}%
-              </span>
-              <Link
-                to={continueItem.path}
-                className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white flex items-center justify-center transition-colors"
-                aria-label="Continue learning"
-              >
-                <Play size={16} fill="currentColor" className="ml-0.5 text-white" />
-              </Link>
+          ) : (
+            <div className="dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 rounded-3xl p-6 sm:p-8 flex items-center justify-between gap-3 sm:gap-4 transition-colors">
+              <div className="flex items-center gap-3 sm:gap-3.5 flex-1 min-w-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                  <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <h4 className="text-xs sm:text-base font-bold dark:text-white text-slate-900 truncate">
+                    {continueItem.title}
+                  </h4>
+                  <div className="text-xs dark:text-emerald-400/80 text-slate-600 font-medium truncate">
+                    {continueItem.subtitle}
+                  </div>
+                  <div className="w-full max-w-xs h-1.5 dark:bg-emerald-950 bg-slate-200 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                      style={{ width: `${continueItem.progress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <span className="text-xs font-extrabold dark:text-emerald-300 text-emerald-700">
+                  {continueItem.progress}%
+                </span>
+                <Link
+                  to={continueItem.path}
+                  className="min-h-[44px] min-w-[44px] rounded-xl border border-emerald-400/30 bg-emerald-700 hover:bg-emerald-600 text-white flex items-center justify-center transition-colors"
+                  aria-label="Continue learning"
+                >
+                  <Play size={16} fill="currentColor" className="ml-0.5 text-white" />
+                </Link>
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         {/* Explore Exams Section (Strictly Real DB Exams) */}
