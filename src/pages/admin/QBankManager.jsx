@@ -262,7 +262,11 @@ function ImportDialog({ chapters, onClose, onImported }) {
         const chapterValid = chapters.some((chapter) => chapter.id === row?.chapter_id);
         if (!chapterValid) result.errors.push(`Row ${index + 1}: chapter_id must match a chapter in this catalogue.`);
         result.valid = result.valid && chapterValid && usageScopeValid;
-        return { row: { ...row, usage_scope: usageScope }, ...result };
+        return {
+          row: { ...row, usage_scope: usageScope },
+          duplicate: result.errors.some((message) => message.toLowerCase().includes('duplicate')),
+          ...result
+        };
       });
       setPreview(checked);
     } catch (parseError) {
@@ -322,6 +326,9 @@ function ImportDialog({ chapters, onClose, onImported }) {
       setError('Supabase is not configured.');
       return;
     }
+    if (!window.confirm(`Import ${validRows.length} validated question${validRows.length === 1 ? '' : 's'} now? Rejected and duplicate rows will be skipped.`)) {
+      return;
+    }
     setIsImporting(true);
     setImportProgress({ saved: 0, total: validRows.length });
     setError('');
@@ -357,7 +364,33 @@ function ImportDialog({ chapters, onClose, onImported }) {
 
   const validCount = preview?.filter((item) => item.valid && !item.imported).length || 0;
   const importedCount = preview?.filter((item) => item.imported).length || 0;
+  const duplicateCount = preview?.filter((item) => item.duplicate && !item.imported).length || 0;
+  const invalidCount = preview?.filter((item) => !item.valid && !item.duplicate).length || 0;
+  const rejectedCount = duplicateCount + invalidCount;
   const previewItems = preview?.slice(0, 50) || [];
+  const csvEscape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  const downloadRejectedRows = () => {
+    const rejectedRows = (preview || []).filter((item) => !item.valid && !item.imported);
+    if (!rejectedRows.length) return;
+    const csvRows = [
+      ['row', 'category', 'question_text', 'chapter_id', 'subject', 'errors'],
+      ...rejectedRows.map((item, index) => [
+        index + 1,
+        item.duplicate ? 'duplicate' : 'invalid',
+        item.row?.question_text || item.row?.question_en || item.row?.question_text_en || '',
+        item.row?.chapter_id || '',
+        item.row?.subject || '',
+        item.errors.join(' | ')
+      ])
+    ];
+    const blob = new Blob([csvRows.map((row) => row.map(csvEscape).join(',')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'question-import-rejected-rows.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
   return <div className="modal-backdrop import-modal-backdrop"><section className="content-dialog import-dialog" role="dialog" aria-modal="true" aria-labelledby="import-title">
     <header className="import-modal-header"><div><div className="eyebrow">SAFE BULK AUTHORING</div><h2 id="import-title">Import questions from CSV or JSON</h2></div><button className="modal-close" type="button" aria-label="Close dialog" onClick={onClose}><X size={18} /></button></header>
     <p className="dialog-intro">Review all rows before saving. Questions will be imported with status: <strong>{importStatus}</strong> and usage scope from each row or the default below.</p>
@@ -386,7 +419,13 @@ function ImportDialog({ chapters, onClose, onImported }) {
     <textarea className="text-input import-json-input" value={json} onChange={(event) => { setJson(event.target.value); setPreview(null); }} rows="10" spellCheck="false" placeholder="Paste CSV (with headers) or a JSON array of question objects…" />
     <button className="button button-outline" onClick={validate} disabled={isValidating || isImporting}><Filter size={15} /> {isValidating ? 'Validating…' : 'Validate & preview'}</button>
     {error && <div className="feedback error-feedback">{error}</div>}
-    {preview && <div className="import-preview"><div className="import-preview-heading"><strong>Import preview</strong><span>{validCount} pending · {importedCount} saved · {preview.filter((item) => !item.valid).length} rejected</span></div>{preview.length > previewItems.length && <small className="field-hint">Showing first 50 of {preview.length} rows.</small>}{previewItems.map((item, index) => <div className={`import-preview-row ${item.valid ? 'valid' : 'invalid'}`} key={item.row?.id || index}><span>{item.valid ? <Check size={14} /> : <X size={14} />}</span><div><strong>{item.row?.question_text || `Row ${index + 1}`}</strong><small>{item.imported ? 'Saved in this import' : `Usage: ${usageScopeLabel(item.row?.usage_scope)}`}</small>{item.errors.map((message) => <small key={message}>{message}</small>)}</div></div>)}</div>}
+    {preview && <div className="import-preview">
+      <div className="import-preview-heading"><strong>Import preview</strong><span>{validCount} pending · {importedCount} saved · {rejectedCount} rejected</span></div>
+      <div className="feedback" role="status">{preview.length} rows scanned, {validCount} ready, {duplicateCount} duplicates, {invalidCount} invalid</div>
+      {rejectedCount > 0 && <button type="button" className="button button-outline" onClick={downloadRejectedRows}>Download rejected rows CSV ({rejectedCount})</button>}
+      {preview.length > previewItems.length && <small className="field-hint">Showing first 50 of {preview.length} rows.</small>}
+      {previewItems.map((item, index) => <div className={`import-preview-row ${item.valid ? 'valid' : 'invalid'}`} key={item.row?.id || index}><span>{item.valid ? <Check size={14} /> : <X size={14} />}</span><div><strong>{item.row?.question_text || `Row ${index + 1}`}</strong><small>{item.imported ? 'Saved in this import' : `Usage: ${usageScopeLabel(item.row?.usage_scope)}`}</small>{item.errors.map((message) => <small key={message}>{message}</small>)}</div></div>)}
+    </div>}
     <footer className="import-modal-actions"><button type="button" className="button button-outline" onClick={onClose} disabled={isImporting}>Cancel</button>{importProgress && <span className="field-hint">Saved {importProgress.saved} of {importProgress.total} questions…</span>}<button type="button" className="button button-primary" onClick={handleImportQuestions} disabled={isImporting || isValidating || !validCount}>{isImporting ? `Saving ${importProgress?.saved || 0} of ${importProgress?.total || validCount}…` : validCount ? `Import ${validCount} remaining question${validCount === 1 ? '' : 's'} (${importStatus})` : 'All valid rows saved'}</button></footer>
   </section></div>;
 }
