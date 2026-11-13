@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { getFriendlyErrorMessage } from '../lib/errors';
 
 const ThemeLanguageContext = createContext(null);
 const translations = {

@@ -96,7 +96,7 @@ export async function ensureReferralCode(supabase, userId, existingCode = null) 
       if (!rpcError && rpcCode) {
         return rpcCode;
       }
-    } catch (_) {
+    } catch {
       // RPC not yet migrated in database
     }
 
@@ -126,7 +126,7 @@ export async function processReferralAward(supabase, newUserId, refCode) {
         if (rpcResult.success) return rpcResult;
         if (rpcResult.already_referred) return null;
       }
-    } catch (_) {
+    } catch {
       // Fall through to client-side award if RPC is not yet migrated
     }
 

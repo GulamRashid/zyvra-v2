@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Activity, AlertTriangle, ArrowUpRight, BadgeCheck, BookOpen, CircleDollarSign,
   Coins, FileQuestion, RefreshCw, ShieldCheck, Users, WalletCards
@@ -26,7 +26,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchStats = async (active = () => true) => {
+  const fetchStats = useCallback(async (active = () => true) => {
     if (!supabase) {
       setMetricState(Object.fromEntries(
         metrics.map(({ key }) => [key, { loading: false, value: null, error: 'Data unavailable' }])
@@ -112,13 +112,13 @@ export default function AdminDashboard() {
     } finally {
       if (active()) setRefreshing(false);
     }
-  };
+  }, [supabase]);
 
   useEffect(() => {
     let active = true;
     fetchStats(() => active);
     return () => { active = false; };
-  }, [supabase]);
+  }, [fetchStats]);
 
   const refresh = () => {
     fetchStats();

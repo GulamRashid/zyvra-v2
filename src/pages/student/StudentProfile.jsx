@@ -2,12 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 
 export default function StudentProfile() {
   const { user, profile, guest, coinBalance, supabase, signOut, refreshAccount } = useAuth();
-  const { theme, setTheme, language, setLanguage } = useThemeLanguage();
   const navigate = useNavigate();
 
   // Modals state
@@ -15,7 +13,6 @@ export default function StudentProfile() {
   const [goalsModalOpen, setGoalsModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   // Edit profile form state
   const [fullName, setFullName] = useState('');
@@ -27,26 +24,14 @@ export default function StudentProfile() {
   const [dailyTarget, setDailyTarget] = useState(50);
   const [savingGoals, setSavingGoals] = useState(false);
 
-  // Password update form state
-  const [passwordOpen, setPasswordOpen] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordUpdating, setPasswordUpdating] = useState(false);
-  const [passwordFeedback, setPasswordFeedback] = useState('');
-
   // Referral copy feedback
   const [copiedCode, setCopiedCode] = useState(false);
-
-  // Deletion modal
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteReason, setDeleteReason] = useState('');
 
   // User Stats & Access State
   const [attempts, setAttempts] = useState([]);
   const [isPro, setIsPro] = useState(false);
   const [unlockedCount, setUnlockedCount] = useState(0);
   const [validTill, setValidTill] = useState('Free plan');
-  const [statsLoading, setStatsLoading] = useState(true);
 
   // Local storage counts
   const [bookmarksCount, setBookmarksCount] = useState(0);
@@ -82,7 +67,6 @@ export default function StudentProfile() {
     let active = true;
     const fetchUserData = async () => {
       if (!supabase || !user) {
-        setStatsLoading(false);
         return;
       }
       try {
@@ -132,8 +116,6 @@ export default function StudentProfile() {
         }
       } catch (err) {
         console.warn('Unable to load user profile stats:', err);
-      } finally {
-        if (active) setStatsLoading(false);
       }
     };
 
@@ -271,7 +253,7 @@ export default function StudentProfile() {
             </Link>
             <button
               type="button"
-              onClick={() => setSettingsModalOpen(true)}
+              onClick={() => setEditProfileOpen(true)}
               className="w-9 h-9 rounded-full dark:bg-emerald-950/70 bg-white/90 border dark:border-emerald-500/20 border-slate-300 flex items-center justify-center dark:text-white text-slate-800 hover:bg-slate-100 dark:hover:bg-emerald-900/80 transition-colors shadow-sm"
               aria-label="Settings"
             >

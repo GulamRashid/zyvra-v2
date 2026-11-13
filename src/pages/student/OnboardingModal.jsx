@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Check, Languages, Moon, Sun, Monitor } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
-import { getFriendlyErrorMessage } from '../../lib/errors';
 
 const exams = ['BPSC', 'SSC', 'CTET', 'NCERT'];
 
@@ -53,7 +52,7 @@ export default function OnboardingModal() {
     } else {
       setOpen(false);
     }
-  }, [user, guest, profile, refreshAccount]);
+  }, [user, guest, profile, refreshAccount, supabase]);
 
   if (!open) return null;
 
