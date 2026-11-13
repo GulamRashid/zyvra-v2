@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
+import { getFriendlyErrorMessage } from '../../lib/errors';
 
 export default function StudentProfile() {
   const { user, profile, guest, coinBalance, supabase, signOut, refreshAccount } = useAuth();
@@ -188,7 +189,8 @@ export default function StudentProfile() {
         }, 1500);
       }
     } catch (err) {
-      setProfileFeedback(err.message || 'Failed to update profile.');
+      console.error('Unable to update profile:', err);
+      setProfileFeedback(getFriendlyErrorMessage(err, 'Profile update nahi ho paya.'));
     } finally {
       setSavingProfile(false);
     }

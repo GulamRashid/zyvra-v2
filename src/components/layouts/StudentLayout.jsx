@@ -23,7 +23,7 @@ const sections = [
 
 export default function StudentLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { profile, coinBalance, isAdmin, guest, signOut } = useAuth();
+  const { profile, profileError, coinBalance, isAdmin, guest, signOut } = useAuth();
   const { t } = useThemeLanguage();
   const location = useLocation();
   const navigate = useNavigate();
@@ -117,7 +117,7 @@ export default function StudentLayout() {
               title={`${streak} day study streak`}
             >
               <Flame size={14} className="fill-amber-400 text-amber-400" />
-              <span>{streak}</span>
+              <span>{profileError ? '—' : streak}</span>
             </div>
 
             {/* Coin Badge */}

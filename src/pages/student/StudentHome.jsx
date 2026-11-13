@@ -104,7 +104,7 @@ const quickActionTiles = [
 ];
 
 export default function StudentHome() {
-  const { profile, coinBalance, guest, user, supabase, refreshAccount } = useAuth();
+  const { profile, profileError, coinBalance, guest, user, supabase, refreshAccount } = useAuth();
   const { t, language } = useThemeLanguage();
   const { exams, folders, chapters } = useContentCatalog();
   const navigate = useNavigate();
@@ -406,7 +406,7 @@ export default function StudentHome() {
               </div>
               <div className="min-w-0">
                 <div className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight flex items-baseline gap-1">
-                  {streak} <span className="text-xs sm:text-sm font-semibold dark:text-emerald-200/90 text-emerald-700">{language === 'hi' ? 'दिन' : 'Days'}</span>
+                  {profileError ? '—' : streak} <span className="text-xs sm:text-sm font-semibold dark:text-emerald-200/90 text-emerald-700">{language === 'hi' ? 'दिन' : 'Days'}</span>
                 </div>
                 <div className="text-xs font-medium dark:text-emerald-400/80 text-emerald-700 truncate">
                   {language === 'hi' ? 'अध्ययन स्ट्रीक' : 'Study Streak'}
@@ -418,7 +418,7 @@ export default function StudentHome() {
             <div className="flex items-center justify-between pl-2.5 sm:pl-4">
               <div className="min-w-0 pr-1">
                 <div className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
-                  {todayQuestionsSolved} <span className="text-xs dark:text-neutral-400 text-slate-500 font-normal">/ {dailyTarget}</span>
+                  {profileError ? '—' : todayQuestionsSolved} <span className="text-xs dark:text-neutral-400 text-slate-500 font-normal">{profileError ? '' : `/ ${dailyTarget}`}</span>
                 </div>
                 <div className="text-xs font-medium dark:text-emerald-400/80 text-emerald-700 truncate">
                   {language === 'hi' ? 'आज का लक्ष्य' : "Today's Target"}
@@ -449,11 +449,23 @@ export default function StudentHome() {
                   />
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center text-xs font-black dark:text-white text-slate-900">
-                  {goalPercent}%
+                  {profileError ? '—' : `${goalPercent}%`}
                 </div>
               </div>
             </div>
           </div>
+          {profileError && (
+            <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+              <span>Profile data abhi load nahi ho paya.</span>
+              <button
+                type="button"
+                className="min-h-[44px] shrink-0 rounded-lg border border-emerald-400/30 px-3 text-xs font-bold text-emerald-800 hover:bg-emerald-500/10 dark:text-emerald-200"
+                onClick={() => refreshAccount().catch((error) => console.error('Unable to retry profile data:', error))}
+              >
+                Try again
+              </button>
+            </div>
+          )}
         </section>
 
         {/* Hero Banner Carousel (Built from Real Exams in DB) */}

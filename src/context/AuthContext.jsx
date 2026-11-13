@@ -2,12 +2,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { supabase, supabaseConfigurationError } from '../lib/supabase';
 import { useThemeLanguage } from './ThemeLanguageContext';
 import { ensureReferralCode, processReferralAward } from '../lib/referrals';
+import { getFriendlyErrorMessage } from '../lib/errors';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(null);
+  const [profileError, setProfileError] = useState('');
   const [coinBalance, setCoinBalance] = useState(0);
   const [loading, setLoading] = useState(Boolean(supabase));
   const [guest, setGuest] = useState(false);
@@ -23,13 +25,19 @@ export function AuthProvider({ children }) {
       return;
     }
     const userId = activeSession.user.id;
+    setProfileError('');
     const [profileResult, walletResult] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+      supabase.from('profiles').select('id,full_name,target_exams,daily_goal_target,theme,preferred_language,current_streak,onboarding_completed,referral_code,role,is_pro,avatar_url').eq('id', userId).maybeSingle(),
       supabase.from('coin_wallets').select('balance').eq('user_id', userId).maybeSingle()
     ]);
-    if (profileResult.error) throw profileResult.error;
+    if (profileResult.error) {
+      console.error('Unable to load profile data:', profileResult.error);
+      setProfile(null);
+      setProfileError(getFriendlyErrorMessage(profileResult.error, 'Profile data abhi load nahi ho paya.'));
+    } else {
+      setProfile(profileResult.data);
+    }
     if (walletResult.error && walletResult.error.code !== 'PGRST116') throw walletResult.error;
-    setProfile(profileResult.data);
     setCoinBalance(Number(walletResult.data?.balance || 0));
 
     if (profileResult.data && !profileResult.data.referral_code) {
@@ -163,7 +171,7 @@ export function AuthProvider({ children }) {
   const refreshAccount = useCallback(() => loadAccount(session), [loadAccount, session]);
   const role = profile?.role || (guest ? 'guest' : 'student');
   const value = useMemo(() => ({
-    supabase, session, user: session?.user || null, profile, coinBalance, loading, guest,
+    supabase, session, user: session?.user || null,     profile, profileError, coinBalance, loading, guest,
     guestDemoEnabled, role, isAdmin: ['admin', 'super_admin'].includes(role),
     enterGuestMode, signOut, refreshAccount, configurationError: supabaseConfigurationError
   }), [session, profile, coinBalance, loading, guest, guestDemoEnabled, role, loadAccount]);
