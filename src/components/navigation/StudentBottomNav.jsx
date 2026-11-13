@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { BarChart3, Bell, BookOpen, Compass, Home, MoreHorizontal, ShoppingBag, User, WalletCards, Wrench } from 'lucide-react';
+import { BarChart3, Bell, BookOpen, Compass, Home, MoreHorizontal, ShoppingBag, User, WalletCards, Wrench, X } from 'lucide-react';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 
 const navItems = [
@@ -50,7 +50,7 @@ export default function StudentBottomNav() {
       className="student-bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden dark:bg-[#0B1713]/95 bg-white/95 backdrop-blur-xl border-t dark:border-emerald-500/15 border-emerald-900/10 transition-all duration-300"
       aria-label="Student Mobile Navigation"
     >
-      <div className="max-w-md mx-auto px-2 sm:px-3 py-1.5 sm:py-2 flex items-center justify-around gap-0.5 sm:gap-1" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
+      <div className="max-w-md mx-auto px-2 sm:px-3 py-1.5 sm:py-2 flex items-center justify-around gap-0.5 sm:gap-1">
         {navItems.map((item) => {
           const active = item.key === 'more' ? moreActive || moreOpen : isItemActive(item.to);
           const Icon = item.Icon;

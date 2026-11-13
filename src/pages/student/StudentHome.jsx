@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
-  ClipboardList,
-  Layers,
+  Bookmark,
   Target,
-  TrendingUp,
-  Trophy
+  Trophy,
+  WalletCards
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
@@ -57,15 +55,6 @@ function loadSavedChapter(userId) {
 // Quick Action 5-Tile Row
 const quickActionTiles = [
   {
-    id: 'practice',
-    title: 'Practice',
-    subtitle: 'Chapter MCQs',
-    path: '/tests',
-    icon: ClipboardList,
-    bg: 'dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 dark:text-emerald-300 text-emerald-800',
-    iconBg: 'dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-700'
-  },
-  {
     id: 'mock',
     title: 'Mock Test',
     subtitle: 'Full length',
@@ -75,24 +64,6 @@ const quickActionTiles = [
     iconBg: 'dark:bg-teal-500/20 bg-teal-100 dark:text-teal-300 text-teal-700'
   },
   {
-    id: 'toolbox',
-    title: 'Toolbox',
-    subtitle: 'Study tools',
-    path: '/toolbox',
-    icon: Layers,
-    bg: 'dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 dark:text-emerald-300 text-emerald-800',
-    iconBg: 'dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-700'
-  },
-  {
-    id: 'performance',
-    title: 'Performance',
-    subtitle: 'Analytics & rank',
-    path: '/analytics',
-    icon: TrendingUp,
-    bg: 'dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 dark:text-emerald-300 text-emerald-800',
-    iconBg: 'dark:bg-cyan-500/20 bg-cyan-100 dark:text-cyan-300 text-cyan-700'
-  },
-  {
     id: 'leaderboard',
     title: 'Ranks',
     subtitle: 'Top ranks',
@@ -100,6 +71,24 @@ const quickActionTiles = [
     icon: Trophy,
     bg: 'dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 dark:text-emerald-300 text-emerald-800',
     iconBg: 'dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-700'
+  },
+  {
+    id: 'bookmarks',
+    title: 'Bookmarks',
+    subtitle: 'Saved questions',
+    path: '/bookmarks',
+    icon: Bookmark,
+    bg: 'dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 dark:text-emerald-300 text-emerald-800',
+    iconBg: 'dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-700'
+  },
+  {
+    id: 'wallet',
+    title: 'Wallet',
+    subtitle: 'Your coins',
+    path: '/wallet',
+    icon: WalletCards,
+    bg: 'dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 dark:text-emerald-300 text-emerald-800',
+    iconBg: 'dark:bg-amber-500/20 bg-amber-100 dark:text-amber-700 text-amber-700'
   }
 ];
 
@@ -107,7 +96,6 @@ export default function StudentHome() {
   const { profile, profileError, coinBalance, guest, user, supabase, refreshAccount } = useAuth();
   const { t, language } = useThemeLanguage();
   const { exams, folders, chapters } = useContentCatalog();
-  const navigate = useNavigate();
 
   const [attempts, setAttempts] = useState([]);
   const [allAttempts, setAllAttempts] = useState([]);
@@ -363,7 +351,7 @@ export default function StudentHome() {
 
       {/* Top Ambient Mountain Aura */}
       <div className="relative">
-        <MountainSunsetAura height={190} showSun={true} />
+        <MountainSunsetAura height={110} showSun={true} />
 
         {/* Greeting Header overlaid on Mountain Banner */}
         <div className="px-3.5 sm:px-6 pt-4 pb-2 relative z-10 max-w-5xl mx-auto">
@@ -484,7 +472,7 @@ export default function StudentHome() {
               <div className="pt-2">
                 <Link
                   to={dynamicBanners[activeSlide]?.path}
-                  className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 text-white font-extrabold text-sm transition-colors min-h-[44px]"
+                  className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white font-extrabold text-sm transition-colors min-h-[44px]"
                 >
                   <span>{dynamicBanners[activeSlide]?.buttonText}</span>
                   <ArrowRight size={15} strokeWidth={2.5} />
@@ -530,7 +518,7 @@ export default function StudentHome() {
 
         {/* Quick Action 5-Tile Row */}
         <section className="order-3">
-          <div className="grid grid-cols-5 gap-1.5 sm:gap-3">
+          <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
             {quickActionTiles.map((tile) => {
               const Icon = tile.icon;
               return (
@@ -542,7 +530,7 @@ export default function StudentHome() {
                   <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-1 sm:mb-2 shrink-0 ${tile.iconBg}`}>
                     <Icon className="w-4 h-4 sm:w-6 sm:h-6" />
                   </div>
-                  <span className="text-sm font-bold dark:text-white text-slate-800 tracking-tight line-clamp-1">
+                  <span className="min-h-[2rem] text-xs sm:text-sm font-bold dark:text-white text-slate-800 tracking-tight leading-tight line-clamp-2">
                     {tile.title}
                   </span>
                 </Link>

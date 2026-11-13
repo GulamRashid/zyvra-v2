@@ -327,6 +327,7 @@ body.light .student-bottom-nav .text-emerald-300\/70 {
 }
 
 .student-bottom-nav {
+  padding-bottom: env(safe-area-inset-bottom);
   box-shadow: 0 -6px 16px rgba(0, 0, 0, .06) !important;
 }
 .dark .student-bottom-nav {

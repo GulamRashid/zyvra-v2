@@ -631,7 +631,7 @@ const translations = {
 };
 
 export function ThemeLanguageProvider({ children }) {
-  const [theme, setTheme] = useState(() => localStorage.getItem('zyvra-theme') || 'dark');
+  const [theme, setTheme] = useState(() => localStorage.getItem('zyvra-theme') || 'system');
   const [language, setLanguage] = useState(() => localStorage.getItem('zyvra-language') || 'en');
 
   useEffect(() => {
@@ -644,6 +644,8 @@ export function ThemeLanguageProvider({ children }) {
       root.classList.toggle('light', light);
       root.classList.toggle('dark', !light);
       root.style.colorScheme = light ? 'light' : 'dark';
+      const themeColor = document.querySelector('meta[name="theme-color"]');
+      themeColor?.setAttribute('content', light ? '#F7FAF8' : '#0B1713');
     };
     applyTheme();
     system.addEventListener?.('change', applyTheme);
