@@ -292,6 +292,7 @@ export default function LiveQuiz() {
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [showPauseModal, setShowPauseModal] = useState(false);
   const [showInstructionsModal, setShowInstructionsModal] = useState(false);
+  const [overflowOpen, setOverflowOpen] = useState(false);
   const [declared, setDeclared] = useState(false);
   const [startingTest, setStartingTest] = useState(false);
   const [testPhase, setTestPhase] = useState('loading'); // 'loading' | 'instructions' | 'resume_prompt' | 'active'
@@ -312,6 +313,60 @@ export default function LiveQuiz() {
   const inFlightTranslations = useRef(new Map());
   const timeSpentRef = useRef({});
   const dropoffEventsRef = useRef([]);
+  const overflowMenuRef = useRef(null);
+  const overflowTriggerRef = useRef(null);
+  const paletteTriggerRef = useRef(null);
+  const paletteCloseRef = useRef(null);
+  const paletteGridRef = useRef(null);
+  const paletteOpenerRef = useRef(null);
+  const paletteWasOpenRef = useRef(false);
+
+  useEffect(() => {
+    if (!overflowOpen) return undefined;
+
+    const handleOverflowDismiss = (event) => {
+      if (event.type === 'keydown' && event.key === 'Escape') {
+        setOverflowOpen(false);
+        return;
+      }
+      if (event.type === 'pointerdown' && !overflowMenuRef.current?.contains(event.target)) {
+        setOverflowOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handleOverflowDismiss);
+    document.addEventListener('keydown', handleOverflowDismiss);
+    return () => {
+      document.removeEventListener('pointerdown', handleOverflowDismiss);
+      document.removeEventListener('keydown', handleOverflowDismiss);
+    };
+  }, [overflowOpen]);
+
+  useEffect(() => {
+    if (!paletteOpen) {
+      if (paletteWasOpenRef.current) {
+        paletteWasOpenRef.current = false;
+        paletteOpenerRef.current?.focus();
+      }
+      return undefined;
+    }
+
+    paletteWasOpenRef.current = true;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusFrame = window.requestAnimationFrame(() => paletteCloseRef.current?.focus());
+
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [paletteOpen]);
+
+  useEffect(() => {
+    if (!paletteOpen) return;
+    const currentButton = paletteGridRef.current?.querySelector(`[data-question-index="${currentIndex}"]`);
+    currentButton?.scrollIntoView({ block: 'nearest' });
+  }, [paletteOpen, currentIndex]);
 
   useEffect(() => {
     if (!toast) return undefined;
@@ -1156,34 +1211,11 @@ export default function LiveQuiz() {
               question.correct_option = ans;
               question.answer = ans;
               if (rpcData.explanation) question.explanation = rpcData.explanation;
-              if (rpcData.explanation_hi) question.explanation_hi = rpcData.explanation_hi;
               if (rpcData.distractor_notes) question.distractor_notes = rpcData.distractor_notes;
-              if (rpcData.distractor_notes_hi) question.distractor_notes_hi = rpcData.distractor_notes_hi;
               setQuestions((prev) => [...prev]);
             }
           } else {
-            // Fallback to direct query if RPC is not yet migrated
-            supabase
-              .from('questions')
-              .select('id, correct_answer, explanation, explanation_hi, distractor_notes, distractor_notes_hi')
-              .eq('id', targetId)
-              .maybeSingle()
-              .then(({ data }) => {
-                if (data) {
-                  const ans = normalizeCorrectAnswer(data.correct_answer, question.options);
-                  if (ans) {
-                    question.correct_answer = ans;
-                    question.correct_option = ans;
-                    question.answer = ans;
-                    if (data.explanation) question.explanation = data.explanation;
-                    if (data.explanation_hi) question.explanation_hi = data.explanation_hi;
-                    if (data.distractor_notes) question.distractor_notes = data.distractor_notes;
-                    if (data.distractor_notes_hi) question.distractor_notes_hi = data.distractor_notes_hi;
-                    setQuestions((prev) => [...prev]);
-                  }
-                }
-              })
-              .catch((err) => console.warn('[LiveQuiz:answer] Fallback answer fetch error:', err));
+            console.warn('[LiveQuiz:answer] Feedback RPC did not return an allowed answer.');
           }
         })
         .catch((err) => console.warn('[LiveQuiz:answer] On-demand answer fetch error:', err));
@@ -1602,7 +1634,7 @@ export default function LiveQuiz() {
       )}
 
       {/* CBT 2-Row Header */}
-      <header className="quiz-header cbt-two-row-header">
+      <header ref={overflowMenuRef} className="quiz-header cbt-two-row-header">
         {/* ROW 1: Compact Brand + Truncated Title on Left | Compact Action Buttons on Right */}
         <div className="quiz-header-top-row">
           <div className="quiz-header-brand-wrap">
@@ -1671,14 +1703,69 @@ export default function LiveQuiz() {
             <button
               type="button"
               className="icon-button quiz-palette-toggle"
-              onClick={() => setPaletteOpen(true)}
+              ref={paletteTriggerRef}
+              onClick={() => {
+                paletteOpenerRef.current = paletteTriggerRef.current;
+                setPaletteOpen(true);
+              }}
               title="Open question palette"
               aria-label="Open question palette"
             >
               <Grid3X3 size={17} />
             </button>
+
+            <button
+              type="button"
+              className="icon-button quiz-overflow-toggle"
+              ref={overflowTriggerRef}
+              onClick={() => setOverflowOpen((open) => !open)}
+              aria-expanded={overflowOpen}
+              aria-haspopup="menu"
+              aria-label="More test options"
+            >
+              <span aria-hidden="true">⋯</span>
+            </button>
           </div>
         </div>
+
+        {overflowOpen && (
+          <div className="quiz-overflow-menu" role="menu" aria-label="More test options">
+            <button
+              type="button"
+              className="quiz-overflow-menu-item"
+              role="menuitem"
+              onClick={() => {
+                setOverflowOpen(false);
+                setShowInstructionsModal(true);
+              }}
+            >
+              <Info size={16} /> Instructions
+            </button>
+            <button
+              type="button"
+              className="quiz-overflow-menu-item"
+              role="menuitem"
+              onClick={() => {
+                setOverflowOpen(false);
+                setShowPauseModal(true);
+              }}
+            >
+              <Pause size={16} /> Pause test
+            </button>
+            <button
+              type="button"
+              className="quiz-overflow-menu-item"
+              role="menuitem"
+              onClick={() => {
+                setOverflowOpen(false);
+                paletteOpenerRef.current = overflowTriggerRef.current;
+                setPaletteOpen(true);
+              }}
+            >
+              <Grid3X3 size={16} /> Question palette
+            </button>
+          </div>
+        )}
 
         {/* ROW 2: Question Counter on Left | Countdown Timer on Right */}
         <div className="quiz-header-sub-bar">
@@ -1732,7 +1819,7 @@ export default function LiveQuiz() {
               type="button"
               onClick={() => goTo(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
-              className="w-8 h-8 rounded-xl dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 flex items-center justify-center dark:text-emerald-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-emerald-900 transition-colors shrink-0"
+              className="quiz-mobile-nav-button w-8 h-8 rounded-xl dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 flex items-center justify-center dark:text-emerald-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-emerald-900 transition-colors shrink-0"
               aria-label="Previous question"
             >
               <ChevronLeft size={16} />
@@ -1776,7 +1863,7 @@ export default function LiveQuiz() {
               type="button"
               onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
               disabled={currentIndex === questions.length - 1}
-              className="w-8 h-8 rounded-xl dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 flex items-center justify-center dark:text-emerald-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-emerald-900 transition-colors shrink-0"
+              className="quiz-mobile-nav-button w-8 h-8 rounded-xl dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 flex items-center justify-center dark:text-emerald-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-emerald-900 transition-colors shrink-0"
               aria-label="Next question"
             >
               <ChevronRight size={16} />
@@ -2008,7 +2095,7 @@ export default function LiveQuiz() {
           <div className="flex items-center justify-between gap-2 pt-4 mt-2 border-t dark:border-emerald-500/15 border-slate-200">
             <button
               type="button"
-              className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-emerald-950/70 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 dark:text-emerald-300 text-slate-700 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 min-h-[40px]"
+              className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-emerald-950/70 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 dark:text-emerald-300 text-slate-700 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 min-h-[40px]"
               onClick={() => goTo(Math.max(0, currentIndex - 1))}
               disabled={!currentIndex}
             >
@@ -2017,7 +2104,7 @@ export default function LiveQuiz() {
 
             <button
               type="button"
-              className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-emerald-950/70 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 dark:text-emerald-300 text-slate-700 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 min-h-[40px]"
+              className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-emerald-950/70 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 dark:text-emerald-300 text-slate-700 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 min-h-[40px]"
               onClick={clearResponse}
               disabled={!responses[question.id]?.selected_option}
             >
@@ -2027,7 +2114,7 @@ export default function LiveQuiz() {
             {currentIndex === questions.length - 1 ? (
               <button
                 type="button"
-                className="px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-colors min-h-[40px]"
+                className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-colors min-h-[40px]"
                 disabled={submitting}
                 onClick={confirm}
               >
@@ -2036,7 +2123,7 @@ export default function LiveQuiz() {
             ) : (
               <button
                 type="button"
-                className="px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-colors flex items-center gap-1 min-h-[40px]"
+                className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-colors flex items-center gap-1 min-h-[40px]"
                 onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
               >
                 <span>Next</span> <ChevronRight size={16} />
@@ -2095,9 +2182,9 @@ export default function LiveQuiz() {
           <div className="palette-heading">
             <div>
               <div className="eyebrow">YOUR PROGRESS</div>
-              <h2>Question palette</h2>
+              <h2>Question {currentIndex + 1} of {questions.length}</h2>
             </div>
-            <button className="icon-button palette-close" onClick={() => setPaletteOpen(false)} aria-label="Close palette">
+            <button ref={paletteCloseRef} className="icon-button palette-close" onClick={() => setPaletteOpen(false)} aria-label="Close palette">
               <X size={18} />
             </button>
           </div>
@@ -2106,7 +2193,7 @@ export default function LiveQuiz() {
           <PaletteLegend compact={true} />
 
           {/* Question Grid */}
-          <div className="palette-grid">
+          <div ref={paletteGridRef} className="palette-grid">
             {questions.map((item, index) => {
               const qId = item.id;
               const response = responses[qId];
@@ -2136,6 +2223,7 @@ export default function LiveQuiz() {
                 <button
                   key={qId}
                   type="button"
+                  data-question-index={index}
                   className={`palette-number ${stateClass} ${isOptionE ? 'option-e-selected' : ''} ${currentIndex === index ? 'current' : ''}`}
                   onClick={() => goTo(index)}
                   aria-label={`Question ${index + 1}: ${stateLabel}${isOptionE ? ', Option E selected' : ''}`}
