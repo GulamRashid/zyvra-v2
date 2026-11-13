@@ -88,28 +88,22 @@ export async function ensureReferralCode(supabase, userId, existingCode = null) 
   if (existingCode && String(existingCode).trim()) return existingCode;
 
   try {
-    let code = generateReferralCode();
-    // Verify uniqueness before assigning
-    for (let attempts = 0; attempts < 5; attempts++) {
-      const { data: collision } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('referral_code', code)
-        .maybeSingle();
-      if (!collision) break;
-      code = generateReferralCode();
+    // 1. Try atomic server-side RPC first if available
+    try {
+      const { data: rpcCode, error: rpcError } = await supabase.rpc('ensure_user_referral_code', {
+        p_user_id: userId
+      });
+      if (!rpcError && rpcCode) {
+        return rpcCode;
+      }
+    } catch (_) {
+      // RPC not yet migrated in database
     }
 
-    const { error } = await supabase
-      .from('profiles')
-      .update({ referral_code: code })
-      .eq('id', userId);
-
-    if (error) {
-      console.warn('Unable to save generated referral code:', error.message);
-      return null;
-    }
-    return code;
+    // 2. Client-side direct UPDATE on profiles.referral_code is not permitted by RLS.
+    // Return null safely without throwing or triggering unauthorized database errors.
+    console.warn('ensureReferralCode: Server RPC ensure_user_referral_code not yet available. Direct update skipped.');
+    return null;
   } catch (err) {
     console.error('ensureReferralCode error:', err);
     return null;
