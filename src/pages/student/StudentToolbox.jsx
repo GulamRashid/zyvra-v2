@@ -682,7 +682,7 @@ export default function StudentToolbox() {
                               </div>
                               {locked ? (
                                 <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-600 dark:text-amber-300 border border-amber-400/30 shrink-0">
-                                  🔒 ₹{getToolConfig(tool).price || 'Pro'}
+                                  🔒 ₹{getToolConfig(tool).price || 'Premium'}
                                 </span>
                               ) : (
                                 <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">

@@ -44,7 +44,8 @@ export default function StudentProfile() {
   // User Stats & Access State
   const [attempts, setAttempts] = useState([]);
   const [isPro, setIsPro] = useState(false);
-  const [validTill, setValidTill] = useState('Free Tier');
+  const [unlockedCount, setUnlockedCount] = useState(0);
+  const [validTill, setValidTill] = useState('Free plan');
   const [statsLoading, setStatsLoading] = useState(true);
 
   // Local storage counts
@@ -112,6 +113,7 @@ export default function StudentProfile() {
 
         const hasActiveGrant = activeGrants.length > 0 || ['admin', 'super_admin'].includes(profile?.role);
         setIsPro(hasActiveGrant);
+        setUnlockedCount(activeGrants.length);
 
         if (hasActiveGrant) {
           const latestExpiry = activeGrants.find((g) => g.expires_at);
@@ -123,10 +125,10 @@ export default function StudentProfile() {
             });
             setValidTill(formatted);
           } else {
-            setValidTill('Lifetime Pro');
+            setValidTill('Lifetime Access');
           }
         } else {
-          setValidTill('Free Tier');
+          setValidTill('Free plan');
         }
       } catch (err) {
         console.warn('Unable to load user profile stats:', err);
@@ -312,11 +314,11 @@ export default function StudentProfile() {
                   {isPro ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-sm">
                       <span>👑</span>
-                      <span>Pro</span>
+                      <span>Premium</span>
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold dark:bg-emerald-950 bg-emerald-100 border dark:border-emerald-500/30 border-emerald-300 dark:text-emerald-400 text-emerald-800">
-                      Free Member
+                      Free plan
                     </span>
                   )}
                 </div>
@@ -359,10 +361,12 @@ export default function StudentProfile() {
             </div>
             <div className="min-w-0">
               <h3 className="text-sm sm:text-lg font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-2 truncate">
-                <span>{isPro ? 'Zyvra Pro Active' : 'Upgrade to Zyvra Pro'}</span>
+                <span>{isPro ? 'Premium access active' : 'Free plan'}</span>
               </h3>
               <p className="text-[11px] sm:text-xs dark:text-amber-200/80 text-amber-900/90 font-medium truncate">
-                {isPro ? 'Full access to premium tests & notes' : 'Unlock full mock tests, notes & tools'}
+                {isPro
+                  ? `${unlockedCount} ${unlockedCount === 1 ? 'item' : 'items'} unlocked`
+                  : 'Unlock full mock tests, notes & tools'}
               </p>
             </div>
           </div>
@@ -497,7 +501,7 @@ export default function StudentProfile() {
           >
             <Download size={16} className="text-emerald-500 mb-1 group-hover:scale-110 transition-transform" />
             <span className="text-[11px] sm:text-xs font-bold dark:text-white text-slate-900">Purchases</span>
-            <span className="text-[10px] sm:text-[11px] font-black dark:text-emerald-300 text-emerald-700 mt-0.5">{isPro ? 'Pro' : '0'}</span>
+            <span className="text-[10px] sm:text-[11px] font-black dark:text-emerald-300 text-emerald-700 mt-0.5">{isPro ? (unlockedCount > 0 ? `${unlockedCount} unlocked` : 'Active') : '0'}</span>
           </Link>
 
           <Link
