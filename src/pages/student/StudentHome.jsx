@@ -383,7 +383,7 @@ export default function StudentHome() {
         </div>
       </div>
 
-      <div className="px-3 sm:px-6 max-w-5xl mx-auto space-y-5 sm:space-y-6 -mt-2 relative z-10">
+      <div className="px-3 sm:px-6 max-w-5xl mx-auto flex flex-col space-y-5 sm:space-y-6 -mt-2 relative z-10">
         {dashboardError && (
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-200" role="alert">
             <span>{dashboardError}</span>
@@ -397,7 +397,7 @@ export default function StudentHome() {
           </div>
         )}
         {/* Streak & Today's Goal Glassmorphic Panel */}
-        <section className="dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 rounded-3xl p-6 sm:p-8 transition-colors duration-200">
+        <section className="order-0 dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 rounded-3xl p-6 sm:p-8 transition-colors duration-200">
           <div className="grid grid-cols-2 divide-x dark:divide-emerald-800/40 divide-emerald-200">
             {/* Left: Study Streak */}
             <div className="flex items-center gap-2.5 sm:gap-3 pr-2 sm:pr-3">
@@ -469,7 +469,7 @@ export default function StudentHome() {
         </section>
 
         {/* Hero Banner Carousel (Built from Real Exams in DB) */}
-        <section className="relative overflow-hidden rounded-3xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-300/40 p-6 sm:p-8 transition-colors duration-200">
+        <section className="order-2 relative overflow-hidden rounded-3xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-300/40 p-6 sm:p-8 transition-colors duration-200">
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-2 max-w-lg">
               <span className="inline-block text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-400/30">
@@ -529,7 +529,7 @@ export default function StudentHome() {
         </section>
 
         {/* Quick Action 5-Tile Row */}
-        <section>
+        <section className="order-3">
           <div className="grid grid-cols-5 gap-1.5 sm:gap-3">
             {quickActionTiles.map((tile) => {
               const Icon = tile.icon;
@@ -552,7 +552,7 @@ export default function StudentHome() {
         </section>
 
         {/* Recommended practice / Continue Where You Left Section */}
-        <section className="space-y-2.5">
+        <section className="order-1 space-y-2.5">
           <div className="flex items-center justify-between">
             <h3 className="text-sm sm:text-lg font-bold dark:text-white text-slate-900 tracking-tight flex items-center gap-2">
               <span>{recommendation
@@ -643,7 +643,7 @@ export default function StudentHome() {
 
         {/* Explore Exams Section (Strictly Real DB Exams) */}
         {dynamicExams.length > 0 && (
-          <section className="space-y-2.5">
+          <section className="order-4 space-y-2.5">
             <div className="flex items-center justify-between">
               <h3 className="text-sm sm:text-lg font-bold dark:text-white text-slate-900 tracking-tight">
                 {language === 'hi' ? 'उपलब्ध परीक्षाएं' : 'Available Exams'}
