@@ -34,10 +34,10 @@ export default function StudentBottomNav() {
 
   return (
     <nav
-      className="student-bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#04140e]/90 backdrop-blur-xl border-t border-emerald-500/15 shadow-[0_-8px_25px_rgba(0,0,0,0.5)] transition-all duration-300"
+      className="student-bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden dark:bg-[#04140e]/95 bg-white/95 backdrop-blur-xl border-t dark:border-emerald-500/15 border-emerald-900/10 shadow-[0_-8px_25px_rgba(0,0,0,0.12)] dark:shadow-[0_-8px_25px_rgba(0,0,0,0.5)] transition-all duration-300"
       aria-label="Student Mobile Navigation"
     >
-      <div className="max-w-md mx-auto px-3 py-2 flex items-center justify-around gap-1" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
+      <div className="max-w-md mx-auto px-2 sm:px-3 py-1.5 sm:py-2 flex items-center justify-around gap-0.5 sm:gap-1" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>
         {navItems.map((item) => {
           const active = isItemActive(item.to);
           const Icon = item.Icon;
@@ -51,10 +51,10 @@ export default function StudentBottomNav() {
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#f5c542] text-[#04140e] font-bold text-xs shadow-md shadow-amber-400/25 transition-transform active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#f5c542] text-[#04140e] font-bold text-xs shadow-md shadow-amber-400/25 transition-transform active:scale-95"
                   aria-current="page"
                 >
-                  <Icon size={17} strokeWidth={2.4} />
+                  <Icon size={16} strokeWidth={2.4} />
                   <span>{label}</span>
                 </NavLink>
               );
@@ -66,10 +66,10 @@ export default function StudentBottomNav() {
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#22c55e] text-[#04140e] font-bold text-xs shadow-md shadow-emerald-500/30 transition-transform active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#22c55e] text-[#04140e] font-bold text-xs shadow-md shadow-emerald-500/30 transition-transform active:scale-95"
                   aria-current="page"
                 >
-                  <Icon size={17} strokeWidth={2.4} />
+                  <Icon size={16} strokeWidth={2.4} />
                   <span>{label}</span>
                 </NavLink>
               );
@@ -81,10 +81,10 @@ export default function StudentBottomNav() {
                 <NavLink
                   key={item.to}
                   to={item.to}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#072c1e] text-[#34d399] border border-emerald-400/40 font-semibold text-xs shadow-md shadow-emerald-500/20 transition-transform active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full dark:bg-[#072c1e] bg-emerald-100 dark:text-[#34d399] text-emerald-800 dark:border-emerald-400/40 border-emerald-400/60 border font-semibold text-xs shadow-md shadow-emerald-500/15 transition-transform active:scale-95"
                   aria-current="page"
                 >
-                  <Icon size={17} strokeWidth={2.4} />
+                  <Icon size={16} strokeWidth={2.4} />
                   <span>{label}</span>
                 </NavLink>
               );
@@ -95,10 +95,10 @@ export default function StudentBottomNav() {
               <NavLink
                 key={item.to}
                 to={item.to}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#0a3524] text-[#4ade80] border border-emerald-500/30 font-semibold text-xs shadow-md shadow-emerald-500/15 transition-transform active:scale-95"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full dark:bg-[#0a3524] bg-emerald-100 dark:text-[#4ade80] text-emerald-800 dark:border-emerald-500/30 border-emerald-400/50 border font-semibold text-xs shadow-md shadow-emerald-500/15 transition-transform active:scale-95"
                 aria-current="page"
               >
-                <Icon size={17} strokeWidth={2.4} />
+                <Icon size={16} strokeWidth={2.4} />
                 <span>{label}</span>
               </NavLink>
             );
@@ -109,10 +109,10 @@ export default function StudentBottomNav() {
             <NavLink
               key={item.to}
               to={item.to}
-              className="group flex flex-col items-center justify-center py-1 px-2.5 rounded-xl text-slate-400 hover:text-emerald-300 transition-colors"
+              className="group flex flex-col items-center justify-center py-1 px-2 rounded-xl text-slate-500 dark:text-slate-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors min-h-[44px]"
             >
-              <Icon size={20} className="group-hover:scale-110 transition-transform text-slate-400 group-hover:text-emerald-300" strokeWidth={1.8} />
-              <span className="text-[10px] font-medium mt-0.5 tracking-tight group-hover:text-emerald-200">{label}</span>
+              <Icon size={19} className="group-hover:scale-110 transition-transform text-slate-500 dark:text-slate-400 group-hover:text-emerald-700 dark:group-hover:text-emerald-300" strokeWidth={1.8} />
+              <span className="text-[10px] font-medium mt-0.5 tracking-tight group-hover:text-emerald-800 dark:group-hover:text-emerald-200">{label}</span>
             </NavLink>
           );
         })}

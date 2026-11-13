@@ -8,17 +8,17 @@ export default function MountainSunsetAura({ className = '', height = 180, showS
       aria-hidden="true"
     >
       {/* Background Sky Radial Glow */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#0a2e22] via-[#062017] to-transparent opacity-90" />
+      <div className="absolute inset-0 bg-gradient-to-b dark:from-[#0a2e22] dark:via-[#062017] dark:to-transparent from-[#d1fae5]/80 via-[#a7f3d0]/30 to-transparent opacity-90 transition-colors duration-300" />
       
       {/* Ambient Sun Orb Glow */}
       {showSun && (
-        <div className="absolute top-4 right-1/4 w-32 h-32 sm:w-44 sm:h-44 rounded-full bg-gradient-to-b from-amber-200/40 via-amber-400/25 to-yellow-600/10 blur-2xl transform translate-x-8" />
+        <div className="absolute top-4 right-1/4 w-32 h-32 sm:w-44 sm:h-44 rounded-full bg-gradient-to-b from-amber-200/50 via-amber-400/30 to-yellow-600/15 blur-2xl transform translate-x-8" />
       )}
 
       {/* Sun Circle */}
       {showSun && (
         <div
-          className="absolute top-8 right-1/4 w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-gradient-to-b from-[#fff7ed] via-[#fef08a] to-[#f59e0b] shadow-[0_0_35px_rgba(245,158,11,0.6)] transform translate-x-6"
+          className="absolute top-8 right-1/4 w-14 h-14 sm:w-18 sm:h-18 rounded-full bg-gradient-to-b from-[#fff7ed] via-[#fef08a] to-[#f59e0b] shadow-[0_0_35px_rgba(245,158,11,0.5)] transform translate-x-6"
         />
       )}
 
@@ -26,20 +26,20 @@ export default function MountainSunsetAura({ className = '', height = 180, showS
       <svg
         viewBox="0 0 1000 240"
         preserveAspectRatio="none"
-        className="absolute bottom-0 left-0 w-full h-[150px] opacity-95"
+        className="absolute bottom-0 left-0 w-full h-[150px] opacity-95 transition-all duration-300"
       >
         <defs>
           <linearGradient id="backMtnGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#0b3827" stopOpacity="0.85" />
-            <stop offset="100%" stopColor="#061e15" stopOpacity="0.95" />
+            <stop offset="0%" stopColor="currentColor" stopOpacity="0.85" className="text-emerald-700 dark:text-[#0b3827]" />
+            <stop offset="100%" stopColor="currentColor" stopOpacity="0.95" className="text-emerald-800 dark:text-[#061e15]" />
           </linearGradient>
           <linearGradient id="midMtnGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#072b1e" />
-            <stop offset="100%" stopColor="#04160f" />
+            <stop offset="0%" stopColor="currentColor" className="text-emerald-800 dark:text-[#072b1e]" />
+            <stop offset="100%" stopColor="currentColor" className="text-emerald-900 dark:text-[#04160f]" />
           </linearGradient>
           <linearGradient id="foreMtnGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" stopColor="#052117" />
-            <stop offset="100%" stopColor="#04140e" />
+            <stop offset="0%" stopColor="currentColor" className="text-emerald-900 dark:text-[#052117]" />
+            <stop offset="100%" stopColor="currentColor" className="text-emerald-950 dark:text-[#04140e]" />
           </linearGradient>
         </defs>
 
@@ -56,8 +56,7 @@ export default function MountainSunsetAura({ className = '', height = 180, showS
         />
 
         {/* Pine Trees Silhouettes along the ridges */}
-        {/* Tree clusters */}
-        <g fill="#041a12" opacity="0.9">
+        <g className="text-emerald-950 dark:text-[#041a12] fill-current" opacity="0.9">
           {/* Cluster Left */}
           <polygon points="40,175 48,155 56,175" />
           <polygon points="52,178 60,150 68,178" />
@@ -90,7 +89,7 @@ export default function MountainSunsetAura({ className = '', height = 180, showS
       </svg>
       
       {/* Subtle Mist / Gradient Fade at bottom */}
-      <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t from-[#04140e] via-[#04140e]/60 to-transparent" />
+      <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t dark:from-[#04140e] dark:via-[#04140e]/60 from-[#f4faf7] via-[#f4faf7]/60 to-transparent transition-colors duration-300" />
     </div>
   );
 }

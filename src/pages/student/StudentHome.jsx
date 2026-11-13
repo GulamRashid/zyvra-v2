@@ -80,8 +80,8 @@ const quickActionTiles = [
     subtitle: 'Chapter MCQs',
     path: '/tests',
     icon: ClipboardList,
-    bg: 'bg-emerald-950/70 border-emerald-500/25 text-emerald-400',
-    iconBg: 'bg-emerald-500/20 text-emerald-300'
+    bg: 'dark:bg-emerald-950/70 bg-white border dark:border-emerald-500/25 border-emerald-600/15 dark:text-emerald-400 text-emerald-800 shadow-sm',
+    iconBg: 'dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-700'
   },
   {
     id: 'mock',
@@ -89,8 +89,8 @@ const quickActionTiles = [
     subtitle: 'Full length',
     path: '/tests?tab=tests',
     icon: Target,
-    bg: 'bg-teal-950/70 border-teal-500/25 text-teal-400',
-    iconBg: 'bg-teal-500/20 text-teal-300'
+    bg: 'dark:bg-teal-950/70 bg-white border dark:border-teal-500/25 border-teal-600/15 dark:text-teal-400 text-teal-800 shadow-sm',
+    iconBg: 'dark:bg-teal-500/20 bg-teal-100 dark:text-teal-300 text-teal-700'
   },
   {
     id: 'toolbox',
@@ -98,8 +98,8 @@ const quickActionTiles = [
     subtitle: 'Study tools',
     path: '/toolbox',
     icon: Layers,
-    bg: 'bg-emerald-950/70 border-emerald-500/25 text-emerald-400',
-    iconBg: 'bg-emerald-500/20 text-emerald-300'
+    bg: 'dark:bg-emerald-950/70 bg-white border dark:border-emerald-500/25 border-emerald-600/15 dark:text-emerald-400 text-emerald-800 shadow-sm',
+    iconBg: 'dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-700'
   },
   {
     id: 'performance',
@@ -107,17 +107,17 @@ const quickActionTiles = [
     subtitle: 'Analytics & rank',
     path: '/analytics',
     icon: TrendingUp,
-    bg: 'bg-cyan-950/70 border-cyan-500/25 text-cyan-400',
-    iconBg: 'bg-cyan-500/20 text-cyan-300'
+    bg: 'dark:bg-cyan-950/70 bg-white border dark:border-cyan-500/25 border-cyan-600/15 dark:text-cyan-400 text-cyan-800 shadow-sm',
+    iconBg: 'dark:bg-cyan-500/20 bg-cyan-100 dark:text-cyan-300 text-cyan-700'
   },
   {
     id: 'leaderboard',
-    title: 'Leaderboard',
+    title: 'Ranks',
     subtitle: 'Top ranks',
     path: '/analytics',
     icon: Trophy,
-    bg: 'bg-amber-950/70 border-amber-500/25 text-amber-400',
-    iconBg: 'bg-amber-500/20 text-amber-300'
+    bg: 'dark:bg-amber-950/70 bg-white border dark:border-amber-500/25 border-amber-600/15 dark:text-amber-400 text-amber-800 shadow-sm',
+    iconBg: 'dark:bg-amber-500/20 bg-amber-100 dark:text-amber-300 text-amber-700'
   }
 ];
 
@@ -361,7 +361,7 @@ export default function StudentHome() {
   );
 
   return (
-    <div className="min-h-screen bg-[#04140e] text-[#f0fdf4] pb-28 md:pb-12">
+    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-800 pb-28 md:pb-12 transition-colors duration-200 overflow-x-hidden">
       {shouldShowOnboarding && <OnboardingModal />}
 
       {/* Top Ambient Mountain Aura */}
@@ -369,14 +369,14 @@ export default function StudentHome() {
         <MountainSunsetAura height={190} showSun={true} />
 
         {/* Greeting Header overlaid on Mountain Banner */}
-        <div className="px-4 sm:px-6 pt-4 pb-2 relative z-10 max-w-5xl mx-auto">
+        <div className="px-3.5 sm:px-6 pt-4 pb-2 relative z-10 max-w-5xl mx-auto">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2">
+              <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight dark:text-white text-slate-900 flex items-center gap-2">
                 <span>{greetingPhrase}, {firstName}</span>
                 <span className="text-amber-400 select-none">👋</span>
               </h1>
-              <p className="text-emerald-300/80 text-xs sm:text-sm mt-1 font-medium">
+              <p className="dark:text-emerald-300/80 text-emerald-800 text-xs sm:text-sm mt-1 font-medium">
                 {language === 'hi'
                   ? 'अपनी तैयारी जारी रखें और लक्ष्य के करीब पहुँचें।'
                   : 'Keep the streak, stay ahead in your preparation.'}
@@ -386,44 +386,44 @@ export default function StudentHome() {
         </div>
       </div>
 
-      <div className="px-4 sm:px-6 max-w-5xl mx-auto space-y-6 -mt-2 relative z-10">
+      <div className="px-3 sm:px-6 max-w-5xl mx-auto space-y-5 sm:space-y-6 -mt-2 relative z-10">
         {/* Streak & Today's Goal Glassmorphic Panel */}
-        <section className="bg-[#072117]/85 backdrop-blur-xl border border-emerald-500/20 rounded-2xl p-4 sm:p-5 shadow-[0_8px_32px_rgba(0,0,0,0.37)]">
-          <div className="grid grid-cols-2 divide-x divide-emerald-800/40">
+        <section className="dark:bg-[#072117]/85 bg-white/95 backdrop-blur-xl border dark:border-emerald-500/20 border-emerald-600/15 rounded-2xl p-3.5 sm:p-5 shadow-sm dark:shadow-[0_8px_32px_rgba(0,0,0,0.37)] transition-colors duration-200">
+          <div className="grid grid-cols-2 divide-x dark:divide-emerald-800/40 divide-emerald-200">
             {/* Left: Study Streak */}
-            <div className="flex items-center gap-3 pr-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/25 to-yellow-600/15 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-inner">
-                <Flame className={`w-6 h-6 ${streak > 0 ? 'text-amber-400 fill-amber-400 animate-pulse' : 'text-neutral-500'}`} />
+            <div className="flex items-center gap-2.5 sm:gap-3 pr-2 sm:pr-3">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-amber-500/25 to-yellow-600/15 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-inner">
+                <Flame className={`w-5 h-5 sm:w-6 sm:h-6 ${streak > 0 ? 'text-amber-400 fill-amber-400 animate-pulse' : 'text-neutral-500'}`} />
               </div>
-              <div>
-                <div className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-baseline gap-1">
-                  {streak} <span className="text-sm font-semibold text-emerald-200/90">{language === 'hi' ? 'दिन' : 'Days'}</span>
+              <div className="min-w-0">
+                <div className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight flex items-baseline gap-1">
+                  {streak} <span className="text-xs sm:text-sm font-semibold dark:text-emerald-200/90 text-emerald-700">{language === 'hi' ? 'दिन' : 'Days'}</span>
                 </div>
-                <div className="text-[11px] sm:text-xs font-medium text-emerald-400/80">
+                <div className="text-[10px] sm:text-xs font-medium dark:text-emerald-400/80 text-emerald-700 truncate">
                   {language === 'hi' ? 'अध्ययन स्ट्रीक' : 'Study Streak'}
                 </div>
               </div>
             </div>
 
             {/* Right: Today's Goal */}
-            <div className="flex items-center justify-between pl-3 sm:pl-4">
-              <div className="min-w-0">
-                <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  {todayQuestionsSolved} <span className="text-xs text-neutral-400 font-normal">/ {dailyTarget}</span>
+            <div className="flex items-center justify-between pl-2.5 sm:pl-4">
+              <div className="min-w-0 pr-1">
+                <div className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
+                  {todayQuestionsSolved} <span className="text-xs dark:text-neutral-400 text-slate-500 font-normal">/ {dailyTarget}</span>
                 </div>
-                <div className="text-[11px] sm:text-xs font-medium text-emerald-400/80 truncate">
+                <div className="text-[10px] sm:text-xs font-medium dark:text-emerald-400/80 text-emerald-700 truncate">
                   {language === 'hi' ? 'आज का लक्ष्य' : "Today's Target"}
                 </div>
               </div>
 
               {/* Circular SVG Progress Ring */}
-              <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
-                <svg className="w-14 h-14 -rotate-90 transform" viewBox="0 0 56 56">
+              <div className="relative w-11 h-11 sm:w-14 sm:h-14 flex items-center justify-center shrink-0">
+                <svg className="w-11 h-11 sm:w-14 sm:h-14 -rotate-90 transform" viewBox="0 0 56 56">
                   <circle
                     cx="28"
                     cy="28"
                     r={ringRadius}
-                    className="stroke-emerald-950/80"
+                    className="dark:stroke-emerald-950/80 stroke-emerald-100"
                     strokeWidth="4"
                     fill="transparent"
                   />
@@ -431,7 +431,7 @@ export default function StudentHome() {
                     cx="28"
                     cy="28"
                     r={ringRadius}
-                    className="stroke-emerald-400 transition-all duration-700 ease-out"
+                    className="dark:stroke-emerald-400 stroke-emerald-600 transition-all duration-700 ease-out"
                     strokeWidth="4"
                     strokeDasharray={ringCircumference}
                     strokeDashoffset={ringOffset}
@@ -439,7 +439,7 @@ export default function StudentHome() {
                     fill="transparent"
                   />
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white">
+                <div className="absolute inset-0 flex items-center justify-center text-[9px] sm:text-[10px] font-black dark:text-white text-slate-900">
                   {goalPercent}%
                 </div>
               </div>
@@ -448,39 +448,39 @@ export default function StudentHome() {
         </section>
 
         {/* Hero Banner Carousel (Built from Real Exams in DB) */}
-        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#06261c] via-[#083526] to-[#041a12] border border-emerald-500/25 p-5 sm:p-7 shadow-xl">
+        <section className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-r dark:from-[#06261c] dark:via-[#083526] dark:to-[#041a12] bg-gradient-to-r from-emerald-100/90 via-teal-50 to-emerald-50 border dark:border-emerald-500/25 border-emerald-300/40 p-4 sm:p-7 shadow-sm dark:shadow-xl transition-colors duration-200">
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-2 max-w-lg">
-              <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+              <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-800 dark:text-amber-300 border border-amber-400/30">
                 {dynamicBanners[activeSlide]?.tag}
               </span>
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              <h2 className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
                 {dynamicBanners[activeSlide]?.title}
               </h2>
-              <p className="text-xs sm:text-sm text-emerald-200/80 font-medium line-clamp-2">
+              <p className="text-xs sm:text-sm dark:text-emerald-200/80 text-slate-600 font-medium line-clamp-2">
                 {dynamicBanners[activeSlide]?.subtitle}
               </p>
               <div className="pt-2">
                 <Link
                   to={dynamicBanners[activeSlide]?.path}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-extrabold text-sm shadow-[0_4px_20px_rgba(245,197,66,0.35)] transition-transform hover:scale-105 active:scale-95"
+                  className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-extrabold text-xs sm:text-sm shadow-[0_4px_20px_rgba(245,197,66,0.35)] transition-transform hover:scale-105 active:scale-95 min-h-[44px]"
                 >
                   <span>{dynamicBanners[activeSlide]?.buttonText}</span>
-                  <ArrowRight size={16} strokeWidth={2.5} />
+                  <ArrowRight size={15} strokeWidth={2.5} />
                 </Link>
               </div>
             </div>
 
             {/* Right Side Exam Pill Card */}
             <div className="hidden sm:flex items-center justify-center relative w-40 h-32 shrink-0">
-              <div className="w-28 h-24 bg-gradient-to-br from-[#0c3829] to-[#062117] border border-emerald-400/30 rounded-2xl p-3 flex flex-col justify-between shadow-2xl">
+              <div className="w-28 h-24 dark:bg-gradient-to-br dark:from-[#0c3829] dark:to-[#062117] bg-white border dark:border-emerald-400/30 border-emerald-300/50 rounded-2xl p-3 flex flex-col justify-between shadow-sm dark:shadow-2xl">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-amber-400">
+                  <span className="text-xs font-black text-amber-500 dark:text-amber-400">
                     {dynamicBanners[activeSlide]?.badgeText}
                   </span>
-                  <CheckCircle2 size={16} className="text-emerald-400" />
+                  <CheckCircle2 size={16} className="text-emerald-500 dark:text-emerald-400" />
                 </div>
-                <div className="text-[10px] text-emerald-300/80 font-bold truncate">
+                <div className="text-[10px] dark:text-emerald-300/80 text-slate-700 font-bold truncate">
                   {dynamicBanners[activeSlide]?.exam}
                 </div>
               </div>
@@ -498,8 +498,8 @@ export default function StudentHome() {
                   onClick={() => setActiveSlide(idx)}
                   className={`transition-all duration-300 rounded-full h-1.5 ${
                     activeSlide === idx
-                      ? 'w-6 bg-white shadow-sm'
-                      : 'w-1.5 bg-emerald-700/50 hover:bg-emerald-600/70'
+                      ? 'w-6 dark:bg-white bg-emerald-700 shadow-sm'
+                      : 'w-1.5 dark:bg-emerald-700/50 bg-emerald-300/70 hover:bg-emerald-500'
                   }`}
                 />
               ))}
@@ -509,19 +509,19 @@ export default function StudentHome() {
 
         {/* Quick Action 5-Tile Row */}
         <section>
-          <div className="grid grid-cols-5 gap-2 sm:gap-3">
+          <div className="grid grid-cols-5 gap-1.5 sm:gap-3">
             {quickActionTiles.map((tile) => {
               const Icon = tile.icon;
               return (
                 <Link
                   key={tile.id}
                   to={tile.path}
-                  className={`flex flex-col items-center justify-center p-2.5 sm:p-3.5 rounded-2xl border transition-all duration-200 hover:scale-105 active:scale-95 text-center group ${tile.bg}`}
+                  className={`flex flex-col items-center justify-center p-2 sm:p-3.5 rounded-2xl border transition-all duration-200 hover:scale-105 active:scale-95 text-center group min-h-[58px] ${tile.bg}`}
                 >
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-1.5 sm:mb-2 shadow-inner transition-transform group-hover:scale-110 ${tile.iconBg}`}>
-                    <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-1 sm:mb-2 shadow-inner transition-transform group-hover:scale-110 shrink-0 ${tile.iconBg}`}>
+                    <Icon className="w-4 h-4 sm:w-6 sm:h-6" />
                   </div>
-                  <span className="text-[11px] sm:text-xs font-bold text-white tracking-tight line-clamp-1">
+                  <span className="text-[10px] sm:text-xs font-bold dark:text-white text-slate-800 tracking-tight line-clamp-1">
                     {tile.title}
                   </span>
                 </Link>
@@ -533,34 +533,34 @@ export default function StudentHome() {
         {/* Continue Where You Left Section */}
         <section className="space-y-2.5">
           <div className="flex items-center justify-between">
-            <h3 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center gap-2">
+            <h3 className="text-sm sm:text-lg font-bold dark:text-white text-slate-900 tracking-tight flex items-center gap-2">
               <span>{language === 'hi' ? 'जहाँ से छोड़ा था वहाँ से शुरू करें' : 'Continue Where You Left'}</span>
             </h3>
             <Link
               to="/tests"
-              className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+              className="text-xs font-semibold dark:text-emerald-400 text-emerald-700 hover:text-emerald-800 dark:hover:text-emerald-300 flex items-center gap-1 transition-colors min-h-[32px]"
             >
               <span>{language === 'hi' ? 'सभी देखें' : 'View All'}</span>
               <ChevronRight size={14} />
             </Link>
           </div>
 
-          <div className="bg-[#072117]/85 backdrop-blur-xl border border-emerald-500/20 rounded-2xl p-4 flex items-center justify-between gap-4 transition-all hover:border-emerald-500/40">
-            <div className="flex items-center gap-3.5 flex-1 min-w-0">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600/30 to-teal-700/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
-                <BookOpen className="w-6 h-6 text-emerald-400" />
+          <div className="dark:bg-[#072117]/85 bg-white border dark:border-emerald-500/20 border-emerald-600/15 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 sm:gap-4 transition-all hover:border-emerald-500/40 shadow-sm">
+            <div className="flex items-center gap-3 sm:gap-3.5 flex-1 min-w-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-emerald-600/30 to-teal-700/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <div className="flex-1 min-w-0 space-y-1.5">
-                <h4 className="text-sm sm:text-base font-bold text-white truncate">
+              <div className="flex-1 min-w-0 space-y-1">
+                <h4 className="text-xs sm:text-base font-bold dark:text-white text-slate-900 truncate">
                   {continueItem.title}
                 </h4>
-                <div className="text-xs text-emerald-400/80 font-medium">
+                <div className="text-[10px] sm:text-xs dark:text-emerald-400/80 text-slate-600 font-medium truncate">
                   {continueItem.subtitle}
                 </div>
                 {/* Progress bar */}
-                <div className="w-full max-w-xs h-1.5 bg-emerald-950 rounded-full overflow-hidden">
+                <div className="w-full max-w-xs h-1.5 dark:bg-emerald-950 bg-slate-200 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-emerald-400 to-[#22c55e] rounded-full transition-all duration-500"
+                    className="h-full bg-gradient-to-r from-emerald-500 to-[#22c55e] rounded-full transition-all duration-500"
                     style={{ width: `${continueItem.progress}%` }}
                   />
                 </div>
@@ -568,16 +568,16 @@ export default function StudentHome() {
             </div>
 
             {/* Progress % and Play Button */}
-            <div className="flex items-center gap-3 shrink-0">
-              <span className="text-xs font-extrabold text-emerald-300">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <span className="text-[11px] sm:text-xs font-extrabold dark:text-emerald-300 text-emerald-700">
                 {continueItem.progress}%
               </span>
               <Link
                 to={continueItem.path}
-                className="w-10 h-10 rounded-full bg-[#22c55e] hover:bg-emerald-400 text-black flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.4)] transition-transform hover:scale-110 active:scale-95"
+                className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-[#22c55e] hover:bg-emerald-400 text-black flex items-center justify-center shadow-[0_0_15px_rgba(34,197,94,0.4)] transition-transform hover:scale-110 active:scale-95"
                 aria-label="Continue learning"
               >
-                <Play size={18} fill="currentColor" className="ml-0.5 text-black" />
+                <Play size={16} fill="currentColor" className="ml-0.5 text-black" />
               </Link>
             </div>
           </div>
@@ -587,12 +587,12 @@ export default function StudentHome() {
         {dynamicExams.length > 0 && (
           <section className="space-y-2.5">
             <div className="flex items-center justify-between">
-              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+              <h3 className="text-sm sm:text-lg font-bold dark:text-white text-slate-900 tracking-tight">
                 {language === 'hi' ? 'उपलब्ध परीक्षाएं' : 'Available Exams'}
               </h3>
               <Link
                 to="/explore"
-                className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
+                className="text-xs font-semibold dark:text-emerald-400 text-emerald-700 hover:text-emerald-800 dark:hover:text-emerald-300 flex items-center gap-1 transition-colors min-h-[32px]"
               >
                 <span>{language === 'hi' ? 'सभी देखें' : 'View All'}</span>
                 <ChevronRight size={14} />
@@ -604,19 +604,19 @@ export default function StudentHome() {
                 <Link
                   key={exam.id}
                   to={exam.path}
-                  className="bg-gradient-to-br from-emerald-950 to-[#072418] border border-emerald-500/30 rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 hover:scale-[1.02] hover:border-emerald-400 active:scale-98 group"
+                  className="dark:bg-gradient-to-br dark:from-emerald-950 dark:to-[#072418] bg-white border dark:border-emerald-500/30 border-emerald-600/15 rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 hover:scale-[1.02] hover:border-emerald-400 active:scale-98 group shadow-sm min-h-[100px]"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg border bg-amber-500/20 text-amber-300 border-amber-500/30">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg border bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30">
                       {exam.badge}
                     </div>
-                    <ChevronRight size={16} className="text-white/40 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                    <ChevronRight size={16} className="text-slate-400 dark:text-white/40 group-hover:text-slate-800 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
                   </div>
                   <div>
-                    <h4 className="text-base font-extrabold text-white tracking-tight group-hover:text-emerald-300 transition-colors">
+                    <h4 className="text-base font-extrabold dark:text-white text-slate-900 tracking-tight group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
                       {exam.title}
                     </h4>
-                    <p className="text-[11px] font-medium text-emerald-400/80 mt-0.5 line-clamp-2">
+                    <p className="text-[11px] font-medium dark:text-emerald-400/80 text-slate-600 mt-0.5 line-clamp-2">
                       {exam.subtitle}
                     </p>
                   </div>

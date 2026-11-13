@@ -343,28 +343,85 @@ export default function StudentToolbox() {
   const currentToolTitle = currentTool ? t(currentTool.titleKey) : '';
   const visibleCategories = CATEGORY_CONFIG.filter((category) => (CATEGORY_TOOLS[category.id] || []).some(isToolVisible));
 
-  const renderReasoningHub = () => <section className="toolbox-section mini-tool">
-    <div className="section-heading"><div><div className="eyebrow">{t('tbReasoningEyebrow')}</div><h2>{t('tbReasoningTitle')}</h2></div></div>
-    <div className="toolbox-formula-grid">
-      <article className="toolbox-formula-card"><strong>{t('tbSyllogism')}</strong><span>{t('tbSyllogism1')}</span><span>{t('tbSyllogism2')}</span><span>{t('tbSyllogism3')}</span><span>{t('tbSyllogism4')}</span></article>
-      <article className="toolbox-formula-card"><strong>{t('tbClock')}</strong><span>{t('tbClockFormula')}</span></article>
-      <article className="toolbox-formula-card"><strong>{t('tbCalendar')}</strong><span>{t('tbOddDays')}</span><span>{t('tbLeapYear')}</span><span>{t('tbCalendarCentury')}</span></article>
-    </div>
-  </section>;
+  const renderReasoningHub = () => (
+    <section className="space-y-4">
+      <div>
+        <div className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider">{t('tbReasoningEyebrow')}</div>
+        <h2 className="text-base font-black dark:text-white text-slate-900">{t('tbReasoningTitle')}</h2>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <article className="p-4 rounded-2xl dark:bg-emerald-950/60 bg-slate-50 border dark:border-emerald-500/20 border-slate-200 space-y-1 text-xs">
+          <strong className="block text-amber-500 font-extrabold">{t('tbSyllogism')}</strong>
+          <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbSyllogism1')}</span>
+          <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbSyllogism2')}</span>
+          <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbSyllogism3')}</span>
+          <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbSyllogism4')}</span>
+        </article>
+        <article className="p-4 rounded-2xl dark:bg-emerald-950/60 bg-slate-50 border dark:border-emerald-500/20 border-slate-200 space-y-1 text-xs">
+          <strong className="block text-amber-500 font-extrabold">{t('tbClock')}</strong>
+          <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbClockFormula')}</span>
+        </article>
+        <article className="p-4 rounded-2xl dark:bg-emerald-950/60 bg-slate-50 border dark:border-emerald-500/20 border-slate-200 space-y-1 text-xs sm:col-span-2">
+          <strong className="block text-amber-500 font-extrabold">{t('tbCalendar')}</strong>
+          <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbOddDays')}</span>
+          <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbLeapYear')}</span>
+          <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbCalendarCentury')}</span>
+        </article>
+      </div>
+    </section>
+  );
 
-  const renderBookmarks = () => <section className="toolbox-section">
-    <div className="section-heading"><div><div className="eyebrow">{t('savedForLater').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div><h2>{t('savedBookmarks')}</h2></div><span className="chapter-item-count">{bookmarks.length} {t('saved')}</span></div>
-    {loading ? <p className="field-hint">{t('loadingBookmarks')}</p> : !savedBookmarks.length ? <div className="bookmarks-guidance">
-      <div className="empty-content"><Bookmark size={22} /><strong>{t('tbBookmarksEmptyTitle')}</strong><span>{t('bookmarkHint')}</span></div>
-      <h3>{t('tbBookmarksHowTo')}</h3>
-      <ol><li>{t('tbBookmarkInstruction1')}</li><li>{t('tbBookmarkInstruction2')}</li><li>{t('tbBookmarkInstruction3')}</li></ol>
-      {!user?.id && <p className="field-hint">{t('tbNoBookmarksSignIn')}</p>}
-    </div> : <div className="toolbox-bookmark-list">{savedBookmarks.map((bookmark) => {
-      const title = bookmark.title || (bookmark.question_id ? t('question') : bookmark.chapter_id ? t('chapter') : t('saved'));
-      const destination = bookmark.chapter_id ? `/chapter/${bookmark.chapter_id}` : '/tests';
-      return <button className="toolbox-bookmark-row" key={bookmark.id || `${bookmark.user_id}-${bookmark.item_id || bookmark.resource_id || bookmark.chapter_id || bookmark.question_id}`} onClick={() => navigate(destination)}><Bookmark size={16} /><span><strong>{title}</strong><small>{bookmark.question_id ? t('question') : bookmark.resource_id ? t('studyResource') : t('chapter')}</small></span><BookOpen size={15} /></button>;
-    })}</div>}
-  </section>;
+  const renderBookmarks = () => (
+    <section className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider">
+            {t('savedForLater').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}
+          </div>
+          <h2 className="text-base font-black dark:text-white text-slate-900">{t('savedBookmarks')}</h2>
+        </div>
+        <span className="px-2.5 py-1 rounded-full text-xs font-black dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-800">
+          {bookmarks.length} {t('saved')}
+        </span>
+      </div>
+
+      {loading ? (
+        <p className="text-xs dark:text-emerald-300 text-slate-600 font-medium">{t('loadingBookmarks')}</p>
+      ) : !savedBookmarks.length ? (
+        <div className="p-6 rounded-2xl dark:bg-emerald-950/40 bg-slate-50 border dark:border-emerald-500/20 border-slate-200 text-center space-y-2">
+          <Bookmark size={24} className="mx-auto text-emerald-500 opacity-60" />
+          <strong className="block text-sm dark:text-white text-slate-900">{t('tbBookmarksEmptyTitle')}</strong>
+          <span className="text-xs dark:text-emerald-300/80 text-slate-600 block">{t('bookmarkHint')}</span>
+        </div>
+      ) : (
+        <div className="divide-y dark:divide-emerald-800/30 divide-slate-200 rounded-2xl dark:bg-emerald-950/40 bg-white border dark:border-emerald-500/20 border-slate-200 overflow-hidden">
+          {savedBookmarks.map((bookmark) => {
+            const title = bookmark.title || (bookmark.question_id ? t('question') : bookmark.chapter_id ? t('chapter') : t('saved'));
+            const destination = bookmark.chapter_id ? `/chapter/${bookmark.chapter_id}` : '/tests';
+            return (
+              <button
+                type="button"
+                className="w-full p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-emerald-900/40 transition-colors text-left min-h-[48px]"
+                key={bookmark.id || `${bookmark.user_id}-${bookmark.item_id || bookmark.resource_id || bookmark.chapter_id || bookmark.question_id}`}
+                onClick={() => navigate(destination)}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <Bookmark size={16} className="text-emerald-500 shrink-0" />
+                  <div className="min-w-0">
+                    <strong className="block text-xs sm:text-sm font-bold dark:text-white text-slate-900 truncate">{title}</strong>
+                    <small className="text-[10px] dark:text-emerald-300/70 text-slate-500">
+                      {bookmark.question_id ? t('question') : bookmark.resource_id ? t('studyResource') : t('chapter')}
+                    </small>
+                  </div>
+                </div>
+                <BookOpen size={16} className="text-slate-400 dark:text-emerald-400/60 shrink-0" />
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
 
   const renderActiveTool = () => {
     if (activeTool === 'calculator') return <SmartCalculator />;
@@ -404,73 +461,377 @@ export default function StudentToolbox() {
     return null;
   };
 
-  return <div className="toolbox-page mini-app-os">
-    <div className="page-heading toolbox-os-heading">
-      <div>
-        <div className="eyebrow">{t('tbLearningSpace')}</div>
-        <h1>{currentToolTitle || currentCategoryTitle || t('toolboxTitle')}</h1>
-        <p>{(currentTool ? t(currentTool.subtitleKey) : currentCategory ? t(currentCategory.subtitleKey) : t('toolboxDescription'))}</p>
+  return (
+    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 pb-28 md:pb-12 transition-colors">
+      <div className="max-w-2xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
+        {/* Top Header / Breadcrumb */}
+        {currentView !== 'main-menu' ? (
+          <div className="flex items-center justify-between gap-3 p-2.5 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200">
+            <button
+              type="button"
+              onClick={goBack}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl dark:bg-emerald-950/80 bg-slate-100 hover:bg-slate-200 dark:hover:bg-emerald-900 dark:text-emerald-300 text-slate-800 text-xs font-bold transition-colors min-h-[36px]"
+            >
+              <ArrowLeft size={16} />
+              <span>{currentView === 'active-tool' ? 'Back to Tools' : 'Back to Toolbox'}</span>
+            </button>
+            <div className="text-xs font-black dark:text-white text-slate-900 truncate">
+              {currentToolTitle || currentCategoryTitle}
+            </div>
+          </div>
+        ) : (
+          /* Main Hero Banner (Matching Mockup 1794580797580_48eb471c.jpg) */
+          <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-r dark:from-[#052317] dark:via-[#072e1f] dark:to-[#041710] bg-gradient-to-r from-emerald-100 via-teal-50 to-white border dark:border-emerald-500/30 border-emerald-300/60 p-4 sm:p-5 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-500 text-base">
+                    🧰
+                  </div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                    Zyvra Study Suite
+                  </span>
+                </div>
+                <h1 className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
+                  Study Toolbox
+                </h1>
+                <p className="text-xs dark:text-emerald-200/80 text-slate-600 font-medium">
+                  Smart utilities, calculators & quick reference tools for exam success
+                </p>
+              </div>
+
+              {comboPricing.price > 0 && !toolAccess.__combo && (
+                <button
+                  type="button"
+                  onClick={openComboCheckout}
+                  className="shrink-0 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs shadow-glowGold transition-transform hover:scale-105 active:scale-95"
+                >
+                  ⚡ Unlock All (₹{comboPricing.price})
+                </button>
+              )}
+            </div>
+
+            {/* Quick capability badges */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-3 text-[11px] font-bold">
+              {['✓ Calculate', '✓ Convert', '✓ Revise', '✓ Memorize', '✓ Focus Timer'].map((pill, idx) => (
+                <span
+                  key={idx}
+                  className="px-2.5 py-1 rounded-full dark:bg-emerald-950/80 bg-white/90 border dark:border-emerald-500/25 border-emerald-200 dark:text-emerald-300 text-emerald-800 whitespace-nowrap shadow-xs"
+                >
+                  {pill}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Feedback / Alerts */}
+        {accessError && (
+          <div className="p-3 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border dark:border-rose-500/30 border-rose-200 text-rose-600 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
+            <LockKeyhole size={15} className="shrink-0" />
+            <span>{accessError}</span>
+          </div>
+        )}
+        {error && (
+          <div className="p-3 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border dark:border-rose-500/30 border-rose-200 text-rose-600 dark:text-rose-300 text-xs font-bold">
+            {error}
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* VIEW 1: MAIN MENU (Dashboard View with Categories & Popular) */}
+        {/* ======================================================== */}
+        {currentView === 'main-menu' && (
+          <div className="space-y-4">
+            {/* Category Filter Pills (Matching Mockup 1794580797580_48eb471c.jpg) */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+              <button
+                type="button"
+                onClick={() => setActiveCategory(null)}
+                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all flex items-center gap-1.5 min-h-[38px] ${
+                  activeCategory === null
+                    ? 'bg-amber-400 text-black shadow-glowGold'
+                    : 'dark:bg-[#072117]/85 bg-white border dark:border-emerald-500/20 border-slate-200 dark:text-emerald-200 text-slate-700 hover:border-emerald-400'
+                }`}
+              >
+                <span>All Tools</span>
+              </button>
+              {visibleCategories.map(({ id, titleKey, Icon }) => {
+                const isSelected = activeCategory === id;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveCategory(isSelected ? null : id)}
+                    className={`px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all flex items-center gap-1.5 min-h-[38px] ${
+                      isSelected
+                        ? 'bg-amber-400 text-black shadow-glowGold'
+                        : 'dark:bg-[#072117]/85 bg-white border dark:border-emerald-500/20 border-slate-200 dark:text-emerald-200 text-slate-700 hover:border-emerald-400'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    <span>{t(titleKey)}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Popular Quick Tools Row (Matching Mockup 1794580797580_48eb471c.jpg) */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 flex items-center gap-1.5">
+                  <span className="text-amber-400">🔥</span>
+                  <span>Popular Tools</span>
+                </h3>
+                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Quick Access</span>
+              </div>
+
+              <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                {[
+                  { id: 'calculator', cat: 'math', label: 'Calculator', icon: Calculator, color: 'text-emerald-500' },
+                  { id: 'fraction-converter', cat: 'math', label: 'Percentage', icon: Percent, color: 'text-cyan-500' },
+                  { id: 'constitution-articles', cat: 'general-studies', label: 'Articles', icon: Landmark, color: 'text-amber-500' },
+                  { id: 'geometry-formulas', cat: 'math', label: 'Formulas', icon: Sigma, color: 'text-indigo-500' },
+                  { id: 'pomodoro', cat: 'productivity', label: 'Timer', icon: Clock3, color: 'text-rose-500' }
+                ].map((item) => {
+                  const toolObj = (CATEGORY_TOOLS[item.cat] || []).find((t) => t.id === item.id);
+                  const locked = toolObj ? isToolLocked(toolObj) : false;
+                  const Icon = item.icon;
+
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => {
+                        setActiveCategory(item.cat);
+                        if (toolObj) openTool(toolObj);
+                      }}
+                      className="p-2 sm:p-2.5 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 hover:border-emerald-400 flex flex-col items-center justify-center text-center transition-all hover:scale-105 active:scale-95 group min-h-[72px]"
+                    >
+                      <div className="relative mb-1">
+                        <Icon size={18} className={`${item.color} group-hover:scale-110 transition-transform`} />
+                        {locked && (
+                          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-500 text-black flex items-center justify-center text-[9px] font-black">
+                            🔒
+                          </div>
+                        )}
+                      </div>
+                      <span className="text-[10px] sm:text-xs font-bold dark:text-white text-slate-800 leading-tight">
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Tools by Subject Accordions / Groups */}
+            <div className="space-y-3 pt-1">
+              <div className="flex items-center justify-between px-1">
+                <h3 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 flex items-center gap-1.5">
+                  <Wrench size={14} className="text-emerald-500" />
+                  <span>Tools by Subject</span>
+                </h3>
+                <span className="text-[11px] font-bold text-slate-500 dark:text-emerald-400/70">
+                  {visibleCategories.length} Subjects
+                </span>
+              </div>
+
+              {visibleCategories
+                .filter((cat) => !activeCategory || cat.id === activeCategory)
+                .map((category) => {
+                  const Icon = category.Icon;
+                  const tools = (CATEGORY_TOOLS[category.id] || []).filter(isToolVisible);
+
+                  return (
+                    <div
+                      key={category.id}
+                      className="rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 overflow-hidden"
+                    >
+                      {/* Subject Header */}
+                      <button
+                        type="button"
+                        onClick={() => openCategory(category.id)}
+                        className="w-full p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-emerald-950/60 transition-colors text-left"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl dark:bg-emerald-950/80 bg-emerald-50 border dark:border-emerald-500/25 border-emerald-200 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                            <Icon size={18} />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-bold dark:text-white text-slate-900">
+                              {t(category.titleKey)}
+                            </h4>
+                            <p className="text-[11px] dark:text-emerald-300/70 text-slate-500">
+                              {tools.length} Tools Available
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold dark:text-emerald-300 text-emerald-700">Open</span>
+                          <ChevronRight size={16} className="text-slate-400 dark:text-emerald-400/50" />
+                        </div>
+                      </button>
+
+                      {/* Preview of first 3 tools */}
+                      <div className="px-3.5 pb-3 pt-1 border-t dark:border-emerald-800/30 border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {tools.slice(0, 4).map((tool) => {
+                          const locked = isToolLocked(tool);
+                          const ToolIcon = tool.Icon;
+
+                          return (
+                            <button
+                              key={tool.id}
+                              type="button"
+                              onClick={() => {
+                                setActiveCategory(category.id);
+                                openTool(tool);
+                              }}
+                              className="p-2.5 rounded-xl dark:bg-emerald-950/50 bg-slate-50 hover:bg-slate-100 dark:hover:bg-emerald-900/60 border dark:border-emerald-500/15 border-slate-200/80 flex items-center justify-between gap-2 text-left transition-colors min-h-[44px]"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <ToolIcon size={15} className="text-emerald-500 shrink-0" />
+                                <span className="text-xs font-bold dark:text-white text-slate-800 truncate">
+                                  {t(tool.titleKey)}
+                                </span>
+                              </div>
+                              {locked ? (
+                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-600 dark:text-amber-300 border border-amber-400/30 shrink-0">
+                                  🔒 ₹{getToolConfig(tool).price || 'Pro'}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
+                                  Free
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* VIEW 2: CATEGORY MENU (List of all tools in category) */}
+        {/* ======================================================== */}
+        {currentView === 'category-menu' && (
+          <div className="space-y-3">
+            <div className="p-3 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black dark:text-white text-slate-900">
+                  {currentCategoryTitle}
+                </h3>
+                <p className="text-xs dark:text-emerald-300/80 text-slate-600">
+                  Select a tool below to open its full interactive interface
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {(CATEGORY_TOOLS[activeCategory] || []).filter(isToolVisible).map((tool) => {
+                const locked = isToolLocked(tool);
+                const Icon = tool.Icon;
+
+                return (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    onClick={() => openTool(tool)}
+                    className="p-3.5 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 hover:border-emerald-400 flex items-center justify-between gap-3 text-left transition-all hover:scale-[1.01] active:scale-[0.99] min-h-[56px]"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl dark:bg-emerald-950/80 bg-emerald-50 border dark:border-emerald-500/25 border-emerald-200 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <Icon size={20} />
+                      </div>
+                      <div className="min-w-0">
+                        <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
+                          {t(tool.titleKey)}
+                        </strong>
+                        <small className="text-[11px] dark:text-emerald-300/70 text-slate-500 line-clamp-1">
+                          {t(tool.subtitleKey)}
+                        </small>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 flex items-center gap-1.5">
+                      {locked ? (
+                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/40 text-[11px] font-black">
+                          <LockKeyhole size={12} />
+                          <span>₹{getToolConfig(tool).price || 49}</span>
+                        </div>
+                      ) : (
+                        <ChevronRight size={18} className="text-slate-400 dark:text-emerald-400/50" />
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ======================================================== */}
+        {/* VIEW 3: ACTIVE TOOL (Full Interactive Screen) */}
+        {/* ======================================================== */}
+        {currentView === 'active-tool' && currentTool && (
+          <div className="space-y-4">
+            {!toolboxLoaded ? (
+              <div className="p-8 text-center text-xs dark:text-emerald-300 text-slate-600 font-bold">
+                Checking tool permissions...
+              </div>
+            ) : isToolLocked(currentTool) ? (
+              <ToolUnlockModal
+                title={currentToolTitle}
+                price={getToolConfig(currentTool).price}
+                validityDays={getToolConfig(currentTool).validity_days}
+                comboPrice={comboPricing.price}
+                comboValidityDays={comboPricing.validity_days}
+                onBuy={() => handleUnlockTool(currentTool.id, getToolConfig(currentTool).price)}
+                onBuyCombo={openComboCheckout}
+                onClose={goBack}
+              />
+            ) : (
+              <div className="rounded-3xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 p-4 sm:p-5">
+                {renderActiveTool()}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Unlock Modal & Checkout Modal */}
+        {checkout && (
+          <CheckoutModal
+            {...checkout}
+            onClose={() => setCheckout(null)}
+            onCompleted={() => refreshToolAccess().catch((accessError) => setError(accessError.message || t('tbPurchaseVerifyError')))}
+          />
+        )}
+
+        {unlockTool && (
+          <ToolUnlockModal
+            title={t(unlockTool.titleKey)}
+            price={getToolConfig(unlockTool).price}
+            validityDays={getToolConfig(unlockTool).validity_days}
+            comboPrice={comboPricing.price}
+            comboValidityDays={comboPricing.validity_days}
+            onBuy={() => {
+              const selectedTool = unlockTool;
+              setUnlockTool(null);
+              handleUnlockTool(selectedTool.id, getToolConfig(selectedTool).price);
+            }}
+            onBuyCombo={() => {
+              setUnlockTool(null);
+              openComboCheckout();
+            }}
+            onClose={() => setUnlockTool(null)}
+          />
+        )}
       </div>
     </div>
-    {(currentView !== 'main-menu') && <div className="toolbox-breadcrumb">
-      <button type="button" className="button button-outline" onClick={goBack}><ArrowLeft size={16} /> {currentView === 'active-tool' ? `${t('tbBack')} ${currentCategoryTitle}` : t('tbBackToolbox')}</button>
-      <div aria-label={t('tbBreadcrumb')}><span>{t('tbBreadcrumb')}</span><ChevronRight size={14} /><span>{currentCategoryTitle}</span>{currentView === 'active-tool' && <><ChevronRight size={14} /><strong>{currentToolTitle}</strong></>}</div>
-    </div>}
-    {accessError && <div className="feedback error-feedback"><LockKeyhole size={15} /> {t('tbAccessError')} {accessError}</div>}
-    {error && <div className="feedback error-feedback">{error}</div>}
-    {timerPersistenceError && <div className="feedback error-feedback">{t(timerPersistenceError)}</div>}
-
-    {currentView === 'main-menu' && <section className="toolbox-app-grid" aria-label={t('tbAllCategories')}>
-      {visibleCategories.map(({ id, titleKey, subtitleKey, Icon, color }) => <button type="button" className={`toolbox-app-card ${color}`} key={id} onClick={() => openCategory(id)}>
-        <span className="toolbox-app-icon"><Icon size={24} /></span><span className="toolbox-app-copy"><strong>{t(titleKey)}</strong><small>{t(subtitleKey)}</small></span><ChevronRight className="toolbox-app-arrow" size={18} />
-      </button>)}
-      {!visibleCategories.length && <div className="empty-content"><Wrench size={22} /><strong>{t('tbNoCategories')}</strong></div>}
-    </section>}
-
-    {currentView === 'category-menu' && <section className="toolbox-tool-grid" aria-label={currentCategoryTitle}>
-      {(CATEGORY_TOOLS[activeCategory] || []).filter(isToolVisible).map((tool) => {
-        const locked = isToolLocked(tool);
-        const Icon = tool.Icon;
-        return <button type="button" className={`toolbox-tool-card ${locked ? 'locked' : ''}`} key={tool.id} onClick={() => openTool(tool)}>
-          <span className="toolbox-app-icon"><Icon size={23} /></span>
-          <span className="toolbox-app-copy"><strong>{t(tool.titleKey)}</strong><small>{t(tool.subtitleKey)}</small></span>
-          {locked ? <LockKeyhole className="toolbox-tool-lock" size={17} /> : <ChevronRight className="toolbox-app-arrow" size={18} />}
-          {locked && <span className="toolbox-tool-price">{`₹${Number(getToolConfig(tool).price || 0).toLocaleString('en-IN')}`}</span>}
-        </button>;
-      })}
-      {!loading && !(CATEGORY_TOOLS[activeCategory] || []).some(isToolVisible) && <div className="empty-content"><Wrench size={22} /><strong>{t('tbNoTools')}</strong></div>}
-    </section>}
-
-    {currentView === 'active-tool' && currentTool && !toolboxLoaded && <div className="toolbox-access-loading" role="status">{t('tbCheckingAccess')}</div>}
-    {currentView === 'active-tool' && currentTool && toolboxLoaded && isToolLocked(currentTool) && <ToolUnlockModal
-      title={currentToolTitle}
-      price={getToolConfig(currentTool).price}
-      validityDays={getToolConfig(currentTool).validity_days}
-      comboPrice={comboPricing.price}
-      comboValidityDays={comboPricing.validity_days}
-      onBuy={() => handleUnlockTool(currentTool.id, getToolConfig(currentTool).price)}
-      onBuyCombo={openComboCheckout}
-      onClose={goBack}
-    />}
-    {currentView === 'active-tool' && currentTool && toolboxLoaded && !isToolLocked(currentTool) && renderActiveTool()}
-    {currentView === 'active-tool' && <p className="toolbox-footnote"><Wrench size={14} /> {t('tbActiveToolNote')}</p>}
-    {checkout && <CheckoutModal {...checkout} onClose={() => setCheckout(null)} onCompleted={() => refreshToolAccess().catch((accessError) => setError(accessError.message || t('tbPurchaseVerifyError')))} />}
-    {unlockTool && <ToolUnlockModal
-      title={t(unlockTool.titleKey)}
-      price={getToolConfig(unlockTool).price}
-      validityDays={getToolConfig(unlockTool).validity_days}
-      comboPrice={comboPricing.price}
-      comboValidityDays={comboPricing.validity_days}
-      onBuy={() => {
-        const selectedTool = unlockTool;
-        setUnlockTool(null);
-        handleUnlockTool(selectedTool.id, getToolConfig(selectedTool).price);
-      }}
-      onBuyCombo={() => {
-        setUnlockTool(null);
-        openComboCheckout();
-      }}
-      onClose={() => setUnlockTool(null)}
-    />}
-  </div>;
+  );
 }

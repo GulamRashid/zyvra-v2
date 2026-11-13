@@ -166,32 +166,226 @@ export default function StudentAnalytics() {
     })).sort((left, right) => right.count - left.count);
   }, [responses, questions]);
 
-  return <div className="analytics-page">
-    <div className="page-heading"><div><div className="eyebrow">YOUR LEARNING JOURNEY</div><h1>Performance analytics</h1><p>See your progress, identify strong subjects and revisit completed tests.</p></div><Link className="button button-outline" to="/tests">Practice more <ArrowRight size={14} /></Link></div>
-    {error && <div className="feedback error-feedback">{error}</div>}
-    {loading ? <LoadingSkeleton rows={5} /> : <>
-      <section className="analytics-stat-grid">
-        <article className="analytics-stat-card"><span className="analytics-stat-icon gold"><CheckCircle2 size={18} /></span><small>Tests taken</small><strong>{stats.total}</strong><span>Completed attempts</span></article>
-        <article className="analytics-stat-card"><span className="analytics-stat-icon green"><Target size={18} /></span><small>Overall accuracy</small><strong>{stats.accuracy.toFixed(1)}%</strong><span>Correct answers</span></article>
-        <article className="analytics-stat-card"><span className="analytics-stat-icon blue"><BarChart3 size={18} /></span><small>Average score</small><strong>{stats.averageScore.toFixed(1)}%</strong><span>Across scored tests</span></article>
-        <article className="analytics-stat-card"><span className="analytics-stat-icon violet"><Trophy size={18} /></span><small>Current streak</small><strong>{stats.streak}</strong><span>Consecutive days</span></article>
-      </section>
-      <div className="analytics-detail-grid">
-        <section className="panel-card subject-analytics-card"><div className="section-heading"><div><div className="eyebrow">FIND YOUR EDGE</div><h2>Subject-wise accuracy</h2></div><span className="setting-symbol"><Target size={17} /></span></div>
-          {!subjectStats.length ? <div className="empty-content"><BarChart3 size={21} /><strong>Subject insights will appear here.</strong><span>Complete tests with tagged questions to build this breakdown.</span></div> : <div className="subject-accuracy-list">{subjectStats.map((item) => <div className="subject-accuracy-row" key={item.subject}><div><strong>{item.subject}</strong><small>{item.count} questions</small></div><span>{item.accuracy.toFixed(1)}%</span><div className="subject-accuracy-track"><i style={{ width: `${Math.min(100, item.accuracy)}%` }} /></div></div>)}</div>}
-        </section>
-        <section className="panel-card recent-attempts-card"><div className="section-heading"><div><div className="eyebrow">KEEP GETTING BETTER</div><h2>Recent test attempts</h2></div><span className="chapter-item-count">{attempts.length} completed</span></div>
-          {!attempts.length ? <div className="empty-content"><CalendarDays size={21} /><strong>Your first result is one test away.</strong><span>Take a mock test and review your solutions here.</span><Link className="button button-gold" to="/tests">Find a test</Link></div> : <div className="analytics-attempt-list">{attempts.slice(0, 20).map((attempt) => {
-            const attemptResponses = responseByAttempt.get(attempt.id) || [];
-            const percent = asPercent(numberFrom(attempt, ['percentage', 'score_percentage', 'percentage_score']));
-            const score = numberFrom(attempt, ['score', 'total_score', 'final_score']);
-            const blankCount = optionECount(attempt, attemptResponses);
-            const date = attempt.completed_at || attempt.submitted_at || attempt.finished_at || attempt.created_at;
-            return <article className="analytics-attempt-row" key={attempt.id}><span className="attempt-result-icon"><Trophy size={16} /></span><div className="analytics-attempt-copy"><strong>{tests[attempt.test_id]?.title || attempt.test_title || 'Practice test'}</strong><small>{date ? new Date(date).toLocaleDateString(undefined, { dateStyle: 'medium' }) : 'Date unavailable'} · {attemptResponses.length} questions</small></div><div className="analytics-attempt-score"><strong>{percent ? `${percent.toFixed(1)}%` : score.toLocaleString()}</strong><small>{blankCount} Option E {blankCount === 1 ? 'penalty' : 'penalties'}</small></div><Link className="icon-button" aria-label="Review test solutions" to={`/quiz/result/${attempt.id}`}><ArrowRight size={16} /></Link></article>;
-          })}</div>}
-        </section>
+  return (
+    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 pb-28 md:pb-12 transition-colors">
+      <div className="max-w-4xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
+        {/* Page Heading Banner */}
+        <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#07261b] dark:to-[#04140e] bg-gradient-to-br from-emerald-100/90 via-teal-50 to-white border dark:border-emerald-500/25 border-emerald-200 p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div>
+            <div className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">
+              Your Learning Journey
+            </div>
+            <h1 className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
+              Performance Analytics
+            </h1>
+            <p className="text-xs sm:text-sm dark:text-emerald-200/80 text-slate-600 font-medium mt-0.5">
+              See your progress, identify strong subjects and revisit completed tests.
+            </p>
+          </div>
+
+          <Link
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 text-black text-xs font-black shadow-glowGold inline-flex items-center gap-1.5 shrink-0 min-h-[40px]"
+            to="/tests"
+          >
+            <span>Practice more</span>
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        {error && (
+          <div className="p-3 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border dark:border-rose-500/30 border-rose-200 text-rose-600 dark:text-rose-300 text-xs font-bold">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <LoadingSkeleton rows={5} />
+        ) : (
+          <>
+            {/* 4 Analytics Stat Cards (2x2 on mobile 360px, 4 across on desktop) */}
+            <section className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+              <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 flex flex-col justify-between">
+                <div className="w-8 h-8 rounded-xl dark:bg-amber-500/20 bg-amber-100 text-amber-500 flex items-center justify-center mb-1">
+                  <CheckCircle2 size={16} />
+                </div>
+                <small className="text-[10px] uppercase font-bold dark:text-emerald-400/70 text-slate-500">
+                  Tests taken
+                </small>
+                <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
+                  {stats.total}
+                </strong>
+                <span className="text-[10px] dark:text-emerald-300/80 text-slate-500">Completed attempts</span>
+              </article>
+
+              <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 flex flex-col justify-between">
+                <div className="w-8 h-8 rounded-xl dark:bg-emerald-500/20 bg-emerald-100 text-emerald-600 flex items-center justify-center mb-1">
+                  <Target size={16} />
+                </div>
+                <small className="text-[10px] uppercase font-bold dark:text-emerald-400/70 text-slate-500">
+                  Overall accuracy
+                </small>
+                <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
+                  {stats.accuracy.toFixed(1)}%
+                </strong>
+                <span className="text-[10px] dark:text-emerald-300/80 text-slate-500">Correct answers</span>
+              </article>
+
+              <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 flex flex-col justify-between">
+                <div className="w-8 h-8 rounded-xl dark:bg-cyan-500/20 bg-cyan-100 text-cyan-600 flex items-center justify-center mb-1">
+                  <BarChart3 size={16} />
+                </div>
+                <small className="text-[10px] uppercase font-bold dark:text-emerald-400/70 text-slate-500">
+                  Average score
+                </small>
+                <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
+                  {stats.averageScore.toFixed(1)}%
+                </strong>
+                <span className="text-[10px] dark:text-emerald-300/80 text-slate-500">Across scored tests</span>
+              </article>
+
+              <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 flex flex-col justify-between">
+                <div className="w-8 h-8 rounded-xl dark:bg-purple-500/20 bg-purple-100 text-purple-600 flex items-center justify-center mb-1">
+                  <Trophy size={16} />
+                </div>
+                <small className="text-[10px] uppercase font-bold dark:text-emerald-400/70 text-slate-500">
+                  Current streak
+                </small>
+                <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
+                  {stats.streak}d
+                </strong>
+                <span className="text-[10px] dark:text-emerald-300/80 text-slate-500">Consecutive days</span>
+              </article>
+            </section>
+
+            {/* Detailed Grids: Subject Accuracy & Recent Attempts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Subject-wise Accuracy */}
+              <section className="p-4 sm:p-5 rounded-3xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider">
+                      Find Your Edge
+                    </div>
+                    <h2 className="text-base font-black dark:text-white text-slate-900">Subject-wise accuracy</h2>
+                  </div>
+                  <Target size={18} className="text-emerald-500" />
+                </div>
+
+                {!subjectStats.length ? (
+                  <div className="p-6 text-center space-y-2 dark:text-emerald-300/80 text-slate-500 text-xs">
+                    <BarChart3 size={24} className="mx-auto text-emerald-500 opacity-60" />
+                    <strong className="block text-sm dark:text-white text-slate-900">Subject insights will appear here.</strong>
+                    <span>Complete tests with tagged questions to build this breakdown.</span>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {subjectStats.map((item) => (
+                      <div key={item.subject} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <div>
+                            <strong className="dark:text-white text-slate-900 font-bold">{item.subject}</strong>
+                            <span className="text-[10px] text-slate-400 dark:text-emerald-400/60 ml-2">
+                              {item.count} questions
+                            </span>
+                          </div>
+                          <span className="font-extrabold text-[#22c55e]">{item.accuracy.toFixed(1)}%</span>
+                        </div>
+                        <div className="w-full h-2 rounded-full dark:bg-emerald-950 bg-slate-200 overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-[#22c55e]"
+                            style={{ width: `${Math.min(100, item.accuracy)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {/* Recent Test Attempts */}
+              <section className="p-4 sm:p-5 rounded-3xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider">
+                      Keep Getting Better
+                    </div>
+                    <h2 className="text-base font-black dark:text-white text-slate-900">Recent test attempts</h2>
+                  </div>
+                  <span className="text-xs font-bold dark:text-emerald-300 text-emerald-800">
+                    {attempts.length} completed
+                  </span>
+                </div>
+
+                {!attempts.length ? (
+                  <div className="p-6 text-center space-y-2 dark:text-emerald-300/80 text-slate-500 text-xs">
+                    <CalendarDays size={24} className="mx-auto text-emerald-500 opacity-60" />
+                    <strong className="block text-sm dark:text-white text-slate-900">Your first result is one test away.</strong>
+                    <span>Take a mock test and review your solutions here.</span>
+                    <div className="pt-2">
+                      <Link className="px-4 py-2 rounded-xl bg-amber-400 text-black text-xs font-black shadow-glowGold inline-block" to="/tests">
+                        Find a test
+                      </Link>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="divide-y dark:divide-emerald-800/30 divide-slate-100 max-h-[380px] overflow-y-auto pr-1">
+                    {attempts.slice(0, 20).map((attempt) => {
+                      const attemptResponses = responseByAttempt.get(attempt.id) || [];
+                      const percent = asPercent(numberFrom(attempt, ['percentage', 'score_percentage', 'percentage_score']));
+                      const score = numberFrom(attempt, ['score', 'total_score', 'final_score']);
+                      const blankCount = optionECount(attempt, attemptResponses);
+                      const date = attempt.completed_at || attempt.submitted_at || attempt.finished_at || attempt.created_at;
+
+                      return (
+                        <article key={attempt.id} className="py-2.5 flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-8 h-8 rounded-lg dark:bg-emerald-950/80 bg-emerald-50 border dark:border-emerald-500/25 border-emerald-200 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                              <Trophy size={14} />
+                            </div>
+                            <div className="min-w-0">
+                              <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
+                                {tests[attempt.test_id]?.title || attempt.test_title || 'Practice test'}
+                              </strong>
+                              <small className="text-[10px] text-slate-400 dark:text-emerald-400/60 block truncate">
+                                {date ? new Date(date).toLocaleDateString(undefined, { dateStyle: 'medium' }) : 'Date unavailable'} • {attemptResponses.length} questions
+                              </small>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <div className="text-right">
+                              <strong className="text-xs sm:text-sm font-black dark:text-amber-300 text-amber-700 block">
+                                {percent ? `${percent.toFixed(1)}%` : score.toLocaleString()}
+                              </strong>
+                              {blankCount > 0 && (
+                                <small className="text-[9px] text-red-500 block">
+                                  {blankCount} Opt E
+                                </small>
+                              )}
+                            </div>
+                            <Link
+                              className="w-8 h-8 rounded-xl dark:bg-emerald-950/80 bg-slate-100 flex items-center justify-center text-slate-500 hover:text-emerald-600 transition-colors"
+                              aria-label="Review test solutions"
+                              to={`/quiz/result/${attempt.id}`}
+                            >
+                              <ArrowRight size={14} />
+                            </Link>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
+            </div>
+
+            <p className="text-center text-xs dark:text-emerald-400/70 text-slate-500 font-medium pt-2">
+              <Clock3 size={13} className="inline mr-1" />
+              Accuracy is based on saved response correctness; unavailable score fields are shown as zero until a test is submitted and graded.
+            </p>
+          </>
+        )}
       </div>
-      <p className="analytics-note"><Clock3 size={14} /> Accuracy is based on saved response correctness; unavailable score fields are shown as zero until a test is submitted and graded.</p>
-    </>}
-  </div>;
+    </div>
+  );
 }

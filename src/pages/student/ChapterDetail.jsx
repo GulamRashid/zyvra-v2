@@ -409,63 +409,443 @@ export default function ChapterDetail() {
     return () => { active = false; };
   }, [chapter?.id, hasTests, user, isLocked]);
 
-  return <div className="chapter-page">
-    <nav className="student-breadcrumbs"><Link to="/explore">{t('exploreExams')}</Link><ChevronRight size={14} />{exam && <><Link to={`/explore/${encodeURIComponent(exam.slug)}`}>{exam.title}</Link><ChevronRight size={14} /></>}{folderPath.map((item) => <span className="breadcrumb-part" key={item.id}><Link to={`/folder/${item.id}`}>{item.title}</Link><ChevronRight size={14} /></span>)}<span>{chapter?.title || t('chapter')}</span></nav>
-    {error && <div className="feedback error-feedback">{error}</div>}
-    {loading && <LoadingSkeleton rows={4} />}
-    {!loading && !error && (!chapter || !folder || !exam || !hierarchyPublished) && <div className="empty-content"><BookOpen size={25} /><strong>This chapter isn’t available.</strong><span>It may be unpublished or its folder has changed.</span><Link className="button button-outline" to="/explore"><ArrowLeft size={15} /> Explore exams</Link></div>}
-    {!loading && !error && chapter && folder && exam && hierarchyPublished && <>
-      <section className="chapter-hero"><div className="chapter-hero-top"><div className="chapter-hero-icon"><BookOpen size={23} /></div><span className={`access-badge ${isLocked ? 'access-paid' : 'access-free'}`}>{isLocked ? t('paidAccess') : t('freeToExplore')}</span></div><div className="eyebrow">{exam.title} · {folder.title}</div><h1>{chapter.title}</h1><p>{chapter.description || (language === 'hi' ? 'केंद्रित अध्ययन, अभ्यास और दोहराव से विषय को स्पष्ट रूप से समझें।' : 'Build a clear understanding with focused learning, practice and review.')}</p><div className="chapter-hero-meta"><span className="subject-pill">{chapter.subject || (language === 'hi' ? 'सामान्य' : 'General')}</span><span><Clock3 size={14} /> {chapter.estimated_study_time_minutes || '—'} {language === 'hi' ? 'मिनट अध्ययन समय' : t('studyTime')}</span><span>{access.label === 'Coming Soon' ? t('chapterComingSoon') : access.label}</span></div></section>
-      <div className="chapter-tabs" role="tablist" aria-label={t('chapterContent')}>{tabs.map(({ id, label, icon: Icon }) => <button key={id} role="tab" aria-selected={activeTab === id} className={activeTab === id ? 'active' : ''} onClick={() => setActiveTab(id)}><Icon size={16} /><span>{t(label)}</span></button>)}</div>
-      {notice && <div className="feedback success-feedback">{notice}</div>}
-      {accessError && <div className="feedback error-feedback">{accessError}</div>}
-      {isLocked && <section className="paywall-banner"><span className="paywall-icon"><LockKeyhole size={19} /></span><div><strong>{t('fullAccess')} {`₹${access.amount.toLocaleString('en-IN')}`}</strong><span>{t('unlockChapterCopy')}</span></div><div className="paywall-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}><button className="button button-gold" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'chapter', itemId: chapter.id, itemTitle: chapter.title, tier: 'Chapter', basePrice: access.amount })}>{accessLoading ? t('checkingAccess') : `Buy Chapter · ₹${access.amount}`} <ArrowRight size={14} /></button>{folder && parentPricing.amount > 0 && !hasParentFolderAccess && <button className="button button-outline" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'folder', itemId: folder.id, itemTitle: folder.title, tier: 'Folder Bundle', basePrice: parentPricing.amount })}>Unlock {folder.title} Bundle · ₹{parentPricing.amount.toLocaleString('en-IN')}</button>}{rootFolder && rootFolder.id !== folder?.id && rootPricing.amount > 0 && !isFolderUnlocked(rootFolder.id, folders, purchasedFolderIds) && <button className="button button-outline" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'folder', itemId: rootFolder.id, itemTitle: rootFolder.title, tier: 'Root Bundle', basePrice: rootPricing.amount })}>Unlock Complete {rootFolder.title} · ₹{rootPricing.amount.toLocaleString('en-IN')}</button>}{exam && examIsPaid && !hasPurchasedExam && <button className="button button-outline" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'exam', itemId: exam.id, itemTitle: exam.title, tier: 'Complete Exam Bundle', basePrice: examPrice })}>Unlock Complete {exam.title} · ₹{examPrice.toLocaleString('en-IN')}</button>}</div></section>}
-      {isComingSoon ? <section className="chapter-locked panel-card"><div className="locked-icon"><Clock3 size={22} /></div><h2>{t('chapterComingSoon')}</h2><p>{t('chapterPreparing')}</p><Link className="button button-outline" to={`/folder/${folder.id}`}><ArrowLeft size={14} /> {t('backToSyllabus')}</Link></section> : isLocked && activeTab !== 'notes' ? <section className="chapter-locked panel-card"><div className="locked-icon"><LockKeyhole size={22} /></div><h2>{t('paidLearningPath')}</h2><p>{access.label}. {t('accessVerified')}</p><Link className="button button-gold" to="/purchases">{t('viewAccessOptions')} <ChevronRight size={15} /></Link></section> : <>
-        {activeTab === 'tests' && <section className="chapter-tab-panel"><div className="section-heading"><div><div className="eyebrow">{t('checkUnderstanding')}</div><h2>{t('chapterTests')}</h2></div><span className="chapter-item-count">{chapterTests.length} {t('available')}</span></div>{!hasTests ? <div className="empty-content chapter-tab-empty"><CheckCircle2 size={23} /><strong>{t('testsUnavailable')}</strong><span>{t('chooseAnotherTab')}</span></div> : isLocked ? <div className="empty-content chapter-tab-empty"><LockKeyhole size={23} /><strong>{t('unlockLiveTests')}</strong><span>{t('freePreviewsNotes')}</span></div> : testsLoading ? <p className="field-hint">{t('loadingTests')}</p> : testsError ? <div className="feedback error-feedback">{testsError}</div> : !chapterTests.length ? <div className="empty-content chapter-tab-empty"><CheckCircle2 size={23} /><strong>{t('noPublishedTests')}</strong><span>{t('checkBackPractice')}</span></div> : chapterTests.map((test) => {
-          const attempts = testAttempts[test.id] || 0;
-          const limit = Number(test.attempt_limit || 1);
-          const pausedInfo = resumeAttempts[test.id];
-          const hasIncomplete = Boolean(pausedInfo);
-          const exhausted = user && !hasIncomplete && attempts >= limit;
-          const formatRemainingTime = (seconds) => {
-            const safe = Math.max(0, Number(seconds) || 0);
-            const m = Math.floor(safe / 60);
-            const s = safe % 60;
-            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-          };
-          return <div className="learning-activity chapter-test-item" key={test.id}><span className="activity-type-icon"><CheckCircle2 size={18} /></span><div><strong>{test.title}</strong><span>{test.duration_minutes} {language === 'hi' ? 'मिनट' : 'min'}{hasIncomplete ? ` · ${pausedInfo.answeredCount} ${language === 'hi' ? 'उत्तर दिए गए' : 'answered'}` : ''} · {attempts}/{limit} {t('attemptsUsed')}</span></div><span className="activity-tag">{hasIncomplete ? (language === 'hi' ? 'जारी रखें' : 'RESUME') : test.pattern === 'bpsc-classic-5' || test.pattern === 'bpsc-mandatory-e' ? 'BPSC' : 'TEST'}</span><Link className={`button ${exhausted ? 'button-outline' : 'button-gold'} chapter-test-start`} aria-disabled={Boolean(exhausted) || !user} onClick={(event) => { if (exhausted || !user) { event.preventDefault(); setNotice(exhausted ? t('limitReached') : t('signInToStartTest')); return; } sessionStorage.setItem('last_quiz_return_url', location.pathname); }} to={exhausted || !user ? '#' : `/quiz/${test.id}`} state={{ returnTo: location.pathname, autoResume: hasIncomplete }}>{hasIncomplete ? `${language === 'hi' ? 'टेस्ट जारी रखें' : 'Resume Test'} · ${formatRemainingTime(pausedInfo.remainingSeconds)} ${language === 'hi' ? 'बचे' : 'left'}` : exhausted ? t('limitReached') : t('startTest')} <Play size={13} /></Link></div>;
-        })}</section>}
-        {activeTab === 'practice' && <section className="chapter-tab-panel practice-set-panel"><div className="section-heading"><div><div className="eyebrow">{t('learnByDoing')}</div><h2>{t('questionPractice')}</h2></div><span className="chapter-item-count">{practiceQuestionsCount > 0 ? `${practiceQuestionsCount} ${language === 'hi' ? 'प्रश्न उपलब्ध' : 'questions'}` : t('topicPractice')}</span></div>{!hasPractice ? <div className="empty-content chapter-tab-empty"><BookOpen size={23} /><strong>{t('practiceUnavailable')}</strong><span>{t('chooseAnotherTab')}</span></div> : isLocked ? <div className="empty-content chapter-tab-empty"><LockKeyhole size={23} /><strong>{t('unlockPractice')}</strong><span>{t('freePreviewsNotes')}</span></div> : <><div className="practice-set-summary"><div className="practice-set-icon"><Sparkles size={22} /></div><div><h3>{chapter.subject || t('chapter')} {t('questionPractice')}</h3><p>{t('reviewKeyConcepts')}</p></div></div><div className="practice-facts"><span><CheckCircle2 size={14} /> {practiceQuestionsCount > 0 ? `${practiceQuestionsCount} ${t('topicQuestions')}` : t('topicQuestions')}</span><span><Clock3 size={14} /> {t('ownPace')}</span><span><BookOpen size={14} /> {t('reviewExplanations')}</span></div><button className="button button-gold chapter-cta" disabled={practiceLoading} onClick={handleStartPractice}>{practiceLoading ? <LoaderCircle className="spin" size={15} /> : <Play size={15} />} {t('startPractice')}</button></>}</section>}
-        {activeTab === 'notes' && <section className="chapter-tab-panel"><div className="section-heading"><div><div className="eyebrow">{t('readReviseRemember').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}</div><h2>{t('notesPdfs')}</h2></div><span className="chapter-item-count">{resources.length} {t('resources')}</span></div>{!hasNotes ? <div className="empty-content chapter-tab-empty"><FileText size={23} /><strong>{t('notesUnavailable')}</strong><span>{t('chooseAnotherTab')}</span></div> : resourcesLoading ? <p className="field-hint">{t('loadingResources')}</p> : resourcesError ? <div className="feedback error-feedback">{resourcesError}</div> : !resources.length ? <div className="empty-content chapter-tab-empty"><FileText size={23} /><strong>{t('noPublishedNotes')}</strong><span>{t('resourceCheckBack')}</span></div> : <div className="chapter-resource-list">{resources.map((resource) => {
-          const bookmarked = bookmarks.some((bookmark) => bookmark.resource_id === resource.id);
-          const isPreview = Boolean(resource.is_free_preview);
-          const isDownloadable = Boolean(resource.is_downloadable);
-          const canRead = isPreview || (isDownloadable && !isLocked);
-          const status = isPreview ? t('freePreview') : canRead ? t('downloadAllowed') : t('locked');
-          const rawKind = String(resource.resource_type || resource.type || 'PDF').toLowerCase();
-          const fileKind = rawKind === 'formula_sheet' || rawKind === 'formula sheet' ? 'Formula Sheet'
-            : rawKind === 'revision_sheet' || rawKind === 'revision sheet' ? 'Revision Sheet'
-            : rawKind === 'notes' ? 'Notes'
-            : rawKind === 'pdf' ? 'PDF'
-            : (resource.resource_type || resource.type || 'PDF');
-          return <article className={`chapter-resource-card ${canRead ? '' : 'resource-locked'}`} key={resource.id}>
-            <span className="resource-file-icon"><FileText size={19} /></span>
-            <div className="resource-card-copy"><strong>{resource.title}</strong><div className="resource-card-meta"><span className="resource-file-badge">{fileKind}</span>{resource.file_size && <span>{resource.file_size}</span>}{resource.page_count && <span>{resource.page_count} {t('pages')}</span>}<span className={`resource-access-status ${canRead ? 'available' : ''}`}>{status}</span></div></div>
-            <div className="resource-card-actions"><button type="button" className="icon-button" disabled={bookmarkBusy === resource.id} aria-label={bookmarked ? t('removeBookmark') : t('bookmarkResource')} title={bookmarked ? t('removeBookmark') : t('bookmarkResource')} onClick={() => toggleBookmark(resource)}>{bookmarked ? <BookmarkCheck size={17} /> : <Bookmark size={17} />}</button><button type="button" className={`button ${canRead ? 'button-gold' : 'button-outline'}`} disabled={!canRead || readerLoading === resource.id} onClick={() => openResource(resource)}>{!canRead ? <LockKeyhole size={14} /> : <BookOpen size={14} />}{readerLoading === resource.id ? t('opening') : canRead ? t('readDocument') : t('locked')}</button></div>
-          </article>;
-        })}</div>}{resourceNotice && <div className="feedback error-feedback">{resourceNotice}</div>}{hasNotes && <button className={`chapter-bookmark-button ${bookmarks.some((bookmark) => !bookmark.resource_id && bookmark.chapter_id === chapter.id) ? 'saved' : ''}`} onClick={() => toggleBookmark()} disabled={bookmarkBusy === 'chapter'}>{bookmarks.some((bookmark) => !bookmark.resource_id && bookmark.chapter_id === chapter.id) ? <BookmarkCheck size={15} /> : <Bookmark size={15} />}{bookmarks.some((bookmark) => !bookmark.resource_id && bookmark.chapter_id === chapter.id) ? t('chapterSaved') : t('bookmarkResource')}</button>}</section>}
-      </>}
-      <Link to={`/folder/${folder.id}`} className="chapter-back-link"><ArrowLeft size={14} /> Back to {folder.title}</Link>
-    </>}
-    {reader && <PdfReaderModal resource={reader.resource} url={reader.url} onClose={() => setReader(null)} />}
-    {checkoutItem && <CheckoutModal {...checkoutItem} onClose={() => setCheckoutItem(null)} onCompleted={() => setAccessRefreshKey((value) => value + 1)} />}
-    {practiceActive && practiceQuestions.length > 0 && (
-      <QuestionPracticeModal
-        questions={practiceQuestions}
-        chapterTitle={chapter.title}
-        subject={chapter.subject}
-        onClose={() => setPracticeActive(false)}
-      />
-    )}
-  </div>;
+  return (
+    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 pb-28 md:pb-12 transition-colors">
+      <div className="max-w-3xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
+        {/* Breadcrumb Navigation */}
+        <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-emerald-400/80 overflow-x-auto no-scrollbar py-1">
+          <Link to="/explore" className="hover:text-emerald-700 dark:hover:text-white whitespace-nowrap">
+            {t('exploreExams')}
+          </Link>
+          <ChevronRight size={13} className="shrink-0 text-slate-400" />
+          {exam && (
+            <>
+              <Link to={`/explore/${encodeURIComponent(exam.slug)}`} className="hover:text-emerald-700 dark:hover:text-white whitespace-nowrap">
+                {exam.title}
+              </Link>
+              <ChevronRight size={13} className="shrink-0 text-slate-400" />
+            </>
+          )}
+          {folderPath.map((item) => (
+            <span className="flex items-center gap-1.5 whitespace-nowrap" key={item.id}>
+              <Link to={`/folder/${item.id}`} className="hover:text-emerald-700 dark:hover:text-white">
+                {item.title}
+              </Link>
+              <ChevronRight size={13} className="shrink-0 text-slate-400" />
+            </span>
+          ))}
+          <span className="dark:text-white text-slate-900 font-extrabold truncate">
+            {chapter?.title || t('chapter')}
+          </span>
+        </nav>
+
+        {error && (
+          <div className="p-3 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border dark:border-rose-500/30 border-rose-200 text-rose-600 dark:text-rose-300 text-xs font-bold">
+            {error}
+          </div>
+        )}
+
+        {loading && <LoadingSkeleton rows={4} />}
+
+        {!loading && !error && (!chapter || !folder || !exam || !hierarchyPublished) && (
+          <div className="p-8 rounded-3xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 text-center space-y-3">
+            <BookOpen size={30} className="mx-auto text-emerald-500 opacity-60" />
+            <strong className="text-base font-black dark:text-white text-slate-900 block">
+              This chapter isn’t available.
+            </strong>
+            <span className="text-xs text-slate-500 dark:text-emerald-300/80 block">
+              It may be unpublished or its folder has changed.
+            </span>
+            <Link
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold"
+              to="/explore"
+            >
+              <ArrowLeft size={15} /> <span>Explore exams</span>
+            </Link>
+          </div>
+        )}
+
+        {!loading && !error && chapter && folder && exam && hierarchyPublished && (
+          <>
+            {/* Chapter Hero Section */}
+            <section className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#07261b] dark:to-[#04140e] bg-gradient-to-br from-emerald-100/90 via-teal-50 to-white border dark:border-emerald-500/25 border-emerald-200 p-4 sm:p-6 shadow-sm space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-9 h-9 rounded-xl dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/30 border-emerald-200 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-xs">
+                    <BookOpen size={18} />
+                  </div>
+                  <span className="text-xs font-bold dark:text-emerald-300/80 text-emerald-800">
+                    {exam.title} • {folder.title}
+                  </span>
+                </div>
+
+                <span
+                  className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                    isLocked
+                      ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/40'
+                      : 'bg-[#22c55e]/20 text-emerald-700 dark:text-emerald-300 border border-[#22c55e]/30'
+                  }`}
+                >
+                  {isLocked ? t('paidAccess') : t('freeToExplore')}
+                </span>
+              </div>
+
+              <div>
+                <h1 className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
+                  {chapter.title}
+                </h1>
+                <p className="text-xs sm:text-sm dark:text-emerald-200/80 text-slate-600 font-medium mt-1 leading-relaxed">
+                  {chapter.description ||
+                    (language === 'hi'
+                      ? 'केंद्रित अध्ययन, अभ्यास और दोहराव से विषय को स्पष्ट रूप से समझें।'
+                      : 'Build a clear understanding with focused learning, practice and review.')}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap pt-1 text-xs">
+                <span className="px-2.5 py-0.5 rounded-full dark:bg-emerald-950 bg-emerald-100/80 text-emerald-800 dark:text-emerald-300 font-bold border dark:border-emerald-500/20 border-emerald-200">
+                  {chapter.subject || (language === 'hi' ? 'सामान्य' : 'General')}
+                </span>
+                <span className="flex items-center gap-1 dark:text-emerald-300/80 text-slate-500 font-semibold">
+                  <Clock3 size={13} />
+                  <span>
+                    {chapter.estimated_study_time_minutes || '—'}{' '}
+                    {language === 'hi' ? 'मिनट अध्ययन समय' : t('studyTime')}
+                  </span>
+                </span>
+                <span className="text-amber-600 dark:text-amber-400 font-bold">
+                  {access.label === 'Coming Soon' ? t('chapterComingSoon') : access.label}
+                </span>
+              </div>
+            </section>
+
+            {/* Tab Bar */}
+            <div
+              className="flex items-center gap-1.5 p-1 rounded-2xl dark:bg-[#072117]/85 bg-white border dark:border-emerald-500/20 border-slate-200 shadow-sm"
+              role="tablist"
+              aria-label={t('chapterContent')}
+            >
+              {tabs.map(({ id, label, icon: Icon }) => {
+                const isActive = activeTab === id;
+                return (
+                  <button
+                    key={id}
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setActiveTab(id)}
+                    className={`flex-1 py-2 sm:py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all min-h-[40px] ${
+                      isActive
+                        ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-glowGold'
+                        : 'dark:text-emerald-300/80 text-slate-600 hover:text-black dark:hover:text-white'
+                    }`}
+                  >
+                    <Icon size={15} />
+                    <span>{t(label)}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {notice && (
+              <div className="p-3 rounded-2xl dark:bg-emerald-950/80 bg-emerald-50 border border-emerald-500/30 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+                {notice}
+              </div>
+            )}
+            {accessError && (
+              <div className="p-3 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border dark:border-rose-500/30 border-rose-200 text-rose-600 dark:text-rose-300 text-xs font-bold">
+                {accessError}
+              </div>
+            )}
+
+            {/* Paywall Banner if Locked */}
+            {isLocked && (
+              <section className="p-4 sm:p-5 rounded-2xl dark:bg-gradient-to-r dark:from-amber-950/40 dark:to-emerald-950/40 bg-amber-50/90 border dark:border-amber-500/30 border-amber-300/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-500 shrink-0">
+                    <LockKeyhole size={18} />
+                  </div>
+                  <div>
+                    <strong className="text-sm font-black dark:text-white text-slate-900 block">
+                      {t('fullAccess')} {`₹${access.amount.toLocaleString('en-IN')}`}
+                    </strong>
+                    <span className="text-xs text-amber-900/80 dark:text-amber-200/80 font-medium">
+                      {t('unlockChapterCopy')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                  <button
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-xs font-black shadow-glowGold flex items-center justify-center gap-1.5 min-h-[44px]"
+                    disabled={!user || accessLoading}
+                    onClick={() =>
+                      setCheckoutItem({
+                        itemType: 'chapter',
+                        itemId: chapter.id,
+                        itemTitle: chapter.title,
+                        tier: 'Chapter',
+                        basePrice: access.amount
+                      })
+                    }
+                  >
+                    <span>{accessLoading ? t('checkingAccess') : `Buy Chapter · ₹${access.amount}`}</span>
+                    <ArrowRight size={14} />
+                  </button>
+                </div>
+              </section>
+            )}
+
+            {/* Tab 1: Tests */}
+            {activeTab === 'tests' && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider">
+                      {t('checkUnderstanding')}
+                    </div>
+                    <h2 className="text-base font-black dark:text-white text-slate-900">{t('chapterTests')}</h2>
+                  </div>
+                  <span className="text-xs font-bold dark:text-emerald-300 text-emerald-800">
+                    {chapterTests.length} {t('available')}
+                  </span>
+                </div>
+
+                {!hasTests ? (
+                  <div className="p-8 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 text-center space-y-2">
+                    <CheckCircle2 size={24} className="mx-auto text-emerald-500 opacity-60" />
+                    <strong className="block text-sm dark:text-white text-slate-900">{t('testsUnavailable')}</strong>
+                    <span className="text-xs text-slate-500 dark:text-emerald-300/80">{t('chooseAnotherTab')}</span>
+                  </div>
+                ) : isLocked ? (
+                  <div className="p-8 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 text-center space-y-2">
+                    <LockKeyhole size={24} className="mx-auto text-amber-500 opacity-60" />
+                    <strong className="block text-sm dark:text-white text-slate-900">{t('unlockLiveTests')}</strong>
+                    <span className="text-xs text-slate-500 dark:text-emerald-300/80">{t('freePreviewsNotes')}</span>
+                  </div>
+                ) : testsLoading ? (
+                  <p className="text-xs dark:text-emerald-300 text-slate-600 font-medium">{t('loadingTests')}</p>
+                ) : testsError ? (
+                  <div className="p-3 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border border-rose-300 text-rose-700 text-xs font-bold">
+                    {testsError}
+                  </div>
+                ) : !chapterTests.length ? (
+                  <div className="p-8 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 text-center space-y-2">
+                    <CheckCircle2 size={24} className="mx-auto text-emerald-500 opacity-60" />
+                    <strong className="block text-sm dark:text-white text-slate-900">{t('noPublishedTests')}</strong>
+                    <span className="text-xs text-slate-500 dark:text-emerald-300/80">{t('checkBackPractice')}</span>
+                  </div>
+                ) : (
+                  chapterTests.map((test) => {
+                    const attempts = testAttempts[test.id] || 0;
+                    const limit = Number(test.attempt_limit || 1);
+                    const pausedInfo = resumeAttempts[test.id];
+                    const hasIncomplete = Boolean(pausedInfo);
+                    const exhausted = user && !hasIncomplete && attempts >= limit;
+
+                    return (
+                      <div
+                        key={test.id}
+                        className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl dark:bg-emerald-950/80 bg-emerald-50 border dark:border-emerald-500/25 border-emerald-200 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                            <CheckCircle2 size={18} />
+                          </div>
+                          <div>
+                            <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block">
+                              {test.title}
+                            </strong>
+                            <span className="text-[11px] dark:text-emerald-300/70 text-slate-500">
+                              {test.duration_minutes} {language === 'hi' ? 'मिनट' : 'min'} • {attempts}/{limit}{' '}
+                              {t('attemptsUsed')}
+                            </span>
+                          </div>
+                        </div>
+
+                        <Link
+                          className={`w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 min-h-[44px] transition-all ${
+                            exhausted
+                              ? 'dark:bg-emerald-950 bg-slate-100 text-slate-400 border border-slate-300 pointer-events-none'
+                              : 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-glowGold hover:from-amber-300'
+                          }`}
+                          onClick={(event) => {
+                            if (exhausted || !user) {
+                              event.preventDefault();
+                              setNotice(exhausted ? t('limitReached') : t('signInToStartTest'));
+                              return;
+                            }
+                            sessionStorage.setItem('last_quiz_return_url', location.pathname);
+                          }}
+                          to={exhausted || !user ? '#' : `/quiz/${test.id}`}
+                          state={{ returnTo: location.pathname, autoResume: hasIncomplete }}
+                        >
+                          <span>{hasIncomplete ? (language === 'hi' ? 'टेस्ट जारी रखें' : 'Resume Test') : exhausted ? t('limitReached') : t('startTest')}</span>
+                          <Play size={13} />
+                        </Link>
+                      </div>
+                    );
+                  })
+                )}
+              </section>
+            )}
+
+            {/* Tab 2: Question Practice */}
+            {activeTab === 'practice' && (
+              <section className="p-5 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-500 text-lg shrink-0">
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-black dark:text-white text-slate-900">
+                      {chapter.subject || t('chapter')} {t('questionPractice')}
+                    </h3>
+                    <p className="text-xs dark:text-emerald-300/80 text-slate-600">
+                      {t('reviewKeyConcepts')}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 text-xs dark:text-emerald-300/80 text-slate-600 flex-wrap">
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 size={13} className="text-emerald-500" />
+                    <span>{practiceQuestionsCount > 0 ? `${practiceQuestionsCount} ${t('topicQuestions')}` : t('topicQuestions')}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Clock3 size={13} className="text-emerald-500" />
+                    <span>{t('ownPace')}</span>
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <BookOpen size={13} className="text-emerald-500" />
+                    <span>{t('reviewExplanations')}</span>
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 text-black text-xs font-black shadow-glowGold flex items-center justify-center gap-2 min-h-[44px]"
+                  disabled={practiceLoading}
+                  onClick={handleStartPractice}
+                >
+                  {practiceLoading ? <LoaderCircle className="spin" size={15} /> : <Play size={15} />}
+                  <span>{t('startPractice')}</span>
+                </button>
+              </section>
+            )}
+
+            {/* Tab 3: Notes & PDFs */}
+            {activeTab === 'notes' && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider">
+                      {t('readReviseRemember').toLocaleUpperCase(language === 'hi' ? 'hi-IN' : 'en-US')}
+                    </div>
+                    <h2 className="text-base font-black dark:text-white text-slate-900">{t('notesPdfs')}</h2>
+                  </div>
+                  <span className="text-xs font-bold dark:text-emerald-300 text-emerald-800">
+                    {resources.length} {t('resources')}
+                  </span>
+                </div>
+
+                {resourcesLoading ? (
+                  <p className="text-xs dark:text-emerald-300 text-slate-600 font-medium">{t('loadingResources')}</p>
+                ) : !resources.length ? (
+                  <div className="p-8 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 text-center space-y-2">
+                    <FileText size={24} className="mx-auto text-emerald-500 opacity-60" />
+                    <strong className="block text-sm dark:text-white text-slate-900">{t('noPublishedNotes')}</strong>
+                    <span className="text-xs text-slate-500 dark:text-emerald-300/80">{t('resourceCheckBack')}</span>
+                  </div>
+                ) : (
+                  resources.map((resource) => {
+                    const bookmarked = bookmarks.some((bookmark) => bookmark.resource_id === resource.id);
+                    const isPreview = Boolean(resource.is_free_preview);
+                    const isDownloadable = Boolean(resource.is_downloadable);
+                    const canRead = isPreview || (isDownloadable && !isLocked);
+
+                    return (
+                      <article
+                        key={resource.id}
+                        className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl dark:bg-emerald-950/80 bg-emerald-50 border dark:border-emerald-500/25 border-emerald-200 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                            <FileText size={18} />
+                          </div>
+                          <div className="min-w-0">
+                            <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
+                              {resource.title}
+                            </strong>
+                            <div className="text-[11px] dark:text-emerald-300/70 text-slate-500 flex items-center gap-2">
+                              {resource.file_size && <span>{resource.file_size}</span>}
+                              {resource.page_count && <span>{resource.page_count} {t('pages')}</span>}
+                              <span className={canRead ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-amber-600 font-bold'}>
+                                {isPreview ? t('freePreview') : canRead ? t('downloadAllowed') : t('locked')}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            type="button"
+                            className="w-9 h-9 rounded-xl dark:bg-emerald-950/80 bg-slate-100 flex items-center justify-center text-slate-500 hover:text-emerald-600 transition-colors"
+                            disabled={bookmarkBusy === resource.id}
+                            onClick={() => toggleBookmark(resource)}
+                          >
+                            {bookmarked ? <BookmarkCheck size={16} className="text-[#22c55e]" /> : <Bookmark size={16} />}
+                          </button>
+
+                          <button
+                            type="button"
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 min-h-[38px] ${
+                              canRead
+                                ? 'bg-amber-400 hover:bg-amber-300 text-black shadow-glowGold'
+                                : 'dark:bg-emerald-950 bg-slate-100 text-slate-400 border border-slate-300'
+                            }`}
+                            disabled={!canRead || readerLoading === resource.id}
+                            onClick={() => openResource(resource)}
+                          >
+                            {!canRead ? <LockKeyhole size={13} /> : <BookOpen size={13} />}
+                            <span>{readerLoading === resource.id ? t('opening') : canRead ? t('readDocument') : t('locked')}</span>
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })
+                )}
+              </section>
+            )}
+
+            {/* Back link */}
+            <div className="pt-2">
+              <Link
+                to={`/folder/${folder.id}`}
+                className="inline-flex items-center gap-1.5 text-xs font-bold dark:text-emerald-400 text-emerald-800 hover:underline min-h-[44px]"
+              >
+                <ArrowLeft size={14} /> <span>Back to {folder.title}</span>
+              </Link>
+            </div>
+          </>
+        )}
+
+        {reader && <PdfReaderModal resource={reader.resource} url={reader.url} onClose={() => setReader(null)} />}
+        {checkoutItem && (
+          <CheckoutModal
+            {...checkoutItem}
+            onClose={() => setCheckoutItem(null)}
+            onCompleted={() => setAccessRefreshKey((value) => value + 1)}
+          />
+        )}
+        {practiceActive && practiceQuestions.length > 0 && (
+          <QuestionPracticeModal
+            questions={practiceQuestions}
+            chapterTitle={chapter.title}
+            subject={chapter.subject}
+            onClose={() => setPracticeActive(false)}
+          />
+        )}
+      </div>
+    </div>
+  );
 }
