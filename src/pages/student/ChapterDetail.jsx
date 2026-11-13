@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { CheckCircle2, FileText, Play } from 'lucide-react';
 import { useLocation, useParams } from 'react-router-dom';
 import useContentCatalog from '../../hooks/useContentCatalog';
@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 import { sanitizeLiveQuestion } from '../../lib/tests';
+import { prefetchLiveQuiz } from '../../lib/prefetchLiveQuiz';
 
 const tabs = [
   { id: 'tests', label: 'tests', icon: CheckCircle2 },
@@ -42,6 +43,9 @@ export default function ChapterDetail() {
   const [resourceNotice, setResourceNotice] = useState('');
   const [checkoutItem, setCheckoutItem] = useState(null);
   const [accessRefreshKey, setAccessRefreshKey] = useState(0);
+  const warmQuiz = useCallback(() => {
+    prefetchLiveQuiz().catch((error) => console.warn('Unable to prefetch quiz:', error));
+  }, []);
   const chapter = chapters.find((item) => item.id === chapterId && isPublished(item));
   const folder = folders.find((item) => item.id === chapter?.folder_id && isPublished(item));
   const exam = exams.find((item) => item.id === folder?.exam_id && isPublished(item));
@@ -76,6 +80,21 @@ export default function ChapterDetail() {
   const hasTests = folder?.allow_tests !== false;
   const hasPractice = folder?.allow_practice !== false;
   const hasNotes = folder?.allow_notes !== false;
+
+  useEffect(() => {
+    let cancelled = false;
+    const prefetch = () => {
+      if (!cancelled) warmQuiz();
+    };
+    const idleId = typeof window.requestIdleCallback === 'function'
+      ? window.requestIdleCallback(prefetch, { timeout: 1500 })
+      : window.setTimeout(prefetch, 800);
+    return () => {
+      cancelled = true;
+      if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idleId);
+      else window.clearTimeout(idleId);
+    };
+  }, [warmQuiz]);
 
   useEffect(() => {
     if (!chapter?.id) return;
@@ -585,6 +604,8 @@ export default function ChapterDetail() {
                             }
                             sessionStorage.setItem('last_quiz_return_url', location.pathname);
                           }}
+                          onMouseEnter={warmQuiz}
+                          onTouchStart={warmQuiz}
                           to={exhausted || !user ? '#' : `/quiz/${test.id}`}
                           state={{ returnTo: location.pathname, autoResume: hasIncomplete }}
                         >

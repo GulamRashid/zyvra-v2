@@ -1,6 +1,5 @@
 import { Component } from 'react';
-import { ArrowLeft, CircleAlert } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { CircleAlert, RefreshCw } from 'lucide-react';
 
 export default class QuizErrorBoundary extends Component {
   state = { hasError: false, error: null };
@@ -15,17 +14,13 @@ export default class QuizErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
-      const technicalMsg = this.state.error?.message || (this.state.error ? (typeof this.state.error === 'object' ? JSON.stringify(this.state.error) : String(this.state.error)) : '');
       return <main className="quiz-error-page"><div className="quiz-error-card">
         <div className="locked-icon"><CircleAlert size={23} /></div>
-        <h1>We couldn’t open this test</h1>
-        <p>Something went wrong while loading the test. Please return to the test list and try again.</p>
-        {technicalMsg && (
-          <p style={{ color: '#ef4444', fontSize: '13px', marginTop: '8px', wordBreak: 'break-word', fontFamily: 'monospace' }}>
-            {technicalMsg}
-          </p>
-        )}
-        <Link className="button button-outline" to="/tests"><ArrowLeft size={15} /> Back to tests</Link>
+        <h1>Quiz load nahi hua</h1>
+        <p>Test load karne mein dikkat hui. Dobara try karein.</p>
+        <button type="button" className="button button-outline min-h-[44px]" onClick={() => window.location.reload()}>
+          <RefreshCw size={15} /> Try again
+        </button>
       </div></main>;
     }
 

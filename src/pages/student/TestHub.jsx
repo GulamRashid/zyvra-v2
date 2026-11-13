@@ -5,6 +5,7 @@ import { useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
+import { prefetchLiveQuiz } from '../../lib/prefetchLiveQuiz';
 
 function isComplete(attempt) {
   const status = String(attempt?.status || '').toLowerCase();
@@ -32,6 +33,24 @@ export default function TestHub() {
   const [loadError, setLoadError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [testFilter, setTestFilter] = useState('all'); // 'all' | 'free' | 'chapter'
+  const warmQuiz = useCallback(() => {
+    prefetchLiveQuiz().catch((error) => console.warn('Unable to prefetch quiz:', error));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const prefetch = () => {
+      if (!cancelled) warmQuiz();
+    };
+    const idleId = typeof window.requestIdleCallback === 'function'
+      ? window.requestIdleCallback(prefetch, { timeout: 1500 })
+      : window.setTimeout(prefetch, 800);
+    return () => {
+      cancelled = true;
+      if (typeof window.cancelIdleCallback === 'function') window.cancelIdleCallback(idleId);
+      else window.clearTimeout(idleId);
+    };
+  }, [warmQuiz]);
 
   // Chapter & Exam lookup maps
   const chapterById = useMemo(() => new Map(chapters.map((c) => [c.id, c])), [chapters]);
@@ -516,6 +535,8 @@ export default function TestHub() {
                         {completedAttempt && !resumableAttempt && (
                           <Link
                             to={`/quiz/${test.id}`}
+                            onMouseEnter={warmQuiz}
+                            onTouchStart={warmQuiz}
                             className="px-3 py-1.5 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-700 text-xs font-bold hover:text-slate-900 dark:hover:text-white transition-colors min-h-[44px] flex items-center"
                           >
                             Retake
@@ -528,6 +549,8 @@ export default function TestHub() {
                               ? `/quiz/result/${completedAttempt.id}`
                               : `/quiz/${test.id}`}
                           className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white text-sm font-black transition-colors flex items-center gap-1.5 min-h-[44px]"
+                          onMouseEnter={warmQuiz}
+                          onTouchStart={warmQuiz}
                         >
                           {resumableAttempt ? <Play size={13} fill="currentColor" /> : completedAttempt ? <CheckCircle2 size={15} /> : <Play size={13} fill="currentColor" />}
                           <span>{resumableAttempt ? 'Resume' : completedAttempt ? 'Review result' : 'Start Test'}</span>

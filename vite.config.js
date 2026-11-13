@@ -27,5 +27,15 @@ export default defineConfig({
         skipWaiting: false
       }
     })
-  ]
+  ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          supabase: ['@supabase/supabase-js']
+        }
+      }
+    }
+  }
 });

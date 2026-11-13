@@ -6,7 +6,6 @@ import ProtectedRoute from './components/layouts/ProtectedRoute';
 import LoadingSkeleton from './components/common/LoadingSkeleton';
 import QuizErrorBoundary from './components/common/QuizErrorBoundary';
 import PwaInstallBanner from './components/common/PwaInstallBanner';
-import LiveQuiz from './pages/student/LiveQuiz';
 import { BookOpen, FileQuestion, ShoppingBag, ChartNoAxesColumn, Bookmark, Bell, Wrench, Users, PackageCheck, CreditCard, Coins, Tag, Activity } from 'lucide-react';
 
 const AuthPage = lazy(() => import('./pages/auth/AuthPage'));
@@ -23,6 +22,7 @@ const FolderView = lazy(() => import('./pages/student/FolderView'));
 const ChapterDetail = lazy(() => import('./pages/student/ChapterDetail'));
 const StudentToolbox = lazy(() => import('./pages/student/StudentToolbox'));
 const TestHub = lazy(() => import('./pages/student/TestHub'));
+const LiveQuiz = lazy(() => import('./pages/student/LiveQuiz'));
 const QuizResult = lazy(() => import('./pages/student/QuizResult'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const PricingManager = lazy(() => import('./pages/admin/PricingManager'));
