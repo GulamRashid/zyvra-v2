@@ -355,6 +355,7 @@ button { color: inherit; }
 a { color: inherit; text-decoration: none; }
 button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .app-shell, .admin-shell { min-height: 100vh; }
+.admin-shell { display: flex; align-items: flex-start; }
 .student-sidebar { position: fixed; z-index: 25; inset: 0 auto 0 0; display: flex; flex-direction: column; width: 258px; padding: 25px 17px 17px; border-right: 1px solid var(--line); background: var(--panel); }
 .sidebar-brand { display: flex; align-items: center; gap: 11px; font-family: Manrope, sans-serif; font-size: 15px; font-weight: 800; letter-spacing: .13em; }
 .sidebar-brand > a { display: flex; align-items: center; gap: 11px; }
@@ -672,9 +673,9 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
 .placeholder-note .health-dot { width: 6px; height: 6px; }
 
 /* Admin control center */
-.admin-sidebar { position: fixed; z-index: 25; inset: 0 auto 0 0; display: flex; width: 254px; height: 100vh; flex-direction: column; padding: 24px 16px 15px; border-right: 1px solid var(--line); background: var(--panel); }
+.admin-sidebar { position: sticky; z-index: 25; top: 0; display: flex; width: 254px; height: 100vh; flex: 0 0 254px; flex-direction: column; padding: 24px 16px 15px; border-right: 1px solid var(--line); background: var(--panel); }
 .admin-sidebar, .admin-main { transition: width .22s ease, margin-left .22s ease; }
-.admin-sidebar.sidebar-collapsed { width: 0; overflow: hidden; padding-right: 0; padding-left: 0; border-right: 0; }
+.admin-sidebar.sidebar-collapsed { width: 0; flex-basis: 0; overflow: hidden; padding-right: 0; padding-left: 0; border-right: 0; }
 .admin-main.sidebar-collapsed { margin-left: 0; }
 .admin-sidebar-toggle { display: inline-grid; flex: 0 0 auto; }
 .admin-drawer-scrim { display: none; }
@@ -684,7 +685,7 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
 .admin-nav { gap: 3px; }
 .admin-nav .side-link { min-height: 42px; font-size: 13px; }
 .admin-sidebar-footer { display: flex; align-items: center; gap: 9px; margin-top: auto; padding: 12px 8px 3px; border-top: 1px solid var(--line); color: var(--muted); font-size: 9px; }
-.admin-main { min-height: 100vh; margin-left: 254px; }
+.admin-main { min-width: 0; min-height: 100vh; flex: 1; }
 .admin-topbar { position: sticky; z-index: 15; top: 0; display: flex; height: 66px; align-items: center; justify-content: space-between; padding: 0 32px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(18px); }
 .admin-topbar > div:first-child { display: flex; align-items: center; gap: 10px; }
 .admin-topbar .eyebrow { font-size: 10px; }
@@ -820,8 +821,7 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
   .main-column { margin-left: 226px; }
   .continue-content { padding: 22px; }
   .dashboard-grid { grid-template-columns: minmax(0, 1.4fr) minmax(205px, .8fr); }
-  .admin-sidebar { width: 226px; }
-  .admin-main { margin-left: 226px; }
+  .admin-sidebar { width: 226px; flex-basis: 226px; }
   .admin-content { padding: 25px; }
 }
 @media (max-width: 760px) {
@@ -911,7 +911,7 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
   .profile-identity > p { margin: 0; }
   .verification-row, .profile-stat { grid-column: 1 / -1; }
   .verification-row:first-of-type { margin-top: 13px; }
-  .admin-sidebar { z-index: 45; width: min(300px, 84vw); transform: translateX(0); transition: transform .22s ease; box-shadow: var(--shadow); }
+  .admin-sidebar { position: fixed; inset: 0 auto 0 0; z-index: 45; width: min(300px, 84vw); flex-basis: auto; transform: translateX(0); transition: transform .22s ease; box-shadow: var(--shadow); }
   .admin-sidebar.sidebar-collapsed { width: min(300px, 84vw); transform: translateX(-105%); }
   .admin-drawer-scrim { position: fixed; z-index: 40; inset: 0; display: block; border: 0; background: rgba(0, 0, 0, .56); }
   .admin-main { margin-left: 0; padding-bottom: 30px; }
