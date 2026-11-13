@@ -19,6 +19,10 @@ export default function OnboardingModal() {
       setOpen(false);
       return;
     }
+    if (localStorage.getItem('zyvra_onboarding_completed') === 'true') {
+      setOpen(false);
+      return;
+    }
     if (profile && (profile.onboarding_completed === false || profile.onboarding_completed === null)) {
       setSelectedExams(profile.target_exams || []);
       setOpen(true);
@@ -39,10 +43,14 @@ export default function OnboardingModal() {
     setError('');
     setSaving(true);
     try {
+      localStorage.setItem('zyvra_onboarding_completed', 'true');
+      if (setLanguage) {
+        setLanguage(language);
+      }
       if (user && supabase) {
+        // Only update granted columns: theme, target_exams.
+        // preferred_language and onboarding_completed are not granted on profiles table and have no RPC.
         const { error: saveError } = await supabase.from('profiles').update({
-          onboarding_completed: true,
-          preferred_language: language,
           theme,
           target_exams: selectedExams
         }).eq('id', user.id);
@@ -126,7 +134,19 @@ export default function OnboardingModal() {
           </div>
         </div>
 
-        {error && <div className="feedback error-feedback">{error}</div>}
+        {error && (
+          <div className="feedback error-feedback flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>{error}</span>
+            <button
+              type="button"
+              className="button button-outline min-h-[44px] shrink-0 text-xs px-3"
+              onClick={handleComplete}
+              disabled={saving}
+            >
+              Try again
+            </button>
+          </div>
+        )}
 
         <button
           type="button"
