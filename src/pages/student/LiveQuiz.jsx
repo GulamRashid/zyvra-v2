@@ -1328,7 +1328,7 @@ export default function LiveQuiz() {
 
             <div className="instructions-stat-grid">
               <div className="instruction-stat-card">
-                <Clock3 className="stat-icon text-gold" size={20} />
+                <Clock3 className="stat-icon text-accent" size={20} />
                 <div>
                   <strong>{test?.duration_minutes || 60} Mins</strong>
                   <span>Total Duration</span>
@@ -1342,7 +1342,7 @@ export default function LiveQuiz() {
                 </div>
               </div>
               <div className="instruction-stat-card">
-                <Award className="stat-icon text-gold" size={20} />
+                <Award className="stat-icon text-accent" size={20} />
                 <div>
                   <strong>{((totalQuestionCount || questions?.length || 0) * (test?.positive_marks || 1)).toFixed(0)} Marks</strong>
                   <span>Maximum Score</span>
@@ -1371,7 +1371,7 @@ export default function LiveQuiz() {
           <div className="instructions-main-panel">
             <section className="instructions-content-section">
               <h2 className="instructions-section-title">
-                <Info size={18} className="text-gold" /> Please Read The Instructions Carefully
+                <Info size={18} className="text-accent" /> Please Read The Instructions Carefully
               </h2>
               <div className="instructions-scrollable">
                 <FormattedInstructions text={test?.instructions} />
@@ -1380,7 +1380,7 @@ export default function LiveQuiz() {
 
             <section className="instructions-legend-section">
               <h3 className="instructions-section-title">
-                <Grid3X3 size={18} className="text-gold" /> Question Palette Symbol Guide
+                <Grid3X3 size={18} className="text-accent" /> Question Palette Symbol Guide
               </h3>
               <PaletteLegend compact={false} />
             </section>
@@ -1468,7 +1468,7 @@ export default function LiveQuiz() {
         <div className="instructions-container resume-container">
           <div className="resume-hero-card">
             <div className="resume-icon-badge">
-              <Clock3 size={32} className="text-gold" />
+              <Clock3 size={32} className="text-accent" />
             </div>
             <h2>Incomplete Test Attempt Detected</h2>
             <p>
@@ -1478,7 +1478,7 @@ export default function LiveQuiz() {
             <div className="resume-stats-grid">
               <div className="resume-stat">
                 <span className="stat-label">Time Remaining</span>
-                <strong className="stat-value text-gold">{formatTime(remaining)}</strong>
+                <strong className="stat-value text-accent">{formatTime(remaining)}</strong>
               </div>
               <div className="resume-stat">
                 <span className="stat-label">Answered</span>
@@ -1529,7 +1529,7 @@ export default function LiveQuiz() {
             <section className="instructions-modal">
               <div className="instructions-modal-header">
                 <div className="flex items-center gap-2">
-                  <Info className="text-gold" size={20} />
+                  <Info className="text-accent" size={20} />
                   <h2 id="instructions-modal-title" className="text-base font-bold">Exam Instructions</h2>
                 </div>
                 <button className="modal-close" onClick={() => setShowInstructionsModal(false)} aria-label="Close instructions">
@@ -2324,7 +2324,7 @@ export default function LiveQuiz() {
           <section className="instructions-modal">
             <div className="instructions-modal-header">
               <div className="flex items-center gap-2">
-                <Info className="text-gold" size={20} />
+                <Info className="text-accent" size={20} />
                 <h2 id="in-test-instructions-title" className="text-base font-bold">Exam Instructions</h2>
               </div>
               <button className="modal-close" onClick={() => setShowInstructionsModal(false)} aria-label="Close instructions">

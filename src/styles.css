@@ -2108,8 +2108,8 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
   transition: all .15s ease;
 }
 .quiz-pause-icon-button:hover {
-  color: var(--gold);
-  border-color: rgba(228, 184, 95, .4);
+  color: var(--accent);
+  border-color: rgba(16, 185, 129, .4);
 }
 .compact-lang-toggle {
   display: inline-flex;
@@ -2132,8 +2132,8 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
   color: var(--muted);
 }
 .compact-lang-toggle button.active {
-  background: var(--gold);
-  color: #172019;
+  background: var(--green);
+  color: #fff;
 }
 .quiz-header-sub-bar {
   display: flex;
@@ -2231,7 +2231,7 @@ body.light .quiz-header-progress-track {
 .native-language-toggle > svg { margin: 0 3px; }
 .native-language-toggle button { min-width: 30px; min-height: 28px; padding: 0 8px; border: 0; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; font-size: 11px; font-weight: 700; }
 .native-language-toggle button.active { background: var(--green); color: #fff; }
-.native-language-toggle button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.native-language-toggle button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .translation-inline-spinner { display: inline-block; margin-left: 5px; vertical-align: middle; animation: spin 1s linear infinite; }
 .quiz-instructions { display: flex; align-items: center; justify-content: space-between; gap: 15px; padding: 11px clamp(16px, 3vw, 42px); border-bottom: 1px solid var(--line); color: var(--muted); font-size: 9px; }
 .quiz-instructions > span { flex: 0 0 auto; color: var(--text); font-weight: 700; }
@@ -2239,7 +2239,7 @@ body.light .quiz-header-progress-track {
 .quiz-body { display: grid; width: min(100%, 1400px); grid-template-columns: minmax(0, 1fr) 265px; align-items: start; gap: 20px; margin: 0 auto; padding: 25px clamp(16px, 3vw, 42px) 40px; }
 .quiz-question-panel { min-height: 500px; padding: clamp(24px, 4vw, 40px); border: 1px solid rgba(16, 185, 129, .15); border-radius: 24px; background: var(--panel); }
 .quiz-question-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; color: var(--muted); font-size: 13px; font-weight: 600; letter-spacing: .04em; }
-.quiz-question-meta > span:first-child { color: var(--gold); }
+.quiz-question-meta > span:first-child { color: var(--accent); }
 .quiz-question-text { margin: 20px 0 10px; font-family: Manrope, sans-serif; }
 .quiz-question-hindi { margin: 0 0 19px; color: var(--muted); font-size: 15px; line-height: 1.7; }
 .quiz-options { display: grid; gap: 11px; margin: 20px 0; }
@@ -2282,7 +2282,7 @@ body.light .quiz-header-progress-track {
 .palette-number.not-visited { border-color: var(--line); background: #596760; color: #cbd5e1; }
 .palette-number.option-e { border-color: var(--gold); background: var(--gold); color: #17251e; }
 .palette-number.marked.option-e-selected { border-color: var(--gold); background: linear-gradient(135deg, #8c5bb7 52%, var(--gold) 53%); color: #fff; }
-.palette-number.current { outline: 2px solid var(--gold) !important; outline-offset: 2px; }
+.palette-number.current { outline: 2px solid var(--accent) !important; outline-offset: 2px; }
 .palette-number .eval-dot { position: absolute; top: 2px; right: 2px; width: 6px; height: 6px; border-radius: 50%; background: #10b981; border: 1.5px solid #fff; }
 .palette-summary { display: flex; justify-content: space-between; gap: 5px; margin-top: 13px; padding: 10px 0; border-top: 1px solid var(--line); color: var(--muted); font-size: 7px; }
 .palette-summary span { display: flex; align-items: center; gap: 4px; }
@@ -2291,7 +2291,7 @@ body.light .quiz-header-progress-track {
 .palette-footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 8px; }
 .palette-footer .button { min-height: 30px; padding: 0 10px; font-size: 8px; }
 .quiz-submitting-overlay { position: fixed; z-index: 80; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; background: rgba(3, 11, 8, .8); color: var(--text); font-size: 11px; backdrop-filter: blur(5px); }
-.quiz-submit-spinner { width: 34px; height: 34px; border: 3px solid var(--line); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; }
+.quiz-submit-spinner { width: 34px; height: 34px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; }
 .quiz-submitting-overlay small { max-width: min(440px, calc(100vw - 36px)); color: var(--muted); text-align: center; }
 .quiz-loading, .page-loading { display: flex; align-items: center; justify-content: center; min-height: 50vh; width: 100%; margin: 0 auto; padding: 24px; }
 .zyvra-loader-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; padding: 36px 20px; gap: 16px; text-align: center; }
@@ -2816,13 +2816,13 @@ body.light .test-hub-hero { border-color: #b6d2c0; background: radial-gradient(e
   border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--panel2);
-  color: var(--gold);
+  color: var(--accent);
   cursor: pointer;
   transition: all 0.2s ease;
 }
 .quiz-info-button:hover {
-  background: rgba(228, 184, 95, 0.12);
-  border-color: var(--gold);
+  background: rgba(16, 185, 129, 0.12);
+  border-color: var(--accent);
 }
 
 .quiz-pause-button {
@@ -2989,7 +2989,7 @@ body.light .test-hub-hero { border-color: #b6d2c0; background: radial-gradient(e
 }
 .instructions-parsed-body .instructions-h3 {
   font: 700 15px Manrope, sans-serif;
-  color: var(--gold);
+  color: var(--accent);
   margin: 14px 0 6px;
 }
 .instructions-parsed-body .instructions-h4 {
@@ -3163,8 +3163,8 @@ body.light .test-hub-hero { border-color: #b6d2c0; background: radial-gradient(e
   height: 58px;
   margin: 0 auto;
   border-radius: 16px;
-  background: rgba(228, 184, 95, 0.12);
-  border: 1px solid rgba(228, 184, 95, 0.3);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
   display: grid;
   place-items: center;
 }
@@ -3275,9 +3275,9 @@ body.light .test-hub-hero { border-color: #b6d2c0; background: radial-gradient(e
   width: 52px;
   height: 52px;
   border-radius: 14px;
-  background: rgba(228, 184, 95, 0.12);
-  border: 1px solid rgba(228, 184, 95, 0.3);
-  color: var(--gold);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--accent);
   display: grid;
   place-items: center;
   margin: 0 auto;
