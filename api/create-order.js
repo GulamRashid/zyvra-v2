@@ -22,7 +22,7 @@ export default async function handler(req, res) {
 
     const { accessToken, supabase, razorpay, keyId } = getPaymentServices(req);
     const user = await requireUser(supabase, accessToken);
-    const userId = user?.id || body.userId || body.user_id;
+    const userId = user?.id;
     if (!userId) {
       return sendJson(res, 401, { error: 'Unable to authenticate user session.' });
     }
@@ -108,6 +108,7 @@ export default async function handler(req, res) {
           .from('platform_settings')
           .select('*')
           .or('setting_key.eq.coin_redemption_config,key.eq.coin_redemption_config')
+          .limit(1)
           .maybeSingle();
         const confVal = confRow?.setting_value || confRow?.value;
         if (confVal) {
@@ -169,7 +170,7 @@ export default async function handler(req, res) {
     if (!internalOrderId || !Number.isSafeInteger(amountPaise) || amountPaise <= 0) {
       throw new Error('The payment service returned an invalid order.');
     }
-    if (amountPaise !== Math.round(requestedAmount * 100)) {
+    if (Math.abs(amountPaise - Math.round(requestedAmount * 100)) > 1) {
       return sendJson(res, 409, { error: 'The server price changed. Reopen checkout to review the latest total.' });
     }
 

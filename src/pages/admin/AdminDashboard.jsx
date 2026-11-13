@@ -34,14 +34,14 @@ export default function AdminDashboard() {
         grantsResult,
         unconfirmedResult,
         ordersResult,
-        contentResult,
+        chaptersResult,
         questionsResult
       ] = await Promise.allSettled([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('user_access').select('*', { count: 'exact', head: true }),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).is('email_confirmed_at', null),
+        supabase.from('user_access').select('*', { count: 'exact', head: true }).eq('is_active', true),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).or('email_confirmed_at.is.null,email_verified.is.false'),
         supabase.from('payment_orders').select('amount, status'),
-        supabase.from('content_items').select('*', { count: 'exact', head: true }),
+        supabase.from('chapters').select('*', { count: 'exact', head: true }),
         supabase.from('questions').select('*', { count: 'exact', head: true })
       ]);
 
@@ -50,10 +50,12 @@ export default function AdminDashboard() {
       const usersCount = usersResult.status === 'fulfilled' && !usersResult.value.error ? (usersResult.value.count ?? 0) : 0;
       let paidCount = grantsResult.status === 'fulfilled' && !grantsResult.value.error ? (grantsResult.value.count ?? 0) : 0;
 
-      // Fallback for subscriptions if user_access count is 0
+      // Fallback for paid users if user_access count is 0: check paid orders
       if (!paidCount) {
-        const { count: subsCount } = await supabase.from('subscriptions').select('*', { count: 'exact', head: true });
-        if (subsCount) paidCount = subsCount;
+        try {
+          const { count: paidOrdersCount } = await supabase.from('payment_orders').select('*', { count: 'exact', head: true }).eq('status', 'paid');
+          if (paidOrdersCount) paidCount = paidOrdersCount;
+        } catch (_) { }
       }
 
       const pendingCount = unconfirmedResult.status === 'fulfilled' && !unconfirmedResult.value.error ? (unconfirmedResult.value.count ?? 0) : 0;
@@ -63,15 +65,9 @@ export default function AdminDashboard() {
         revenue = ordersResult.value.data
           .filter((ord) => ['paid', 'success', 'captured'].includes(String(ord.status || '').toLowerCase()))
           .reduce((sum, order) => sum + Number(order.amount || 0), 0);
-      } else {
-        // Fallback for legacy orders table
-        const { data: legacyOrders } = await supabase.from('orders').select('amount').eq('status', 'paid');
-        if (legacyOrders) {
-          revenue = legacyOrders.reduce((sum, order) => sum + Number(order.amount || 0), 0);
-        }
       }
 
-      const contentCount = contentResult.status === 'fulfilled' && !contentResult.value.error ? (contentResult.value.count ?? 0) : 0;
+      const contentCount = chaptersResult.status === 'fulfilled' && !chaptersResult.value.error ? (chaptersResult.value.count ?? 0) : 0;
       const questionsCount = questionsResult.status === 'fulfilled' && !questionsResult.value.error ? (questionsResult.value.count ?? 0) : 0;
 
       setStats({
@@ -138,8 +134,8 @@ export default function AdminDashboard() {
               rawVal === null || rawVal === undefined || isNaN(rawVal)
                 ? '0'
                 : key === 'revenue'
-                ? `₹${Number(rawVal).toLocaleString('en-IN')}`
-                : Number(rawVal).toLocaleString();
+                  ? `₹${Number(rawVal).toLocaleString('en-IN')}`
+                  : Number(rawVal).toLocaleString();
 
             return (
               <article className="metric-card" key={key}>

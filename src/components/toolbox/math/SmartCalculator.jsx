@@ -3,7 +3,7 @@ import { Delete, Equal, Sparkles } from 'lucide-react';
 import { useThemeLanguage } from '../../../context/ThemeLanguageContext';
 
 const basicKeys = [
-  ['AC', 'clear'], ['DEL', 'delete'], ['%', 'operator'], ['÷', 'operator'],
+  ['AC', 'clear'], ['DEL', 'delete'], ['%', 'percent'], ['÷', 'operator'],
   ['7', 'number'], ['8', 'number'], ['9', 'number'], ['×', 'operator'],
   ['4', 'number'], ['5', 'number'], ['6', 'number'], ['−', 'operator'],
   ['1', 'number'], ['2', 'number'], ['3', 'number'], ['+', 'operator'],
@@ -15,7 +15,7 @@ function calculate(left, operator, right) {
   if (operator === '−') return left - right;
   if (operator === '×') return left * right;
   if (operator === '÷') return right === 0 ? NaN : left / right;
-  if (operator === '%') return left % right;
+  if (operator === '%') return (left * right) / 100;
   if (operator === 'nPr') return choose(left, right, true);
   if (operator === 'nCr') return choose(left, right, false);
   return right;
@@ -66,6 +66,15 @@ export default function SmartCalculator() {
       setReplaceDisplay(false);
     } else if (type === 'sign') {
       setDisplay((current) => current.startsWith('-') ? current.slice(1) : `-${current}`);
+    } else if (type === 'percent') {
+      const current = Number(display);
+      if (operator && storedValue !== null) {
+        const percentVal = (storedValue * current) / 100;
+        setDisplay(tidy(percentVal));
+      } else {
+        setDisplay(tidy(current / 100));
+        setReplaceDisplay(true);
+      }
     } else if (type === 'operator') {
       const current = Number(display);
       if (operator && storedValue !== null && !replaceDisplay) {
@@ -129,7 +138,7 @@ export default function SmartCalculator() {
       {basicKeys.map(([label, type]) => <button
         type="button"
         key={label}
-        className={`calculator-key ${type === 'operator' || type === 'equals' ? 'accent' : ''} ${type === 'clear' || type === 'delete' ? 'utility' : ''} ${type === 'operator' && activeOperation === label ? 'selected' : ''}`}
+        className={`calculator-key ${type === 'operator' || type === 'equals' || type === 'percent' ? 'accent' : ''} ${type === 'clear' || type === 'delete' ? 'utility' : ''} ${type === 'operator' && activeOperation === label ? 'selected' : ''}`}
         aria-label={label === 'DEL' ? t('tbDeleteLastDigit') : label}
         aria-pressed={type === 'operator' ? activeOperation === label : undefined}
         onClick={() => press(label, type)}

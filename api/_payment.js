@@ -22,8 +22,8 @@ export function getPaymentServices(req) {
   if (!accessToken) throw new Error('Sign in before starting checkout.');
 
   const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
-  const anonKey = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
-  const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || anonKey || '').trim();
+  const anonKey = (process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '').trim();
+  const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
   const keyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || '').trim();
   const keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
   if (!url || !anonKey) throw new Error('Supabase server configuration is incomplete.');
@@ -33,12 +33,13 @@ export function getPaymentServices(req) {
     auth: { autoRefreshToken: false, persistSession: false },
     global: { headers: { Authorization: `Bearer ${accessToken}` } }
   });
-  const supabaseAdmin = createClient(url, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    global: serviceRoleKey === anonKey ? { headers: { Authorization: `Bearer ${accessToken}` } } : {}
-  });
+  const supabaseAdmin = serviceRoleKey
+    ? createClient(url, serviceRoleKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      })
+    : null;
   const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
-  return { accessToken, supabase, supabaseAdmin, razorpay, keyId, keySecret };
+  return { accessToken, supabase, supabaseAdmin, hasServiceRole: Boolean(serviceRoleKey), razorpay, keyId, keySecret };
 }
 
 export async function requireUser(supabase, accessToken) {

@@ -88,7 +88,18 @@ export async function ensureReferralCode(supabase, userId, existingCode = null) 
   if (existingCode && String(existingCode).trim()) return existingCode;
 
   try {
-    const code = generateReferralCode();
+    let code = generateReferralCode();
+    // Verify uniqueness before assigning
+    for (let attempts = 0; attempts < 5; attempts++) {
+      const { data: collision } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('referral_code', code)
+        .maybeSingle();
+      if (!collision) break;
+      code = generateReferralCode();
+    }
+
     const { error } = await supabase
       .from('profiles')
       .update({ referral_code: code })
@@ -112,11 +123,24 @@ export async function processReferralAward(supabase, newUserId, refCode) {
     const cleanCode = String(refCode).trim().toUpperCase();
     if (!cleanCode) return null;
 
-    // 1. Check settings
+    // 1. Try atomic server-side RPC first (prevents race conditions)
+    try {
+      const { data: rpcResult, error: rpcError } = await supabase.rpc('claim_referral_code', {
+        p_ref_code: cleanCode
+      });
+      if (!rpcError && rpcResult) {
+        if (rpcResult.success) return rpcResult;
+        if (rpcResult.already_referred) return null;
+      }
+    } catch (_) {
+      // Fall through to client-side award if RPC is not yet migrated
+    }
+
+    // 2. Check settings
     const settings = await getReferralSettings(supabase);
     if (!settings.enabled) return null;
 
-    // 2. Find referrer
+    // 3. Find referrer
     const { data: referrer, error: referrerError } = await supabase
       .from('profiles')
       .select('id, full_name, email, referral_code')
@@ -127,7 +151,7 @@ export async function processReferralAward(supabase, newUserId, refCode) {
       return null;
     }
 
-    // 3. Check if referral already recorded
+    // 4. Check if referral already recorded
     const { data: existingReferral } = await supabase
       .from('referrals')
       .select('id')
@@ -138,7 +162,7 @@ export async function processReferralAward(supabase, newUserId, refCode) {
       return null; // Already credited
     }
 
-    // 4. Log referral record
+    // 5. Log referral record
     const { data: referralRecord, error: insertError } = await supabase
       .from('referrals')
       .insert({
@@ -154,7 +178,7 @@ export async function processReferralAward(supabase, newUserId, refCode) {
       console.warn('Could not insert referral row:', insertError.message);
     }
 
-    // 5. Credit coins to both wallets
+    // 6. Credit coins to both wallets
     // Referrer
     try {
       await creditCoinsToWallet(supabase, referrer.id, settings.referrerCoins, 'Referral reward: invited a student');

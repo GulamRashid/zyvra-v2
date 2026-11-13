@@ -40,10 +40,10 @@ export default function PricingManager() {
     if (!supabase) { setLoading(false); return; }
     setError('');
     const [configResult, enabledResult, orderResult, couponResult] = await Promise.all([
-      supabase.from('platform_settings').select('*').or('setting_key.eq.coin_redemption_config,key.eq.coin_redemption_config').maybeSingle(),
-      supabase.from('platform_settings').select('*').or('setting_key.eq.global_pricing_enabled,key.eq.global_pricing_enabled').maybeSingle(),
+      supabase.from('platform_settings').select('*').or('setting_key.eq.coin_redemption_config,key.eq.coin_redemption_config').limit(1).maybeSingle(),
+      supabase.from('platform_settings').select('*').or('setting_key.eq.global_pricing_enabled,key.eq.global_pricing_enabled').limit(1).maybeSingle(),
       supabase.from('payment_orders').select('*').order('created_at', { ascending: false }).limit(50),
-      supabase.from('platform_settings').select('*').or('setting_key.eq.coupon_codes,key.eq.coupon_codes').maybeSingle()
+      supabase.from('platform_settings').select('*').or('setting_key.eq.coupon_codes,key.eq.coupon_codes').limit(1).maybeSingle()
     ]);
     const failed = [configResult, enabledResult, orderResult, couponResult].find((result) => result.error);
     if (failed) throw failed.error;

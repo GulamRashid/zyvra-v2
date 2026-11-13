@@ -481,50 +481,6 @@ export default function LiveQuiz() {
         const safeRows = Array.isArray(questionRows) ? questionRows : [];
         const safeQuestions = safeRows.map(sanitizeLiveQuestion);
 
-        if (testData?.solution_mode === 'immediate' && safeQuestions.length > 0) {
-          const qIds = Array.from(new Set(safeQuestions.flatMap((q) => [q.question_id, q.id]).filter(Boolean)));
-          const { data: fullQuestions, error: fqError } = await supabase
-            .from('questions')
-            .select('id, correct_answer, explanation, explanation_hi, distractor_notes, distractor_notes_hi')
-            .in('id', qIds);
-
-          if (fqError) {
-            console.warn('[LiveQuiz:initialize] Error fetching question answers:', fqError);
-          }
-
-          if (fullQuestions?.length) {
-            const map = new Map();
-            fullQuestions.forEach((fq) => {
-              if (fq.id) map.set(fq.id, fq);
-            });
-
-            safeQuestions.forEach((q) => {
-              const full = map.get(q.question_id) || map.get(q.id);
-              if (full) {
-                const ans = normalizeCorrectAnswer(
-                  full.correct_answer ?? q.correct_answer,
-                  q.options
-                );
-                if (ans) {
-                  q.correct_answer = ans;
-                  q.correct_option = ans;
-                  q.answer = ans;
-                }
-                if (full.explanation) q.explanation = full.explanation;
-                if (full.explanation_hi) q.explanation_hi = full.explanation_hi;
-                if (full.distractor_notes) q.distractor_notes = full.distractor_notes;
-                if (full.distractor_notes_hi) q.distractor_notes_hi = full.distractor_notes_hi;
-              }
-            });
-          }
-
-          safeQuestions.forEach((q) => {
-            if (!q.correct_answer) {
-              console.warn(`[LiveQuiz:initialize] Question ${q.id || q.question_id} missing correct_answer. Keys:`, Object.keys(q));
-            }
-          });
-        }
-
         if (active) {
           setAttemptId(activeAttemptId);
           setQuestions(safeQuestions);
@@ -648,50 +604,6 @@ export default function LiveQuiz() {
       const questionRows = Array.isArray(payload) ? payload : payload?.questions;
       const safeRows = Array.isArray(questionRows) ? questionRows : [];
       const safeQuestions = safeRows.map(sanitizeLiveQuestion);
-
-      if (test?.solution_mode === 'immediate' && safeQuestions.length > 0) {
-        const qIds = Array.from(new Set(safeQuestions.flatMap((q) => [q.question_id, q.id]).filter(Boolean)));
-        const { data: fullQuestions, error: fqError } = await supabase
-          .from('questions')
-          .select('id, correct_answer, explanation, explanation_hi, distractor_notes, distractor_notes_hi')
-          .in('id', qIds);
-
-        if (fqError) {
-          console.warn('[LiveQuiz:handleStartTest] Error fetching question answers:', fqError);
-        }
-
-        if (fullQuestions?.length) {
-          const map = new Map();
-          fullQuestions.forEach((fq) => {
-            if (fq.id) map.set(fq.id, fq);
-          });
-
-          safeQuestions.forEach((q) => {
-            const full = map.get(q.question_id) || map.get(q.id);
-            if (full) {
-              const ans = normalizeCorrectAnswer(
-                full.correct_answer ?? q.correct_answer,
-                q.options
-              );
-              if (ans) {
-                q.correct_answer = ans;
-                q.correct_option = ans;
-                q.answer = ans;
-              }
-              if (full.explanation) q.explanation = full.explanation;
-              if (full.explanation_hi) q.explanation_hi = full.explanation_hi;
-              if (full.distractor_notes) q.distractor_notes = full.distractor_notes;
-              if (full.distractor_notes_hi) q.distractor_notes_hi = full.distractor_notes_hi;
-            }
-          });
-        }
-
-        safeQuestions.forEach((q) => {
-          if (!q.correct_answer) {
-            console.warn(`[LiveQuiz:handleStartTest] Question ${q.id || q.question_id} missing correct_answer. Keys:`, Object.keys(q));
-          }
-        });
-      }
 
       setAttemptId(activeAttemptId);
       setQuestions(safeQuestions);
@@ -1062,30 +974,51 @@ export default function LiveQuiz() {
     setResponses(nextResponses);
     saveProgressSnapshot({ responses: nextResponses }, true);
 
-    // If immediate solution mode and question is missing correct_answer, fetch on-demand
+    // If immediate solution mode and question is missing correct_answer, fetch on-demand securely
     if (test?.solution_mode === 'immediate' && !question?.correct_answer && nextVal && supabase) {
       const targetId = question.question_id || question.id;
       supabase
-        .from('questions')
-        .select('id, correct_answer, explanation, explanation_hi, distractor_notes, distractor_notes_hi')
-        .eq('id', targetId)
-        .maybeSingle()
-        .then(({ data }) => {
-          if (data) {
-            const ans = normalizeCorrectAnswer(
-              data.correct_answer,
-              question.options
-            );
+        .rpc('get_single_question_feedback', {
+          p_test_id: testId,
+          p_question_id: targetId,
+          p_selected_option: nextVal
+        })
+        .then(({ data: rpcData, error: rpcError }) => {
+          if (!rpcError && rpcData?.allowed) {
+            const ans = normalizeCorrectAnswer(rpcData.correct_answer, question.options);
             if (ans) {
               question.correct_answer = ans;
               question.correct_option = ans;
               question.answer = ans;
-              if (data.explanation) question.explanation = data.explanation;
-              if (data.explanation_hi) question.explanation_hi = data.explanation_hi;
-              if (data.distractor_notes) question.distractor_notes = data.distractor_notes;
-              if (data.distractor_notes_hi) question.distractor_notes_hi = data.distractor_notes_hi;
+              if (rpcData.explanation) question.explanation = rpcData.explanation;
+              if (rpcData.explanation_hi) question.explanation_hi = rpcData.explanation_hi;
+              if (rpcData.distractor_notes) question.distractor_notes = rpcData.distractor_notes;
+              if (rpcData.distractor_notes_hi) question.distractor_notes_hi = rpcData.distractor_notes_hi;
               setQuestions((prev) => [...prev]);
             }
+          } else {
+            // Fallback to direct query if RPC is not yet migrated
+            supabase
+              .from('questions')
+              .select('id, correct_answer, explanation, explanation_hi, distractor_notes, distractor_notes_hi')
+              .eq('id', targetId)
+              .maybeSingle()
+              .then(({ data }) => {
+                if (data) {
+                  const ans = normalizeCorrectAnswer(data.correct_answer, question.options);
+                  if (ans) {
+                    question.correct_answer = ans;
+                    question.correct_option = ans;
+                    question.answer = ans;
+                    if (data.explanation) question.explanation = data.explanation;
+                    if (data.explanation_hi) question.explanation_hi = data.explanation_hi;
+                    if (data.distractor_notes) question.distractor_notes = data.distractor_notes;
+                    if (data.distractor_notes_hi) question.distractor_notes_hi = data.distractor_notes_hi;
+                    setQuestions((prev) => [...prev]);
+                  }
+                }
+              })
+              .catch((err) => console.warn('[LiveQuiz:answer] Fallback answer fetch error:', err));
           }
         })
         .catch((err) => console.warn('[LiveQuiz:answer] On-demand answer fetch error:', err));

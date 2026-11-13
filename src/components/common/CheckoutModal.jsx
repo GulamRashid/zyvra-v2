@@ -43,8 +43,8 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
       if (!supabase || !user) throw new Error(t('signInToPurchase'));
       const [walletResult, settingResult, pricingResult] = await Promise.all([
         supabase.from('coin_wallets').select('balance').eq('user_id', user.id).maybeSingle(),
-        supabase.from('platform_settings').select('*').or('setting_key.eq.coin_redemption_config,key.eq.coin_redemption_config').maybeSingle(),
-        supabase.from('platform_settings').select('*').or('setting_key.eq.global_pricing_enabled,key.eq.global_pricing_enabled').maybeSingle()
+        supabase.from('platform_settings').select('*').or('setting_key.eq.coin_redemption_config,key.eq.coin_redemption_config').limit(1).maybeSingle(),
+        supabase.from('platform_settings').select('*').or('setting_key.eq.global_pricing_enabled,key.eq.global_pricing_enabled').limit(1).maybeSingle()
       ]);
       if (walletResult.error) throw walletResult.error;
       if (settingResult.error) throw settingResult.error;
