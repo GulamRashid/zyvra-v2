@@ -205,7 +205,7 @@ export default function TestHub() {
   }, [tests, searchQuery, testFilter]);
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1713] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 pb-28 md:pb-12 transition-colors duration-200 overflow-x-hidden">
+    <div className="min-h-screen dark:bg-[#0B1713] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 transition-colors duration-200 overflow-x-hidden">
       {/* Top Ambient Mountain Aura */}
       <div className="relative">
         <MountainSunsetAura height={190} showSun={true} />

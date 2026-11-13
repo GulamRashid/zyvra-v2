@@ -71,7 +71,7 @@ export default function FolderView() {
   const isCurrentFolderUnlocked = hasPurchasedExam || pricing.amount <= 0 || isFolderUnlocked(folder?.id, folders, purchasedFolderIds) || accessByKey[`folder:${folder?.id}`] === true;
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 pb-28 md:pb-12 transition-colors">
+    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
       <div className="max-w-3xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Breadcrumbs */}
         <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-emerald-400/80 overflow-x-auto no-scrollbar py-1">
@@ -119,7 +119,7 @@ export default function FolderView() {
               It may be unpublished or its exam has changed.
             </span>
             <Link
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white text-sm font-black"
               to="/explore"
             >
               Back to explore
@@ -145,11 +145,11 @@ export default function FolderView() {
                 </div>
               </div>
 
-              <p className="text-xs sm:text-sm dark:text-emerald-200/80 text-slate-600 font-medium">
+              <p className="text-sm dark:text-emerald-200/80 text-slate-600 font-medium">
                 {folder.description || 'Explore the topics and chapters in this learning section.'}
               </p>
 
-              <div className="flex items-center gap-2 flex-wrap pt-1 text-xs">
+              <div className="flex items-center gap-2 flex-wrap pt-1 text-sm">
                 <AccessBadge label={pricing.amount ? (isCurrentFolderUnlocked ? 'Purchased' : pricing.label) : 'Free'} />
                 {pricing.amount > 0 && (
                   <span className="text-amber-600 dark:text-amber-400 font-bold">
@@ -217,7 +217,7 @@ export default function FolderView() {
                 </div>
                 <h2 className="text-base font-black dark:text-white text-slate-900">Topics & chapters</h2>
               </div>
-              <span className="text-xs font-bold dark:text-emerald-300 text-emerald-800">
+              <span className="text-sm font-bold dark:text-emerald-300 text-emerald-800">
                 {childFolders.length + folderChapters.length} learning items
               </span>
             </div>
@@ -252,7 +252,7 @@ export default function FolderView() {
                           <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
                             {child.title}
                           </strong>
-                          <small className="text-[11px] dark:text-emerald-300/70 text-slate-500 block truncate">
+                          <small className="text-sm dark:text-emerald-300/70 text-slate-500 block truncate">
                             {child.description || `${count} chapters to explore`}
                           </small>
                         </div>
@@ -268,7 +268,7 @@ export default function FolderView() {
                       <div className="pt-2 border-t dark:border-emerald-800/25 border-slate-100 flex justify-end">
                         <button
                           type="button"
-                          className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[38px]"
+                          className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[44px]"
                           onClick={() => setCheckoutItem({ itemType: 'folder', itemId: child.id, itemTitle: child.title, tier: 'Folder Bundle', basePrice: childPricing.amount })}
                         >
                           <span>Buy bundle · ₹{childPricing.amount.toLocaleString('en-IN')}</span>
@@ -298,7 +298,7 @@ export default function FolderView() {
                           <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
                             {chapter.title}
                           </strong>
-                          <div className="text-[11px] dark:text-emerald-300/70 text-slate-500 flex items-center gap-2 mt-0.5">
+                          <div className="text-sm dark:text-emerald-300/70 text-slate-500 flex items-center gap-2 mt-0.5">
                             <span className="font-semibold text-emerald-700 dark:text-emerald-300">{chapter.subject || 'General'}</span>
                             <span>•</span>
                             <span><Clock3 size={11} className="inline mr-0.5" />{chapter.estimated_study_time_minutes || '—'} min</span>
@@ -316,7 +316,7 @@ export default function FolderView() {
                       <div className="pt-2 border-t dark:border-emerald-800/25 border-slate-100 flex justify-end">
                         <button
                           type="button"
-                          className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[38px]"
+                          className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[44px]"
                           onClick={() => setCheckoutItem({ itemType: 'chapter', itemId: chapter.id, itemTitle: chapter.title, tier: 'Chapter', basePrice: access.amount })}
                         >
                           <span>Buy chapter · ₹{access.amount.toLocaleString('en-IN')}</span>

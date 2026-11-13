@@ -167,7 +167,7 @@ export default function StudentAnalytics() {
   }, [responses, questions]);
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 pb-28 md:pb-12 transition-colors">
+    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
       <div className="max-w-4xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Page Heading Banner */}
         <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#07261b] dark:to-[#04140e] bg-gradient-to-br from-emerald-100/90 via-teal-50 to-white border dark:border-emerald-500/25 border-emerald-200 p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -184,7 +184,7 @@ export default function StudentAnalytics() {
           </div>
 
           <Link
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 text-black text-xs font-black shadow-glowGold inline-flex items-center gap-1.5 shrink-0 min-h-[40px]"
+            className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white text-sm font-black inline-flex items-center gap-1.5 shrink-0 min-h-[44px]"
             to="/tests"
           >
             <span>Practice more</span>
@@ -205,7 +205,7 @@ export default function StudentAnalytics() {
             {/* 4 Analytics Stat Cards (2x2 on mobile 360px, 4 across on desktop) */}
             <section className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
               <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 flex flex-col justify-between">
-                <div className="w-8 h-8 rounded-xl dark:bg-amber-500/20 bg-amber-100 text-amber-500 flex items-center justify-center mb-1">
+                <div className="w-8 h-8 rounded-xl dark:bg-emerald-500/20 bg-emerald-100 text-emerald-500 flex items-center justify-center mb-1">
                   <CheckCircle2 size={16} />
                 </div>
                 <small className="text-[10px] uppercase font-bold dark:text-emerald-400/70 text-slate-500">
@@ -214,7 +214,7 @@ export default function StudentAnalytics() {
                 <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
                   {stats.total}
                 </strong>
-                <span className="text-[10px] dark:text-emerald-300/80 text-slate-500">Completed attempts</span>
+                <span className="text-sm dark:text-emerald-300/80 text-slate-500">Completed attempts</span>
               </article>
 
               <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 flex flex-col justify-between">
@@ -227,7 +227,7 @@ export default function StudentAnalytics() {
                 <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
                   {stats.accuracy.toFixed(1)}%
                 </strong>
-                <span className="text-[10px] dark:text-emerald-300/80 text-slate-500">Correct answers</span>
+                <span className="text-sm dark:text-emerald-300/80 text-slate-500">Correct answers</span>
               </article>
 
               <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 flex flex-col justify-between">
@@ -240,7 +240,7 @@ export default function StudentAnalytics() {
                 <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
                   {stats.averageScore.toFixed(1)}%
                 </strong>
-                <span className="text-[10px] dark:text-emerald-300/80 text-slate-500">Across scored tests</span>
+                <span className="text-sm dark:text-emerald-300/80 text-slate-500">Across scored tests</span>
               </article>
 
               <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 flex flex-col justify-between">
@@ -253,7 +253,7 @@ export default function StudentAnalytics() {
                 <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
                   {stats.streak}d
                 </strong>
-                <span className="text-[10px] dark:text-emerald-300/80 text-slate-500">Consecutive days</span>
+                <span className="text-sm dark:text-emerald-300/80 text-slate-500">Consecutive days</span>
               </article>
             </section>
 
@@ -284,7 +284,7 @@ export default function StudentAnalytics() {
                         <div className="flex items-center justify-between text-xs">
                           <div>
                             <strong className="dark:text-white text-slate-900 font-bold">{item.subject}</strong>
-                            <span className="text-[10px] text-slate-400 dark:text-emerald-400/60 ml-2">
+                            <span className="text-sm text-slate-400 dark:text-emerald-400/60 ml-2">
                               {item.count} questions
                             </span>
                           </div>
@@ -322,7 +322,7 @@ export default function StudentAnalytics() {
                     <strong className="block text-sm dark:text-white text-slate-900">Your first result is one test away.</strong>
                     <span>Take a mock test and review your solutions here.</span>
                     <div className="pt-2">
-                      <Link className="px-4 py-2 rounded-xl bg-amber-400 text-black text-xs font-black shadow-glowGold inline-block" to="/tests">
+                      <Link className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white text-sm font-black inline-block" to="/tests">
                         Find a test
                       </Link>
                     </div>
@@ -354,7 +354,7 @@ export default function StudentAnalytics() {
 
                           <div className="flex items-center gap-2 shrink-0">
                             <div className="text-right">
-                              <strong className="text-xs sm:text-sm font-black dark:text-amber-300 text-amber-700 block">
+                              <strong className="text-sm font-black dark:text-emerald-300 text-emerald-700 block">
                                 {percent ? `${percent.toFixed(1)}%` : score.toLocaleString()}
                               </strong>
                               {blankCount > 0 && (

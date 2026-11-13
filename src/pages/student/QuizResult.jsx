@@ -266,7 +266,7 @@ export default function QuizResult() {
   }
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-800 pb-28 md:pb-12 transition-colors duration-200 overflow-x-hidden">
+    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-800 transition-colors duration-200 overflow-x-hidden">
       {/* Top Header Bar */}
       <header className="sticky top-0 z-30 dark:bg-[#04140e]/95 bg-white/95 backdrop-blur-md border-b dark:border-emerald-500/15 border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3 shadow-xs">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -323,7 +323,7 @@ export default function QuizResult() {
           <button
             type="button"
             onClick={() => setActiveTab('review')}
-            className={`flex-1 min-w-[75px] sm:min-w-[110px] py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[40px] ${
+            className={`flex-1 min-w-[75px] sm:min-w-[110px] py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'review'
                 ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md'
                 : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
@@ -336,7 +336,7 @@ export default function QuizResult() {
           <button
             type="button"
             onClick={() => setActiveTab('solutions')}
-            className={`flex-1 min-w-[75px] sm:min-w-[110px] py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[40px] ${
+            className={`flex-1 min-w-[75px] sm:min-w-[110px] py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'solutions'
                 ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md'
                 : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
@@ -349,7 +349,7 @@ export default function QuizResult() {
           <button
             type="button"
             onClick={() => setActiveTab('analysis')}
-            className={`flex-1 min-w-[85px] sm:min-w-[120px] py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[40px] ${
+            className={`flex-1 min-w-[85px] sm:min-w-[120px] py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'analysis'
                 ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md'
                 : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
@@ -362,7 +362,7 @@ export default function QuizResult() {
           <button
             type="button"
             onClick={() => setActiveTab('compare')}
-            className={`flex-1 min-w-[75px] sm:min-w-[100px] py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[40px] ${
+            className={`flex-1 min-w-[75px] sm:min-w-[100px] py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'compare'
                 ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md'
                 : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
@@ -440,7 +440,7 @@ export default function QuizResult() {
                 <select
                   value={reviewFilter}
                   onChange={(e) => setReviewFilter(e.target.value)}
-                  className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-800 text-xs font-bold focus:outline-none min-h-[36px]"
+                  className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-800 text-xs font-bold focus:outline-none min-h-[44px]"
                 >
                   <option value="all">All ({solutions.length})</option>
                   <option value="correct">Correct ({stats.correctCount})</option>

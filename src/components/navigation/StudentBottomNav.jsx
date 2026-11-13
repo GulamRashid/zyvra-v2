@@ -87,17 +87,17 @@ export default function StudentBottomNav() {
         <>
           <button
             type="button"
-            className="fixed inset-0 z-[-1] bg-black/30"
+            className="fixed inset-0 z-30 bg-black/30"
             aria-label="Close more menu"
             onClick={() => setMoreOpen(false)}
           />
           <div
             id="student-more-menu"
-            className="absolute bottom-full left-2 right-2 mb-2 rounded-2xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/25 border-emerald-200 shadow-lg p-2"
+            className="absolute bottom-full left-2 right-2 z-50 mb-2 rounded-2xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/25 border-emerald-200 shadow-lg p-2"
           >
             <div className="flex items-center justify-between px-3 py-2">
               <span className="text-xs font-black dark:text-white text-slate-900">More learning spaces</span>
-              <button type="button" onClick={() => setMoreOpen(false)} aria-label="Close more menu" className="p-1 rounded-lg dark:text-emerald-300 text-slate-500">
+              <button type="button" onClick={() => setMoreOpen(false)} aria-label="Close more menu" className="min-h-[44px] min-w-[44px] p-1 rounded-lg dark:text-emerald-300 text-slate-500">
                 <X size={15} />
               </button>
             </div>

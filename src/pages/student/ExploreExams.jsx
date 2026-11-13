@@ -34,7 +34,7 @@ export default function ExploreExams() {
   }), [exams, selectedCategory, search]);
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 pb-28 md:pb-12 transition-colors">
+    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
       <div className="max-w-4xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Page Heading Banner */}
         <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#07261b] dark:to-[#04140e] bg-gradient-to-br from-emerald-100/90 via-teal-50 to-white border dark:border-emerald-500/25 border-emerald-200 p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -79,9 +79,9 @@ export default function ExploreExams() {
                 <button
                   key={item}
                   onClick={() => setSelectedCategory(item)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all min-h-[36px] ${
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all min-h-[44px] ${
                     isSelected
-                      ? 'bg-amber-400 text-black shadow-glowGold'
+                      ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
                       : 'dark:bg-[#072117]/85 bg-white border dark:border-emerald-500/20 border-slate-200 dark:text-emerald-200 text-slate-700 hover:border-emerald-400'
                   }`}
                 >
@@ -135,14 +135,14 @@ export default function ExploreExams() {
                     <h2 className="text-base sm:text-lg font-black dark:text-white text-slate-900 tracking-tight">
                       {exam.title}
                     </h2>
-                    <p className="text-xs dark:text-emerald-200/80 text-slate-600 font-medium line-clamp-2 mt-0.5">
+                    <p className="text-sm dark:text-emerald-200/80 text-slate-600 font-medium line-clamp-2 mt-0.5">
                       {exam.description || 'A structured learning path with topics, practice and tests to help you prepare.'}
                     </p>
                   </div>
                 </div>
 
                 <div className="pt-2 border-t dark:border-emerald-800/30 border-slate-100 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500 dark:text-emerald-400/70">
+                  <div className="flex items-center gap-3 text-sm font-semibold text-slate-500 dark:text-emerald-400/70">
                     <span className="flex items-center gap-1">
                       <BookOpen size={13} /> {examFolders.length} {examFolders.length === 1 ? 'folder' : 'folders'}
                     </span>
@@ -152,7 +152,7 @@ export default function ExploreExams() {
                   </div>
 
                   <Link
-                    className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 text-black font-black text-xs shadow-glowGold inline-flex items-center gap-1 min-h-[38px]"
+                    className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white font-black text-sm inline-flex items-center gap-1 min-h-[44px]"
                     to={`/explore/${encodeURIComponent(exam.slug || exam.id)}`}
                   >
                     <span>Syllabus</span>

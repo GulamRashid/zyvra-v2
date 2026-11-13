@@ -377,7 +377,7 @@ export default function StudentHome() {
   );
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1713] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 pb-28 md:pb-12 transition-colors duration-200 overflow-x-hidden">
+    <div className="min-h-screen dark:bg-[#0B1713] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 transition-colors duration-200 overflow-x-hidden">
       {shouldShowOnboarding && <OnboardingModal />}
 
       {/* Top Ambient Mountain Aura */}

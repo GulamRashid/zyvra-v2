@@ -350,18 +350,18 @@ export default function StudentToolbox() {
         <h2 className="text-base font-black dark:text-white text-slate-900">{t('tbReasoningTitle')}</h2>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <article className="p-4 rounded-2xl dark:bg-emerald-950/60 bg-slate-50 border dark:border-emerald-500/20 border-slate-200 space-y-1 text-xs">
+        <article className="p-4 rounded-2xl dark:bg-emerald-950/60 bg-slate-50 border dark:border-emerald-500/20 border-slate-200 space-y-1 text-sm">
           <strong className="block text-amber-500 font-extrabold">{t('tbSyllogism')}</strong>
           <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbSyllogism1')}</span>
           <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbSyllogism2')}</span>
           <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbSyllogism3')}</span>
           <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbSyllogism4')}</span>
         </article>
-        <article className="p-4 rounded-2xl dark:bg-emerald-950/60 bg-slate-50 border dark:border-emerald-500/20 border-slate-200 space-y-1 text-xs">
+        <article className="p-4 rounded-2xl dark:bg-emerald-950/60 bg-slate-50 border dark:border-emerald-500/20 border-slate-200 space-y-1 text-sm">
           <strong className="block text-amber-500 font-extrabold">{t('tbClock')}</strong>
           <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbClockFormula')}</span>
         </article>
-        <article className="p-4 rounded-2xl dark:bg-emerald-950/60 bg-slate-50 border dark:border-emerald-500/20 border-slate-200 space-y-1 text-xs sm:col-span-2">
+        <article className="p-4 rounded-2xl dark:bg-emerald-950/60 bg-slate-50 border dark:border-emerald-500/20 border-slate-200 space-y-1 text-sm sm:col-span-2">
           <strong className="block text-amber-500 font-extrabold">{t('tbCalendar')}</strong>
           <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbOddDays')}</span>
           <span className="block dark:text-emerald-200/90 text-slate-700">{t('tbLeapYear')}</span>
@@ -462,7 +462,7 @@ export default function StudentToolbox() {
   };
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 pb-28 md:pb-12 transition-colors">
+    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
       <div className="max-w-2xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Top Header / Breadcrumb */}
         {currentView !== 'main-menu' ? (
@@ -470,7 +470,7 @@ export default function StudentToolbox() {
             <button
               type="button"
               onClick={goBack}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl dark:bg-emerald-950/80 bg-slate-100 hover:bg-slate-200 dark:hover:bg-emerald-900 dark:text-emerald-300 text-slate-800 text-xs font-bold transition-colors min-h-[36px]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl dark:bg-emerald-950/80 bg-slate-100 hover:bg-slate-200 dark:hover:bg-emerald-900 dark:text-emerald-300 text-slate-800 text-xs font-bold transition-colors min-h-[44px]"
             >
               <ArrowLeft size={16} />
               <span>{currentView === 'active-tool' ? 'Back to Tools' : 'Back to Toolbox'}</span>
@@ -485,10 +485,10 @@ export default function StudentToolbox() {
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-500 text-base">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-500 text-base">
                     🧰
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
                     Zyvra Study Suite
                   </span>
                 </div>
@@ -548,9 +548,9 @@ export default function StudentToolbox() {
               <button
                 type="button"
                 onClick={() => setActiveCategory(null)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all flex items-center gap-1.5 min-h-[38px] ${
+                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all flex items-center gap-1.5 min-h-[44px] ${
                   activeCategory === null
-                    ? 'bg-amber-400 text-black shadow-glowGold'
+                    ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
                     : 'dark:bg-[#072117]/85 bg-white border dark:border-emerald-500/20 border-slate-200 dark:text-emerald-200 text-slate-700 hover:border-emerald-400'
                 }`}
               >
@@ -563,9 +563,9 @@ export default function StudentToolbox() {
                     key={id}
                     type="button"
                     onClick={() => setActiveCategory(isSelected ? null : id)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all flex items-center gap-1.5 min-h-[38px] ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all flex items-center gap-1.5 min-h-[44px] ${
                       isSelected
-                        ? 'bg-amber-400 text-black shadow-glowGold'
+                        ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
                         : 'dark:bg-[#072117]/85 bg-white border dark:border-emerald-500/20 border-slate-200 dark:text-emerald-200 text-slate-700 hover:border-emerald-400'
                     }`}
                   >
@@ -580,7 +580,7 @@ export default function StudentToolbox() {
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
                 <h3 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 flex items-center gap-1.5">
-                  <span className="text-amber-400">🔥</span>
+                  <span className="text-emerald-400">🔥</span>
                   <span>Popular Tools</span>
                 </h3>
                 <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">Quick Access</span>
@@ -590,7 +590,7 @@ export default function StudentToolbox() {
                 {[
                   { id: 'calculator', cat: 'math', label: 'Calculator', icon: Calculator, color: 'text-emerald-500' },
                   { id: 'fraction-converter', cat: 'math', label: 'Percentage', icon: Percent, color: 'text-cyan-500' },
-                  { id: 'constitution-articles', cat: 'general-studies', label: 'Articles', icon: Landmark, color: 'text-amber-500' },
+                  { id: 'constitution-articles', cat: 'general-studies', label: 'Articles', icon: Landmark, color: 'text-emerald-500' },
                   { id: 'geometry-formulas', cat: 'math', label: 'Formulas', icon: Sigma, color: 'text-indigo-500' },
                   { id: 'pomodoro', cat: 'productivity', label: 'Timer', icon: Clock3, color: 'text-rose-500' }
                 ].map((item) => {
@@ -662,7 +662,7 @@ export default function StudentToolbox() {
                             <h4 className="text-sm font-bold dark:text-white text-slate-900">
                               {t(category.titleKey)}
                             </h4>
-                            <p className="text-[11px] dark:text-emerald-300/70 text-slate-500">
+                            <p className="text-sm dark:text-emerald-300/70 text-slate-500">
                               {tools.length} Tools Available
                             </p>
                           </div>
@@ -752,7 +752,7 @@ export default function StudentToolbox() {
                         <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
                           {t(tool.titleKey)}
                         </strong>
-                        <small className="text-[11px] dark:text-emerald-300/70 text-slate-500 line-clamp-1">
+                        <small className="text-sm dark:text-emerald-300/70 text-slate-500 line-clamp-1">
                           {t(tool.subtitleKey)}
                         </small>
                       </div>

@@ -82,7 +82,7 @@ export default function StudentWallet() {
   }, [transactions, coinBalance]);
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 pb-28 md:pb-12 transition-colors">
+    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
       <div className="max-w-4xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Page Heading Banner */}
         <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#07261b] dark:to-[#04140e] bg-gradient-to-br from-emerald-100/90 via-teal-50 to-white border dark:border-emerald-500/25 border-emerald-200 p-4 sm:p-6 shadow-sm">
@@ -201,7 +201,7 @@ export default function StudentWallet() {
             </div>
 
             <Link
-              className="w-full py-2.5 rounded-xl dark:bg-emerald-950/80 bg-slate-100 hover:bg-slate-200 dark:hover:bg-emerald-900 border dark:border-emerald-500/25 border-slate-300 text-xs font-bold dark:text-emerald-300 text-slate-800 flex items-center justify-center gap-1.5 transition-colors min-h-[40px]"
+              className="w-full py-2.5 rounded-xl dark:bg-emerald-950/80 bg-slate-100 hover:bg-slate-200 dark:hover:bg-emerald-900 border dark:border-emerald-500/25 border-slate-300 text-xs font-bold dark:text-emerald-300 text-slate-800 flex items-center justify-center gap-1.5 transition-colors min-h-[44px]"
               to="/explore"
             >
               <span>Explore learning paths</span>

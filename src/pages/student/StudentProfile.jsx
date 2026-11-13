@@ -240,7 +240,7 @@ export default function StudentProfile() {
   };
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 pb-28 md:pb-12 transition-colors">
+    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
       {/* Top App Bar & Mountain Sunset Panorama */}
       <div className="relative">
         <MountainSunsetAura height={220} showSun={true} />
@@ -386,7 +386,7 @@ export default function StudentProfile() {
             ) : (
               <Link
                 to="/purchases"
-                className="px-3 sm:px-3.5 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-black font-black text-xs shadow-glowGold inline-flex items-center gap-1 min-h-[36px]"
+                className="px-3 sm:px-3.5 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-black font-black text-xs shadow-glowGold inline-flex items-center gap-1 min-h-[44px]"
               >
                 <span>Plans</span>
                 <ChevronRight size={13} />
@@ -665,14 +665,14 @@ export default function StudentProfile() {
                 <button
                   type="button"
                   onClick={() => setEditProfileOpen(false)}
-                  className="px-3.5 py-1.5 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[36px]"
+                  className="px-3.5 py-1.5 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[44px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold min-h-[36px]"
+                  className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold min-h-[44px]"
                 >
                   {savingProfile ? 'Saving...' : 'Save Profile'}
                 </button>
@@ -720,14 +720,14 @@ export default function StudentProfile() {
                 <button
                   type="button"
                   onClick={() => setGoalsModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[36px]"
+                  className="px-3.5 py-1.5 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[44px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingGoals}
-                  className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold min-h-[36px]"
+                  className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold min-h-[44px]"
                 >
                   {savingGoals ? 'Saving...' : 'Save Goal'}
                 </button>
@@ -765,7 +765,7 @@ export default function StudentProfile() {
             <button
               type="button"
               onClick={() => setInviteModalOpen(false)}
-              className="w-full py-2 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[36px]"
+              className="w-full py-2 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[44px]"
             >
               Close
             </button>
@@ -801,7 +801,7 @@ export default function StudentProfile() {
             <button
               type="button"
               onClick={() => setSupportModalOpen(false)}
-              className="w-full py-2 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[36px]"
+              className="w-full py-2 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[44px]"
             >
               Close
             </button>

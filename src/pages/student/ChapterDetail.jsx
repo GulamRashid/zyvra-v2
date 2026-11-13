@@ -323,7 +323,7 @@ export default function ChapterDetail() {
   }, [chapter?.id, hasTests, user, isLocked]);
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 pb-28 md:pb-12 transition-colors">
+    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
       <div className="max-w-3xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Breadcrumb Navigation */}
         <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-emerald-400/80 overflow-x-auto no-scrollbar py-1">
@@ -370,7 +370,7 @@ export default function ChapterDetail() {
               It may be unpublished or its folder has changed.
             </span>
             <Link
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white text-sm font-black"
               to="/explore"
             >
               <ArrowLeft size={15} /> <span>Explore exams</span>
@@ -407,7 +407,7 @@ export default function ChapterDetail() {
                 <h1 className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
                   {chapter.title}
                 </h1>
-                <p className="text-xs sm:text-sm dark:text-emerald-200/80 text-slate-600 font-medium mt-1 leading-relaxed">
+                <p className="text-sm dark:text-emerald-200/80 text-slate-600 font-medium mt-1 leading-relaxed">
                   {chapter.description ||
                     (language === 'hi'
                       ? 'केंद्रित अध्ययन, अभ्यास और दोहराव से विषय को स्पष्ट रूप से समझें।'
@@ -415,7 +415,7 @@ export default function ChapterDetail() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap pt-1 text-xs">
+              <div className="flex items-center gap-2 flex-wrap pt-1 text-sm">
                 <span className="px-2.5 py-0.5 rounded-full dark:bg-emerald-950 bg-emerald-100/80 text-emerald-800 dark:text-emerald-300 font-bold border dark:border-emerald-500/20 border-emerald-200">
                   {chapter.subject || (language === 'hi' ? 'सामान्य' : 'General')}
                 </span>
@@ -446,9 +446,9 @@ export default function ChapterDetail() {
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => setActiveTab(id)}
-                    className={`flex-1 py-2 sm:py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all min-h-[40px] ${
+                    className={`flex-1 py-2 sm:py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all min-h-[44px] ${
                       isActive
-                        ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-glowGold'
+                        ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
                         : 'dark:text-emerald-300/80 text-slate-600 hover:text-black dark:hover:text-white'
                     }`}
                   >
@@ -568,7 +568,7 @@ export default function ChapterDetail() {
                             <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block">
                               {test.title}
                             </strong>
-                            <span className="text-[11px] dark:text-emerald-300/70 text-slate-500">
+                            <span className="text-sm dark:text-emerald-300/70 text-slate-500">
                               {test.duration_minutes} {language === 'hi' ? 'मिनट' : 'min'} • {attempts}/{limit}{' '}
                               {t('attemptsUsed')}
                             </span>
@@ -579,7 +579,7 @@ export default function ChapterDetail() {
                           className={`w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 min-h-[44px] transition-all ${
                             exhausted
                               ? 'dark:bg-emerald-950 bg-slate-100 text-slate-400 border border-slate-300 pointer-events-none'
-                              : 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-glowGold hover:from-amber-300'
+                              : 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
                           }`}
                           onClick={(event) => {
                             if (exhausted || !user) {
@@ -606,7 +606,7 @@ export default function ChapterDetail() {
             {activeTab === 'practice' && (
               <section className="p-5 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 space-y-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-500 text-lg shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-500 text-lg shrink-0">
                     <Sparkles size={20} />
                   </div>
                   <div>
@@ -619,7 +619,7 @@ export default function ChapterDetail() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 text-xs dark:text-emerald-300/80 text-slate-600 flex-wrap">
+                <div className="flex items-center gap-3 text-sm dark:text-emerald-300/80 text-slate-600 flex-wrap">
                   <span className="flex items-center gap-1">
                     <CheckCircle2 size={13} className="text-emerald-500" />
                     <span>{practiceQuestionsCount > 0 ? `${practiceQuestionsCount} ${t('topicQuestions')}` : t('topicQuestions')}</span>
@@ -636,7 +636,7 @@ export default function ChapterDetail() {
 
                 <button
                   type="button"
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 text-black text-xs font-black shadow-glowGold flex items-center justify-center gap-2 min-h-[44px]"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white text-sm font-black flex items-center justify-center gap-2 min-h-[44px]"
                   disabled={practiceLoading}
                   onClick={handleStartPractice}
                 >
@@ -689,7 +689,7 @@ export default function ChapterDetail() {
                             <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
                               {resource.title}
                             </strong>
-                            <div className="text-[11px] dark:text-emerald-300/70 text-slate-500 flex items-center gap-2">
+                            <div className="text-sm dark:text-emerald-300/70 text-slate-500 flex items-center gap-2">
                               {resource.file_size && <span>{resource.file_size}</span>}
                               {resource.page_count && <span>{resource.page_count} {t('pages')}</span>}
                               <span className={canRead ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-amber-600 font-bold'}>
@@ -711,9 +711,9 @@ export default function ChapterDetail() {
 
                           <button
                             type="button"
-                            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 min-h-[38px] ${
+                            className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 min-h-[44px] ${
                               canRead
-                                ? 'bg-amber-400 hover:bg-amber-300 text-black shadow-glowGold'
+                                ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
                                 : 'dark:bg-emerald-950 bg-slate-100 text-slate-400 border border-slate-300'
                             }`}
                             disabled={!canRead || readerLoading === resource.id}
