@@ -98,6 +98,10 @@ function AppRoutes() {
       <Route path="wallet" element={<StudentWallet />} />
       <Route path="analytics" element={<StudentAnalytics />} />
       <Route path="performance" element={<Navigate to="/analytics" replace />} />
+      <Route path="history" element={<Navigate to="/analytics" replace />} />
+      <Route path="notes" element={<Navigate to="/toolbox" replace />} />
+      <Route path="saved" element={<Navigate to="/bookmarks" replace />} />
+      <Route path="subscriptions" element={<Navigate to="/purchases" replace />} />
       {Object.entries(studentPages).filter(([path]) => !['/toolbox', '/tests'].includes(path)).map(([path, page]) => <Route key={path} path={path.slice(1)} element={<StudentPlaceholder page={page} />} />)}
       <Route path="profile" element={<StudentProfile />} />
       <Route path="settings" element={<Navigate to="/profile" replace />} />

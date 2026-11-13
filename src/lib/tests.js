@@ -448,3 +448,62 @@ export function extractLocalizedDistractorNote(note, language = 'en') {
   return cleanLanguagePrefix(str, language);
 }
 
+/**
+ * Parses explanation, distractor notes, and references from markdown/JSON
+ */
+export function parseStructuredExplanation(rawExplanation, distractorNotes = null, rawReference = null, language = 'en', question = null) {
+  const localizedExp = extractLocalizedExplanation(rawExplanation, language, question) || '';
+
+  // 1. Check for Reference / Source in text or question
+  let reference = rawReference || question?.reference || question?.source || '';
+  let cleanedExplanation = localizedExp;
+
+  const refRegex = /(?:^|\n)\s*(?:Reference|Source|स्रोत|सन्दर्भ)\s*[:：\-–—]\s*([^\n]+)/i;
+  const refMatch = cleanedExplanation.match(refRegex);
+  if (refMatch) {
+    if (!reference) reference = refMatch[1].trim();
+    cleanedExplanation = cleanedExplanation.replace(refRegex, '').trim();
+  }
+
+  // 2. Check for Distractor notes in distractorNotes parameter
+  const parsedDistractors = {};
+  if (distractorNotes && typeof distractorNotes === 'object') {
+    Object.entries(distractorNotes).forEach(([key, note]) => {
+      const parsed = extractLocalizedDistractorNote(note, language);
+      if (parsed) parsedDistractors[key.toUpperCase()] = parsed;
+    });
+  }
+
+  // 3. If no distractor notes from object, parse from markdown sections inside explanation text
+  const whyWrongRegex = /(?:^|\n)\s*(?:###?\s*)?(?:Why other options are wrong|Option Analysis|अन्य विकल्प क्यों गलत हैं\??|विकल्प विश्लेषण)\s*[:：\-–—]?\s*([\s\S]*)/i;
+  const whyWrongMatch = cleanedExplanation.match(whyWrongRegex);
+
+  if (whyWrongMatch) {
+    const whyWrongSection = whyWrongMatch[1];
+    cleanedExplanation = cleanedExplanation.slice(0, whyWrongMatch.index).trim();
+
+    // Parse individual options from this section e.g. "• A: ...", "A. ...", "- Option A: ..."
+    const optionLineRegex = /(?:^|\n)\s*[-*•]?\s*(?:Option\s*)?([A-E])\s*[:.\-–—)]\s*([^\n]+)/gi;
+    let match;
+    while ((match = optionLineRegex.exec(whyWrongSection)) !== null) {
+      const optKey = match[1].toUpperCase();
+      const optReason = match[2].trim();
+      if (!parsedDistractors[optKey]) {
+        parsedDistractors[optKey] = optReason;
+      }
+    }
+  }
+
+  // Fallback reference if none provided: generate contextual reference from question subject & topic
+  if (!reference && question?.subject) {
+    reference = `${question.subject} – Chapter: ${question.topic || question.chapter || 'Fundamentals'}, NCERT / Core Reference`;
+  }
+
+  return {
+    mainExplanation: cleanedExplanation || localizedExp,
+    distractorNotes: parsedDistractors,
+    reference: reference
+  };
+}
+
+

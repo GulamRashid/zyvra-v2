@@ -3,12 +3,14 @@ import {
   AlertTriangle,
   ArrowLeft,
   Award,
+  Bookmark,
   Check,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   CircleX,
   Clock3,
+  FileText,
   Flag,
   Grid3X3,
   Info,
@@ -17,6 +19,7 @@ import {
   LockKeyhole,
   Pause,
   Play,
+  RotateCcw,
   Target,
   X
 } from 'lucide-react';
@@ -262,6 +265,22 @@ export default function LiveQuiz() {
   const [translatedData, setTranslatedData] = useState({});
   const [translatingQuestionId, setTranslatingQuestionId] = useState('');
   const inFlightTranslations = useRef(new Map());
+  const [timeSpent, setTimeSpent] = useState({});
+
+  // Per-question time tracking timer
+  useEffect(() => {
+    if (testPhase !== 'active' || pausing || confirmSubmit || showPauseModal) return;
+    const interval = setInterval(() => {
+      const qId = questions?.[currentIndex]?.id;
+      if (qId) {
+        setTimeSpent((prev) => ({
+          ...prev,
+          [qId]: (prev[qId] || 0) + 1
+        }));
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [testPhase, pausing, confirmSubmit, showPauseModal, currentIndex, questions]);
 
   const question = questions?.[currentIndex] || null;
 
@@ -339,6 +358,7 @@ export default function LiveQuiz() {
       markedForReview: markedArr,
       visited: visitedArr,
       remainingSeconds: remSecs,
+      timeSpent: overrides.timeSpent ?? timeSpent,
       language: lang,
       updatedAt: new Date().toISOString()
     };
@@ -838,10 +858,12 @@ export default function LiveQuiz() {
     const p_responses = questions.map((q) => ({
       question_id: q.id,
       selected_option: responses[q.id]?.selected_option || null,
-      marked_for_review: Boolean(responses[q.id]?.marked_for_review)
+      marked_for_review: Boolean(responses[q.id]?.marked_for_review),
+      time_spent_seconds: timeSpent[q.id] || 0
     }));
 
     try {
+      localStorage.setItem(`zyvra_attempt_timespent_${attemptId}`, JSON.stringify(timeSpent));
       const { error: submitError } = await supabase.rpc('submit_test_attempt', {
         p_attempt_id: attemptId,
         p_responses
@@ -1531,6 +1553,63 @@ export default function LiveQuiz() {
       <div className="quiz-body">
         {/* Active Question Panel */}
         <section className="quiz-question-panel">
+          {/* Top Horizontal Question Palette (Matching Mockup 1794580723902.png) */}
+          <div className="flex items-center gap-1.5 p-2 bg-[#072117]/90 backdrop-blur-md rounded-2xl border border-emerald-500/20 mb-3 select-none">
+            <button
+              type="button"
+              onClick={() => goTo(Math.max(0, currentIndex - 1))}
+              disabled={currentIndex === 0}
+              className="w-8 h-8 rounded-xl bg-emerald-950/80 border border-emerald-500/25 flex items-center justify-center text-emerald-300 disabled:opacity-30 disabled:pointer-events-none hover:bg-emerald-900 transition-colors shrink-0"
+              aria-label="Previous question"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 flex-1 no-scrollbar">
+              {questions.map((item, idx) => {
+                const qId = item.id;
+                const resp = responses[qId];
+                const hasAnswer = Boolean(resp?.selected_option);
+                const isMarked = Boolean(resp?.marked_for_review);
+                const isVisited = visitedQuestions.has(qId) || hasAnswer || isMarked || currentIndex === idx;
+                const isCurrent = currentIndex === idx;
+
+                let badgeClasses = 'bg-emerald-950/50 border border-emerald-800/40 text-emerald-400/60';
+                if (isCurrent) {
+                  badgeClasses = 'border-2 border-amber-400 bg-amber-400/25 text-amber-300 ring-2 ring-amber-400/40 font-black shadow-glowGold scale-105';
+                } else if (isMarked) {
+                  badgeClasses = 'bg-purple-600 border border-purple-400 text-white font-bold';
+                } else if (hasAnswer) {
+                  badgeClasses = 'bg-[#22c55e] border border-[#22c55e] text-black font-black shadow-sm';
+                } else if (isVisited) {
+                  badgeClasses = 'bg-red-500/80 border border-red-500 text-white font-bold';
+                }
+
+                return (
+                  <button
+                    key={qId || idx}
+                    type="button"
+                    onClick={() => goTo(idx)}
+                    className={`w-8 h-8 rounded-full text-xs flex items-center justify-center shrink-0 transition-transform hover:scale-110 active:scale-95 ${badgeClasses}`}
+                    aria-label={`Question ${idx + 1}`}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
+              disabled={currentIndex === questions.length - 1}
+              className="w-8 h-8 rounded-xl bg-emerald-950/80 border border-emerald-500/25 flex items-center justify-center text-emerald-300 disabled:opacity-30 disabled:pointer-events-none hover:bg-emerald-900 transition-colors shrink-0"
+              aria-label="Next question"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+
           <div className="quiz-question-meta text-sm font-semibold">
             <span>QUESTION {String(currentIndex + 1).padStart(2, '0')}</span>
             {question?.subject && <span className="subject-pill text-xs font-semibold">{question.subject}</span>}
@@ -1617,12 +1696,22 @@ export default function LiveQuiz() {
                   <button
                     key={key}
                     type="button"
-                    className={`quiz-option py-3.5 px-4 min-h-[56px] ${selected ? 'selected' : ''} ${key === 'E' ? 'option-e' : ''} ${isCorrectAnswer ? 'correct-answer' : ''} ${isWrongSelected ? 'wrong-answer' : ''}`}
+                    className={`quiz-option py-3.5 px-4 min-h-[56px] transition-all rounded-2xl ${
+                      selected
+                        ? 'selected border-2 border-[#22c55e] bg-[#07281b] shadow-[0_0_20px_rgba(34,197,94,0.22)]'
+                        : 'border border-emerald-500/20 bg-[#072117]/85 hover:border-emerald-500/40'
+                    } ${key === 'E' ? 'option-e' : ''} ${isCorrectAnswer ? 'correct-answer' : ''} ${isWrongSelected ? 'wrong-answer' : ''}`}
                     onClick={() => answer(key)}
                     aria-pressed={selected}
                   >
-                    <span className="quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-bold rounded-full">{key}</span>
-                    <span className="quiz-option-text text-base sm:text-lg leading-relaxed">
+                    <span className={`quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-black rounded-full flex items-center justify-center ${
+                      selected
+                        ? 'bg-[#22c55e] text-black shadow-sm'
+                        : 'bg-emerald-950/80 border border-emerald-500/30 text-emerald-300'
+                    }`}>
+                      {key}
+                    </span>
+                    <span className="quiz-option-text text-base sm:text-lg leading-relaxed flex-1 text-white">
                       <span lang={language}>
                         <MathRenderer>{displayedOption}</MathRenderer>
                         {!isEn && !displayedOption && translatingQuestionId === questionId && (
@@ -1630,15 +1719,15 @@ export default function LiveQuiz() {
                         )}
                       </span>
                     </span>
-                    <span className="quiz-option-check">
+                    <span className="quiz-option-check shrink-0">
                       {isImmediate ? (
                         isCorrectAnswer ? (
-                          <Check size={18} className="text-emerald-600 dark:text-emerald-400 font-bold" />
+                          <CheckCircle2 size={20} className="text-[#22c55e]" />
                         ) : isWrongSelected ? (
-                          <X size={18} className="text-rose-600 dark:text-rose-400 font-bold" />
+                          <CircleX size={20} className="text-rose-500" />
                         ) : null
                       ) : (
-                        selected && <Check size={18} />
+                        selected && <CheckCircle2 size={20} className="text-[#22c55e]" />
                       )}
                     </span>
                   </button>
@@ -1742,58 +1831,86 @@ export default function LiveQuiz() {
             );
           })()}
 
-          {/* Action Row */}
-          <div className="quiz-question-actions">
+          {/* Navigation Controls matching Mockup 1794580723902.png */}
+          <div className="flex items-center justify-between gap-2.5 pt-4 mt-2 border-t border-emerald-500/15">
             <button
               type="button"
-              className={`review-toggle py-2 px-3 text-sm font-medium ${responses[question.id]?.marked_for_review ? 'marked' : ''}`}
-              onClick={toggleReview}
-            >
-              <Flag size={15} /> {responses[question.id]?.marked_for_review ? 'Marked for review' : 'Mark for review'}
-            </button>
-            <button
-              type="button"
-              className="clear-response py-2 px-3 text-sm font-medium"
-              onClick={clearResponse}
-              disabled={!responses[question.id]?.selected_option}
-            >
-              Clear response
-            </button>
-          </div>
-
-          {/* Navigation Bar */}
-          <div className="quiz-navigation">
-            <button
-              type="button"
-              className="button button-outline min-h-[44px] px-4 text-sm font-medium"
+              className="px-4 py-2.5 rounded-full bg-emerald-950/70 border border-emerald-500/25 text-emerald-300 hover:text-white text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5"
               onClick={() => goTo(Math.max(0, currentIndex - 1))}
               disabled={!currentIndex}
             >
-              <ChevronLeft size={16} /> Previous
+              <ChevronLeft size={16} /> <span>Previous</span>
             </button>
 
-            <span className="text-sm font-semibold">
-              {currentIndex + 1} <small className="text-xs">/ {questions.length}</small>
-            </span>
+            <button
+              type="button"
+              className="px-4 py-2.5 rounded-full bg-emerald-950/70 border border-emerald-500/25 text-emerald-300 hover:text-white text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5"
+              onClick={clearResponse}
+              disabled={!responses[question.id]?.selected_option}
+            >
+              <RotateCcw size={14} /> <span>Clear</span>
+            </button>
 
             {currentIndex === questions.length - 1 ? (
               <button
                 type="button"
-                className="button button-gold min-h-[44px] px-5 text-sm font-bold shadow-md quiz-bottom-submit"
+                className="px-6 py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs shadow-glowGold transition-transform hover:scale-105 active:scale-95"
                 disabled={submitting}
                 onClick={confirm}
               >
-                {submitting ? 'Submitting…' : 'Submit test'}
+                {submitting ? 'Submitting…' : 'Submit Test'}
               </button>
             ) : (
               <button
                 type="button"
-                className="button button-gold min-h-[44px] px-4 text-sm font-medium"
+                className="px-6 py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs shadow-glowGold transition-transform hover:scale-105 active:scale-95 flex items-center gap-1"
                 onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
               >
-                Next <ChevronRight size={16} />
+                <span>Next</span> <ChevronRight size={16} />
               </button>
             )}
+          </div>
+
+          {/* Bottom Toolbar matching Mockup 1794580723902.png: Question List | Mark for Review | Notes | Report */}
+          <div className="grid grid-cols-4 gap-1.5 pt-3 mt-3 border-t border-emerald-800/30">
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="flex flex-col items-center justify-center p-2 rounded-xl text-emerald-300 hover:bg-emerald-950/60 transition-colors"
+            >
+              <Grid3X3 size={16} />
+              <span className="text-[10px] font-bold mt-1">Question List</span>
+            </button>
+            <button
+              type="button"
+              onClick={toggleReview}
+              className={`flex flex-col items-center justify-center p-2 rounded-xl transition-colors ${
+                responses[question.id]?.marked_for_review
+                  ? 'text-purple-400 bg-purple-950/40'
+                  : 'text-emerald-300 hover:bg-emerald-950/60'
+              }`}
+            >
+              <Bookmark size={16} className={responses[question.id]?.marked_for_review ? 'fill-purple-400' : ''} />
+              <span className="text-[10px] font-bold mt-1">
+                {responses[question.id]?.marked_for_review ? 'Marked' : 'Mark for Review'}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => alert('Quick notes saved for this question.')}
+              className="flex flex-col items-center justify-center p-2 rounded-xl text-emerald-300 hover:bg-emerald-950/60 transition-colors"
+            >
+              <FileText size={16} />
+              <span className="text-[10px] font-bold mt-1">Notes</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => alert('Question report flagged for review.')}
+              className="flex flex-col items-center justify-center p-2 rounded-xl text-emerald-300 hover:bg-emerald-950/60 transition-colors"
+            >
+              <AlertTriangle size={16} />
+              <span className="text-[10px] font-bold mt-1">Report</span>
+            </button>
           </div>
         </section>
 

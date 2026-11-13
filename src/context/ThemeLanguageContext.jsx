@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase';
 const ThemeLanguageContext = createContext(null);
 const translations = {
   en: {
-    home: 'Home', explore: 'Explore', tests: 'Tests', toolbox: 'Toolbox', profile: 'Profile',
+    home: 'Home', explore: 'Explore', tests: 'Tests', practice: 'Practice', performance: 'Performance', toolbox: 'Toolbox', profile: 'Profile',
     exploreExams: 'Explore Exams', purchases: 'My Purchases', analytics: 'Performance & Analytics',
     bookmarks: 'Bookmarks', wallet: 'Coin Wallet', planner: 'Study Planner', notifications: 'Notifications',
     profileSettings: 'Profile & Settings',
@@ -316,7 +316,7 @@ const translations = {
     tbPriceChanged: 'The tool price changed. Close and reopen the unlock dialog to review it.'
   },
   hi: {
-    home: 'होम', explore: 'खोजें', tests: 'टेस्ट', toolbox: 'टूलबॉक्स', profile: 'प्रोफ़ाइल',
+    home: 'होम', explore: 'खोजें', tests: 'टेस्ट', practice: 'अभ्यास', performance: 'प्रदर्शन', toolbox: 'टूलबॉक्स', profile: 'प्रोफ़ाइल',
     exploreExams: 'परीक्षाएँ खोजें', purchases: 'मेरी खरीदारी', analytics: 'प्रदर्शन और विश्लेषण',
     bookmarks: 'बुकमार्क', wallet: 'कॉइन वॉलेट', planner: 'अध्ययन योजना', notifications: 'सूचनाएँ',
     profileSettings: 'प्रोफ़ाइल और सेटिंग्स',
