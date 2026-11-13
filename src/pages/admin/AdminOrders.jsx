@@ -139,7 +139,7 @@ export default function AdminOrders() {
             </article>
 
             <article className="metric-card">
-              <div className="metric-icon gold"><CheckCircle2 size={18} /></div>
+              <div className="metric-icon green"><CheckCircle2 size={18} /></div>
               <span className="metric-label">Paid Transactions</span>
               <strong>{summary.paidCount}</strong>
               <span className="metric-foot">Successful orders</span>
@@ -180,7 +180,7 @@ export default function AdminOrders() {
                     <button
                       key={st}
                       type="button"
-                      className={`button button-small ${statusFilter === st ? 'button-gold' : 'button-outline'}`}
+                      className={`button button-small ${statusFilter === st ? 'button-primary' : 'button-outline'}`}
                       onClick={() => setStatusFilter(st)}
                     >
                       {st.toUpperCase()}

@@ -5,7 +5,6 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import SettingsPreview from './SettingsPreview';
 
 const metrics = [
@@ -17,16 +16,28 @@ const metrics = [
   { key: 'questions', label: 'Question bank', icon: FileQuestion, tone: 'gold', trend: 'Ready to practice' }
 ];
 
+const metricStateDefaults = Object.fromEntries(
+  metrics.map(({ key }) => [key, { loading: true, value: null, error: '' }])
+);
+
 export default function AdminDashboard() {
   const { supabase } = useAuth();
-  const [stats, setStats] = useState(null);
+  const [metricState, setMetricState] = useState(metricStateDefaults);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchStats = async (active = () => true) => {
-    if (!supabase) { setStats({}); return; }
+    if (!supabase) {
+      setMetricState(Object.fromEntries(
+        metrics.map(({ key }) => [key, { loading: false, value: null, error: 'Data unavailable' }])
+      ));
+      return;
+    }
     setRefreshing(true);
     setError('');
+    setMetricState(Object.fromEntries(
+      metrics.map(({ key }) => [key, { loading: true, value: null, error: '' }])
+    ));
 
     try {
       const [
@@ -47,36 +58,52 @@ export default function AdminDashboard() {
 
       if (!active()) return;
 
-      const usersCount = usersResult.status === 'fulfilled' && !usersResult.value.error ? (usersResult.value.count ?? 0) : 0;
-      let paidCount = grantsResult.status === 'fulfilled' && !grantsResult.value.error ? (grantsResult.value.count ?? 0) : 0;
+      const getResultError = (result) => {
+        if (result.status === 'rejected') return result.reason?.message || 'Data unavailable';
+        return result.value?.error?.message || '';
+      };
+      const usersError = getResultError(usersResult);
+      const grantsError = getResultError(grantsResult);
+      const pendingError = getResultError(unconfirmedResult);
+      const ordersError = getResultError(ordersResult);
+      const contentError = getResultError(chaptersResult);
+      const questionsError = getResultError(questionsResult);
+
+      const usersCount = usersError ? null : (usersResult.value.count ?? 0);
+      let paidCount = grantsError ? null : (grantsResult.value.count ?? 0);
+      let paidError = grantsError;
 
       // Fallback for paid users if user_access count is 0: check paid orders
-      if (!paidCount) {
+      if (!paidError && !paidCount) {
         try {
-          const { count: paidOrdersCount } = await supabase.from('payment_orders').select('*', { count: 'exact', head: true }).eq('status', 'paid');
+          const { count: paidOrdersCount, error: paidOrdersError } = await supabase.from('payment_orders').select('*', { count: 'exact', head: true }).eq('status', 'paid');
+          if (paidOrdersError) paidError = paidOrdersError.message || 'Data unavailable';
           if (paidOrdersCount) paidCount = paidOrdersCount;
-        } catch (_) { }
+        } catch (fallbackError) {
+          paidCount = null;
+          paidError = fallbackError.message || 'Data unavailable';
+        }
       }
 
-      const pendingCount = unconfirmedResult.status === 'fulfilled' && !unconfirmedResult.value.error ? (unconfirmedResult.value.count ?? 0) : 0;
+      const pendingCount = pendingError ? null : (unconfirmedResult.value.count ?? 0);
 
-      let revenue = 0;
-      if (ordersResult.status === 'fulfilled' && ordersResult.value.data) {
+      let revenue = null;
+      if (!ordersError && ordersResult.value.data) {
         revenue = ordersResult.value.data
           .filter((ord) => ['paid', 'success', 'captured'].includes(String(ord.status || '').toLowerCase()))
           .reduce((sum, order) => sum + Number(order.amount || 0), 0);
       }
 
-      const contentCount = chaptersResult.status === 'fulfilled' && !chaptersResult.value.error ? (chaptersResult.value.count ?? 0) : 0;
-      const questionsCount = questionsResult.status === 'fulfilled' && !questionsResult.value.error ? (questionsResult.value.count ?? 0) : 0;
+      const contentCount = contentError ? null : (chaptersResult.value.count ?? 0);
+      const questionsCount = questionsError ? null : (questionsResult.value.count ?? 0);
 
-      setStats({
-        users: usersCount,
-        paid: paidCount,
-        pending: pendingCount,
-        revenue,
-        content: contentCount,
-        questions: questionsCount
+      setMetricState({
+        users: { loading: false, value: usersCount, error: usersError },
+        paid: { loading: false, value: paidCount, error: paidError },
+        pending: { loading: false, value: pendingCount, error: pendingError },
+        revenue: { loading: false, value: revenue, error: ordersError },
+        content: { loading: false, value: contentCount, error: contentError },
+        questions: { loading: false, value: questionsCount, error: questionsError }
       });
     } catch (loadError) {
       if (active()) {
@@ -94,7 +121,6 @@ export default function AdminDashboard() {
   }, [supabase]);
 
   const refresh = () => {
-    setStats(null);
     fetchStats();
   };
 
@@ -124,30 +150,27 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {!stats && <LoadingSkeleton rows={3} />}
+      <div className="metrics-grid">
+        {metrics.map(({ key, label, icon: Icon, tone, trend }) => {
+          const state = metricState[key];
+          const displayVal = state.loading
+            ? '…'
+            : state.error
+              ? '—'
+              : key === 'revenue'
+                ? `₹${Number(state.value).toLocaleString('en-IN')}`
+                : Number(state.value).toLocaleString();
 
-      {stats && (
-        <div className="metrics-grid">
-          {metrics.map(({ key, label, icon: Icon, tone, trend }) => {
-            const rawVal = stats[key];
-            const displayVal =
-              rawVal === null || rawVal === undefined || isNaN(rawVal)
-                ? '0'
-                : key === 'revenue'
-                  ? `₹${Number(rawVal).toLocaleString('en-IN')}`
-                  : Number(rawVal).toLocaleString();
-
-            return (
-              <article className="metric-card" key={key}>
-                <div className={`metric-icon ${tone}`}><Icon size={18} /></div>
-                <span className="metric-label">{label}</span>
-                <strong>{displayVal}</strong>
-                <span className="metric-foot">{trend}</span>
-              </article>
-            );
-          })}
-        </div>
-      )}
+          return (
+            <article className="metric-card" key={key}>
+              <div className={`metric-icon ${tone}`}><Icon size={18} /></div>
+              <span className="metric-label">{label}</span>
+              <strong title={state.error || undefined}>{displayVal}</strong>
+              <span className="metric-foot">{state.error ? 'Data unavailable' : trend}</span>
+            </article>
+          );
+        })}
+      </div>
 
       <div className="admin-dashboard-grid">
         <section className="panel-card system-card">
@@ -189,7 +212,7 @@ export default function AdminDashboard() {
           <h2>Keep things moving.</h2>
           <Link to="/admin/content"><BookOpen size={17} /> Manage learning content <ArrowUpRight size={15} /></Link>
           <Link to="/admin/users"><Users size={17} /> Review users & access <ArrowUpRight size={15} /></Link>
-          <Link to="/admin/settings"><Coins size={17} /> Configure coin rewards <ArrowUpRight size={15} /></Link>
+          <Link to="/admin/coins"><Coins size={17} /> Configure coin rewards <ArrowUpRight size={15} /></Link>
         </section>
       </div>
 

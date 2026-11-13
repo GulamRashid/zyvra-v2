@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Activity, Bell, ClipboardList, Coins, FileQuestion, FileText, Gauge, LogOut, Menu, PackageCheck, Settings, ShoppingCart, Tag, Users, Wrench, X } from 'lucide-react';
+import { Activity, Bell, ClipboardList, Coins, FileQuestion, FileText, Gauge, LogOut, Menu, PackageCheck, ShoppingCart, Tag, Users, Wrench, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
 
@@ -16,8 +16,7 @@ const modules = [
   { to: '/admin/tools', label: 'Tools (Toolbox)', Icon: Wrench },
   { to: '/admin/pricing', label: 'Pricing & Offers', Icon: Tag },
   { to: '/admin/reports', label: 'Reports & Analytics', Icon: Activity },
-  { to: '/admin/notifications', label: 'Notifications', Icon: Bell },
-  { to: '/admin/settings', label: 'Settings', Icon: Settings }
+  { to: '/admin/notifications', label: 'Notifications', Icon: Bell }
 ];
 
 export default function AdminLayout() {

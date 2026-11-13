@@ -151,6 +151,133 @@ export function normalizeCorrectAnswer(raw, options = []) {
   return str.toUpperCase();
 }
 
+export function normalizeImportQuestionText(question) {
+  const rawText = typeof question === 'string'
+    ? question
+    : question?.question_en
+      || question?.question_text_en
+      || (typeof question?.question_text === 'object'
+        ? question.question_text.en || question.question_text.hi
+        : question?.question_text)
+      || question?.question
+      || question?.question_hi
+      || question?.question_text_hi
+      || '';
+  return String(rawText).trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+export function parseImportCsv(text) {
+  const records = [];
+  let record = [];
+  let field = '';
+  let inQuotes = false;
+  let quoteClosed = false;
+  const source = String(text || '').replace(/^\uFEFF/, '');
+
+  const pushField = () => {
+    record.push(field.trim());
+    field = '';
+    quoteClosed = false;
+  };
+
+  const pushRecord = () => {
+    pushField();
+    if (record.some((value) => value.length > 0)) records.push(record);
+    record = [];
+  };
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index];
+    if (inQuotes) {
+      if (char === '"') {
+        if (source[index + 1] === '"') {
+          field += '"';
+          index += 1;
+        } else {
+          inQuotes = false;
+          quoteClosed = true;
+        }
+      } else {
+        field += char;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      if (field.trim()) throw new Error('CSV contains a quote inside an unquoted field.');
+      inQuotes = true;
+    } else if (char === ',' ) {
+      pushField();
+    } else if ((char === '\n' || char === '\r')) {
+      if (char === '\r' && source[index + 1] === '\n') index += 1;
+      pushRecord();
+    } else if (quoteClosed) {
+      if (!/\s/.test(char)) throw new Error('CSV contains characters after a closing quote.');
+      field += char;
+    } else {
+      field += char;
+    }
+  }
+
+  if (inQuotes) throw new Error('CSV contains an unclosed quoted field.');
+  if (field.length > 0 || record.length > 0) pushRecord();
+  if (records.length < 2) return [];
+
+  const headers = records[0].map((header) => header.toLowerCase().trim());
+  return records.slice(1).map((values) => {
+    const obj = {};
+    headers.forEach((header, index) => {
+      if (header) obj[header] = values[index] !== undefined ? values[index].trim() : '';
+    });
+
+    const qEn = obj.question_en || obj.question_text_en || obj.text_en || '';
+    const qHi = obj.question_hi || obj.question_text_hi || obj.text_hi || obj.question_hindi || '';
+    const qRaw = obj.question_text || obj.question || obj.text || '';
+
+    if (qEn) {
+      obj.question_text = qEn;
+      obj.question_en = qEn;
+    } else if (qRaw) {
+      if (hasDevanagari(qRaw) && !hasLatin(qRaw)) {
+        if (!obj.question_text_hi && !qHi) obj.question_text_hi = qRaw;
+      } else {
+        obj.question_text = qRaw;
+        obj.question_en = qRaw;
+      }
+    }
+
+    if (qHi) {
+      obj.question_text_hi = qHi;
+      obj.question_hi = qHi;
+    }
+
+    if (!obj.options) {
+      const options = [];
+      ['a', 'b', 'c', 'd', 'e'].forEach((letter) => {
+        let en = obj[`option_${letter}_en`] ?? obj[`option_${letter}`] ?? obj[`${letter}_en`] ?? obj[letter] ?? '';
+        let hi = obj[`option_${letter}_hi`] ?? obj[`${letter}_hi`] ?? obj[`option_${letter}_hindi`] ?? '';
+        if (hasDevanagari(en) && !hasLatin(en)) {
+          if (!hi) hi = en;
+          en = '';
+        }
+        if (en !== '' || hi !== '') options.push({ en, hi });
+      });
+      if (options.length) obj.options = options;
+    } else if (typeof obj.options === 'string') {
+      try {
+        obj.options = JSON.parse(obj.options);
+      } catch (_) {
+        // Validation reports the malformed options value.
+      }
+    }
+
+    if (typeof obj.tags === 'string' && obj.tags) {
+      obj.tags = obj.tags.split(';').join(',').split(',').map((tag) => tag.trim()).filter(Boolean);
+    }
+    return obj;
+  });
+}
+
 export function sanitizeLiveQuestion(question) {
   const source = question || {};
   const safeQuestion = { ...source };
@@ -300,7 +427,7 @@ export function sanitizeLiveQuestion(question) {
   return safeQuestion;
 }
 
-export function validateImportQuestion(question, index, seenIds = new Set()) {
+export function validateImportQuestion(question, index, seenIds = new Set(), seenQuestionTexts = new Set()) {
   const errors = [];
   if (!question || typeof question !== 'object' || Array.isArray(question)) {
     return { valid: false, errors: [`Row ${index + 1}: must be a question object.`] };
@@ -322,6 +449,9 @@ export function validateImportQuestion(question, index, seenIds = new Set()) {
   if (question.difficulty && !['easy', 'medium', 'hard'].includes(String(question.difficulty).toLowerCase())) errors.push('difficulty must be easy, medium or hard.');
   if (question.id && seenIds.has(String(question.id))) errors.push('duplicate question id in import.');
   if (question.id) seenIds.add(String(question.id));
+  const normalizedText = normalizeImportQuestionText(question);
+  if (normalizedText && seenQuestionTexts.has(normalizedText)) errors.push('duplicate question text in import or question bank.');
+  if (normalizedText) seenQuestionTexts.add(normalizedText);
   return { valid: errors.length === 0, errors: errors.map((message) => `Row ${index + 1}: ${message}`) };
 }
 

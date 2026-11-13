@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   ArrowRight,
@@ -45,7 +45,6 @@ export default function TestHub() {
   const { user, supabase } = useAuth();
   const { t, language } = useThemeLanguage();
   const { chapters, folders, exams, loading: catalogLoading } = useContentCatalog();
-  const navigate = useNavigate();
   const location = useLocation();
 
   // Tab State: 'subjects' | 'chapters' | 'tests' | 'custom'
@@ -59,13 +58,9 @@ export default function TestHub() {
   const [questionCounts, setQuestionCounts] = useState({});
   const [userAttempts, setUserAttempts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [testFilter, setTestFilter] = useState('all'); // 'all' | 'free' | 'chapter'
-
-  // Custom Practice Generator State
-  const [customFolderId, setCustomFolderId] = useState('');
-  const [customQuestionCount, setCustomQuestionCount] = useState(25);
-  const [customDifficulty, setCustomDifficulty] = useState('medium');
 
   // Chapter & Exam lookup maps
   const chapterById = useMemo(() => new Map(chapters.map((c) => [c.id, c])), [chapters]);
@@ -74,20 +69,27 @@ export default function TestHub() {
 
   // Fetch tests and user attempts strictly from Supabase
   const loadTestData = useCallback(async () => {
-    if (!supabase) return;
+    if (!supabase) {
+      setLoadError('Test services are currently unavailable.');
+      setLoading(false);
+      return;
+    }
     setLoading(true);
+    setLoadError('');
     try {
-      const { data: testRows } = await supabase
+      const { data: testRows, error: testError } = await supabase
         .from('tests')
         .select('*')
         .in('status', ['published', 'live', 'available'])
         .order('created_at', { ascending: false });
+      if (testError) throw testError;
 
       setTests(testRows || []);
 
-      const { data: qRows } = await supabase
+      const { data: qRows, error: questionError } = await supabase
         .from('test_questions')
         .select('test_id');
+      if (questionError) throw questionError;
 
       if (qRows) {
         const counts = {};
@@ -98,11 +100,12 @@ export default function TestHub() {
       }
 
       if (user) {
-        const { data: attemptRows } = await supabase
+        const { data: attemptRows, error: attemptError } = await supabase
           .from('test_attempts')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false });
+        if (attemptError) throw attemptError;
 
         if (attemptRows) {
           setUserAttempts(attemptRows);
@@ -110,6 +113,7 @@ export default function TestHub() {
       }
     } catch (err) {
       console.error('Failed to load test hub:', err);
+      setLoadError('Could not load tests. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -200,17 +204,8 @@ export default function TestHub() {
     });
   }, [tests, searchQuery, testFilter]);
 
-  // Handle Custom Practice Start
-  const handleStartCustomPractice = () => {
-    if (tests.length > 0) {
-      navigate(`/quiz/${tests[0].id}`);
-    } else {
-      navigate('/explore');
-    }
-  };
-
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-800 pb-28 md:pb-12 transition-colors duration-200 overflow-x-hidden">
+    <div className="min-h-screen dark:bg-[#0B1713] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 pb-28 md:pb-12 transition-colors duration-200 overflow-x-hidden">
       {/* Top Ambient Mountain Aura */}
       <div className="relative">
         <MountainSunsetAura height={190} showSun={true} />
@@ -233,14 +228,27 @@ export default function TestHub() {
       </div>
 
       <div className="px-3.5 sm:px-6 max-w-5xl mx-auto space-y-4 sm:space-y-5 -mt-2 relative z-10">
+        {loadError && (
+          <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-200" role="alert">
+            <span>{loadError}</span>
+            <button
+              type="button"
+              className="shrink-0 rounded-xl border border-rose-300 px-3 py-1.5 text-xs font-bold hover:bg-rose-100 dark:border-rose-400/40 dark:hover:bg-rose-950/50"
+              onClick={loadTestData}
+              disabled={loading}
+            >
+              {loading ? 'Retrying…' : 'Try again'}
+            </button>
+          </div>
+        )}
         {/* Navigation Tabs (Subjects | Chapters | Tests | Custom) */}
         <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl dark:bg-[#072117]/90 bg-white border dark:border-emerald-500/20 border-emerald-600/15 backdrop-blur-md overflow-x-auto shadow-sm">
           <button
             type="button"
             onClick={() => setActiveTab('subjects')}
-            className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[40px] ${
+            className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'subjects'
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md'
+                ? 'bg-emerald-500 text-white'
                 : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
             }`}
           >
@@ -251,9 +259,9 @@ export default function TestHub() {
           <button
             type="button"
             onClick={() => setActiveTab('chapters')}
-            className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[40px] ${
+            className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'chapters'
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md'
+                ? 'bg-emerald-500 text-white'
                 : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
             }`}
           >
@@ -264,9 +272,9 @@ export default function TestHub() {
           <button
             type="button"
             onClick={() => setActiveTab('tests')}
-            className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[40px] ${
+            className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'tests'
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md'
+                ? 'bg-emerald-500 text-white'
                 : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
             }`}
           >
@@ -277,9 +285,9 @@ export default function TestHub() {
           <button
             type="button"
             onClick={() => setActiveTab('custom')}
-            className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[40px] ${
+            className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'custom'
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md'
+                ? 'bg-emerald-500 text-white'
                 : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
             }`}
           >
@@ -295,7 +303,7 @@ export default function TestHub() {
           <div className="space-y-4">
             {/* Overview Hero Card */}
             {exams.length > 0 && (
-              <div className="dark:bg-gradient-to-r dark:from-[#0a3525] dark:via-[#06241a] dark:to-[#041911] bg-gradient-to-r from-emerald-100/90 via-teal-50 to-emerald-50 border dark:border-emerald-500/30 border-emerald-300/50 rounded-2xl p-4 sm:p-5 shadow-sm dark:shadow-lg transition-colors">
+              <div className="dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-300/50 rounded-3xl p-6 sm:p-8 transition-colors">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 sm:gap-3.5">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl dark:bg-emerald-500/20 bg-emerald-100 border dark:border-emerald-400/30 border-emerald-300 flex items-center justify-center text-xl sm:text-2xl shrink-0">
@@ -316,7 +324,7 @@ export default function TestHub() {
 
                   <Link
                     to={`/explore/${exams[0]?.slug || exams[0]?.id}`}
-                    className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs shadow-sm transition-transform active:scale-95"
+                    className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-extrabold text-sm transition-colors"
                   >
                     <span>View Syllabus</span>
                     <ArrowRight size={14} />
@@ -333,7 +341,7 @@ export default function TestHub() {
                   </div>
                   <div className="w-full h-2 dark:bg-emerald-950 bg-slate-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-[#22c55e] rounded-full transition-all duration-700"
+                      className="h-full bg-emerald-500 rounded-full transition-all duration-700"
                       style={{ width: `${aggregateProgressPct}%` }}
                     />
                   </div>
@@ -345,7 +353,7 @@ export default function TestHub() {
             {catalogLoading ? (
               <LoadingSkeleton count={4} />
             ) : displaySubjects.length === 0 ? (
-              <div className="p-8 text-center text-xs dark:text-emerald-400/70 text-slate-500 dark:bg-[#072117]/60 bg-white rounded-2xl border dark:border-emerald-500/20 border-emerald-600/15">
+              <div className="p-8 text-center text-sm dark:text-emerald-400/70 text-slate-500 dark:bg-[#12231C] bg-white rounded-3xl border dark:border-emerald-500/15 border-emerald-600/15">
                 <p>No subject folders found in database.</p>
               </div>
             ) : (
@@ -353,7 +361,7 @@ export default function TestHub() {
                 {displaySubjects.map((subject) => (
                   <div
                     key={subject.id}
-                    className="p-4 rounded-2xl dark:bg-gradient-to-br dark:from-emerald-950/80 dark:to-[#072418] bg-white border dark:border-emerald-500/25 border-emerald-600/15 flex flex-col justify-between space-y-3 transition-all hover:border-emerald-400 hover:scale-[1.01] shadow-sm"
+                    className="p-6 sm:p-8 rounded-3xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 flex flex-col justify-between space-y-3 transition-colors hover:border-emerald-400"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2.5">
@@ -369,7 +377,7 @@ export default function TestHub() {
                       {/* Play Action */}
                       <Link
                         to={subject.firstTestId ? `/quiz/${subject.firstTestId}` : `/folder/${subject.folderId}`}
-                        className="w-8 h-8 rounded-full bg-[#22c55e] hover:bg-emerald-400 text-black flex items-center justify-center shadow-sm transition-transform hover:scale-110 active:scale-95 shrink-0"
+                        className="w-10 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center transition-colors shrink-0"
                         title="Start Practice"
                       >
                         <Play size={14} fill="currentColor" className="ml-0.5 text-black" />
@@ -384,7 +392,7 @@ export default function TestHub() {
                       </div>
                       <div className="w-full h-1.5 dark:bg-emerald-950 bg-slate-200 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-emerald-500 to-[#22c55e] rounded-full transition-all duration-500"
+                          className="h-full bg-emerald-500 rounded-full transition-all duration-500"
                           style={{ width: `${subject.progress}%` }}
                         />
                       </div>
@@ -404,7 +412,7 @@ export default function TestHub() {
             {catalogLoading ? (
               <LoadingSkeleton count={4} />
             ) : chapters.length === 0 ? (
-              <div className="p-8 text-center text-xs dark:text-emerald-400/70 text-slate-500 dark:bg-[#072117]/60 bg-white rounded-2xl border dark:border-emerald-500/20 border-emerald-600/15">
+              <div className="p-8 text-center text-sm dark:text-emerald-400/70 text-slate-500 dark:bg-[#12231C] bg-white rounded-3xl border dark:border-emerald-500/15 border-emerald-600/15">
                 <p>No chapters available in database.</p>
               </div>
             ) : (
@@ -468,7 +476,7 @@ export default function TestHub() {
                     onClick={() => setTestFilter(f)}
                     className={`px-3 py-1 rounded-xl text-xs font-bold capitalize transition-colors min-h-[36px] ${
                       testFilter === f
-                        ? 'bg-amber-400 text-black shadow-sm'
+                        ? 'bg-emerald-500 text-white'
                         : 'dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/20 border-slate-300 dark:text-emerald-300 text-slate-700 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
@@ -494,7 +502,7 @@ export default function TestHub() {
                   return (
                     <div
                       key={test.id}
-                      className="p-4 rounded-2xl dark:bg-gradient-to-r dark:from-[#072117] dark:to-[#041810] bg-white border dark:border-emerald-500/25 border-emerald-600/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-emerald-400 transition-colors shadow-sm"
+                      className="p-6 sm:p-8 rounded-3xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-emerald-400 transition-colors"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -535,7 +543,7 @@ export default function TestHub() {
                         )}
                         <Link
                           to={`/quiz/${test.id}`}
-                          className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold transition-transform active:scale-95 flex items-center gap-1.5 min-h-[38px]"
+                          className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-black transition-colors flex items-center gap-1.5 min-h-[40px]"
                         >
                           <Play size={13} fill="currentColor" />
                           <span>{lastAttempt ? 'Retake' : 'Start Test'}</span>
@@ -553,75 +561,23 @@ export default function TestHub() {
         {/* TAB 4: CUSTOM PRACTICE GENERATOR */}
         {/* ======================================================== */}
         {activeTab === 'custom' && (
-          <div className="p-5 sm:p-6 rounded-3xl dark:bg-[#072117]/90 bg-white border dark:border-emerald-500/25 border-emerald-600/15 max-w-xl mx-auto space-y-4 shadow-sm">
-            <div className="text-center space-y-1">
-              <h3 className="text-base sm:text-lg font-black dark:text-white text-slate-900">Create Custom Practice Test</h3>
-              <p className="text-xs dark:text-emerald-300/80 text-slate-600">
-                Select your target folder and question volume to start.
+          <div className="p-6 sm:p-8 rounded-3xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 max-w-xl mx-auto text-center space-y-4">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-500">
+              <SlidersHorizontal size={23} />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base sm:text-lg font-black dark:text-white text-slate-900">Custom Practice is coming soon</h3>
+              <p className="text-xs sm:text-sm dark:text-emerald-300/80 text-slate-600">
+                We are building a reliable question generator for folder, difficulty, and question-count controls. Your selections will be available here once the session can honour them end to end.
               </p>
             </div>
-
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-bold dark:text-emerald-300 text-emerald-800 block mb-1">Target Folder</label>
-                <select
-                  value={customFolderId}
-                  onChange={(e) => setCustomFolderId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl dark:bg-emerald-950 bg-slate-50 border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 text-xs font-bold focus:outline-none min-h-[40px]"
-                >
-                  <option value="">All Available Folders</option>
-                  {folders.map((f) => (
-                    <option key={f.id} value={f.id}>{f.title}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold dark:text-emerald-300 text-emerald-800 block mb-1">
-                  Questions: {customQuestionCount}
-                </label>
-                <input
-                  type="range"
-                  min="10"
-                  max="50"
-                  step="5"
-                  value={customQuestionCount}
-                  onChange={(e) => setCustomQuestionCount(Number(e.target.value))}
-                  className="w-full accent-amber-400 cursor-pointer h-2"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold dark:text-emerald-300 text-emerald-800 block mb-1">Difficulty</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {['easy', 'medium', 'hard'].map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setCustomDifficulty(d)}
-                      className={`py-1.5 rounded-xl text-xs font-bold capitalize transition-colors min-h-[38px] ${
-                        customDifficulty === d
-                          ? 'bg-amber-400 text-black shadow-sm'
-                          : 'dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 dark:text-emerald-300 text-slate-700'
-                      }`}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-3">
-                <button
-                  type="button"
-                  onClick={handleStartCustomPractice}
-                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs shadow-glowGold transition-transform hover:scale-[1.01] active:scale-98 flex items-center justify-center gap-1.5 min-h-[44px]"
-                >
-                  <Play size={15} fill="currentColor" />
-                  <span>Start Practice Session</span>
-                </button>
-              </div>
-            </div>
+            <Link
+              to="/tests?tab=tests"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm min-h-[44px]"
+            >
+              <Play size={15} fill="currentColor" />
+              <span>Choose an available test</span>
+            </Link>
           </div>
         )}
       </div>

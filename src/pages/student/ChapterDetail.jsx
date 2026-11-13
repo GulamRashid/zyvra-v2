@@ -135,102 +135,15 @@ export default function ChapterDetail() {
   const fetchChapterPracticeQuestions = async () => {
     if (!supabase || !chapter?.id) return [];
 
-    let directQuestions = [];
-    try {
-      const { data, error } = await supabase
-        .from('questions')
-        .select('*')
-        .eq('chapter_id', chapter.id)
-        .eq('status', 'published');
-      if (error) {
-        console.warn('Error fetching direct chapter questions:', error);
-      } else {
-        directQuestions = data || [];
-      }
-    } catch (err) {
-      console.warn('Direct questions fetch error:', err);
-    }
-
-    let testLinkedQuestions = [];
-    try {
-      const { data: tests, error: testErr } = await supabase
-        .from('tests')
-        .select('id')
-        .eq('chapter_id', chapter.id)
-        .in('status', ['published', 'live', 'available']);
-
-      if (testErr) {
-        console.warn('Error fetching chapter tests for practice:', testErr);
-      } else if (tests && tests.length > 0) {
-        const testIds = tests.map((t) => t.id).filter(Boolean);
-        if (testIds.length > 0) {
-          const { data: tqRows, error: tqErr } = await supabase
-            .from('test_questions')
-            .select('*, questions(*)')
-            .in('test_id', testIds);
-
-          if (tqErr) {
-            console.warn('Error fetching test_questions with join, falling back to id lookup:', tqErr);
-            const { data: fallbackTqRows } = await supabase
-              .from('test_questions')
-              .select('*')
-              .in('test_id', testIds);
-            if (fallbackTqRows && fallbackTqRows.length > 0) {
-              const questionIds = Array.from(new Set(fallbackTqRows.map((r) => r.question_id).filter(Boolean)));
-              if (questionIds.length > 0) {
-                const { data: testQuestions, error: tqQuestionsErr } = await supabase
-                  .from('questions')
-                  .select('*')
-                  .in('id', questionIds)
-                  .eq('status', 'published');
-
-                if (tqQuestionsErr) {
-                  console.warn('Error fetching test-linked questions:', tqQuestionsErr);
-                } else {
-                  testLinkedQuestions = testQuestions || [];
-                }
-              }
-            }
-          } else if (tqRows && tqRows.length > 0) {
-            const joinedQuestions = [];
-            const missingQIds = [];
-            tqRows.forEach((r) => {
-              if (r.questions) {
-                const q = Array.isArray(r.questions) ? r.questions[0] : r.questions;
-                if (q && (q.status === 'published' || !q.status)) {
-                  joinedQuestions.push(q);
-                }
-              } else if (r.question_id) {
-                missingQIds.push(r.question_id);
-              }
-            });
-            if (missingQIds.length > 0) {
-              const { data: extraQs } = await supabase
-                .from('questions')
-                .select('*')
-                .in('id', Array.from(new Set(missingQIds)))
-                .eq('status', 'published');
-              if (extraQs) joinedQuestions.push(...extraQs);
-            }
-            testLinkedQuestions = joinedQuestions;
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('Test questions fetch error:', err);
-    }
-
-    const questionMap = new Map();
-    directQuestions.forEach((q) => {
-      if (q && q.id) questionMap.set(q.id, q);
+    const { data, error } = await supabase.rpc('get_practice_questions', {
+      p_chapter_id: chapter.id
     });
-    testLinkedQuestions.forEach((q) => {
-      if (q && q.id) questionMap.set(q.id, q);
-    });
-
-    const combined = Array.from(questionMap.values());
-    combined.sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0));
-    return combined.map(sanitizeLiveQuestion);
+    if (error) {
+      console.warn('Unable to load secure practice questions:', error);
+      return [];
+    }
+    const rows = Array.isArray(data) ? data : data?.questions;
+    return (Array.isArray(rows) ? rows : []).map(sanitizeLiveQuestion);
   };
 
   useEffect(() => {

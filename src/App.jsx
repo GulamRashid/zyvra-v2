@@ -6,7 +6,7 @@ import ProtectedRoute from './components/layouts/ProtectedRoute';
 import LoadingSkeleton from './components/common/LoadingSkeleton';
 import QuizErrorBoundary from './components/common/QuizErrorBoundary';
 import PwaInstallBanner from './components/common/PwaInstallBanner';
-import { BookOpen, FileQuestion, ShoppingBag, ChartNoAxesColumn, Bookmark, CalendarDays, Bell, Wrench, Users, PackageCheck, CreditCard, Coins, Tag, Activity, Settings } from 'lucide-react';
+import { BookOpen, FileQuestion, ShoppingBag, ChartNoAxesColumn, Bookmark, Bell, Wrench, Users, PackageCheck, CreditCard, Coins, Tag, Activity } from 'lucide-react';
 
 const AuthPage = lazy(() => import('./pages/auth/AuthPage'));
 const StudentHome = lazy(() => import('./pages/student/StudentHome'));
@@ -25,7 +25,6 @@ const TestHub = lazy(() => import('./pages/student/TestHub'));
 const LiveQuiz = lazy(() => import('./pages/student/LiveQuiz'));
 const QuizResult = lazy(() => import('./pages/student/QuizResult'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
-const SettingsPreview = lazy(() => import('./pages/admin/SettingsPreview'));
 const PricingManager = lazy(() => import('./pages/admin/PricingManager'));
 const UserManager = lazy(() => import('./pages/admin/UserManager'));
 const AdminCoins = lazy(() => import('./pages/admin/AdminCoins'));
@@ -37,10 +36,9 @@ const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
 
 const studentPages = {
   '/tests': { title: 'Practice & tests', subtitle: 'Build your confidence with focused practice.', icon: FileQuestion, items: ['Daily practice', 'Chapter tests', 'Mock exams'] },
-  '/purchases': { title: 'My purchases', subtitle: 'Your learning resources and access, all in one place.', icon: ShoppingBag, items: ['Purchased content', 'Active access', 'Order history'] },
-  '/bookmarks': { title: 'Bookmarks', subtitle: 'Keep important questions and content close.', icon: Bookmark, items: ['Saved questions', 'Saved learning content'] },
-  '/planner': { title: 'Study planner', subtitle: 'Create a steady rhythm that works for you.', icon: CalendarDays, items: ['Weekly goals', 'Study sessions', 'Reminders'] },
-  '/notifications': { title: 'Notifications', subtitle: 'Your learning and platform updates.', icon: Bell, items: ['Study reminders', 'Platform updates', 'Account notices'] },
+  '/purchases': { title: 'My purchases', subtitle: 'Your learning resources and access, all in one place.', icon: ShoppingBag, emptyTitle: 'No purchases yet', emptyDescription: 'Your unlocked chapters, tests, and learning access will appear here after your first purchase.', primaryLabel: 'Explore exams', primaryPath: '/explore' },
+  '/bookmarks': { title: 'Bookmarks', subtitle: 'Keep important questions and content close.', icon: Bookmark, emptyTitle: 'No bookmarks yet', emptyDescription: 'Save important questions and learning content during your study sessions to review them here.', primaryLabel: 'Start practicing', primaryPath: '/tests' },
+  '/notifications': { title: 'Notifications', subtitle: 'Your learning and platform updates.', icon: Bell, emptyTitle: 'You are all caught up', emptyDescription: 'Study reminders, test results, and account updates will appear here when there is something new.', primaryLabel: 'Continue learning', primaryPath: '/' },
   '/toolbox': { title: 'Study toolbox', subtitle: 'Simple tools for a sharper study session.', icon: Wrench, items: ['Math tools', 'Polity quick review', 'Reasoning practice'] }
 };
 const adminPages = {
@@ -58,7 +56,7 @@ const adminPages = {
 };
 
 function StudentPlaceholder({ page }) {
-  const { title, subtitle, icon: Icon, items } = page;
+  const { title, subtitle, icon: Icon, emptyTitle, emptyDescription, primaryLabel, primaryPath } = page;
   return (
     <div className="placeholder-page max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
       <div className="page-heading">
@@ -74,21 +72,13 @@ function StudentPlaceholder({ page }) {
             <Icon size={24} />
           </div>
           <div>
-            <h2 className="text-base font-black text-white">Your study workspace is ready</h2>
-            <p className="text-xs text-emerald-300/80">Track your saved content, milestones, and active items below.</p>
+            <h2 className="text-base font-black text-white">{emptyTitle || 'This space is empty for now'}</h2>
+            <p className="text-xs text-emerald-300/80">{emptyDescription || 'Your learning activity will appear here when it is available.'}</p>
           </div>
         </div>
-        <div className="placeholder-items grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
-          {items.map((item) => (
-            <div key={item} className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/20 text-xs font-bold text-emerald-200 flex items-center gap-2">
-              <span className="placeholder-item-dot w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
-              <span>{item}</span>
-            </div>
-          ))}
-        </div>
         <div className="pt-2 flex items-center gap-3">
-          <a href="/tests" className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold inline-flex items-center gap-1.5 transition-transform active:scale-95">
-            <span>Go to Practice Hub</span>
+          <a href={primaryPath || '/tests'} className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold inline-flex items-center gap-1.5 transition-transform active:scale-95">
+            <span>{primaryLabel || 'Go to Practice Hub'}</span>
             <span>→</span>
           </a>
           <a href="/explore" className="px-4 py-2 rounded-xl bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 text-xs font-bold hover:text-white transition-colors">
@@ -97,7 +87,7 @@ function StudentPlaceholder({ page }) {
         </div>
       </div>
       <div className="placeholder-note text-xs text-emerald-400/70 flex items-center gap-2">
-        <span className="health-dot" /> Your learning space is ready to grow with you.
+        <span className="health-dot" /> We will keep this space up to date as your learning journey grows.
       </div>
     </div>
   );
@@ -126,7 +116,7 @@ function AppRoutes() {
       <Route path="notifications" element={<AdminNotifications />} />
       <Route path="tools" element={<AdminTools />} />
       <Route path="reports" element={<AdminReports />} />
-      <Route path="settings" element={<div className="admin-placeholder"><div className="page-heading"><div><div className="eyebrow">ADMINISTRATION / CONFIGURATION</div><h1><Settings size={22} /> Settings</h1><p>Control the platform’s core learning and reward behaviour.</p></div></div><SettingsPreview /></div>} />
+      <Route path="settings" element={<Navigate to="/admin" replace />} />
     </Route>
     <Route path="/" element={<ProtectedRoute><StudentLayout /></ProtectedRoute>}>
       <Route index element={<StudentHome />} />

@@ -44,6 +44,44 @@ import {
 import { translateText } from '../../lib/translator';
 
 const pendingAttemptStarts = new Map();
+const QUIZ_CACHE_VERSION = 1;
+
+function getQuizCacheKey(userId, testId) {
+  return `zyvra-quiz-cache-${userId}-${testId}`;
+}
+
+function readQuizCache(userId, testId) {
+  if (!userId || !testId) return null;
+  const key = getQuizCacheKey(userId, testId);
+  for (const storage of [sessionStorage, localStorage]) {
+    try {
+      const parsed = JSON.parse(storage.getItem(key) || 'null');
+      if (parsed?.version === QUIZ_CACHE_VERSION && Array.isArray(parsed.questions)) return parsed;
+    } catch (_) {
+      // Try the other storage area when one is unavailable or corrupt.
+    }
+  }
+  return null;
+}
+
+function writeQuizCache(userId, testId, value) {
+  if (!userId || !testId || !Array.isArray(value?.questions)) return;
+  const payload = {
+    version: QUIZ_CACHE_VERSION,
+    test: value.test || null,
+    attemptId: value.attemptId || null,
+    questions: value.questions,
+    cachedAt: new Date().toISOString()
+  };
+  const key = getQuizCacheKey(userId, testId);
+  for (const storage of [sessionStorage, localStorage]) {
+    try {
+      storage.setItem(key, JSON.stringify(payload));
+    } catch (storageError) {
+      console.warn('Unable to cache quiz questions locally:', storageError);
+    }
+  }
+}
 
 function getAttemptId(data) {
   if (typeof data === 'string') return data;
@@ -258,14 +296,28 @@ export default function LiveQuiz() {
   const [startingTest, setStartingTest] = useState(false);
   const [testPhase, setTestPhase] = useState('loading'); // 'loading' | 'instructions' | 'resume_prompt' | 'active'
   const [pausedAttemptData, setPausedAttemptData] = useState(null);
+  const [toast, setToast] = useState('');
+  const [violationCount, setViolationCount] = useState(0);
+  const [antiCheatWarning, setAntiCheatWarning] = useState('');
+  const [feedbackAction, setFeedbackAction] = useState('');
+  const [bookmarkSaving, setBookmarkSaving] = useState(false);
 
   const submitLock = useRef(false);
+  const lastViolationAt = useRef(0);
+  const violationCountRef = useRef(0);
   const [timeExpired, setTimeExpired] = useState(false);
   const [language, setLanguage] = useState('en');
   const [translatedData, setTranslatedData] = useState({});
   const [translatingQuestionId, setTranslatingQuestionId] = useState('');
   const inFlightTranslations = useRef(new Map());
-  const [timeSpent, setTimeSpent] = useState({});
+  const timeSpentRef = useRef({});
+  const dropoffEventsRef = useRef([]);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+    const timeout = window.setTimeout(() => setToast(''), 2400);
+    return () => window.clearTimeout(timeout);
+  }, [toast]);
 
   // Per-question time tracking timer
   useEffect(() => {
@@ -273,10 +325,7 @@ export default function LiveQuiz() {
     const interval = setInterval(() => {
       const qId = questions?.[currentIndex]?.id;
       if (qId) {
-        setTimeSpent((prev) => ({
-          ...prev,
-          [qId]: (prev[qId] || 0) + 1
-        }));
+        timeSpentRef.current[qId] = (timeSpentRef.current[qId] || 0) + 1;
       }
     }, 1000);
     return () => clearInterval(interval);
@@ -306,7 +355,9 @@ export default function LiveQuiz() {
     visitedQuestions: new Set(),
     remaining: 0,
     language: 'en',
-    testPhase: 'loading'
+    testPhase: 'loading',
+    violationCount: 0,
+    dropoffEvents: []
   });
 
   useEffect(() => {
@@ -319,9 +370,11 @@ export default function LiveQuiz() {
       visitedQuestions,
       remaining,
       language,
-      testPhase
+      testPhase,
+      violationCount,
+      dropoffEvents: dropoffEventsRef.current
     };
-  }, [attemptId, testId, user?.id, currentIndex, responses, visitedQuestions, remaining, language, testPhase]);
+  }, [attemptId, testId, user?.id, currentIndex, responses, visitedQuestions, remaining, language, testPhase, violationCount]);
 
   // Dual Persistence: Instant LocalStorage Snapshot + Supabase Cloud Upsert
   const saveProgressSnapshot = useCallback((overrides = {}, syncCloud = true) => {
@@ -335,6 +388,7 @@ export default function LiveQuiz() {
     const currIdx = overrides.currentIndex ?? cur.currentIndex;
     const remSecs = overrides.remaining ?? cur.remaining;
     const lang = overrides.language ?? cur.language;
+    const dropoffEvents = overrides.dropoffEvents ?? cur.dropoffEvents ?? dropoffEventsRef.current;
     const visitedArr = overrides.visited
       ? Array.from(overrides.visited)
       : Array.from(cur.visitedQuestions);
@@ -357,8 +411,10 @@ export default function LiveQuiz() {
       responses: resp,
       markedForReview: markedArr,
       visited: visitedArr,
+      violationCount: overrides.violationCount ?? cur.violationCount ?? 0,
+      dropoffEvents,
       remainingSeconds: remSecs,
-      timeSpent: overrides.timeSpent ?? timeSpent,
+      timeSpent: overrides.timeSpent ?? timeSpentRef.current,
       language: lang,
       updatedAt: new Date().toISOString()
     };
@@ -387,9 +443,14 @@ export default function LiveQuiz() {
         cloudPayload.paused_at = new Date().toISOString();
       }
       supabase
-        .from('test_attempts')
-        .update(cloudPayload)
-        .eq('id', activeAttId)
+        .rpc('save_test_attempt_progress', {
+          p_attempt_id: activeAttId,
+          p_status: cloudPayload.status,
+          p_remaining_seconds: cloudPayload.remaining_seconds,
+          p_current_question_index: cloudPayload.current_question_index,
+          p_state_json: cloudPayload.state_json,
+          p_violation_count: snapshot.violationCount
+        })
         .then(({ error: syncErr }) => {
           if (syncErr) {
             console.warn('Database attempt update error:', syncErr?.message || syncErr);
@@ -400,6 +461,25 @@ export default function LiveQuiz() {
 
     return snapshot;
   }, [supabase]);
+
+  const recordDropoffEvent = useCallback((type, details = {}) => {
+    const cur = stateRef.current;
+    if (!cur.userId || !cur.testId || !cur.attemptId) return null;
+    const currentQuestion = questions[cur.currentIndex];
+    const event = {
+      type,
+      at: new Date().toISOString(),
+      questionId: currentQuestion?.id || null,
+      questionIndex: cur.currentIndex,
+      section: currentQuestion?.section || currentQuestion?.topic || currentQuestion?.subject || null,
+      remainingSeconds: cur.remaining,
+      ...details
+    };
+    const nextEvents = [...dropoffEventsRef.current, event].slice(-50);
+    dropoffEventsRef.current = nextEvents;
+    stateRef.current.dropoffEvents = nextEvents;
+    return saveProgressSnapshot({ status: 'paused', dropoffEvents: nextEvents }, true);
+  }, [questions, saveProgressSnapshot]);
 
   // Track visited questions automatically
   useEffect(() => {
@@ -435,14 +515,22 @@ export default function LiveQuiz() {
         return;
       }
 
-      // 1. Fetch test metadata
-      const { data: testData, error: testError } = await supabase
-        .from('tests')
-        .select('id,title,chapter_id,instructions,pattern,duration_minutes,attempt_limit,positive_marks,negative_marks,mandatory_option_e_penalty,coin_reward_enabled,solution_mode,status')
-        .eq('id', testId)
-        .maybeSingle();
+      const cachedQuiz = readQuizCache(user.id, testId);
+      let testData;
 
-      if (testError) throw testError;
+      // 1. Fetch test metadata, falling back to the last verified local cache.
+      try {
+        const testResult = await supabase
+          .from('tests')
+          .select('id,title,chapter_id,instructions,pattern,duration_minutes,attempt_limit,positive_marks,negative_marks,mandatory_option_e_penalty,coin_reward_enabled,solution_mode,status')
+          .eq('id', testId)
+          .maybeSingle();
+        if (testResult.error) throw testResult.error;
+        testData = testResult.data;
+      } catch (metadataError) {
+        if (!cachedQuiz?.test) throw metadataError;
+        testData = cachedQuiz.test;
+      }
       if (!testData || !['published', 'live', 'available'].includes(String(testData.status).toLowerCase())) {
         setError({
           message: 'This test is not currently available.',
@@ -465,14 +553,21 @@ export default function LiveQuiz() {
       }
 
       // 3. Check for existing incomplete or paused attempt
-      const { data: existingAttempts } = await supabase
-        .from('test_attempts')
-        .select('id, test_id, user_id, status, started_at, completed_at, remaining_seconds, current_question_index, state_json, paused_at, created_at, updated_at')
-        .eq('user_id', user.id)
-        .eq('test_id', testId)
-        .is('completed_at', null)
-        .order('created_at', { ascending: false })
-        .limit(1);
+      let existingAttempts = [];
+      try {
+        const attemptResult = await supabase
+          .from('test_attempts')
+          .select('id, test_id, user_id, status, started_at, completed_at, remaining_seconds, current_question_index, state_json, paused_at, created_at, updated_at')
+          .eq('user_id', user.id)
+          .eq('test_id', testId)
+          .is('completed_at', null)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (attemptResult.error) throw attemptResult.error;
+        existingAttempts = attemptResult.data || [];
+      } catch (attemptError) {
+        console.warn('Unable to check cloud attempt state; using local quiz state:', attemptError);
+      }
 
       const dbIncomplete = existingAttempts?.[0] || null;
 
@@ -484,26 +579,34 @@ export default function LiveQuiz() {
         if (rawLocal) localSnapshot = JSON.parse(rawLocal);
       } catch (_) {}
 
-      const hasResumeAttempt = (dbIncomplete && dbIncomplete.status !== 'completed' && dbIncomplete.status !== 'submitted') || localSnapshot;
+      const hasResumeAttempt = (dbIncomplete && dbIncomplete.status !== 'completed' && dbIncomplete.status !== 'submitted')
+        || localSnapshot
+        || cachedQuiz?.attemptId;
 
       if (hasResumeAttempt) {
         // Paused or in-progress attempt found: pre-load questions and prompt resume
-        const activeAttemptId = dbIncomplete?.id || localSnapshot?.attemptId;
-        const { data: questionData, error: questionError } = await supabase.rpc('get_live_test_questions', {
-          p_test_id: testId,
-          p_attempt_id: activeAttemptId
-        });
-
-        if (questionError) throw questionError;
-
-        const payload = unwrapRpcPayload(questionData);
-        const questionRows = Array.isArray(payload) ? payload : payload?.questions;
-        const safeRows = Array.isArray(questionRows) ? questionRows : [];
-        const safeQuestions = safeRows.map(sanitizeLiveQuestion);
+        const activeAttemptId = dbIncomplete?.id || localSnapshot?.attemptId || cachedQuiz?.attemptId;
+        let safeQuestions = [];
+        try {
+          const { data: questionData, error: questionError } = await supabase.rpc('get_live_test_questions', {
+            p_test_id: testId,
+            p_attempt_id: activeAttemptId
+          });
+          if (questionError) throw questionError;
+          const payload = unwrapRpcPayload(questionData);
+          const questionRows = Array.isArray(payload) ? payload : payload?.questions;
+          const safeRows = Array.isArray(questionRows) ? questionRows : [];
+          safeQuestions = safeRows.map(sanitizeLiveQuestion);
+        } catch (questionError) {
+          safeQuestions = cachedQuiz?.questions || [];
+          if (!safeQuestions.length) throw questionError;
+          console.warn('Using cached quiz questions while offline:', questionError);
+        }
 
         if (active) {
           setAttemptId(activeAttemptId);
           setQuestions(safeQuestions);
+          writeQuizCache(user.id, testId, { test: testData, attemptId: activeAttemptId, questions: safeQuestions });
 
           // Restore state cleanly from DB and LocalStorage
           const stateJson = dbIncomplete?.state_json || {};
@@ -543,6 +646,13 @@ export default function LiveQuiz() {
             ?? dbIncomplete?.remaining_seconds
             ?? stateJson.remainingSeconds
             ?? (Number(testData.duration_minutes || 60) * 60);
+          timeSpentRef.current = localSnapshot?.timeSpent || stateJson.timeSpent || {};
+          const restoredViolations = Number(localSnapshot?.violationCount ?? stateJson.violationCount ?? 0);
+          violationCountRef.current = restoredViolations;
+          setViolationCount(restoredViolations);
+          dropoffEventsRef.current = Array.isArray(localSnapshot?.dropoffEvents)
+            ? localSnapshot.dropoffEvents.slice(-50)
+            : Array.isArray(stateJson.dropoffEvents) ? stateJson.dropoffEvents.slice(-50) : [];
 
           const restoredLang = localSnapshot?.language || stateJson.language;
           if (restoredLang) setLanguage(restoredLang);
@@ -627,6 +737,7 @@ export default function LiveQuiz() {
 
       setAttemptId(activeAttemptId);
       setQuestions(safeQuestions);
+      writeQuizCache(user.id, testId, { test, attemptId: activeAttemptId, questions: safeQuestions });
       setResponses({});
       setCurrentIndex(0);
       if (safeQuestions.length > 0) {
@@ -680,20 +791,18 @@ export default function LiveQuiz() {
     setPauseError('');
 
     try {
+      recordDropoffEvent('pause');
       const snapshot = saveProgressSnapshot({ status: 'paused' }, true);
       sessionStorage.removeItem(`zyvra-active-attempt-${user?.id}-${testId}`);
 
-      const { error: updateError } = await supabase
-        .from('test_attempts')
-        .update({
-          status: 'paused',
-          remaining_seconds: remaining,
-          current_question_index: currentIndex,
-          state_json: snapshot,
-          paused_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', attemptId);
+      const { error: updateError } = await supabase.rpc('save_test_attempt_progress', {
+        p_attempt_id: attemptId,
+        p_status: 'paused',
+        p_remaining_seconds: remaining,
+        p_current_question_index: currentIndex,
+        p_state_json: snapshot,
+        p_violation_count: snapshot.violationCount
+      });
 
       if (updateError) {
         console.warn('Database update error on pause (proceeding with local save):', updateError);
@@ -723,10 +832,10 @@ export default function LiveQuiz() {
 
   // Intercept browser back button, tab hide, and page unload
   useEffect(() => {
-    if (testPhase !== 'active') return undefined;
+    if (testPhase !== 'active' || submitting || pausing) return undefined;
 
     const handleBeforeUnload = (event) => {
-      saveProgressSnapshot({ status: 'paused' }, true);
+      recordDropoffEvent('abandon');
       event.preventDefault();
       event.returnValue = 'You have an active test. Your progress is saved, but are you sure you want to leave?';
       return event.returnValue;
@@ -734,12 +843,12 @@ export default function LiveQuiz() {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
-        saveProgressSnapshot({ status: 'paused' }, true);
+        recordDropoffEvent('tab_switch');
       }
     };
 
     const handlePageHide = () => {
-      saveProgressSnapshot({ status: 'paused' }, true);
+      recordDropoffEvent('abandon');
     };
 
     window.history.pushState(null, '', window.location.href);
@@ -760,7 +869,41 @@ export default function LiveQuiz() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [testPhase, saveProgressSnapshot]);
+  }, [testPhase, submitting, pausing, recordDropoffEvent]);
+
+  const recordViolation = useCallback(() => {
+    const now = Date.now();
+    if (now - lastViolationAt.current < 1500) return;
+    lastViolationAt.current = now;
+    const nextCount = violationCountRef.current + 1;
+    violationCountRef.current = nextCount;
+    setViolationCount(nextCount);
+    setAntiCheatWarning(`Focus warning: leaving the test window was detected (${nextCount}). Stay on this screen to protect your attempt.`);
+    saveProgressSnapshot({ violationCount: nextCount }, true);
+  }, [saveProgressSnapshot]);
+
+  useEffect(() => {
+    if (testPhase !== 'active') return undefined;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') recordViolation();
+    };
+    const handleWindowBlur = () => recordViolation();
+    const preventClipboardShortcuts = (event) => {
+      if ((event.ctrlKey || event.metaKey) && ['a', 'c', 'v', 'x'].includes(event.key.toLowerCase())) {
+        event.preventDefault();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('keydown', preventClipboardShortcuts, true);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('keydown', preventClipboardShortcuts, true);
+    };
+  }, [testPhase, recordViolation]);
 
   // Hindi translation on question change
   useEffect(() => {
@@ -859,11 +1002,11 @@ export default function LiveQuiz() {
       question_id: q.id,
       selected_option: responses[q.id]?.selected_option || null,
       marked_for_review: Boolean(responses[q.id]?.marked_for_review),
-      time_spent_seconds: timeSpent[q.id] || 0
+      time_spent_seconds: timeSpentRef.current[q.id] || 0
     }));
 
     try {
-      localStorage.setItem(`zyvra_attempt_timespent_${attemptId}`, JSON.stringify(timeSpent));
+      localStorage.setItem(`zyvra_attempt_timespent_${attemptId}`, JSON.stringify(timeSpentRef.current));
       const { error: submitError } = await supabase.rpc('submit_test_attempt', {
         p_attempt_id: attemptId,
         p_responses
@@ -994,7 +1137,7 @@ export default function LiveQuiz() {
       }
     };
     setResponses(nextResponses);
-    saveProgressSnapshot({ responses: nextResponses }, true);
+    saveProgressSnapshot({ responses: nextResponses }, false);
 
     // If immediate solution mode and question is missing correct_answer, fetch on-demand securely
     if (test?.solution_mode === 'immediate' && !question?.correct_answer && nextVal && supabase) {
@@ -1048,6 +1191,8 @@ export default function LiveQuiz() {
   };
 
   const toggleReview = () => {
+    if (bookmarkSaving) return;
+    setBookmarkSaving(true);
     const nextResponses = {
       ...responses,
       [question.id]: {
@@ -1056,7 +1201,18 @@ export default function LiveQuiz() {
       }
     };
     setResponses(nextResponses);
-    saveProgressSnapshot({ responses: nextResponses }, true);
+    saveProgressSnapshot({ responses: nextResponses }, false);
+    setToast(nextResponses[question.id].marked_for_review ? 'Question bookmarked for review.' : 'Bookmark removed.');
+    window.setTimeout(() => setBookmarkSaving(false), 250);
+  };
+
+  const handleFeedbackAction = (action) => {
+    if (feedbackAction) return;
+    setFeedbackAction(action);
+    setToast(action === 'notes'
+      ? 'Quick notes are coming soon for this question.'
+      : 'Question reporting is coming soon.');
+    window.setTimeout(() => setFeedbackAction(''), 350);
   };
 
   const clearResponse = () => {
@@ -1065,13 +1221,13 @@ export default function LiveQuiz() {
       [question.id]: { ...responses[question.id], selected_option: null }
     };
     setResponses(nextResponses);
-    saveProgressSnapshot({ responses: nextResponses }, true);
+    saveProgressSnapshot({ responses: nextResponses }, false);
   };
 
   const goTo = (index) => {
     setCurrentIndex(index);
     setPaletteOpen(false);
-    saveProgressSnapshot({ currentIndex: index }, true);
+    saveProgressSnapshot({ currentIndex: index }, false);
   };
 
   const confirm = () => {
@@ -1242,7 +1398,7 @@ export default function LiveQuiz() {
               </Link>
               <button
                 type="button"
-                className="button button-gold start-test-btn"
+                className="button button-primary start-test-btn"
                 disabled={!declared || startingTest}
                 onClick={handleStartTest}
               >
@@ -1309,7 +1465,7 @@ export default function LiveQuiz() {
             <div className="resume-actions">
               <button
                 type="button"
-                className="button button-gold resume-btn-large"
+                className="button button-primary resume-btn-large"
                 onClick={handleResumeTest}
               >
                 <Play size={18} /> Resume Test Now
@@ -1354,7 +1510,7 @@ export default function LiveQuiz() {
                 <PaletteLegend compact={false} />
               </div>
               <div className="instructions-modal-footer">
-                <button type="button" className="button button-gold" onClick={() => setShowInstructionsModal(false)}>
+                <button type="button" className="button button-primary" onClick={() => setShowInstructionsModal(false)}>
                   Close
                 </button>
               </div>
@@ -1375,7 +1531,7 @@ export default function LiveQuiz() {
               {error && <div className="feedback error-feedback">{typeof error === 'object' ? error.message : error}</div>}
               <div className="modal-actions">
                 <button className="button button-outline" onClick={() => setConfirmSubmit(false)}>Cancel</button>
-                <button className="button button-gold" disabled={submitting} onClick={() => submit(false)}>
+                <button className="button button-primary" disabled={submitting} onClick={() => submit(false)}>
                   {submitting ? 'Submitting…' : 'Confirm Submission'}
                 </button>
               </div>
@@ -1419,7 +1575,24 @@ export default function LiveQuiz() {
 
   // PHASE 3: ACTIVE CBT RUNNER
   return (
-    <main className="live-quiz">
+    <main
+      className="live-quiz select-none"
+      onContextMenu={(event) => event.preventDefault()}
+      onCopy={(event) => event.preventDefault()}
+      onCut={(event) => event.preventDefault()}
+      onPaste={(event) => event.preventDefault()}
+    >
+      {toast && (
+        <div className="fixed right-4 top-4 z-[120] rounded-xl border border-emerald-400/30 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-lg dark:bg-[#12231C] dark:text-emerald-100" role="status" aria-live="polite">
+          {toast}
+        </div>
+      )}
+      {antiCheatWarning && (
+        <div className="fixed inset-x-4 top-4 z-[119] rounded-xl border border-amber-400/40 bg-amber-50 px-4 py-3 pr-10 text-sm font-semibold text-amber-900 shadow-lg dark:bg-amber-950/90 dark:text-amber-100" role="alert">
+          {antiCheatWarning}
+          <button type="button" className="absolute right-3 top-2 text-lg" onClick={() => setAntiCheatWarning('')} aria-label="Dismiss focus warning">×</button>
+        </div>
+      )}
       {paletteOpen && (
         <button
           className="drawer-scrim quiz-scrim"
@@ -1487,7 +1660,7 @@ export default function LiveQuiz() {
             {/* Submit Test Button (Desktop Header) */}
             <button
               type="button"
-              className="button button-gold quiz-submit-button hidden md:inline-flex"
+              className="button button-primary quiz-submit-button hidden md:inline-flex"
               disabled={submitting}
               onClick={confirm}
             >
@@ -1576,7 +1749,7 @@ export default function LiveQuiz() {
 
                 let badgeClasses = 'dark:bg-emerald-950/50 bg-slate-100 border dark:border-emerald-800/40 border-slate-200 dark:text-emerald-400/60 text-slate-600';
                 if (isCurrent) {
-                  badgeClasses = 'border-2 border-amber-400 bg-amber-400/25 text-amber-800 dark:text-amber-300 ring-2 ring-amber-400/40 font-black shadow-glowGold scale-105';
+                  badgeClasses = 'border-2 border-slate-400 bg-slate-400/20 text-slate-700 dark:text-slate-200 ring-2 ring-slate-400/30 font-black';
                 } else if (isMarked) {
                   badgeClasses = 'bg-purple-600 border border-purple-400 text-white font-bold';
                 } else if (hasAnswer) {
@@ -1698,15 +1871,15 @@ export default function LiveQuiz() {
                     type="button"
                     className={`quiz-option py-3.5 px-4 min-h-[56px] transition-all rounded-2xl ${
                       selected
-                        ? 'selected border-2 border-[#22c55e] dark:bg-[#07281b] bg-emerald-50/90 shadow-[0_0_20px_rgba(34,197,94,0.18)]'
-                        : 'border dark:border-emerald-500/20 border-slate-200 dark:bg-[#072117]/85 bg-white hover:border-emerald-500/40 shadow-xs'
+                        ? 'selected border-2 border-emerald-500 dark:bg-[#12231C] bg-emerald-50'
+                        : 'border dark:border-emerald-500/15 border-slate-200 dark:bg-[#12231C] bg-white hover:border-emerald-500/40'
                     } ${key === 'E' ? 'option-e' : ''} ${isCorrectAnswer ? 'correct-answer' : ''} ${isWrongSelected ? 'wrong-answer' : ''}`}
                     onClick={() => answer(key)}
                     aria-pressed={selected}
                   >
                     <span className={`quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-black rounded-full flex items-center justify-center ${
                       selected
-                        ? 'bg-[#22c55e] text-black shadow-sm'
+                        ? 'bg-emerald-500 text-white'
                         : 'dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-700'
                     }`}>
                       {key}
@@ -1854,7 +2027,7 @@ export default function LiveQuiz() {
             {currentIndex === questions.length - 1 ? (
               <button
                 type="button"
-                className="px-5 sm:px-6 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs shadow-glowGold transition-transform hover:scale-105 active:scale-95 min-h-[40px]"
+                className="px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-colors min-h-[40px]"
                 disabled={submitting}
                 onClick={confirm}
               >
@@ -1863,7 +2036,7 @@ export default function LiveQuiz() {
             ) : (
               <button
                 type="button"
-                className="px-5 sm:px-6 py-2 sm:py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs shadow-glowGold transition-transform hover:scale-105 active:scale-95 flex items-center gap-1 min-h-[40px]"
+                className="px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-colors flex items-center gap-1 min-h-[40px]"
                 onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
               >
                 <span>Next</span> <ChevronRight size={16} />
@@ -1884,31 +2057,34 @@ export default function LiveQuiz() {
             <button
               type="button"
               onClick={toggleReview}
+              disabled={bookmarkSaving}
               className={`flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl transition-colors min-h-[44px] ${
                 responses[question.id]?.marked_for_review
                   ? 'text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-950/40'
                   : 'dark:text-emerald-300 text-slate-600 hover:bg-slate-100 dark:hover:bg-emerald-950/60'
               }`}
             >
-              <Bookmark size={16} className={responses[question.id]?.marked_for_review ? 'fill-purple-600 dark:fill-purple-400' : ''} />
+              {bookmarkSaving ? <LoaderCircle size={16} className="animate-spin" /> : <Bookmark size={16} className={responses[question.id]?.marked_for_review ? 'fill-purple-600 dark:fill-purple-400' : ''} />}
               <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">
                 {responses[question.id]?.marked_for_review ? 'Marked' : 'Review'}
               </span>
             </button>
             <button
               type="button"
-              onClick={() => alert('Quick notes saved for this question.')}
+              onClick={() => handleFeedbackAction('notes')}
+              disabled={feedbackAction !== ''}
               className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-emerald-300 text-slate-600 hover:bg-slate-100 dark:hover:bg-emerald-950/60 transition-colors min-h-[44px]"
             >
-              <FileText size={16} />
+              {feedbackAction === 'notes' ? <LoaderCircle size={16} className="animate-spin" /> : <FileText size={16} />}
               <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">Notes</span>
             </button>
             <button
               type="button"
-              onClick={() => alert('Question report flagged for review.')}
+              onClick={() => handleFeedbackAction('report')}
+              disabled={feedbackAction !== ''}
               className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-emerald-300 text-slate-600 hover:bg-slate-100 dark:hover:bg-emerald-950/60 transition-colors min-h-[44px]"
             >
-              <AlertTriangle size={16} />
+              {feedbackAction === 'report' ? <LoaderCircle size={16} className="animate-spin" /> : <AlertTriangle size={16} />}
               <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">Report</span>
             </button>
           </div>
@@ -1980,7 +2156,7 @@ export default function LiveQuiz() {
 
           <div className="palette-footer">
             <span>{questions.length - attemptedCount} unanswered</span>
-            <button type="button" className="button button-gold" onClick={confirm}>Submit test</button>
+            <button type="button" className="button button-primary" onClick={confirm}>Submit test</button>
           </div>
         </aside>
       </div>
@@ -2024,7 +2200,7 @@ export default function LiveQuiz() {
             <div className="pause-modal-actions">
               <button
                 type="button"
-                className="button button-gold"
+                className="button button-primary"
                 disabled={pausing}
                 onClick={pauseAndExit}
               >
@@ -2073,7 +2249,7 @@ export default function LiveQuiz() {
               <PaletteLegend compact={false} />
             </div>
             <div className="instructions-modal-footer">
-              <button type="button" className="button button-gold" onClick={() => setShowInstructionsModal(false)}>
+              <button type="button" className="button button-primary" onClick={() => setShowInstructionsModal(false)}>
                 Back to Test
               </button>
             </div>
@@ -2099,7 +2275,7 @@ export default function LiveQuiz() {
               <button type="button" className="button button-outline" onClick={() => setConfirmSubmit(false)}>
                 Continue test
               </button>
-              <button type="button" className="button button-gold" disabled={submitting} onClick={() => submit(false)}>
+              <button type="button" className="button button-primary" disabled={submitting} onClick={() => submit(false)}>
                 {submitting ? 'Submitting…' : 'Submit test'}
               </button>
             </div>

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
-  Bell, Bookmark, ChartNoAxesColumn, ChevronRight, ClipboardList,
-  Compass, Home, Library, Menu, Settings, ShoppingBag, Wrench, X,
+  Bell, ChartNoAxesColumn, ChevronRight, ClipboardList,
+  Compass, Home, Menu, Settings, Wrench, X,
   Shield, LogOut, Coins, Flame
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -16,12 +16,7 @@ const sections = [
   { to: '/', label: 'Home', key: 'home', Icon: Home },
   { to: '/explore', label: 'Explore Exams', key: 'explore', Icon: Compass },
   { to: '/tests', label: 'Practice & Tests', key: 'tests', Icon: ClipboardList },
-  { to: '/purchases', label: 'My Purchases', Icon: ShoppingBag },
   { to: '/analytics', label: 'Performance & Analytics', Icon: ChartNoAxesColumn },
-  { to: '/bookmarks', label: 'Bookmarks', Icon: Bookmark },
-  { to: '/wallet', label: 'Coin Wallet', Icon: Coins },
-  { to: '/planner', label: 'Study Planner', Icon: Library },
-  { to: '/notifications', label: 'Notifications', Icon: Bell },
   { to: '/toolbox', label: 'Study Toolbox', key: 'toolbox', Icon: Wrench },
   { to: '/profile', label: 'Profile & Settings', key: 'profile', Icon: Settings }
 ];
@@ -38,9 +33,7 @@ export default function StudentLayout() {
   const streak = Number(profile?.current_streak || 0);
 
   const navKeys = {
-    '/purchases': 'purchases', '/analytics': 'analytics', '/bookmarks': 'bookmarks',
-    '/wallet': 'wallet', '/planner': 'planner', '/notifications': 'notifications',
-    '/explore': 'exploreExams', '/profile': 'profileSettings'
+    '/analytics': 'analytics', '/explore': 'exploreExams', '/profile': 'profileSettings'
   };
   const linkLabel = (item) => item.key ? t(item.key) : t(navKeys[item.to]) || item.label;
   const closeDrawer = () => setDrawerOpen(false);
@@ -55,14 +48,14 @@ export default function StudentLayout() {
   };
 
   return (
-    <div className="app-shell bg-[#04140e] text-[#f0fdf4] min-h-screen">
+    <div className="app-shell student-app-shell min-h-screen">
       {drawerOpen && <button className="drawer-scrim" aria-label="Close navigation" onClick={closeDrawer} />}
       <aside className={`student-sidebar ${drawerOpen ? 'drawer-open' : ''}`}>
         <div className="sidebar-brand">
           <img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" />
           <div>
-            <span className="text-white font-extrabold tracking-wider">ZYVRA</span>
-            <span className="text-emerald-400/70 font-semibold tracking-widest text-[9px] block">LEARN WITH INTENT</span>
+            <span className="text-[var(--text)] font-extrabold tracking-wider">ZYVRA</span>
+            <span className="text-[var(--muted)] font-semibold tracking-widest text-[9px] block">LEARN WITH INTENT</span>
           </div>
           <button className="icon-button drawer-close ml-auto" onClick={closeDrawer} aria-label="Close menu">
             <X size={19} />
@@ -86,17 +79,17 @@ export default function StudentLayout() {
         </nav>
         <div className="sidebar-bottom">
           <div className="focus-card border border-emerald-500/20 bg-emerald-950/40 rounded-xl p-3">
-            <span className="focus-mark text-[#f5c542]">✦</span>
-            <strong className="text-white text-xs block mt-1">Small steps, strong results.</strong>
-            <span className="text-emerald-300/70 text-[11px]">Your next session is one tap away.</span>
+            <span className="focus-mark text-emerald-300">✦</span>
+            <strong className="text-[var(--text)] text-sm block mt-1">Small steps, strong results.</strong>
+            <span className="text-[var(--muted)] text-sm">Your next session is one tap away.</span>
           </div>
           <div className="sidebar-account flex items-center gap-2.5 pt-3 border-t border-emerald-500/15 mt-3">
             <div className="avatar w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-teal-400 flex items-center justify-center font-bold text-white text-xs">
               {name.slice(0, 1).toUpperCase()}
             </div>
             <div className="account-copy flex-1 min-w-0">
-              <strong className="text-white text-xs block truncate">{guest ? 'Demo learner' : name}</strong>
-              <span className="text-emerald-400/60 text-[10px]">{guest ? 'Guest access' : 'Student account'}</span>
+              <strong className="text-[var(--text)] text-sm block truncate">{guest ? 'Demo learner' : name}</strong>
+              <span className="text-[var(--muted)] text-xs">{guest ? 'Guest access' : 'Student account'}</span>
             </div>
             <button className="icon-button text-slate-400 hover:text-red-400" aria-label="Sign out" onClick={logout}>
               <LogOut size={16} />
@@ -106,12 +99,12 @@ export default function StudentLayout() {
       </aside>
 
       <div className="main-column">
-        <header className="topbar bg-[#04140e]/90 backdrop-blur-md border-b border-emerald-500/15 sticky top-0 z-30">
+        <header className="topbar student-topbar">
           <div className="topbar-left flex items-center gap-2.5">
             <button className="icon-button mobile-menu" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
               <Menu size={20} />
             </button>
-            <div className="mobile-brand flex items-center gap-2 font-bold text-white tracking-wide">
+            <div className="mobile-brand flex items-center gap-2 font-bold text-[var(--text)] tracking-wide">
               <img src="/logo.png" alt="Zyvra" className="w-7 h-7 rounded-lg object-contain shadow-sm" />
               <span>ZYVRA</span>
             </div>
@@ -123,7 +116,7 @@ export default function StudentLayout() {
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-bold"
               title={`${streak} day study streak`}
             >
-              <Flame size={14} className="fill-amber-400 text-amber-400 animate-pulse" />
+              <Flame size={14} className="fill-amber-400 text-amber-400" />
               <span>{streak}</span>
             </div>
 
@@ -139,7 +132,7 @@ export default function StudentLayout() {
               to="/notifications"
             >
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400" />
             </NavLink>
 
             {isAdmin && (

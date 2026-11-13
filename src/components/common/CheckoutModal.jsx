@@ -326,7 +326,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
                   onClick={checkout}
                   disabled={busy || !user || !purchasesEnabled}
                 >
-                  <CreditCard size={16} />
+                  {busy ? <LoaderCircle size={16} className="animate-spin" /> : <CreditCard size={16} />}
                   <span>
                     {busy
                       ? t('verifyingCheckout')

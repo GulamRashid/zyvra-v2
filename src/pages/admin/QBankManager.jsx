@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowDownToLine, BookOpen, Check, ChevronDown, ChevronRight, ChevronUp, FileQuestion, Filter, Layers, LayoutGrid, List, Plus, Search, Trash2, Upload, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { getOptionEntries, hasDevanagari, hasLatin, validateImportQuestion } from '../../lib/tests';
+import { getOptionEntries, hasDevanagari, hasLatin, normalizeImportQuestionText, parseImportCsv, validateImportQuestion } from '../../lib/tests';
 import { getContentErrorMessage, getFolderPath } from '../../lib/content';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { useAuth } from '../../context/AuthContext';
@@ -104,92 +104,6 @@ const TEMPLATE = JSON.stringify([{
 const CSV_TEMPLATE = `question_text,option_a,option_b,option_c,option_d,correct_answer,subject,difficulty,usage_scope,chapter_id,explanation,tags
 "Which article guarantees equality before law?","Article 12","Article 14","Article 19","Article 21","B","Polity","easy","both","replace-with-chapter-uuid","Article 14 guarantees equality before law.","constitution,fundamental-rights"`;
 
-function parseCsvToObjects(text) {
-  const lines = text.trim().split(/\r?\n/).filter((line) => line.trim().length > 0);
-  if (lines.length < 2) return [];
-  const parseLine = (line) => {
-    const result = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const char = line[i];
-      if (char === '"' || char === "'") {
-        if (inQuotes && line[i + 1] === char) {
-          current += char;
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (char === ',' && !inQuotes) {
-        result.push(current.trim());
-        current = '';
-      } else {
-        current += char;
-      }
-    }
-    result.push(current.trim());
-    return result;
-  };
-  const headers = parseLine(lines[0]).map((h) => h.toLowerCase().replace(/^["']|["']$/g, '').trim());
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const values = parseLine(lines[i]);
-    const obj = {};
-    headers.forEach((header, idx) => {
-      const val = values[idx] !== undefined ? values[idx].replace(/^["']|["']$/g, '').trim() : '';
-      obj[header] = val;
-    });
-
-    // Map English and Hindi question columns strictly
-    const qEn = obj.question_en || obj.question_text_en || obj.text_en || '';
-    const qHi = obj.question_hi || obj.question_text_hi || obj.text_hi || obj.question_hindi || '';
-    const qRaw = obj.question_text || obj.question || obj.text || '';
-
-    if (qEn) {
-      obj.question_text = qEn;
-      obj.question_en = qEn;
-    } else if (qRaw) {
-      if (hasDevanagari(qRaw) && !hasLatin(qRaw)) {
-        if (!obj.question_text_hi && !qHi) obj.question_text_hi = qRaw;
-      } else {
-        obj.question_text = qRaw;
-        obj.question_en = qRaw;
-      }
-    }
-
-    if (qHi) {
-      obj.question_text_hi = qHi;
-      obj.question_hi = qHi;
-    }
-
-    if (!obj.options) {
-      const opts = [];
-      ['a', 'b', 'c', 'd', 'e'].forEach((letter) => {
-        let enVal = obj[`option_${letter}_en`] ?? obj[`option_${letter}`] ?? obj[`${letter}_en`] ?? obj[letter] ?? '';
-        let hiVal = obj[`option_${letter}_hi`] ?? obj[`${letter}_hi`] ?? obj[`option_${letter}_hindi`] ?? '';
-
-        // If enVal was accidentally assigned Hindi text while hiVal is empty
-        if (hasDevanagari(enVal) && !hasLatin(enVal)) {
-          if (!hiVal) hiVal = enVal;
-          enVal = '';
-        }
-
-        if (enVal !== '' || hiVal !== '') {
-          opts.push({ en: enVal, hi: hiVal });
-        }
-      });
-      if (opts.length) obj.options = opts;
-    } else if (typeof obj.options === 'string') {
-      try { obj.options = JSON.parse(obj.options); } catch { /* noop */ }
-    }
-    if (typeof obj.tags === 'string' && obj.tags) {
-      obj.tags = obj.tags.split(';').join(',').split(',').map((t) => t.trim()).filter(Boolean);
-    }
-    rows.push(obj);
-  }
-  return rows;
-}
-
 function normalizeQuestion(row) {
   const entries = getOptionEntries(row.options);
   const qEn = row.question_en || row.question_text_en || (typeof row.question_text === 'string' && (hasLatin(row.question_text) || !hasDevanagari(row.question_text)) ? row.question_text : row.question_text?.en || '');
@@ -291,7 +205,7 @@ function QuestionDialog({ question, chapters, onClose, onSaved, onDelete }) {
         </button>
       )}
       <button type="button" className="button button-outline" onClick={onClose} disabled={saving}>Cancel</button>
-      <button className="button button-gold" disabled={saving}>{saving ? 'Saving…' : question ? 'Save question' : 'Add question'}</button>
+      <button className="button button-primary" disabled={saving}>{saving ? 'Saving…' : question ? 'Save question' : 'Add question'}</button>
     </div>
   </form></div>;
 }
@@ -303,11 +217,14 @@ function ImportDialog({ chapters, onClose, onImported }) {
   const [importStatus, setImportStatus] = useState('published');
   const [importUsageScope, setImportUsageScope] = useState('both');
   const [isImporting, setIsImporting] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [importProgress, setImportProgress] = useState(null);
   const [error, setError] = useState('');
 
-  const validate = () => {
+  const validate = async () => {
     setError('');
     setPreview(null);
+    setIsValidating(true);
     try {
       const trimmed = json.trim();
       if (!trimmed) throw new Error('Please paste CSV or JSON data to import.');
@@ -317,17 +234,26 @@ function ImportDialog({ chapters, onClose, onImported }) {
           const parsed = JSON.parse(trimmed);
           rows = Array.isArray(parsed) ? parsed : parsed.questions;
         } catch {
-          rows = parseCsvToObjects(trimmed);
+          rows = parseImportCsv(trimmed);
         }
       } else {
-        rows = parseCsvToObjects(trimmed);
+        rows = parseImportCsv(trimmed);
       }
       if (!Array.isArray(rows) || !rows.length) {
         throw new Error('Provide at least one question in valid CSV or JSON format.');
       }
+      if (!supabase) throw new Error('Supabase is not configured.');
+      const { data: existingQuestions, error: existingError } = await supabase
+        .from('questions')
+        .select('question_text, question_text_hi');
+      if (existingError) throw existingError;
+
       const seen = new Set();
+      const seenQuestionTexts = new Set((existingQuestions || [])
+        .map((question) => normalizeImportQuestionText(question))
+        .filter(Boolean));
       const checked = rows.map((row, index) => {
-        const result = validateImportQuestion(row, index, seen);
+        const result = validateImportQuestion(row, index, seen, seenQuestionTexts);
         const usageScope = String(row?.usage_scope || importUsageScope).trim().toLowerCase();
         const usageScopeValid = usageScopes.includes(usageScope);
         if (!usageScopeValid) {
@@ -341,11 +267,14 @@ function ImportDialog({ chapters, onClose, onImported }) {
       setPreview(checked);
     } catch (parseError) {
       setError(parseError.message || 'The import data is not valid.');
+    } finally {
+      setIsValidating(false);
     }
   };
 
   const handleImportQuestions = async () => {
-    const validRows = (preview || []).filter((item) => item.valid).map(({ row }) => {
+    const validItems = (preview || []).filter((item) => item.valid && !item.imported);
+    const validRows = validItems.map(({ row }) => {
       let qEn = String(row.question_en || row.question_text_en || row.question_text || '').trim();
       let qHi = String(row.question_hi || row.question_text_hi || '').trim() || null;
 
@@ -382,45 +311,53 @@ function ImportDialog({ chapters, onClose, onImported }) {
       };
     });
     if (!validRows.length) {
-      window.alert('No valid rows to import');
       setError('There are no valid rows to import.');
       return;
     }
     if (!user) {
-      window.alert('Authentication required. Please sign in as admin first.');
       setError('Authentication required. Please sign in as admin first.');
       return;
     }
     if (!supabase) {
-      window.alert('Database connection is unavailable. Please try again later.');
       setError('Supabase is not configured.');
       return;
     }
     setIsImporting(true);
+    setImportProgress({ saved: 0, total: validRows.length });
     setError('');
+    let savedCount = 0;
     try {
-      const { data, error: insertError } = await supabase.from('questions').insert(validRows);
-      if (insertError) {
-        console.error('DB Insert Failed:', insertError);
-        window.alert(`Database error: ${insertError.message}`);
-        setError(getContentErrorMessage(insertError, 'Unable to import the valid questions.'));
-        return;
+      const batchSize = 50;
+      for (let start = 0; start < validRows.length; start += batchSize) {
+        const batch = validRows.slice(start, start + batchSize);
+        const { error: insertError } = await supabase.from('questions').insert(batch);
+        if (insertError) {
+          throw new Error(`Import stopped after ${start} of ${validRows.length} rows: ${insertError.message}`);
+        }
+        const savedItems = validItems.slice(start, start + batch.length);
+        setPreview((current) => current
+          ? current.map((item) => savedItems.includes(item) ? { ...item, imported: true } : item)
+          : current);
+        savedCount = Math.min(start + batch.length, validRows.length);
+        setImportProgress({ saved: savedCount, total: validRows.length });
       }
     } catch (insertError) {
       console.error('DB Insert Failed:', insertError);
       const message = getContentErrorMessage(insertError, 'Unable to import questions.');
-      window.alert(`Database error: ${message}`);
-      setError(message);
+      setError(`${message} ${savedCount} rows were saved in this run. Retry to continue with the remaining rows.`);
       return;
     } finally {
       setIsImporting(false);
     }
-    window.alert(`Success! ${validRows.length} question(s) imported with status: ${importStatus}.`);
+    setImportProgress(null);
+    setError('');
     onClose();
     if (onImported) onImported();
   };
 
-  const validCount = preview?.filter((item) => item.valid).length || 0;
+  const validCount = preview?.filter((item) => item.valid && !item.imported).length || 0;
+  const importedCount = preview?.filter((item) => item.imported).length || 0;
+  const previewItems = preview?.slice(0, 50) || [];
   return <div className="modal-backdrop import-modal-backdrop"><section className="content-dialog import-dialog" role="dialog" aria-modal="true" aria-labelledby="import-title">
     <header className="import-modal-header"><div><div className="eyebrow">SAFE BULK AUTHORING</div><h2 id="import-title">Import questions from CSV or JSON</h2></div><button className="modal-close" type="button" aria-label="Close dialog" onClick={onClose}><X size={18} /></button></header>
     <p className="dialog-intro">Review all rows before saving. Questions will be imported with status: <strong>{importStatus}</strong> and usage scope from each row or the default below.</p>
@@ -447,10 +384,10 @@ function ImportDialog({ chapters, onClose, onImported }) {
       </label>
     </div>
     <textarea className="text-input import-json-input" value={json} onChange={(event) => { setJson(event.target.value); setPreview(null); }} rows="10" spellCheck="false" placeholder="Paste CSV (with headers) or a JSON array of question objects…" />
-    <button className="button button-outline" onClick={validate}><Filter size={15} /> Validate & preview</button>
+    <button className="button button-outline" onClick={validate} disabled={isValidating || isImporting}><Filter size={15} /> {isValidating ? 'Validating…' : 'Validate & preview'}</button>
     {error && <div className="feedback error-feedback">{error}</div>}
-    {preview && <div className="import-preview"><div className="import-preview-heading"><strong>Import preview</strong><span>{validCount} valid · {preview.length - validCount} rejected</span></div>{preview.map((item, index) => <div className={`import-preview-row ${item.valid ? 'valid' : 'invalid'}`} key={item.row?.id || index}><span>{item.valid ? <Check size={14} /> : <X size={14} />}</span><div><strong>{item.row?.question_text || `Row ${index + 1}`}</strong><small>Usage: {usageScopeLabel(item.row?.usage_scope)}</small>{item.errors.map((message) => <small key={message}>{message}</small>)}</div></div>)}</div>}
-    <footer className="import-modal-actions"><button type="button" className="button button-outline" onClick={onClose}>Cancel</button><button type="button" className="button button-gold" onClick={handleImportQuestions} disabled={isImporting || !validCount}>{isImporting ? 'Importing...' : `Import ${validCount} question${validCount === 1 ? '' : 's'} (${importStatus})`}</button></footer>
+    {preview && <div className="import-preview"><div className="import-preview-heading"><strong>Import preview</strong><span>{validCount} pending · {importedCount} saved · {preview.filter((item) => !item.valid).length} rejected</span></div>{preview.length > previewItems.length && <small className="field-hint">Showing first 50 of {preview.length} rows.</small>}{previewItems.map((item, index) => <div className={`import-preview-row ${item.valid ? 'valid' : 'invalid'}`} key={item.row?.id || index}><span>{item.valid ? <Check size={14} /> : <X size={14} />}</span><div><strong>{item.row?.question_text || `Row ${index + 1}`}</strong><small>{item.imported ? 'Saved in this import' : `Usage: ${usageScopeLabel(item.row?.usage_scope)}`}</small>{item.errors.map((message) => <small key={message}>{message}</small>)}</div></div>)}</div>}
+    <footer className="import-modal-actions"><button type="button" className="button button-outline" onClick={onClose} disabled={isImporting}>Cancel</button>{importProgress && <span className="field-hint">Saved {importProgress.saved} of {importProgress.total} questions…</span>}<button type="button" className="button button-primary" onClick={handleImportQuestions} disabled={isImporting || isValidating || !validCount}>{isImporting ? `Saving ${importProgress?.saved || 0} of ${importProgress?.total || validCount}…` : validCount ? `Import ${validCount} remaining question${validCount === 1 ? '' : 's'} (${importStatus})` : 'All valid rows saved'}</button></footer>
   </section></div>;
 }
 
@@ -816,7 +753,7 @@ export default function QBankManager() {
       </div>
       <div className="qbank-heading-actions">
         <button className="button button-outline" onClick={() => setImportOpen(true)}><Upload size={15} /> Bulk import</button>
-        <button className="button button-gold" onClick={() => setDialog({ question: null })}><Plus size={15} /> Author question</button>
+        <button className="button button-primary" onClick={() => setDialog({ question: null })}><Plus size={15} /> Author question</button>
       </div>
     </div>
 
@@ -1082,7 +1019,7 @@ export default function QBankManager() {
         <div className="bulk-bar-actions">
           <button
             type="button"
-            className="button button-gold"
+            className="button button-primary"
             disabled={bulkBusy}
             onClick={() => handleBulkStatus('published')}
           >

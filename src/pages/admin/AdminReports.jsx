@@ -22,6 +22,7 @@ export default function AdminReports() {
   });
 
   const [recentAttempts, setRecentAttempts] = useState([]);
+  const [dropoffInsights, setDropoffInsights] = useState({ total: 0, byType: [], hotspots: [] });
 
   const loadReportData = async (active = () => true) => {
     if (!supabase) return;
@@ -37,7 +38,7 @@ export default function AdminReports() {
         recentAttemptsResult
       ] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('test_attempts').select('score, status, time_spent'),
+        supabase.from('test_attempts').select('score, status, time_spent, state_json'),
         supabase.from('payment_orders').select('amount, status'),
         supabase.from('coin_wallets').select('balance'),
         supabase.from('referrals').select('id', { count: 'exact', head: true }),
@@ -47,6 +48,17 @@ export default function AdminReports() {
       if (active()) {
         const attempts = attemptsResult.data || [];
         const completed = attempts.filter((a) => a.status === 'completed');
+        const eventCounts = new Map();
+        const hotspotCounts = new Map();
+        attempts.forEach((attempt) => {
+          const events = Array.isArray(attempt.state_json?.dropoffEvents) ? attempt.state_json.dropoffEvents : [];
+          events.forEach((event) => {
+            const type = String(event?.type || 'unknown');
+            eventCounts.set(type, (eventCounts.get(type) || 0) + 1);
+            const hotspot = event?.section || event?.questionId;
+            if (hotspot) hotspotCounts.set(String(hotspot), (hotspotCounts.get(String(hotspot)) || 0) + 1);
+          });
+        });
         const totalScore = completed.reduce((sum, a) => sum + (Number(a.score) || 0), 0);
         const avgScore = completed.length > 0 ? Math.round(totalScore / completed.length) : 0;
 
@@ -69,6 +81,11 @@ export default function AdminReports() {
         });
 
         setRecentAttempts(recentAttemptsResult.data || []);
+        setDropoffInsights({
+          total: Array.from(eventCounts.values()).reduce((sum, count) => sum + count, 0),
+          byType: Array.from(eventCounts.entries()).sort(([, a], [, b]) => b - a).slice(0, 4),
+          hotspots: Array.from(hotspotCounts.entries()).sort(([, a], [, b]) => b - a).slice(0, 5)
+        });
       }
     } catch (err) {
       console.warn('Error loading admin reports:', err.message);
@@ -112,7 +129,7 @@ export default function AdminReports() {
             </article>
 
             <article className="metric-card">
-              <div className="metric-icon gold"><FileQuestion size={18} /></div>
+              <div className="metric-icon blue"><FileQuestion size={18} /></div>
               <span className="metric-label">Mock Tests Attempted</span>
               <strong>{metrics.totalAttempts.toLocaleString()}</strong>
               <span className="metric-foot">{metrics.completedAttempts} completed attempts</span>
@@ -174,6 +191,41 @@ export default function AdminReports() {
                   </small>
                 </div>
               </div>
+            </section>
+
+            <section className="panel-card">
+              <div className="section-heading">
+                <div>
+                  <div className="eyebrow">DROP-OFF SIGNALS</div>
+                  <h2>Where learners leave</h2>
+                </div>
+                <span className="chapter-item-count">{dropoffInsights.total} events</span>
+              </div>
+              {dropoffInsights.total === 0 ? (
+                <div className="empty-content" style={{ padding: '30px', textAlign: 'center' }}>
+                  <Activity size={24} style={{ opacity: 0.4, margin: '0 auto 8px' }} />
+                  <span>No pause, tab-switch, or abandonment events recorded yet.</span>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gap: '14px', marginTop: '16px' }}>
+                  <div>
+                    <strong style={{ display: 'block', marginBottom: '8px' }}>Event types</strong>
+                    {dropoffInsights.byType.map(([type, count]) => (
+                      <div key={type} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
+                        <span>{type.replace('_', ' ')}</span><strong>{count}</strong>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <strong style={{ display: 'block', marginBottom: '8px' }}>Question or section hotspots</strong>
+                    {dropoffInsights.hotspots.map(([hotspot, count]) => (
+                      <div key={hotspot} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', gap: '12px' }}>
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{hotspot}</span><strong>{count}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
 
             <section className="panel-card">
