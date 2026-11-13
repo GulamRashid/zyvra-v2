@@ -37,7 +37,7 @@ REVOKE ALL ON public.profiles FROM anon;
 REVOKE INSERT, DELETE ON public.profiles FROM authenticated;
 REVOKE UPDATE ON public.profiles FROM authenticated;
 GRANT SELECT ON public.profiles TO authenticated;
-GRANT UPDATE (full_name, phone, target_exams, daily_goal_target, theme, language) ON public.profiles TO authenticated;
+GRANT UPDATE (full_name, target_exams, daily_goal_target, theme, language) ON public.profiles TO authenticated;
 
 -- Questions and links must be accessed through answer-filtering RPCs, not direct selects.
 ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
