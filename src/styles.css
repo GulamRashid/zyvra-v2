@@ -672,7 +672,7 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
 .placeholder-note .health-dot { width: 6px; height: 6px; }
 
 /* Admin control center */
-.admin-sidebar { position: fixed; z-index: 25; inset: 0 auto 0 0; display: flex; width: 254px; flex-direction: column; padding: 24px 16px 15px; border-right: 1px solid var(--line); background: var(--panel); }
+.admin-sidebar { position: fixed; z-index: 25; inset: 0 auto 0 0; display: flex; width: 254px; height: 100vh; flex-direction: column; padding: 24px 16px 15px; border-right: 1px solid var(--line); background: var(--panel); }
 .admin-sidebar, .admin-main { transition: width .22s ease, margin-left .22s ease; }
 .admin-sidebar.sidebar-collapsed { width: 0; overflow: hidden; padding-right: 0; padding-left: 0; border-right: 0; }
 .admin-main.sidebar-collapsed { margin-left: 0; }
@@ -691,6 +691,14 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
 .admin-user { display: flex; align-items: center; gap: 8px; padding-left: 9px; border-left: 1px solid var(--line); font-size: 10px; }
 .admin-user .avatar { width: 29px; height: 29px; flex-basis: 29px; font-size: 10px; }
 .admin-content { width: min(100%, 1450px); margin: 0 auto; padding: 32px; }
+.admin-content .eyebrow { color: var(--muted); }
+.admin-content .section-heading p { min-height: 13px; font-size: 13px; line-height: 1.4; }
+.admin-content .metric-icon.gold,
+.admin-content .metric-icon.green,
+.admin-content .metric-icon.blue,
+.admin-content .metric-icon.violet { background: rgba(66, 184, 120, .12); color: var(--accent); }
+.admin-content .admin-quick-links > a svg:first-child { color: var(--accent); }
+.admin-attention-line { display: flex; align-items: center; gap: 7px; color: var(--gold); font-size: 12px; font-weight: 700; }
 .admin-dashboard { display: grid; gap: 19px; }
 .admin-page-heading { margin-bottom: 2px; }
 .admin-page-heading h1 { font-size: 25px; }
@@ -775,6 +783,10 @@ body.light .practice-card { background: linear-gradient(135deg, #e3f2e7, #f7faf6
 .number-input > span { color: var(--muted); font-size: 8px; font-weight: 400; white-space: nowrap; }
 .settings-actions { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
 .settings-actions .button { margin-left: auto; }
+.settings-actions .button-primary { background: #047857; color: #fff; }
+.settings-actions .button-primary:hover:not(:disabled) { background: #059669; }
+.add-slab-button { min-height: 32px; padding: 0 10px; border: 1px dashed var(--line-active); border-radius: 8px; background: transparent; color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer; }
+.add-slab-button:hover { background: rgba(66, 184, 120, .08); }
 .settings-error, .settings-success { color: #f19b8f; font-size: 9px; }
 .settings-success { color: var(--accent); }
 .compact-preview { padding: 16px; }

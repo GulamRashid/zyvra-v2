@@ -8,12 +8,12 @@ import { useAuth } from '../../context/AuthContext';
 import SettingsPreview from './SettingsPreview';
 
 const metrics = [
-  { key: 'users', label: 'Total users', icon: Users, tone: 'gold', trend: 'All registered accounts' },
+  { key: 'users', label: 'Total users', icon: Users, tone: 'green', trend: 'All registered accounts' },
   { key: 'paid', label: 'Paid users', icon: WalletCards, tone: 'green', trend: 'Active content grants' },
   { key: 'pending', label: 'Pending verifications', icon: BadgeCheck, tone: 'blue', trend: 'Awaiting email verification' },
   { key: 'revenue', label: 'Revenue', icon: CircleDollarSign, tone: 'violet', trend: 'Lifetime collected' },
   { key: 'content', label: 'Content items', icon: BookOpen, tone: 'green', trend: 'Published resources' },
-  { key: 'questions', label: 'Question bank', icon: FileQuestion, tone: 'gold', trend: 'Ready to practice' }
+  { key: 'questions', label: 'Question bank', icon: FileQuestion, tone: 'green', trend: 'Ready to practice' }
 ];
 
 const metricStateDefaults = Object.fromEntries(
@@ -123,6 +123,9 @@ export default function AdminDashboard() {
   const refresh = () => {
     fetchStats();
   };
+  const needsAttention = metrics
+    .filter(({ key }) => !metricState[key].loading && metricState[key].error)
+    .map(({ label }) => label);
 
   return (
     <div className="admin-dashboard">
@@ -147,6 +150,11 @@ export default function AdminDashboard() {
             <strong>Dashboard Notice</strong>
             <span>{error}</span>
           </div>
+        </div>
+      )}
+      {needsAttention.length > 0 && (
+        <div className="admin-attention-line" role="status">
+          <AlertTriangle size={15} /> Needs attention: {needsAttention.join(', ')} unavailable.
         </div>
       )}
 
