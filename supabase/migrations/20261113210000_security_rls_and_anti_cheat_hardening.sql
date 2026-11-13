@@ -37,7 +37,7 @@ REVOKE ALL ON public.profiles FROM anon;
 REVOKE INSERT, DELETE ON public.profiles FROM authenticated;
 REVOKE UPDATE ON public.profiles FROM authenticated;
 GRANT SELECT ON public.profiles TO authenticated;
-GRANT UPDATE (full_name, target_exams, daily_goal_target, theme, language) ON public.profiles TO authenticated;
+GRANT UPDATE (full_name, target_exams, daily_goal_target, theme) ON public.profiles TO authenticated;
 
 -- Questions and links must be accessed through answer-filtering RPCs, not direct selects.
 ALTER TABLE public.questions ENABLE ROW LEVEL SECURITY;
@@ -131,12 +131,12 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
   WITH RECURSIVE folder_tree AS (
-    SELECT f.id, f.parent_folder_id, f.pricing_mode, f.price, f.exam_id
+    SELECT f.id, f.parent_folder_id, f.price, f.exam_id
     FROM public.chapters c
     JOIN public.folders f ON f.id = c.folder_id
     WHERE c.id = p_chapter_id
     UNION ALL
-    SELECT parent.id, parent.parent_folder_id, parent.pricing_mode, parent.price, parent.exam_id
+    SELECT parent.id, parent.parent_folder_id, parent.price, parent.exam_id
     FROM public.folders parent
     JOIN folder_tree child ON child.parent_folder_id = parent.id
   ),
@@ -152,8 +152,7 @@ AS $$
       OR EXISTS (
         SELECT 1
         FROM folder_tree
-        WHERE lower(coalesce(pricing_mode, 'inherit')) IN ('paid-own', 'paid_own')
-          AND coalesce(price, 0) > 0
+        WHERE coalesce(price, 0) > 0
       )
       OR EXISTS (
         SELECT 1
@@ -161,7 +160,6 @@ AS $$
         JOIN folder_tree ft ON ft.exam_id = e.id
         WHERE coalesce(e.price, 0) > 0
            OR lower(coalesce(e.access_mode, '')) IN ('paid-own', 'paid_own')
-           OR lower(coalesce(e.pricing_mode, '')) IN ('paid-own', 'paid_own')
       ) AS access_required
   )
   SELECT jsonb_build_object(
@@ -174,12 +172,10 @@ AS $$
       q.question_text,
       q.question_text_hi,
       q.options,
-      q.options_hi,
       q.subject,
       q.topic,
       q.tags,
       q.difficulty,
-      q.question_type,
       coalesce(tq.display_order, 0) AS display_order
     FROM public.questions q
     LEFT JOIN public.test_questions tq ON tq.question_id = q.id
@@ -269,9 +265,7 @@ BEGIN
     'question_id', v_question.id,
     'correct_answer', v_question.correct_answer,
     'explanation', v_question.explanation,
-    'explanation_hi', v_question.explanation_hi,
-    'distractor_notes', v_question.distractor_notes,
-    'distractor_notes_hi', v_question.distractor_notes_hi
+    'distractor_notes', v_question.distractor_notes
   );
 END;
 $$;
