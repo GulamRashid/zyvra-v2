@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowDownLeft, ArrowUpRight, CheckCircle2, Coins, Gift, RefreshCw, Save,
+  CheckCircle2, Coins, Gift, RefreshCw, Save,
   Search, Share2, Sparkles, TrendingUp, Users, AlertCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { getReferralSettings, saveReferralSettings } from '../../lib/referrals';
+import StatusBadge from '../../components/common/StatusBadge';
 
 export default function AdminCoins() {
   const { supabase } = useAuth();
@@ -389,20 +390,10 @@ export default function AdminCoins() {
                       return (
                         <tr key={tx.id} style={{ borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.04))' }}>
                           <td style={{ padding: '10px 12px' }}>
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              padding: '2px 8px',
-                              borderRadius: '6px',
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              background: isCredit ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                              color: isCredit ? '#34d399' : '#f87171'
-                            }}>
-                              {isCredit ? <ArrowDownLeft size={12} /> : <ArrowUpRight size={12} />}
-                              {tx.transaction_type || 'credit'}
-                            </span>
+                            <StatusBadge
+                              variant={isCredit ? 'success' : 'failed'}
+                              label={tx.transaction_type || 'credit'}
+                            />
                           </td>
                           <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)' }}>
                             {tx.user_id ? `${tx.user_id.slice(0, 8)}…` : '—'}

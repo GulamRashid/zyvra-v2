@@ -5,18 +5,25 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import StatusBadge from '../../components/common/StatusBadge';
 
 export default function AdminOrders() {
   const { supabase } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   const loadOrders = async (active = () => true) => {
-    if (!supabase) return;
+    if (!supabase) {
+      setLoadError('Orders could not be loaded. Please try again.');
+      setLoading(false);
+      return;
+    }
     setRefreshing(true);
+    setLoadError('');
     try {
       const { data, error } = await supabase
         .from('payment_orders')
@@ -50,6 +57,10 @@ export default function AdminOrders() {
       }
     } catch (err) {
       console.warn('Error loading payment orders:', err.message);
+      if (active()) {
+        setOrders([]);
+        setLoadError('Orders could not be loaded. Please try again.');
+      }
     } finally {
       if (active()) {
         setLoading(false);
@@ -93,24 +104,12 @@ export default function AdminOrders() {
   const getStatusBadge = (status) => {
     const st = String(status || '').toLowerCase();
     if (['paid', 'success', 'captured'].includes(st)) {
-      return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
-          <CheckCircle2 size={12} /> PAID
-        </span>
-      );
+      return <StatusBadge status="paid" label="PAID" />;
     }
     if (['created', 'pending'].includes(st)) {
-      return (
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' }}>
-          <Clock size={12} /> PENDING
-        </span>
-      );
+      return <StatusBadge status="pending" label="PENDING" />;
     }
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, background: 'rgba(239, 68, 68, 0.15)', color: '#f87171' }}>
-        <XCircle size={12} /> {st.toUpperCase() || 'FAILED'}
-      </span>
-    );
+    return <StatusBadge status={st || 'failed'} label={st.toUpperCase() || 'FAILED'} />;
   };
 
   return (
@@ -128,6 +127,21 @@ export default function AdminOrders() {
 
       {loading ? (
         <LoadingSkeleton rows={4} />
+      ) : loadError ? (
+        <div className="empty-content" role="alert" style={{ padding: '40px 16px', textAlign: 'center' }}>
+          <XCircle size={28} style={{ opacity: 0.6, margin: '0 auto 10px', color: '#f87171' }} />
+          <strong>Orders load nahi hue</strong>
+          <span>{loadError}</span>
+          <button
+            type="button"
+            className="button button-primary"
+            onClick={() => loadOrders()}
+            disabled={refreshing}
+            style={{ minHeight: '44px', marginTop: '16px' }}
+          >
+            <RefreshCw size={15} className={refreshing ? 'spin' : ''} /> Try again
+          </button>
+        </div>
       ) : (
         <>
           <div className="metrics-grid">
@@ -195,8 +209,8 @@ export default function AdminOrders() {
             {filteredOrders.length === 0 ? (
               <div className="empty-content" style={{ padding: '40px 16px', textAlign: 'center' }}>
                 <CreditCard size={28} style={{ opacity: 0.4, margin: '0 auto 10px' }} />
-                <strong>No orders found</strong>
-                <span>Try clearing search filters or refreshing data.</span>
+                <strong>{orders.length === 0 ? 'No orders yet' : 'No matching orders'}</strong>
+                <span>{orders.length === 0 ? 'Completed and pending orders will appear here.' : 'Try clearing search filters.'}</span>
               </div>
             ) : (
               <div className="data-table-wrap" style={{ overflowX: 'auto', marginTop: '16px' }}>

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  PackageCheck, Search, RefreshCw, CheckCircle2, ShieldCheck, AlertTriangle,
-  Clock, XCircle, UserRound, BookOpen, Layers, Key
+  PackageCheck, Search, RefreshCw, ShieldCheck, AlertTriangle,
+  Clock, UserRound, BookOpen, Layers, Key
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import StatusBadge from '../../components/common/StatusBadge';
 
 export default function AdminSubscriptions() {
   const { supabase } = useAuth();
@@ -267,13 +268,9 @@ export default function AdminSubscriptions() {
                           </td>
                           <td style={{ padding: '12px' }}>
                             {isActive ? (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
-                                <CheckCircle2 size={12} /> ACTIVE
-                              </span>
+                              <StatusBadge status="active" label="ACTIVE" />
                             ) : (
-                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 600, background: 'rgba(239, 68, 68, 0.15)', color: '#f87171' }}>
-                                <XCircle size={12} /> {isExpired ? 'EXPIRED' : 'REVOKED'}
-                              </span>
+                              <StatusBadge status={isExpired ? 'expired' : 'revoked'} label={isExpired ? 'EXPIRED' : 'REVOKED'} />
                             )}
                           </td>
                           <td style={{ padding: '12px' }}>
