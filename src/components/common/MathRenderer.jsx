@@ -1,19 +1,32 @@
-import katex from 'katex';
+import { useEffect, useState } from 'react';
+import { loadKatex } from '../../lib/loadKatex';
 import 'katex/dist/katex.min.css';
 
 const delimiters = /(\$\$[\s\S]+?\$\$|\\\[[\s\S]+?\\\]|\\\([\s\S]+?\\\)|\$[^$\n]+\$)/g;
 const bareFormula = /\\(?:d?frac|sqrt)\{[^{}]+\}(?:\{[^{}]+\})?|[A-Za-z0-9]+(?:\^\{[^{}]+\}|_[{][^{}]+[}]|\^[A-Za-z0-9]+|_[A-Za-z0-9]+)/g;
 
-function renderMath(formula, displayMode = false) {
-  try {
-    return katex.renderToString(formula, { displayMode, throwOnError: false });
-  } catch {
-    return null;
-  }
-}
-
 function MathMarkup({ formula, display = false, fallback, className = '' }) {
-  const html = renderMath(formula || '', display);
+  const [katex, setKatex] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    loadKatex()
+      .then((loadedKatex) => {
+        if (active) setKatex(() => loadedKatex);
+      })
+      .catch((error) => {
+        console.error('[MathRenderer] Unable to load KaTeX:', error);
+      });
+    return () => { active = false; };
+  }, []);
+
+  if (!katex) return <span className="math-render-pending">{fallback ?? formula}</span>;
+  let html;
+  try {
+    html = katex.renderToString(formula || '', { displayMode: display, throwOnError: false });
+  } catch {
+    html = null;
+  }
   if (html === null) return <span className="math-render-error">{fallback ?? formula}</span>;
   return <span className={className} dangerouslySetInnerHTML={{ __html: html }} />;
 }
