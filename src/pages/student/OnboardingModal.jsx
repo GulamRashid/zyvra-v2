@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Check, Languages, Moon, Sun, Monitor } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
@@ -13,23 +13,47 @@ export default function OnboardingModal() {
   const [selectedExams, setSelectedExams] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const silentSyncRef = useRef(false);
 
   useEffect(() => {
     if (!user || guest) {
       setOpen(false);
       return;
     }
-    if (localStorage.getItem('zyvra_onboarding_completed') === 'true') {
+
+    const dbDone = profile?.onboarding_completed === true;
+    const localDone = localStorage.getItem('zyvra_onboarding_completed') === 'true';
+
+    // DB value takes precedence
+    if (dbDone) {
+      localStorage.setItem('zyvra_onboarding_completed', 'true');
       setOpen(false);
       return;
     }
+
+    // If done in localStorage but not in DB, attempt a silent sync once
+    if (localDone) {
+      if (profile && (profile.onboarding_completed === false || profile.onboarding_completed === null) && user && supabase && !silentSyncRef.current) {
+        silentSyncRef.current = true;
+        supabase.from('profiles').update({ onboarding_completed: true }).eq('id', user.id)
+          .then(({ error: syncErr }) => {
+            if (syncErr) console.warn('Silent onboarding DB sync failed:', syncErr.message);
+            else if (refreshAccount) refreshAccount();
+          })
+          .catch((err) => console.warn('Silent onboarding DB sync error:', err.message || err));
+      }
+      setOpen(false);
+      return;
+    }
+
+    // Modal only opens when neither DB nor localStorage marks it done
     if (profile && (profile.onboarding_completed === false || profile.onboarding_completed === null)) {
       setSelectedExams(profile.target_exams || []);
       setOpen(true);
     } else {
       setOpen(false);
     }
-  }, [user, guest, profile]);
+  }, [user, guest, profile, refreshAccount]);
 
   if (!open) return null;
 
@@ -44,26 +68,28 @@ export default function OnboardingModal() {
     setSaving(true);
     try {
       localStorage.setItem('zyvra_onboarding_completed', 'true');
+      localStorage.setItem('zyvra-language', language);
       if (setLanguage) {
         setLanguage(language);
       }
       if (user && supabase) {
-        // Only update granted columns: theme, target_exams.
-        // preferred_language and onboarding_completed are not granted on profiles table and have no RPC.
         const { error: saveError } = await supabase.from('profiles').update({
+          onboarding_completed: true,
+          preferred_language: language,
           theme,
           target_exams: selectedExams
         }).eq('id', user.id);
 
-        if (saveError) throw saveError;
-        if (refreshAccount) {
+        if (saveError) {
+          console.warn('Profile onboarding update failed, fallback to localStorage:', saveError.message);
+        } else if (refreshAccount) {
           await refreshAccount();
         }
       }
       setOpen(false);
     } catch (saveError) {
-      console.error('Failed to complete onboarding:', saveError);
-      setError(getFriendlyErrorMessage(saveError, 'We could not save your preferences. Please try again.'));
+      console.warn('Profile onboarding save error, fallback to localStorage:', saveError.message || saveError);
+      setOpen(false);
     } finally {
       setSaving(false);
     }

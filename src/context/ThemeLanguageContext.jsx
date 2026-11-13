@@ -667,12 +667,24 @@ export function ThemeLanguageProvider({ children }) {
   }, []);
 
   const [languageError, setLanguageError] = useState('');
-  const updateLanguage = useCallback(async (nextLanguage) => {
+  const updateLanguage = useCallback(async (nextLanguage, { syncProfile = true } = {}) => {
     if (!['en', 'hi'].includes(nextLanguage)) throw new Error('Choose English or Hindi.');
     setLanguage(nextLanguage);
     localStorage.setItem('zyvra-language', nextLanguage);
     setLanguageError('');
-    console.warn('Profile language sync skipped: no RPC available. Saved in localStorage.');
+    if (!syncProfile || !supabase) return;
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) throw sessionError;
+      if (!session?.user) return;
+      const { error } = await supabase.from('profiles')
+        .update({ preferred_language: nextLanguage }).eq('id', session.user.id);
+      if (error) {
+        console.warn('Failed to update preferred_language in profile, falling back to localStorage:', error.message);
+      }
+    } catch (error) {
+      console.warn('Error syncing language to profile, saved in localStorage:', error.message || error);
+    }
   }, []);
 
   const value = useMemo(() => ({
