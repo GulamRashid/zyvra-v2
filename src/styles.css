@@ -37,24 +37,34 @@ body.light,
 html.light,
 :root.light,
 html:not(.dark) body.light {
-  --bg: #f8fafc;
+  --bg: #f2f9f5;
   --panel: #ffffff;
-  --panel2: #f1f5f9;
-  --text: #0f172a; /* text-neutral-900: primary headings/titles */
-  --body-text: #334155; /* text-neutral-700: subtitles and body text */
-  --muted: #475569; /* text-neutral-600: metadata, breadcrumbs, tags */
-  --line: #cbd5e1; /* border-neutral-300: crisp borders and card outlines */
-  --shadow: 0 14px 35px rgba(15, 23, 42, .08);
+  --panel2: #e5f4eb;
+  --panel-glass: rgba(255, 255, 255, 0.94);
+  --text: #032316; /* deep emerald: primary headings/titles */
+  --body-text: #0b3824; /* deep forest slate: subtitles and body text */
+  --muted: #3b6b55; /* forest sage: metadata, breadcrumbs, tags */
+  --line: rgba(16, 185, 129, 0.22); /* subtle mint border */
+  --line-active: rgba(16, 185, 129, 0.45);
+  --green: #15803d; /* readable forest green */
+  --gold: #b45309; /* readable rich gold/amber */
+  --accent: #059669;
+  --shadow: 0 14px 35px rgba(3, 35, 22, 0.08);
   background: var(--bg);
-  color: #334155;
+  color: #0b3824;
 }
 
 body.light {
-  background: radial-gradient(ellipse at 12% 0%, rgba(203, 213, 225, .35), transparent 34%), var(--bg);
-  color: #334155;
+  background-color: var(--bg);
+  background-image: 
+    radial-gradient(ellipse 90% 50% at 50% -10%, rgba(16, 185, 129, 0.08), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, rgba(180, 230, 205, 0.32), transparent 70%),
+    var(--bg);
+  background-attachment: fixed;
+  color: #0b3824;
 }
 
-/* Light mode primary headings and titles: #0f172a (text-neutral-900) */
+/* Light mode primary headings and titles: #032316 (deep emerald) */
 body.light h1,
 body.light h2,
 body.light h3,
@@ -72,16 +82,16 @@ body.light .question-preamble,
 body.light .question-postamble,
 body.light .statement-content,
 body.light .matching-table-card {
-  color: #0f172a !important;
+  color: #032316 !important;
 }
 
 body.light .matching-table-card {
-  background: #f8fafc !important;
-  border-color: #cbd5e1 !important;
+  background: #f8fcf9 !important;
+  border-color: rgba(16, 185, 129, 0.22) !important;
 }
 
 body.light .matching-table-card .grid {
-  color: #0f172a !important;
+  color: #032316 !important;
 }
 
 body.light .statement-badge {
@@ -94,10 +104,10 @@ body.light .continue-content h2,
 body.light .focus-card strong,
 body.light .account-copy strong,
 body.light .streak-badge strong {
-  color: #0f172a;
+  color: #032316;
 }
 
-/* Light mode subtitles and body text: #334155 (text-neutral-700) */
+/* Light mode subtitles and body text: #0b3824 */
 body.light p,
 body.light .subtitle,
 body.light .page-heading p,
@@ -107,15 +117,15 @@ body.light .continue-content > p,
 body.light .setting-card-title p,
 body.light .admin-placeholder p,
 body.light .placeholder-hero p {
-  color: #334155;
+  color: #0b3824;
 }
 
-/* Light mode metadata, breadcrumbs, tags: #475569 (text-neutral-600) */
+/* Light mode metadata, breadcrumbs, tags: #3b6b55 (forest sage) */
 body.light .content-breadcrumbs,
 body.light .student-breadcrumbs {
-  border-color: #cbd5e1;
+  border-color: rgba(16, 185, 129, 0.22);
   background: #ffffff;
-  color: #475569;
+  color: #3b6b55;
 }
 
 body.light .content-breadcrumbs > button,
@@ -123,18 +133,18 @@ body.light .breadcrumb-part button,
 body.light .student-breadcrumbs a,
 body.light .breadcrumb-part svg,
 body.light .student-breadcrumbs > svg {
-  color: #475569;
+  color: #3b6b55;
 }
 
 body.light .content-breadcrumbs > button:hover,
 body.light .student-breadcrumbs a:hover {
-  color: #0f172a;
+  color: #032316;
 }
 
 body.light .content-breadcrumbs > button.current,
 body.light .student-breadcrumbs > span:last-child,
 body.light .student-breadcrumbs > .breadcrumb-part:last-child {
-  color: #0f172a;
+  color: #032316;
   font-weight: 700;
 }
 
@@ -164,18 +174,18 @@ body.light .sidebar-brand span,
 body.light .account-copy span,
 body.light .focus-card > span:last-child,
 body.light .user-target-tags > small {
-  color: #475569;
+  color: #3b6b55;
 }
 
 body.light .pathway-tags span,
 body.light .difficulty-pill,
 body.light .user-target-tags i {
-  border-color: #cbd5e1;
-  background: #f1f5f9;
-  color: #475569;
+  border-color: rgba(16, 185, 129, 0.22);
+  background: #e5f4eb;
+  color: #0b3824;
 }
 
-/* Light mode crisp borders and card outlines: #cbd5e1 */
+/* Light mode crisp borders and card outlines: subtle mint border */
 body.light .panel-card,
 body.light .setting-card,
 body.light .daily-card,
@@ -197,7 +207,7 @@ body.light .syllabus-card,
 body.light .resource-card,
 body.light .folder-list-item,
 body.light .chapter-resource-card {
-  border-color: #cbd5e1;
+  border-color: rgba(16, 185, 129, 0.22);
 }
 
 body.light .topbar {
@@ -206,6 +216,119 @@ body.light .topbar {
 
 body.light .student-sidebar {
   background: #ffffff;
+}
+
+/* ======================================================== */
+/* MINT & WHITE EXAM THEME: TAILWIND CLASS OVERRIDES */
+/* ======================================================== */
+body.light .bg-\[\#04140e\],
+body.light .bg-\[\#030f0a\],
+body.light .bg-\[\#020b08\] {
+  background-color: #f2f9f5 !important;
+}
+
+body.light .bg-\[\#072117\],
+body.light .bg-\[\#061b13\],
+body.light .bg-\[\#08241a\] {
+  background-color: #ffffff !important;
+}
+
+body.light .bg-\[\#0b2d20\],
+body.light .bg-\[\#0a2a1e\],
+body.light .bg-\[\#051c14\],
+body.light .bg-\[\#0a2e22\],
+body.light .bg-\[\#072c1e\],
+body.light .bg-\[\#0a3524\] {
+  background-color: #e5f4eb !important;
+}
+
+body.light .bg-emerald-950\/20,
+body.light .bg-emerald-950\/30,
+body.light .bg-emerald-950\/40,
+body.light .bg-emerald-950\/50,
+body.light .bg-emerald-950\/60,
+body.light .bg-emerald-950\/70,
+body.light .bg-emerald-950\/80,
+body.light .bg-emerald-950 {
+  background-color: #eaf6ee !important;
+}
+
+body.light .bg-emerald-900\/20,
+body.light .bg-emerald-900\/30,
+body.light .bg-emerald-900\/40,
+body.light .bg-emerald-900\/50,
+body.light .bg-emerald-900\/60,
+body.light .bg-emerald-900 {
+  background-color: #edf7f1 !important;
+}
+
+/* Headings and primary titles */
+body.light h1.text-white,
+body.light h2.text-white,
+body.light h3.text-white,
+body.light h4.text-white,
+body.light strong.text-white,
+body.light .text-white:not(button):not(.button):not([class*="bg-emerald-5"]):not([class*="bg-emerald-6"]):not([class*="bg-emerald-7"]):not([class*="bg-rose"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-yellow"]):not([class*="bg-blue"]):not([class*="bg-black"]):not([class*="badge"]):not(.mockup-phone-frame *) {
+  color: #032316 !important;
+}
+
+/* Readable emerald text in light mode */
+body.light .text-emerald-100:not(.mockup-phone-frame *) { color: #042318 !important; }
+body.light .text-emerald-200:not(.mockup-phone-frame *) { color: #064e3b !important; }
+body.light .text-emerald-300:not(.mockup-phone-frame *) { color: #065f46 !important; }
+body.light .text-emerald-400:not(.mockup-phone-frame *) { color: #047857 !important; }
+body.light .text-emerald-500:not(.mockup-phone-frame *) { color: #059669 !important; }
+body.light .text-emerald-300\/70:not(.mockup-phone-frame *),
+body.light .text-emerald-300\/80:not(.mockup-phone-frame *),
+body.light .text-emerald-400\/70:not(.mockup-phone-frame *),
+body.light .text-emerald-400\/80:not(.mockup-phone-frame *),
+body.light .text-emerald-500\/60:not(.mockup-phone-frame *),
+body.light .text-emerald-500\/70:not(.mockup-phone-frame *) {
+  color: #3b6b55 !important;
+}
+
+/* Contrast amber text on white/mint background */
+body.light .text-amber-400:not(button):not(.button):not([class*="bg-amber"]):not(.mockup-phone-frame *) {
+  color: #b45309 !important;
+}
+
+/* Subtle mint borders */
+body.light .border-emerald-500\/15,
+body.light .border-emerald-500\/20,
+body.light .border-emerald-500\/25,
+body.light .border-emerald-500\/30,
+body.light .border-emerald-500\/40,
+body.light .border-emerald-400\/30,
+body.light .border-emerald-400\/40,
+body.light .border-emerald-800,
+body.light .border-emerald-900,
+body.light .border-emerald-800\/40,
+body.light .border-emerald-900\/40,
+body.light .border-emerald-700\/40 {
+  border-color: rgba(16, 185, 129, 0.22) !important;
+}
+
+/* Student Bottom Nav in light mode */
+body.light .student-bottom-nav {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-top-color: rgba(16, 185, 129, 0.22) !important;
+  box-shadow: 0 -4px 20px rgba(3, 35, 22, 0.08) !important;
+}
+body.light .student-bottom-nav .text-emerald-400\/70,
+body.light .student-bottom-nav .text-emerald-300\/70 {
+  color: #3b6b55 !important;
+}
+
+/* Keep phone mockup in AdminTools dark and authentic */
+body.light .mockup-phone-frame {
+  background-color: #000000 !important;
+  border-color: #262626 !important;
+}
+body.light .mockup-phone-frame .bg-\[\#04140e\] {
+  background-color: #04140e !important;
+}
+body.light .mockup-phone-frame .text-white {
+  color: #ffffff !important;
 }
 
 body.light .eyebrow {
@@ -1656,6 +1779,34 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
   .exam-cards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .exam-card { min-height: 240px; padding: 13px; }
   .folder-cards-grid { grid-template-columns: 1fr; }
+
+  /* Mobile User Manager */
+  .user-directory-toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
+  .user-directory-toolbar .content-search { min-width: 100%; }
+  .user-directory-toolbar .filter-select { width: 100%; }
+  .user-directory-toolbar .filter-select .text-input { width: 100%; }
+  .user-directory-row {
+    grid-template-columns: 36px 1fr auto;
+    grid-template-areas:
+      "avatar name wallet"
+      "tags tags role";
+    align-items: center;
+    gap: 8px 10px;
+    padding: 12px;
+  }
+  .user-directory-row .user-avatar { grid-area: avatar; }
+  .user-directory-row .user-directory-name { grid-area: name; }
+  .user-directory-row .user-wallet-pill { grid-area: wallet; justify-self: end; }
+  .user-directory-row .user-target-tags { grid-area: tags; }
+  .user-directory-row .user-role-badge { grid-area: role; justify-self: end; }
+  .user-directory-row .user-join-date { display: none; }
+
+  /* QBank cascade on mobile */
+  .qbank-toolbar-cascade .filter-select { flex: 1 1 calc(50% - 6px); min-width: 135px; }
+  .qbank-toolbar-cascade .filter-select .text-input { width: 100%; }
+
+  /* Data tables smooth horizontal touch scroll */
+  .data-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; width: 100%; }
 }
 @media (max-width: 480px) {
   .content-manager-heading { align-items: flex-start; }
@@ -1677,6 +1828,9 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
   .content-form-row { grid-template-columns: 1fr 1fr; gap: 7px; }
   .content-switches { gap: 5px; }
   .content-switch { padding: 0 6px; font-size: 7px; }
+  .metrics-grid { grid-template-columns: 1fr; }
+  .qbank-toolbar-cascade .filter-select { flex-basis: 100%; }
+  .admin-content { padding: 14px 10px; }
 }
 
 /* Question bank and test authoring */

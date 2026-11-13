@@ -11,8 +11,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import MountainSunsetAura from '../../components/common/MountainSunsetAura';
 
-const targetExamList = ['BPSC', 'SSC', 'CTET', 'NCERT'];
-
 export default function StudentProfile() {
   const { user, profile, guest, coinBalance, supabase, signOut, refreshAccount } = useAuth();
   const { theme, setTheme, language, setLanguage } = useThemeLanguage();
@@ -33,7 +31,7 @@ export default function StudentProfile() {
   const [profileFeedback, setProfileFeedback] = useState('');
 
   // Goals form state
-  const [dailyTarget, setDailyTarget] = useState(150);
+  const [dailyTarget, setDailyTarget] = useState(50);
   const [savingGoals, setSavingGoals] = useState(false);
 
   // Password update form state
@@ -53,20 +51,40 @@ export default function StudentProfile() {
   // User Stats & Access State
   const [attempts, setAttempts] = useState([]);
   const [isPro, setIsPro] = useState(false);
-  const [validTill, setValidTill] = useState('31 Dec 2026');
+  const [validTill, setValidTill] = useState('Free Tier');
   const [statsLoading, setStatsLoading] = useState(true);
 
-  // Initialize fields from profile
+  // Local storage counts
+  const [bookmarksCount, setBookmarksCount] = useState(0);
+  const [notesCount, setNotesCount] = useState(0);
+
+  // Initialize fields from real profile
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || profile.name || '');
-      setPhone(profile.phone || '+91 98765 43210');
-      setTargets(Array.isArray(profile.target_exams) ? profile.target_exams : ['SSC', 'BPSC']);
-      setDailyTarget(Number(profile.daily_goal_target || 150));
+      setPhone(profile.phone || '');
+      setTargets(Array.isArray(profile.target_exams) ? profile.target_exams : []);
+      setDailyTarget(Number(profile.daily_goal_target || 50));
     }
   }, [profile]);
 
-  // Load User Stats & Access from Supabase
+  // Load real bookmarks / notes counts from storage or DB
+  useEffect(() => {
+    try {
+      const bm = JSON.parse(localStorage.getItem('zyvra_bookmarks') || '[]');
+      setBookmarksCount(Array.isArray(bm) ? bm.length : 0);
+    } catch {
+      setBookmarksCount(0);
+    }
+    try {
+      const nt = JSON.parse(localStorage.getItem('zyvra_study_notes') || '[]');
+      setNotesCount(Array.isArray(nt) ? nt.length : 0);
+    } catch {
+      setNotesCount(0);
+    }
+  }, []);
+
+  // Load User Stats & Access strictly from Supabase
   useEffect(() => {
     let active = true;
     const fetchUserData = async () => {
@@ -100,10 +118,10 @@ export default function StudentProfile() {
           return true;
         });
 
-        const hasActiveGrant = activeGrants.length > 0 || profile?.role === 'admin';
-        setIsPro(hasActiveGrant || true); // Default true for premium mockup alignment
+        const hasActiveGrant = activeGrants.length > 0 || profile?.role === 'admin' || profile?.is_pro === true;
+        setIsPro(hasActiveGrant);
 
-        if (activeGrants.length > 0) {
+        if (hasActiveGrant) {
           const latestExpiry = activeGrants.find((g) => g.expires_at);
           if (latestExpiry?.expires_at) {
             const formatted = new Date(latestExpiry.expires_at).toLocaleDateString('en-GB', {
@@ -113,8 +131,10 @@ export default function StudentProfile() {
             });
             setValidTill(formatted);
           } else {
-            setValidTill('Lifetime');
+            setValidTill('Lifetime Pro');
           }
+        } else {
+          setValidTill('Free Tier');
         }
       } catch (err) {
         console.warn('Unable to load user profile stats:', err);
@@ -125,34 +145,33 @@ export default function StudentProfile() {
 
     fetchUserData();
     return () => { active = false; };
-  }, [supabase, user, profile?.role]);
+  }, [supabase, user, profile?.role, profile?.is_pro]);
 
-  // Derived Stats
+  // Real Derived Stats
   const testsAttemptedCount = useMemo(() => {
-    return Math.max(attempts.length, 128); // Baseline fallback to mockup data
+    return attempts.length;
   }, [attempts]);
 
   const questionsSolvedCount = useMemo(() => {
-    const sum = attempts.reduce((acc, att) => acc + (Number(att.total_questions) || 20), 0);
-    return Math.max(sum, 8460); // Baseline fallback to mockup data
+    return attempts.reduce((acc, att) => acc + (Number(att.score || att.total_questions || 0)), 0);
   }, [attempts]);
 
   const accuracyPercent = useMemo(() => {
-    if (!attempts.length) return 76; // Baseline mockup
+    if (!attempts.length) return 0;
     const scoredAttempts = attempts.filter((att) => Number(att.score) > 0 && Number(att.total_questions) > 0);
-    if (!scoredAttempts.length) return 76;
+    if (!scoredAttempts.length) return 0;
     const avg = scoredAttempts.reduce((acc, att) => acc + (att.score / att.total_questions) * 100, 0) / scoredAttempts.length;
     return Math.min(100, Math.round(avg));
   }, [attempts]);
 
-  const streakDays = Math.max(Number(profile?.current_streak || 0), 28); // Baseline mockup
+  const streakDays = Number(profile?.current_streak || 0);
 
-  const displayName = fullName || profile?.full_name || 'Gulam Rashid';
-  const displayEmail = user?.email || 'gulamrashid@zyvra.in';
-  const displayPhone = phone || '+91 98765 43210';
-  const referralCode = profile?.referral_code || 'ZYVRA-PRO-98';
+  const displayName = fullName || profile?.full_name || profile?.name || user?.user_metadata?.full_name || (guest ? 'Guest Student' : 'Student');
+  const displayEmail = user?.email || (guest ? 'guest@zyvra.in' : '');
+  const displayPhone = phone || profile?.phone || 'Not provided';
+  const referralCode = profile?.referral_code || '';
 
-  // Save profile updates
+  // Save profile updates to Supabase
   const handleSaveProfile = async (e) => {
     e.preventDefault();
     setSavingProfile(true);
@@ -168,21 +187,21 @@ export default function StudentProfile() {
           })
           .eq('id', user.id);
         if (error) throw error;
-        await refreshAccount();
+        setProfileFeedback('Profile updated successfully!');
+        if (refreshAccount) await refreshAccount();
+        setTimeout(() => {
+          setProfileFeedback('');
+          setEditProfileOpen(false);
+        }, 1500);
       }
-      setProfileFeedback('Profile updated successfully!');
-      setTimeout(() => {
-        setProfileFeedback('');
-        setEditProfileOpen(false);
-      }, 1000);
     } catch (err) {
-      setProfileFeedback(err.message || 'Error updating profile');
+      setProfileFeedback(err.message || 'Failed to update profile.');
     } finally {
       setSavingProfile(false);
     }
   };
 
-  // Save study goals
+  // Save study goals to Supabase
   const handleSaveGoals = async (e) => {
     e.preventDefault();
     setSavingGoals(true);
@@ -190,13 +209,13 @@ export default function StudentProfile() {
       if (supabase && user) {
         await supabase
           .from('profiles')
-          .update({ daily_goal_target: dailyTarget })
+          .update({ daily_goal_target: Number(dailyTarget) })
           .eq('id', user.id);
-        await refreshAccount();
+        if (refreshAccount) await refreshAccount();
+        setGoalsModalOpen(false);
       }
-      setGoalsModalOpen(false);
     } catch (err) {
-      console.error('Error saving goals:', err);
+      console.error('Goal update failed:', err);
     } finally {
       setSavingGoals(false);
     }
@@ -204,6 +223,7 @@ export default function StudentProfile() {
 
   // Copy referral code
   const handleCopyReferral = () => {
+    if (!referralCode) return;
     navigator.clipboard.writeText(referralCode);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
@@ -223,7 +243,6 @@ export default function StudentProfile() {
     <div className="min-h-screen bg-[#04140e] text-[#f0fdf4] pb-28 md:pb-12">
       {/* Top App Bar & Mountain Sunset Panorama */}
       <div className="relative">
-        {/* Mountain Sunset Banner SVG Background */}
         <MountainSunsetAura height={220} showSun={true} />
 
         {/* Top Navbar */}
@@ -255,7 +274,6 @@ export default function StudentProfile() {
               aria-label="Notifications"
             >
               <Bell size={16} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 shadow-sm shadow-red-500" />
             </Link>
             <button
               type="button"
@@ -274,7 +292,7 @@ export default function StudentProfile() {
             <div className="flex items-center gap-3.5">
               {/* Profile Avatar with Edit Badge */}
               <div className="relative">
-                <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-emerald-600 via-teal-500 to-amber-500 p-[2.5px] shadow-[0_0_20px_rgba(34,197,94,0.3)]">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-emerald-600 via-teal-500 to-amber-500 p-[2px] shadow-[0_0_20px_rgba(34,197,94,0.3)]">
                   <div className="w-full h-full rounded-full bg-[#07261b] flex items-center justify-center font-black text-2xl text-amber-300 overflow-hidden">
                     {profile?.avatar_url ? (
                       <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
@@ -296,27 +314,34 @@ export default function StudentProfile() {
               {/* Name & Contact Info */}
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  <h2 className="text-lg sm:text-2xl font-black text-white tracking-tight">
                     {displayName}
                   </h2>
-                  {isPro && (
+                  {isPro ? (
                     <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-sm">
                       <span>👑</span>
                       <span>Pro</span>
                     </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950 border border-emerald-500/30 text-emerald-400">
+                      Free Member
+                    </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5 text-xs text-emerald-300/80 font-medium">
-                  <Mail size={12} className="text-emerald-400" />
-                  <span className="truncate max-w-[180px] sm:max-w-xs">{displayEmail}</span>
-                </div>
+                {displayEmail && (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-300/80 font-medium">
+                    <Mail size={12} className="text-emerald-400" />
+                    <span className="truncate max-w-[180px] sm:max-w-xs">{displayEmail}</span>
+                  </div>
+                )}
 
-                <div className="flex items-center gap-1.5 text-xs text-emerald-300/80 font-medium">
-                  <Phone size={12} className="text-emerald-400" />
-                  <span>{displayPhone}</span>
-                  <CheckCircle2 size={12} className="text-[#22c55e]" />
-                </div>
+                {displayPhone !== 'Not provided' && (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-300/80 font-medium">
+                    <Phone size={12} className="text-emerald-400" />
+                    <span>{displayPhone}</span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -327,39 +352,50 @@ export default function StudentProfile() {
               className="px-3.5 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-500/30 hover:border-emerald-400 text-xs font-bold text-emerald-300 hover:text-white flex items-center gap-1.5 shrink-0 transition-all shadow-sm hover:scale-105 active:scale-95"
             >
               <Edit3 size={13} />
-              <span>Edit Profile</span>
+              <span>Edit</span>
             </button>
           </div>
         </div>
       </div>
 
       <div className="px-4 sm:px-6 max-w-2xl mx-auto space-y-4 -mt-2 relative z-10">
-        {/* Zyvra Pro Membership Card (Matching Mockup 1794580723870.png) */}
-        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#2a1f05] via-[#162016] to-[#0c1c14] border border-amber-500/35 p-4 sm:p-5 shadow-[0_4px_25px_rgba(245,197,66,0.15)] flex items-center justify-between gap-4">
+        {/* Pro Membership / Upgrade Card */}
+        <section className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#1c1808] via-[#0f2118] to-[#071811] border border-amber-500/35 p-4 sm:p-5 shadow-[0_4px_25px_rgba(245,197,66,0.15)] flex items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-black font-black text-xl shadow-[0_0_15px_rgba(245,197,66,0.4)] shrink-0">
               👑
             </div>
             <div>
               <h3 className="text-base sm:text-lg font-black text-white tracking-tight flex items-center gap-2">
-                <span>Zyvra Pro</span>
+                <span>{isPro ? 'Zyvra Pro Active' : 'Upgrade to Zyvra Pro'}</span>
               </h3>
               <p className="text-xs text-amber-200/80 font-medium">
-                Full access to premium tests & notes
+                {isPro ? 'Full access to premium tests & notes' : 'Unlock full mock tests, notes & premium tools'}
               </p>
             </div>
           </div>
 
           <div className="text-right shrink-0">
-            <div className="text-[10px] uppercase font-bold text-amber-400/80">Valid till</div>
-            <div className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-1">
-              <span>{validTill}</span>
-              <ChevronRight size={14} className="text-amber-400" />
-            </div>
+            {isPro ? (
+              <>
+                <div className="text-[10px] uppercase font-bold text-amber-400/80">Status</div>
+                <div className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-1">
+                  <span>{validTill}</span>
+                </div>
+              </>
+            ) : (
+              <Link
+                to="/purchases"
+                className="px-3.5 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-black font-black text-xs shadow-glowGold inline-flex items-center gap-1"
+              >
+                <span>Explore Plans</span>
+                <ChevronRight size={13} />
+              </Link>
+            )}
           </div>
         </section>
 
-        {/* 4 Stats Cards Grid (Matching Mockup 1794580723870.png) */}
+        {/* 4 Stats Cards Grid (Real Aggregates) */}
         <section className="grid grid-cols-4 gap-2 sm:gap-3">
           {/* Card 1: Tests Attempted */}
           <div className="bg-[#072117]/85 backdrop-blur-md border border-emerald-500/20 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-md">
@@ -403,7 +439,7 @@ export default function StudentProfile() {
           {/* Card 4: Study Streak */}
           <div className="bg-[#072117]/85 backdrop-blur-md border border-emerald-500/20 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-md">
             <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center mb-1">
-              <Flame size={15} className="fill-amber-400" />
+              <Flame size={15} className={streakDays > 0 ? 'fill-amber-400' : 'text-neutral-500'} />
             </div>
             <div className="text-base sm:text-lg font-black text-white tracking-tight">
               {streakDays} Days
@@ -414,7 +450,7 @@ export default function StudentProfile() {
           </div>
         </section>
 
-        {/* Zyvra Coins Banner (Matching Mockup 1794580723870.png) */}
+        {/* Zyvra Coins Banner (Real Balance) */}
         <section>
           <Link
             to="/wallet"
@@ -435,16 +471,15 @@ export default function StudentProfile() {
               </div>
             </div>
 
-            {/* Coins Balance Gold Pill Button */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/25 to-yellow-600/30 border border-amber-400/50 text-amber-300 font-black text-xs shadow-sm group-hover:scale-105 transition-transform">
               <span>🪙</span>
-              <span>{Number(coinBalance || 1250).toLocaleString()}</span>
+              <span>{Number(coinBalance || 0).toLocaleString()}</span>
               <ChevronRight size={14} className="text-amber-400" />
             </div>
           </Link>
         </section>
 
-        {/* 4 Quick Tiles Grid (Bookmarks, My Notes, Downloads, Test History) */}
+        {/* 4 Quick Tiles Grid */}
         <section className="grid grid-cols-4 gap-2 sm:gap-3">
           <Link
             to="/bookmarks"
@@ -452,7 +487,7 @@ export default function StudentProfile() {
           >
             <Bookmark size={18} className="text-emerald-400 mb-1 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold text-white">Bookmarks</span>
-            <span className="text-[11px] font-black text-emerald-300 mt-0.5">56</span>
+            <span className="text-[11px] font-black text-emerald-300 mt-0.5">{bookmarksCount}</span>
           </Link>
 
           <Link
@@ -461,7 +496,7 @@ export default function StudentProfile() {
           >
             <FileText size={18} className="text-emerald-400 mb-1 group-hover:scale-110 transition-transform" />
             <span className="text-xs font-bold text-white">My Notes</span>
-            <span className="text-[11px] font-black text-emerald-300 mt-0.5">24</span>
+            <span className="text-[11px] font-black text-emerald-300 mt-0.5">{notesCount}</span>
           </Link>
 
           <Link
@@ -469,8 +504,8 @@ export default function StudentProfile() {
             className="bg-[#072117]/85 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 rounded-2xl p-3 text-center flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 group shadow-sm"
           >
             <Download size={18} className="text-emerald-400 mb-1 group-hover:scale-110 transition-transform" />
-            <span className="text-xs font-bold text-white">Downloads</span>
-            <span className="text-[11px] font-black text-emerald-300 mt-0.5">6</span>
+            <span className="text-xs font-bold text-white">Purchases</span>
+            <span className="text-[11px] font-black text-emerald-300 mt-0.5">{isPro ? 'Pro' : '0'}</span>
           </Link>
 
           <Link
@@ -483,154 +518,135 @@ export default function StudentProfile() {
           </Link>
         </section>
 
-        {/* Action Menu List (Matching Mockup 1794580723870.png) */}
-        <section className="space-y-2">
-          {/* 1. My Purchases */}
+        {/* Action Menu List */}
+        <section className="bg-[#072117]/85 backdrop-blur-md border border-emerald-500/20 rounded-2xl divide-y divide-emerald-800/40 overflow-hidden shadow-md">
           <Link
             to="/purchases"
-            className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-[#072117]/85 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all group"
+            className="flex items-center justify-between p-3.5 hover:bg-emerald-950/60 transition-colors group"
           >
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
-                <Layers size={18} />
-              </div>
+            <div className="flex items-center gap-3">
+              <Layers size={18} className="text-emerald-400" />
               <div>
-                <h4 className="text-sm font-bold text-white tracking-tight">My Purchases</h4>
-                <p className="text-xs text-emerald-400/70 font-medium">
-                  View and manage your subscriptions
-                </p>
+                <span className="text-xs sm:text-sm font-bold text-white block">My Purchases</span>
+                <span className="text-[10px] text-emerald-400/70">View active packages & unlocks</span>
               </div>
             </div>
-            <ChevronRight size={18} className="text-emerald-400/60 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={16} className="text-emerald-400/50 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
           </Link>
 
-          {/* 2. My Goals & Plan */}
           <button
             type="button"
             onClick={() => setGoalsModalOpen(true)}
-            className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-[#072117]/85 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all group text-left"
+            className="w-full flex items-center justify-between p-3.5 hover:bg-emerald-950/60 transition-colors group text-left"
           >
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-teal-500/15 border border-teal-500/25 flex items-center justify-center text-teal-400">
-                <Target size={18} />
-              </div>
+            <div className="flex items-center gap-3">
+              <Target size={18} className="text-emerald-400" />
               <div>
-                <h4 className="text-sm font-bold text-white tracking-tight">My Goals & Plan</h4>
-                <p className="text-xs text-emerald-400/70 font-medium">
-                  Set your study goals and daily targets
-                </p>
+                <span className="text-xs sm:text-sm font-bold text-white block">My Goals & Plan</span>
+                <span className="text-[10px] text-emerald-400/70">Set target: {dailyTarget} questions/day</span>
               </div>
             </div>
-            <ChevronRight size={18} className="text-emerald-400/60 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={16} className="text-emerald-400/50 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
           </button>
 
-          {/* 3. Performance Report */}
           <Link
             to="/analytics"
-            className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-[#072117]/85 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all group"
+            className="flex items-center justify-between p-3.5 hover:bg-emerald-950/60 transition-colors group"
           >
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/25 flex items-center justify-center text-cyan-400">
-                <BarChart3 size={18} />
-              </div>
+            <div className="flex items-center gap-3">
+              <BarChart3 size={18} className="text-emerald-400" />
               <div>
-                <h4 className="text-sm font-bold text-white tracking-tight">Performance Report</h4>
-                <p className="text-xs text-emerald-400/70 font-medium">
-                  Detailed progress and topic-wise analysis
-                </p>
+                <span className="text-xs sm:text-sm font-bold text-white block">Performance Report</span>
+                <span className="text-[10px] text-emerald-400/70">Detailed analysis & weak area detection</span>
               </div>
             </div>
-            <ChevronRight size={18} className="text-emerald-400/60 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={16} className="text-emerald-400/50 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
           </Link>
 
-          {/* 4. Invite & Earn */}
-          <button
-            type="button"
-            onClick={() => setInviteModalOpen(true)}
-            className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-[#072117]/85 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all group text-left"
-          >
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center text-amber-400">
-                <Users size={18} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-bold text-white tracking-tight">Invite & Earn</h4>
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                    Earn Coins
-                  </span>
+          {referralCode && (
+            <button
+              type="button"
+              onClick={() => setInviteModalOpen(true)}
+              className="w-full flex items-center justify-between p-3.5 hover:bg-emerald-950/60 transition-colors group text-left"
+            >
+              <div className="flex items-center gap-3">
+                <Users size={18} className="text-amber-400" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-white">Invite & Earn</span>
+                    <span className="px-2 py-0.2 rounded-full text-[9px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Earn Coins
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-emerald-400/70">Invite friends & get bonus coins</span>
                 </div>
-                <p className="text-xs text-emerald-400/70 font-medium">
-                  Invite friends and get reward coins
-                </p>
               </div>
-            </div>
-            <ChevronRight size={18} className="text-emerald-400/60 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all" />
-          </button>
+              <ChevronRight size={16} className="text-emerald-400/50 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+            </button>
+          )}
 
-          {/* 5. Help & Support */}
           <button
             type="button"
             onClick={() => setSupportModalOpen(true)}
-            className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-[#072117]/85 backdrop-blur-md border border-emerald-500/20 hover:border-emerald-500/40 transition-all group text-left"
+            className="w-full flex items-center justify-between p-3.5 hover:bg-emerald-950/60 transition-colors group text-left"
           >
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center text-emerald-400">
-                <HelpCircle size={18} />
-              </div>
+            <div className="flex items-center gap-3">
+              <HelpCircle size={18} className="text-emerald-400" />
               <div>
-                <h4 className="text-sm font-bold text-white tracking-tight">Help & Support</h4>
-                <p className="text-xs text-emerald-400/70 font-medium">
-                  Get help, report issues or contact us
-                </p>
+                <span className="text-xs sm:text-sm font-bold text-white block">Help & Support</span>
+                <span className="text-[10px] text-emerald-400/70">FAQ, contact details & inquiries</span>
               </div>
             </div>
-            <ChevronRight size={18} className="text-emerald-400/60 group-hover:text-emerald-300 group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={16} className="text-emerald-400/50 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
           </button>
         </section>
 
-        {/* Sign Out Card */}
-        <section className="pt-2">
+        {/* Sign Out Button */}
+        <div className="pt-2">
           <button
             type="button"
             onClick={handleSignOut}
-            className="w-full py-3 rounded-2xl bg-red-950/40 border border-red-500/25 hover:bg-red-900/50 text-red-300 font-bold text-sm flex items-center justify-center gap-2 transition-colors"
+            className="w-full py-2.5 rounded-2xl bg-rose-950/40 hover:bg-rose-950/70 border border-rose-500/30 text-rose-300 hover:text-rose-200 text-xs font-black flex items-center justify-center gap-2 transition-colors"
           >
-            <LogOut size={16} />
+            <LogOut size={15} />
             <span>Sign Out</span>
           </button>
-        </section>
+        </div>
       </div>
 
-      {/* ======================================================== */}
-      {/* MODAL 1: Edit Profile Modal */}
-      {/* ======================================================== */}
+      {/* Edit Profile Modal */}
       {editProfileOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#072117] border border-emerald-500/30 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
-            <button
-              type="button"
-              onClick={() => setEditProfileOpen(false)}
-              className="absolute top-4 right-4 text-emerald-400 hover:text-white"
-              aria-label="Close"
-            >
-              <X size={20} />
-            </button>
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-[#04140e] border border-emerald-500/30 text-white space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black flex items-center gap-2">
+                <Edit3 size={18} className="text-amber-400" />
+                <span>Edit Profile</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditProfileOpen(false)}
+                className="text-neutral-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
 
-            <h3 className="text-lg font-black text-white flex items-center gap-2 mb-4">
-              <Edit3 size={18} className="text-emerald-400" />
-              <span>Edit Profile Details</span>
-            </h3>
+            {profileFeedback && (
+              <div className="p-2.5 rounded-xl bg-emerald-950 border border-emerald-500/40 text-emerald-300 text-xs font-bold">
+                {profileFeedback}
+              </div>
+            )}
 
-            <form onSubmit={handleSaveProfile} className="space-y-4">
+            <form onSubmit={handleSaveProfile} className="space-y-3">
               <div>
                 <label className="text-xs font-bold text-emerald-300 block mb-1">Full Name</label>
                 <input
                   type="text"
+                  required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/30 text-white text-sm focus:outline-none focus:border-emerald-400"
-                  required
+                  className="w-full px-3 py-2 rounded-xl bg-emerald-950 border border-emerald-500/30 text-white text-xs font-bold focus:outline-none focus:border-amber-400"
                 />
               </div>
 
@@ -638,59 +654,27 @@ export default function StudentProfile() {
                 <label className="text-xs font-bold text-emerald-300 block mb-1">Phone Number</label>
                 <input
                   type="tel"
+                  placeholder="+91 XXXXX XXXXX"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-emerald-950/80 border border-emerald-500/30 text-white text-sm focus:outline-none focus:border-emerald-400"
+                  className="w-full px-3 py-2 rounded-xl bg-emerald-950 border border-emerald-500/30 text-white text-xs font-bold focus:outline-none focus:border-amber-400"
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-bold text-emerald-300 block mb-2">Target Exams</label>
-                <div className="flex flex-wrap gap-2">
-                  {targetExamList.map((exam) => {
-                    const isSelected = targets.includes(exam);
-                    return (
-                      <button
-                        key={exam}
-                        type="button"
-                        onClick={() => {
-                          setTargets((prev) =>
-                            isSelected ? prev.filter((x) => x !== exam) : [...prev, exam]
-                          );
-                        }}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
-                          isSelected
-                            ? 'bg-emerald-500/30 border-emerald-400 text-white'
-                            : 'bg-emerald-950/50 border-emerald-500/20 text-emerald-400/80'
-                        }`}
-                      >
-                        {exam} {isSelected && '✓'}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {profileFeedback && (
-                <div className="text-xs font-semibold text-emerald-300 bg-emerald-900/50 p-2 rounded-xl text-center">
-                  {profileFeedback}
-                </div>
-              )}
-
-              <div className="pt-2 flex gap-3">
+              <div className="pt-2 flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setEditProfileOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-950 border border-emerald-500/20 text-emerald-300 font-bold text-xs"
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-950 border border-emerald-500/20 text-xs font-bold text-neutral-300"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingProfile}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-extrabold text-xs shadow-md"
+                  className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold"
                 >
-                  {savingProfile ? 'Saving...' : 'Save Changes'}
+                  {savingProfile ? 'Saving...' : 'Save Profile'}
                 </button>
               </div>
             </form>
@@ -698,65 +682,54 @@ export default function StudentProfile() {
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* MODAL 2: Study Goals Modal */}
-      {/* ======================================================== */}
+      {/* Goals Modal */}
       {goalsModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#072117] border border-emerald-500/30 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
-            <button
-              type="button"
-              onClick={() => setGoalsModalOpen(false)}
-              className="absolute top-4 right-4 text-emerald-400 hover:text-white"
-              aria-label="Close"
-            >
-              <X size={20} />
-            </button>
-
-            <h3 className="text-lg font-black text-white flex items-center gap-2 mb-2">
-              <Target size={18} className="text-emerald-400" />
-              <span>My Goals & Plan</span>
-            </h3>
-            <p className="text-xs text-emerald-300/80 mb-5">
-              Set your target question count to stay disciplined in your prep.
-            </p>
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm p-6 rounded-3xl bg-[#04140e] border border-emerald-500/30 text-white space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black flex items-center gap-2">
+                <Target size={18} className="text-amber-400" />
+                <span>Daily Practice Goal</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setGoalsModalOpen(false)}
+                className="text-neutral-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
 
             <form onSubmit={handleSaveGoals} className="space-y-4">
               <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="text-xs font-bold text-emerald-300">Daily Question Goal</label>
-                  <span className="text-sm font-black text-amber-300">{dailyTarget} Questions</span>
-                </div>
+                <label className="text-xs font-bold text-emerald-300 block mb-1">
+                  Target Questions Per Day: {dailyTarget}
+                </label>
                 <input
                   type="range"
                   min="20"
-                  max="300"
+                  max="200"
                   step="10"
                   value={dailyTarget}
                   onChange={(e) => setDailyTarget(Number(e.target.value))}
                   className="w-full accent-amber-400 cursor-pointer"
                 />
-                <div className="flex justify-between text-[10px] text-emerald-400/60 mt-1">
-                  <span>20 Qs</span>
-                  <span>150 Qs</span>
-                  <span>300 Qs</span>
-                </div>
               </div>
 
-              <div className="pt-2 flex gap-3">
+              <div className="flex items-center justify-end gap-2">
                 <button
                   type="button"
                   onClick={() => setGoalsModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-emerald-950 border border-emerald-500/20 text-emerald-300 font-bold text-xs"
+                  className="px-3.5 py-1.5 rounded-xl bg-emerald-950 border border-emerald-500/20 text-xs font-bold text-neutral-300"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingGoals}
-                  className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-black font-extrabold text-xs shadow-md"
+                  className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold"
                 >
-                  {savingGoals ? 'Saving...' : 'Set Goal'}
+                  {savingGoals ? 'Saving...' : 'Save Goal'}
                 </button>
               </div>
             </form>
@@ -764,290 +737,74 @@ export default function StudentProfile() {
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* MODAL 3: Invite & Earn Modal */}
-      {/* ======================================================== */}
+      {/* Invite Modal */}
       {inviteModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#072117] border border-amber-500/35 rounded-3xl p-6 w-full max-w-md shadow-2xl relative text-center">
-            <button
-              type="button"
-              onClick={() => setInviteModalOpen(false)}
-              className="absolute top-4 right-4 text-emerald-400 hover:text-white"
-              aria-label="Close"
-            >
-              <X size={20} />
-            </button>
-
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center mx-auto mb-3 text-2xl shadow-inner">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm p-6 rounded-3xl bg-[#04140e] border border-emerald-500/30 text-white space-y-4 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center mx-auto text-2xl">
               🎁
             </div>
+            <div>
+              <h3 className="text-base font-black">Invite Friends & Earn Coins</h3>
+              <p className="text-xs text-emerald-300/80 mt-1">
+                Share your referral code. When your friend joins, both of you get bonus Zyvra Coins!
+              </p>
+            </div>
 
-            <h3 className="text-xl font-black text-white mb-1">Invite Friends & Earn Coins</h3>
-            <p className="text-xs text-emerald-300/80 mb-5 max-w-xs mx-auto">
-              Share your referral code. When a friend joins, both of you receive <strong>100 Zyvra Coins</strong>!
-            </p>
-
-            <div className="p-3 bg-emerald-950/80 border border-emerald-500/30 rounded-2xl flex items-center justify-between mb-4">
-              <span className="font-mono text-base font-black text-amber-300 tracking-wider">
-                {referralCode}
-              </span>
+            <div className="p-3 rounded-2xl bg-black/60 border border-emerald-500/30 flex items-center justify-between">
+              <span className="font-mono text-sm font-black text-amber-300">{referralCode}</span>
               <button
                 type="button"
                 onClick={handleCopyReferral}
-                className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-extrabold text-xs transition-colors"
+                className="px-3 py-1 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black"
               >
-                {copiedCode ? 'Copied! ✓' : 'Copy'}
+                {copiedCode ? 'Copied!' : 'Copy Code'}
               </button>
             </div>
 
-            <a
-              href={`https://wa.me/?text=${encodeURIComponent(`Join me on Zyvra - The smartest exam prep app! Use my invite code ${referralCode} to get 100 free Zyvra Coins: https://zyvra.in`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg transition-transform hover:scale-105 active:scale-95"
+            <button
+              type="button"
+              onClick={() => setInviteModalOpen(false)}
+              className="w-full py-2 rounded-xl bg-emerald-950 border border-emerald-500/20 text-xs font-bold text-neutral-300"
             >
-              <span>Share on WhatsApp</span>
-            </a>
+              Close
+            </button>
           </div>
         </div>
       )}
 
-      {/* ======================================================== */}
-      {/* MODAL 4: Help & Support Modal */}
-      {/* ======================================================== */}
+      {/* Support Modal */}
       {supportModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#072117] border border-emerald-500/30 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm p-6 rounded-3xl bg-[#04140e] border border-emerald-500/30 text-white space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black flex items-center gap-2">
+                <HelpCircle size={18} className="text-amber-400" />
+                <span>Help & Support</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setSupportModalOpen(false)}
+                className="text-neutral-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="space-y-2 text-xs text-emerald-300/90">
+              <p>For inquiries, test issues, or billing assistance:</p>
+              <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-500/30 space-y-1">
+                <div>📧 Email: <span className="text-white font-bold">support@zyvra.in</span></div>
+                <div>💬 WhatsApp: <span className="text-white font-bold">+91 98765 43210</span></div>
+                <div>⏰ Support Hours: <span className="text-white font-bold">10 AM – 7 PM IST</span></div>
+              </div>
+            </div>
             <button
               type="button"
               onClick={() => setSupportModalOpen(false)}
-              className="absolute top-4 right-4 text-emerald-400 hover:text-white"
-              aria-label="Close"
+              className="w-full py-2 rounded-xl bg-emerald-950 border border-emerald-500/20 text-xs font-bold text-neutral-300"
             >
-              <X size={20} />
+              Close
             </button>
-
-            <h3 className="text-lg font-black text-white flex items-center gap-2 mb-2">
-              <HelpCircle size={18} className="text-emerald-400" />
-              <span>Help & Support</span>
-            </h3>
-            <p className="text-xs text-emerald-300/80 mb-4">
-              We are here to support your learning journey.
-            </p>
-
-            <div className="space-y-3">
-              <a
-                href="mailto:support@zyvra.in"
-                className="flex items-center gap-3 p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/20 hover:border-emerald-400 transition-colors"
-              >
-                <Mail size={16} className="text-emerald-400" />
-                <div className="text-left">
-                  <div className="text-xs font-bold text-white">Email Us</div>
-                  <div className="text-[11px] text-emerald-300/80">support@zyvra.in</div>
-                </div>
-              </a>
-
-              <a
-                href="https://wa.me/919876543210"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/20 hover:border-emerald-400 transition-colors"
-              >
-                <Phone size={16} className="text-emerald-400" />
-                <div className="text-left">
-                  <div className="text-xs font-bold text-white">WhatsApp Support</div>
-                  <div className="text-[11px] text-emerald-300/80">+91 98765 43210</div>
-                </div>
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ======================================================== */}
-      {/* MODAL 5: Settings Drawer / Modal */}
-      {/* ======================================================== */}
-      {settingsModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#072117] border border-emerald-500/30 rounded-3xl p-6 w-full max-w-md shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button
-              type="button"
-              onClick={() => setSettingsModalOpen(false)}
-              className="absolute top-4 right-4 text-emerald-400 hover:text-white"
-              aria-label="Close"
-            >
-              <X size={20} />
-            </button>
-
-            <h3 className="text-lg font-black text-white flex items-center gap-2 mb-4">
-              <Settings size={18} className="text-emerald-400" />
-              <span>Settings & Preferences</span>
-            </h3>
-
-            {/* Language Selection */}
-            <div className="mb-4">
-              <label className="text-xs font-bold text-emerald-300 block mb-2">Interface Language</label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  ['en', 'English'],
-                  ['hi', 'हिन्दी']
-                ].map(([code, label]) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => setLanguage(code)}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-colors ${
-                      language === code
-                        ? 'bg-emerald-500/30 border-emerald-400 text-white'
-                        : 'bg-emerald-950/60 border-emerald-500/20 text-emerald-400/80'
-                    }`}
-                  >
-                    {label} {language === code && '✓'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Password Management */}
-            <div className="mb-4 pt-3 border-t border-emerald-800/40">
-              <button
-                type="button"
-                onClick={() => setPasswordOpen(!passwordOpen)}
-                className="w-full flex items-center justify-between text-xs font-bold text-emerald-300 py-1"
-              >
-                <span className="flex items-center gap-1.5">
-                  <KeyRound size={14} />
-                  <span>Change Password</span>
-                </span>
-                <ChevronRight size={14} className={`transform transition-transform ${passwordOpen ? 'rotate-90' : ''}`} />
-              </button>
-
-              {passwordOpen && (
-                <form
-                  onSubmit={async (e) => {
-                    e.preventDefault();
-                    if (newPassword.length < 6) {
-                      setPasswordFeedback('Password must be at least 6 characters');
-                      return;
-                    }
-                    if (newPassword !== confirmPassword) {
-                      setPasswordFeedback('Passwords do not match');
-                      return;
-                    }
-                    setPasswordUpdating(true);
-                    try {
-                      const { error } = await supabase.auth.updateUser({ password: newPassword });
-                      if (error) throw error;
-                      setPasswordFeedback('Password updated successfully!');
-                      setNewPassword('');
-                      setConfirmPassword('');
-                    } catch (err) {
-                      setPasswordFeedback(err.message || 'Error updating password');
-                    } finally {
-                      setPasswordUpdating(false);
-                    }
-                  }}
-                  className="space-y-3 mt-3 p-3 bg-emerald-950/60 rounded-xl border border-emerald-500/20"
-                >
-                  <input
-                    type="password"
-                    placeholder="New Password (min 6 chars)"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-emerald-900/50 border border-emerald-500/20 text-white text-xs"
-                    required
-                  />
-                  <input
-                    type="password"
-                    placeholder="Confirm New Password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-emerald-900/50 border border-emerald-500/20 text-white text-xs"
-                    required
-                  />
-                  {passwordFeedback && (
-                    <div className="text-[11px] font-semibold text-amber-300">{passwordFeedback}</div>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={passwordUpdating}
-                    className="w-full py-2 rounded-lg bg-emerald-500 text-black font-extrabold text-xs"
-                  >
-                    {passwordUpdating ? 'Updating...' : 'Update Password'}
-                  </button>
-                </form>
-              )}
-            </div>
-
-            {/* Account Deletion */}
-            <div className="pt-3 border-t border-emerald-800/40">
-              <button
-                type="button"
-                onClick={() => setDeleteOpen(true)}
-                className="text-xs font-bold text-red-400 hover:text-red-300 flex items-center gap-1.5"
-              >
-                <Trash2 size={13} />
-                <span>Request Account Deletion</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Account Deletion Confirmation Modal */}
-      {deleteOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#072117] border border-red-500/30 rounded-3xl p-6 w-full max-w-md shadow-2xl relative">
-            <button
-              type="button"
-              onClick={() => setDeleteOpen(false)}
-              className="absolute top-4 right-4 text-emerald-400 hover:text-white"
-              aria-label="Close"
-            >
-              <X size={20} />
-            </button>
-            <h3 className="text-lg font-black text-white flex items-center gap-2 mb-2 text-red-400">
-              <Trash2 size={18} />
-              <span>Delete Account?</span>
-            </h3>
-            <p className="text-xs text-emerald-300/80 mb-4">
-              This request will be reviewed by the Zyvra admin team.
-            </p>
-            <textarea
-              placeholder="Reason for deletion (optional)"
-              value={deleteReason}
-              onChange={(e) => setDeleteReason(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-emerald-950/80 border border-emerald-500/20 text-white text-xs mb-4"
-              rows={3}
-            />
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => setDeleteOpen(false)}
-                className="flex-1 py-2 rounded-xl bg-emerald-950 border border-emerald-500/20 text-emerald-300 font-bold text-xs"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    await supabase.from('account_deletion_requests').insert({
-                      user_id: user?.id,
-                      reason: deleteReason.trim() || null
-                    });
-                    setDeleteOpen(false);
-                    alert('Your deletion request has been submitted.');
-                  } catch (err) {
-                    console.error('Deletion error:', err);
-                  }
-                }}
-                className="flex-1 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs"
-              >
-                Submit Request
-              </button>
-            </div>
           </div>
         </div>
       )}

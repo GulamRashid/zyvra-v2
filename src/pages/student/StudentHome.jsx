@@ -1,97 +1,76 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ArrowRight, BookOpen, Check, ChevronRight, ClipboardList, Coins,
-  Flame, GraduationCap, Play, Sparkles, Target, Trophy, Award,
-  TrendingUp, Zap, FileText, Compass, Layers, CheckCircle2
-} from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import {
+  ArrowRight,
+  Award,
+  BookOpen,
+  CheckCircle2,
+  ChevronRight,
+  ClipboardList,
+  Clock3,
+  Coins,
+  Compass,
+  FileText,
+  Flame,
+  GraduationCap,
+  HelpCircle,
+  Layers,
+  Lock,
+  Play,
+  RotateCcw,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Trophy,
+  Zap
+} from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
-import { isPublished } from '../../lib/content';
-import OnboardingModal from './OnboardingModal';
 import MountainSunsetAura from '../../components/common/MountainSunsetAura';
+import OnboardingModal from './OnboardingModal';
 
 function isComplete(attempt) {
-  const status = String(attempt.status || '').toLowerCase();
+  const status = String(attempt?.status || '').toLowerCase();
   return ['completed', 'submitted', 'graded', 'finished'].includes(status)
-    || Boolean(attempt.completed_at || attempt.submitted_at || attempt.finished_at);
+    || Boolean(attempt?.completed_at || attempt?.submitted_at || attempt?.finished_at);
 }
 
-function localDateKey(value = new Date()) {
-  const date = value instanceof Date ? value : new Date(value);
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+function localDateKey(date = new Date()) {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function getStreak(attempts) {
-  const days = new Set(attempts.map((attempt) => {
-    const timestamp = attempt.completed_at || attempt.submitted_at || attempt.finished_at || attempt.created_at;
-    return timestamp ? localDateKey(timestamp) : '';
-  }).filter(Boolean));
-  const date = new Date();
-  let today = localDateKey(date);
-  if (!days.has(today)) {
-    date.setDate(date.getDate() - 1);
-    today = localDateKey(date);
-    if (!days.has(today)) return 0;
-  }
+  if (!attempts || attempts.length === 0) return 0;
+  const days = new Set();
+  attempts.forEach((a) => {
+    const ts = a.completed_at || a.submitted_at || a.finished_at || a.created_at;
+    if (ts) days.add(localDateKey(ts));
+  });
   let streak = 0;
-  while (days.has(today)) {
-    streak += 1;
-    date.setDate(date.getDate() - 1);
-    today = localDateKey(date);
+  const cursor = new Date();
+  while (true) {
+    const key = localDateKey(cursor);
+    if (days.has(key)) {
+      streak += 1;
+      cursor.setDate(cursor.getDate() - 1);
+    } else {
+      break;
+    }
   }
   return streak;
 }
 
 function loadSavedChapter(userId) {
+  if (!userId) return null;
   try {
-    return JSON.parse(localStorage.getItem(`zyvra-last-chapter-${userId || 'guest'}`) || 'null');
-  } catch (error) {
-    console.error('Unable to read the last visited chapter:', error);
+    const raw = localStorage.getItem(`zyvra_last_chapter_${userId}`);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
     return null;
   }
 }
-
-// Hero banners for carousel
-const carouselSlides = [
-  {
-    id: 1,
-    tag: 'FEATURED TEST SERIES',
-    title: 'SSC CGL Test Series',
-    subtitle: 'Chapter-wise & Full Mock Tests',
-    exam: 'SSC CGL 2026',
-    path: '/tests',
-    buttonText: 'Start Practice',
-    icon: Award,
-    badgeText: 'SSC',
-    gradient: 'from-emerald-950/80 via-emerald-900/40 to-teal-950/70'
-  },
-  {
-    id: 2,
-    tag: 'POPULAR CHOICE',
-    title: 'BPSC Integrated Prelims',
-    subtitle: 'Comprehensive GS & State Special Track',
-    exam: 'BPSC 71st CCE',
-    path: '/explore',
-    buttonText: 'Explore Syllabus',
-    icon: GraduationCap,
-    badgeText: 'BPSC',
-    gradient: 'from-[#190a2b]/80 via-purple-950/40 to-emerald-950/60'
-  },
-  {
-    id: 3,
-    tag: 'CONCEPT BOOSTER',
-    title: 'NCERT Foundation Master',
-    subtitle: 'Classes 6 to 12 Concept Boosters & MCQs',
-    exam: 'NCERT Special',
-    path: '/explore',
-    buttonText: 'Start Learning',
-    icon: BookOpen,
-    badgeText: 'NCERT',
-    gradient: 'from-[#0b1f2b]/80 via-cyan-950/40 to-emerald-950/60'
-  }
-];
 
 // Quick Action 5-Tile Row
 const quickActionTiles = [
@@ -108,17 +87,17 @@ const quickActionTiles = [
     id: 'mock',
     title: 'Mock Test',
     subtitle: 'Full length',
-    path: '/tests?tab=mock',
+    path: '/tests?tab=tests',
     icon: Target,
     bg: 'bg-teal-950/70 border-teal-500/25 text-teal-400',
     iconBg: 'bg-teal-500/20 text-teal-300'
   },
   {
-    id: 'notes',
-    title: 'Notes',
-    subtitle: 'Revision sheets',
-    path: '/explore?filter=notes',
-    icon: FileText,
+    id: 'toolbox',
+    title: 'Toolbox',
+    subtitle: 'Study tools',
+    path: '/toolbox',
+    icon: Layers,
     bg: 'bg-emerald-950/70 border-emerald-500/25 text-emerald-400',
     iconBg: 'bg-emerald-500/20 text-emerald-300'
   },
@@ -142,50 +121,6 @@ const quickActionTiles = [
   }
 ];
 
-// Explore Exams 4 Cards
-const featuredExamsData = [
-  {
-    id: 'ssc',
-    title: 'SSC',
-    subtitle: 'CGL · CHSL · MTS',
-    badge: '👑',
-    color: 'from-emerald-950 to-teal-950',
-    borderColor: 'border-emerald-500/30',
-    badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-    path: '/explore'
-  },
-  {
-    id: 'bpsc',
-    title: 'BPSC',
-    subtitle: 'TRE · BEO · Others',
-    badge: '🏛️',
-    color: 'from-[#1e1035] to-[#120a21]',
-    borderColor: 'border-purple-500/30',
-    badgeBg: 'bg-purple-500/20 text-purple-300 border-purple-500/30',
-    path: '/explore'
-  },
-  {
-    id: 'ctet',
-    title: 'CTET',
-    subtitle: 'Paper 1 & 2',
-    badge: '📖',
-    color: 'from-[#0d1e38] to-[#071324]',
-    borderColor: 'border-blue-500/30',
-    badgeBg: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-    path: '/explore'
-  },
-  {
-    id: 'bihar-tre',
-    title: 'Bihar TRE',
-    subtitle: 'PRT · TGT · PGT',
-    badge: '👤',
-    color: 'from-[#2a1b0c] to-[#1a0f06]',
-    borderColor: 'border-amber-500/30',
-    badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
-    path: '/explore'
-  }
-];
-
 export default function StudentHome() {
   const { profile, coinBalance, guest, user, supabase, refreshAccount } = useAuth();
   const { t, language } = useThemeLanguage();
@@ -197,11 +132,10 @@ export default function StudentHome() {
   const [resumeAttempt, setResumeAttempt] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(Boolean(supabase && user));
   const [activeSlide, setActiveSlide] = useState(0);
-  const [leaderboardModalOpen, setLeaderboardModalOpen] = useState(false);
 
   // User Greeting Info
   const fullName = profile?.full_name || profile?.name || user?.user_metadata?.full_name || '';
-  const firstName = fullName ? fullName.split(' ')[0] : (guest ? 'Learner' : 'Learner');
+  const firstName = fullName ? fullName.split(' ')[0] : 'Learner';
 
   // Time-based greeting
   const greetingPhrase = useMemo(() => {
@@ -224,7 +158,7 @@ export default function StudentHome() {
     setSavedChapter(loadSavedChapter(user?.id));
   }, [user?.id]);
 
-  // Load test attempts & available tests
+  // Load test attempts & available tests strictly from Supabase
   useEffect(() => {
     let active = true;
     const loadOverview = async () => {
@@ -235,7 +169,7 @@ export default function StudentHome() {
       try {
         const { data: tests } = await supabase
           .from('tests')
-          .select('id,title,chapter_id,status,duration_minutes')
+          .select('id,title,chapter_id,status,duration_minutes,is_free,price')
           .in('status', ['published', 'live', 'available']);
 
         if (!active) return;
@@ -258,14 +192,15 @@ export default function StudentHome() {
         setAttempts(userAttempts.filter(isComplete));
 
         const incomplete = userAttempts.find(
-          (attempt) => !isComplete(attempt)
-            && ['started', 'in_progress', 'in progress', 'pending'].includes(String(attempt.status || '').toLowerCase())
-            && attempt.test_id
+          (a) => !isComplete(a) && (a.state_json || a.answers || a.responses)
         );
 
         if (incomplete) {
-          const test = (tests || []).find((item) => item.id === incomplete.test_id);
-          setResumeAttempt(test ? { ...incomplete, testTitle: test.title } : incomplete);
+          const matchedTest = (tests || []).find((t) => t.id === incomplete.test_id);
+          setResumeAttempt({
+            ...incomplete,
+            testTitle: matchedTest?.title || 'Practice Test'
+          });
         } else {
           setResumeAttempt(null);
         }
@@ -280,73 +215,145 @@ export default function StudentHome() {
     return () => { active = false; };
   }, [supabase, user]);
 
+  // Dynamic Hero Banners built strictly from actual DB records
+  const dynamicBanners = useMemo(() => {
+    if (exams && exams.length > 0) {
+      return exams.map((exam, idx) => ({
+        id: exam.id,
+        tag: idx === 0 ? 'FEATURED EXAM SERIES' : 'POPULAR CHOICE',
+        title: exam.title,
+        subtitle: exam.description || 'Structured Chapter Practice & Mock Tests',
+        exam: exam.title,
+        path: `/explore/${exam.slug || exam.id}`,
+        buttonText: 'Start Learning',
+        badgeText: exam.title.slice(0, 5).toUpperCase(),
+        gradient: 'from-emerald-950/80 via-emerald-900/40 to-teal-950/70'
+      }));
+    }
+    return [
+      {
+        id: 'default',
+        tag: 'WELCOME TO ZYVRA',
+        title: 'Master Your Competitive Exams',
+        subtitle: 'High-yield MCQs with structured explanations and instant analytics',
+        exam: 'General Preparation',
+        path: '/tests',
+        buttonText: 'Explore Tests',
+        badgeText: 'ZYVRA',
+        gradient: 'from-emerald-950/80 via-emerald-900/40 to-teal-950/70'
+      }
+    ];
+  }, [exams]);
+
   // Carousel auto-rotate
   useEffect(() => {
+    if (dynamicBanners.length <= 1) return;
     const timer = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % carouselSlides.length);
+      setActiveSlide((prev) => (prev + 1) % dynamicBanners.length);
     }, 6000);
     return () => clearInterval(timer);
-  }, []);
+  }, [dynamicBanners.length]);
 
-  // Compute Streak
+  // Real Streak (No fake baseline)
   const streak = useMemo(() => {
     const computed = getStreak(attempts);
-    return Math.max(computed, Number(profile?.current_streak || 0), 1);
+    return Math.max(computed, Number(profile?.current_streak || 0));
   }, [attempts, profile?.current_streak]);
 
-  // Compute Daily Target & Questions Solved
-  const dailyTarget = Number(profile?.daily_goal_target || 150);
+  // Real Daily Target & Questions Solved
+  const dailyTarget = Number(profile?.daily_goal_target || 50);
   const todayKey = localDateKey();
   const todayQuestionsSolved = useMemo(() => {
     const todayAttempts = attempts.filter((att) => {
       const ts = att.completed_at || att.submitted_at || att.finished_at || att.created_at;
       return ts ? localDateKey(ts) === todayKey : false;
     });
-    const fromAttempts = todayAttempts.reduce((sum, att) => {
-      const answered = Number(att.answered_count || att.total_questions || att.total_answered || 10);
+    return todayAttempts.reduce((sum, att) => {
+      const answered = Number(att.answered_count || att.total_questions || att.total_answered || 0);
       return sum + answered;
     }, 0);
-    const fromProfile = Number(profile?.daily_goal_progress || 0);
-    return Math.max(fromAttempts, fromProfile, 102); // default mockup baseline 102 (68% of 150)
-  }, [attempts, profile?.daily_goal_progress, todayKey]);
+  }, [attempts, todayKey]);
 
-  const goalPercent = Math.min(100, Math.round((todayQuestionsSolved / dailyTarget) * 100));
+  const goalPercent = dailyTarget > 0 ? Math.min(100, Math.round((todayQuestionsSolved / dailyTarget) * 100)) : 0;
 
   // Circular progress ring calculation
   const ringRadius = 24;
   const ringCircumference = 2 * Math.PI * ringRadius;
   const ringOffset = ringCircumference - (goalPercent / 100) * ringCircumference;
 
-  // Continue learning item resolution
+  // Real Continue learning item resolution
   const continueItem = useMemo(() => {
     if (resumeAttempt) {
       return {
-        title: resumeAttempt.testTitle || 'Resume Your Test',
-        subtitle: 'Chapter Test • 20 Questions',
-        progress: 65,
+        title: resumeAttempt.testTitle || 'Resume Incomplete Test',
+        subtitle: 'Continue from your last session',
+        progress: 50,
         path: `/quiz/${resumeAttempt.test_id}`,
+        isTest: true
+      };
+    }
+    if (attempts.length > 0) {
+      const last = attempts[0];
+      const matchedTest = availableTests.find((t) => t.id === last.test_id);
+      return {
+        title: matchedTest?.title || 'Recent Practice Test',
+        subtitle: `Score: ${last.score || 0}/${last.total_questions || 0}`,
+        progress: 100,
+        path: `/quiz/${last.test_id}/result`,
         isTest: true
       };
     }
     if (savedChapter) {
       return {
         title: savedChapter.title,
-        subtitle: `${savedChapter.folderTitle || 'Chapter Practice'} • 25 Questions`,
-        progress: 50,
+        subtitle: `${savedChapter.folderTitle || 'Chapter Practice'}`,
+        progress: 25,
         path: `/chapter/${savedChapter.id}`,
         isTest: false
       };
     }
-    // Default fallback from available catalog
-    const firstChapter = chapters[0];
+    if (availableTests.length > 0) {
+      const firstTest = availableTests[0];
+      return {
+        title: firstTest.title,
+        subtitle: 'Take your first test to track progress',
+        progress: 0,
+        path: `/quiz/${firstTest.id}`,
+        isTest: true
+      };
+    }
+    if (chapters.length > 0) {
+      const firstChapter = chapters[0];
+      return {
+        title: firstChapter.title,
+        subtitle: firstChapter.subject || 'Chapter Practice',
+        progress: 0,
+        path: `/chapter/${firstChapter.id}`,
+        isTest: false
+      };
+    }
     return {
-      title: firstChapter?.title || 'Indian History – Ancient India',
-      subtitle: 'Chapter Test • 20 Questions',
-      progress: 65,
-      path: firstChapter ? `/chapter/${firstChapter.id}` : '/tests',
+      title: 'Explore Available Exams',
+      subtitle: 'Browse through syllabus and practice questions',
+      progress: 0,
+      path: '/explore',
       isTest: false
     };
-  }, [resumeAttempt, savedChapter, chapters]);
+  }, [resumeAttempt, attempts, availableTests, savedChapter, chapters]);
+
+  // Real Dynamic Exams mapped strictly from Database
+  const dynamicExams = useMemo(() => {
+    return exams.map((exam) => ({
+      id: exam.id,
+      title: exam.title,
+      subtitle: exam.description || 'Chapter tests & practice questions',
+      badge: exam.icon === 'GraduationCap' ? '🎓' : exam.icon === 'BookOpen' ? '📖' : '🏛️',
+      color: 'from-emerald-950 to-[#072418]',
+      borderColor: 'border-emerald-500/30',
+      badgeBg: 'bg-amber-500/20 text-amber-300 border-amber-500/30',
+      path: `/explore/${exam.slug || exam.id}`
+    }));
+  }, [exams]);
 
   const shouldShowOnboarding = Boolean(
     user && !guest && profile &&
@@ -380,13 +387,13 @@ export default function StudentHome() {
       </div>
 
       <div className="px-4 sm:px-6 max-w-5xl mx-auto space-y-6 -mt-2 relative z-10">
-        {/* Streak & Today's Goal Glassmorphic Panel (Matching Mockup 1794580723919.png) */}
+        {/* Streak & Today's Goal Glassmorphic Panel */}
         <section className="bg-[#072117]/85 backdrop-blur-xl border border-emerald-500/20 rounded-2xl p-4 sm:p-5 shadow-[0_8px_32px_rgba(0,0,0,0.37)]">
           <div className="grid grid-cols-2 divide-x divide-emerald-800/40">
             {/* Left: Study Streak */}
             <div className="flex items-center gap-3 pr-3">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/25 to-yellow-600/15 border border-amber-500/30 flex items-center justify-center shrink-0 shadow-inner">
-                <Flame className="w-6 h-6 text-amber-400 fill-amber-400 animate-pulse" />
+                <Flame className={`w-6 h-6 ${streak > 0 ? 'text-amber-400 fill-amber-400 animate-pulse' : 'text-neutral-500'}`} />
               </div>
               <div>
                 <div className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-baseline gap-1">
@@ -399,118 +406,105 @@ export default function StudentHome() {
             </div>
 
             {/* Right: Today's Goal */}
-            <div className="flex items-center justify-between pl-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/25 to-teal-600/15 border border-emerald-500/30 flex items-center justify-center shrink-0 shadow-inner">
-                  <Target className="w-6 h-6 text-emerald-400" />
+            <div className="flex items-center justify-between pl-3 sm:pl-4">
+              <div className="min-w-0">
+                <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  {todayQuestionsSolved} <span className="text-xs text-neutral-400 font-normal">/ {dailyTarget}</span>
                 </div>
-                <div>
-                  <div className="text-xs sm:text-sm font-bold text-white">
-                    {language === 'hi' ? 'आज का लक्ष्य' : "Today's Goal"}
-                  </div>
-                  <div className="text-[11px] sm:text-xs text-emerald-400/80 font-medium">
-                    {dailyTarget} {language === 'hi' ? 'प्रश्न' : 'Questions'}
-                  </div>
+                <div className="text-[11px] sm:text-xs font-medium text-emerald-400/80 truncate">
+                  {language === 'hi' ? 'आज का लक्ष्य' : "Today's Target"}
                 </div>
               </div>
 
-              {/* Circular Progress Ring */}
-              <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
-                <svg className="w-14 h-14 transform -rotate-90" viewBox="0 0 60 60">
-                  {/* Background Track */}
+              {/* Circular SVG Progress Ring */}
+              <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
+                <svg className="w-14 h-14 -rotate-90 transform" viewBox="0 0 56 56">
                   <circle
-                    cx="30"
-                    cy="30"
+                    cx="28"
+                    cy="28"
                     r={ringRadius}
                     className="stroke-emerald-950/80"
                     strokeWidth="4"
                     fill="transparent"
                   />
-                  {/* Animated Progress Ring */}
                   <circle
-                    cx="30"
-                    cy="30"
+                    cx="28"
+                    cy="28"
                     r={ringRadius}
-                    className="stroke-[#22c55e] transition-all duration-1000 ease-out"
-                    strokeWidth="4.5"
+                    className="stroke-emerald-400 transition-all duration-700 ease-out"
+                    strokeWidth="4"
                     strokeDasharray={ringCircumference}
                     strokeDashoffset={ringOffset}
                     strokeLinecap="round"
                     fill="transparent"
                   />
                 </svg>
-                <span className="absolute inset-0 flex items-center justify-center text-xs font-black text-emerald-300">
+                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black text-white">
                   {goalPercent}%
-                </span>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Hero Banner Carousel (Featured Track / Test Series) */}
-        <section className="relative overflow-hidden rounded-2xl border border-emerald-500/25 shadow-xl bg-gradient-to-r from-[#06241a] via-[#083023] to-[#041a12]">
-          <div className="p-5 sm:p-7 relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-            <div className="space-y-3 max-w-lg">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                <Sparkles size={11} className="text-amber-400" />
-                {carouselSlides[activeSlide].tag}
+        {/* Hero Banner Carousel (Built from Real Exams in DB) */}
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#06261c] via-[#083526] to-[#041a12] border border-emerald-500/25 p-5 sm:p-7 shadow-xl">
+          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-2 max-w-lg">
+              <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                {dynamicBanners[activeSlide]?.tag}
               </span>
-
-              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                {carouselSlides[activeSlide].title}
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                {dynamicBanners[activeSlide]?.title}
               </h2>
-
-              <p className="text-emerald-200/80 text-xs sm:text-sm font-medium">
-                {carouselSlides[activeSlide].subtitle}
+              <p className="text-xs sm:text-sm text-emerald-200/80 font-medium line-clamp-2">
+                {dynamicBanners[activeSlide]?.subtitle}
               </p>
-
               <div className="pt-2">
                 <Link
-                  to={carouselSlides[activeSlide].path}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-extrabold text-sm shadow-[0_4px_20px_rgba(245,197,66,0.35)] transition-transform hover:scale-105 active:scale-95"
+                  to={dynamicBanners[activeSlide]?.path}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-extrabold text-sm shadow-[0_4px_20px_rgba(245,197,66,0.35)] transition-transform hover:scale-105 active:scale-95"
                 >
-                  <span>{carouselSlides[activeSlide].buttonText}</span>
+                  <span>{dynamicBanners[activeSlide]?.buttonText}</span>
                   <ArrowRight size={16} strokeWidth={2.5} />
                 </Link>
               </div>
             </div>
 
-            {/* 3D Visual Mockup Artwork (Right side) */}
-            <div className="hidden sm:flex items-center justify-center relative w-44 h-36 shrink-0">
-              <div className="absolute inset-0 bg-emerald-500/10 rounded-full blur-xl" />
-              {/* Stacked books & checklist icon art */}
-              <div className="relative w-32 h-28 bg-gradient-to-br from-[#0c3829] to-[#062117] border border-emerald-400/30 rounded-2xl shadow-2xl p-3 flex flex-col justify-between">
+            {/* Right Side Exam Pill Card */}
+            <div className="hidden sm:flex items-center justify-center relative w-40 h-32 shrink-0">
+              <div className="w-28 h-24 bg-gradient-to-br from-[#0c3829] to-[#062117] border border-emerald-400/30 rounded-2xl p-3 flex flex-col justify-between shadow-2xl">
                 <div className="flex items-center justify-between">
-                  <div className="w-8 h-8 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-400 font-extrabold text-xs">
-                    {carouselSlides[activeSlide].badgeText}
-                  </div>
+                  <span className="text-xs font-black text-amber-400">
+                    {dynamicBanners[activeSlide]?.badgeText}
+                  </span>
                   <CheckCircle2 size={16} className="text-emerald-400" />
                 </div>
-                <div className="space-y-1.5">
-                  <div className="h-1.5 w-full bg-emerald-700/40 rounded-full" />
-                  <div className="h-1.5 w-3/4 bg-emerald-700/40 rounded-full" />
-                  <div className="h-1.5 w-1/2 bg-amber-400/70 rounded-full" />
+                <div className="text-[10px] text-emerald-300/80 font-bold truncate">
+                  {dynamicBanners[activeSlide]?.exam}
                 </div>
               </div>
             </div>
           </div>
 
-            {/* Carousel Dot Indicators */}
-          <div className="flex items-center justify-center gap-1.5 pb-3">
-            {carouselSlides.map((slide, idx) => (
-              <button
-                key={slide.id}
-                type="button"
-                aria-label={`Go to slide ${idx + 1}`}
-                onClick={() => setActiveSlide(idx)}
-                className={`transition-all duration-300 rounded-full h-1.5 ${
-                  activeSlide === idx
-                    ? 'w-6 bg-white shadow-sm'
-                    : 'w-1.5 bg-emerald-700/50 hover:bg-emerald-600/70'
-                }`}
-              />
-            ))}
-          </div>
+          {/* Carousel Dot Indicators */}
+          {dynamicBanners.length > 1 && (
+            <div className="flex items-center justify-center gap-1.5 pt-4">
+              {dynamicBanners.map((slide, idx) => (
+                <button
+                  key={slide.id}
+                  type="button"
+                  aria-label={`Go to slide ${idx + 1}`}
+                  onClick={() => setActiveSlide(idx)}
+                  className={`transition-all duration-300 rounded-full h-1.5 ${
+                    activeSlide === idx
+                      ? 'w-6 bg-white shadow-sm'
+                      : 'w-1.5 bg-emerald-700/50 hover:bg-emerald-600/70'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Quick Action 5-Tile Row */}
@@ -589,82 +583,48 @@ export default function StudentHome() {
           </div>
         </section>
 
-        {/* Explore Exams Section */}
-        <section className="space-y-2.5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
-              {language === 'hi' ? 'परीक्षाएं देखें' : 'Explore Exams'}
-            </h3>
-            <Link
-              to="/explore"
-              className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
-            >
-              <span>{language === 'hi' ? 'सभी देखें' : 'View All'}</span>
-              <ChevronRight size={14} />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {featuredExamsData.map((exam) => (
+        {/* Explore Exams Section (Strictly Real DB Exams) */}
+        {dynamicExams.length > 0 && (
+          <section className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                {language === 'hi' ? 'उपलब्ध परीक्षाएं' : 'Available Exams'}
+              </h3>
               <Link
-                key={exam.id}
-                to={exam.path}
-                className={`bg-gradient-to-br ${exam.color} border ${exam.borderColor} rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 hover:scale-[1.03] hover:shadow-lg active:scale-98 group`}
+                to="/explore"
+                className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg border ${exam.badgeBg}`}>
-                    {exam.badge}
-                  </div>
-                  <ChevronRight size={16} className="text-white/40 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-                </div>
-                <div>
-                  <h4 className="text-base font-extrabold text-white tracking-tight group-hover:text-emerald-300 transition-colors">
-                    {exam.title}
-                  </h4>
-                  <p className="text-[11px] font-medium text-emerald-400/80 mt-0.5 line-clamp-1">
-                    {exam.subtitle}
-                  </p>
-                </div>
+                <span>{language === 'hi' ? 'सभी देखें' : 'View All'}</span>
+                <ChevronRight size={14} />
               </Link>
-            ))}
-          </div>
-        </section>
-
-        {/* Daily Challenge Banner */}
-        <section>
-          <Link
-            to="/tests"
-            className="block bg-gradient-to-r from-emerald-950/90 via-[#072418] to-teal-950/80 border border-amber-500/30 rounded-2xl p-4 sm:p-5 transition-all duration-200 hover:border-amber-400 hover:shadow-[0_4px_24px_rgba(245,197,66,0.18)] group"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center shrink-0">
-                  <Zap className="w-6 h-6 text-amber-400 fill-amber-400 animate-pulse" />
-                </div>
-                <div>
-                  <h4 className="text-base font-extrabold text-white tracking-tight flex items-center gap-2">
-                    <span>{language === 'hi' ? 'दैनिक चुनौती' : 'Daily Challenge'}</span>
-                    <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/30">
-                      LIVE
-                    </span>
-                  </h4>
-                  <p className="text-xs text-emerald-300/80 font-medium mt-0.5">
-                    {language === 'hi'
-                      ? '50 मिश्रित प्रश्न हल करें और सिक्के कमाएँ।'
-                      : 'Solve 50 mixed questions and earn coins.'}
-                  </p>
-                </div>
-              </div>
-
-              {/* +50 Coins Badge */}
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/20 to-yellow-600/30 border border-amber-400/40 text-amber-300 font-extrabold text-xs shrink-0 shadow-sm group-hover:scale-105 transition-transform">
-                <Coins size={14} className="text-amber-400" />
-                <span>+50</span>
-                <ChevronRight size={14} className="text-amber-400" />
-              </div>
             </div>
-          </Link>
-        </section>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {dynamicExams.map((exam) => (
+                <Link
+                  key={exam.id}
+                  to={exam.path}
+                  className="bg-gradient-to-br from-emerald-950 to-[#072418] border border-emerald-500/30 rounded-2xl p-4 flex flex-col justify-between transition-all duration-200 hover:scale-[1.02] hover:border-emerald-400 active:scale-98 group"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg border bg-amber-500/20 text-amber-300 border-amber-500/30">
+                      {exam.badge}
+                    </div>
+                    <ChevronRight size={16} className="text-white/40 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-extrabold text-white tracking-tight group-hover:text-emerald-300 transition-colors">
+                      {exam.title}
+                    </h4>
+                    <p className="text-[11px] font-medium text-emerald-400/80 mt-0.5 line-clamp-2">
+                      {exam.subtitle}
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );

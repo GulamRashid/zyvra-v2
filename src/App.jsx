@@ -59,7 +59,48 @@ const adminPages = {
 
 function StudentPlaceholder({ page }) {
   const { title, subtitle, icon: Icon, items } = page;
-  return <div className="placeholder-page"><div className="page-heading"><div><div className="eyebrow">YOUR LEARNING SPACE</div><h1>{title}</h1><p>{subtitle}</p></div></div><div className="placeholder-hero panel-card"><div className="placeholder-icon"><Icon size={23} /></div><h2>Your next step starts here.</h2><p>This section is ready for your Zyvra learning journey. Explore a focused starting point below.</p><div className="placeholder-items">{items.map((item) => <div key={item}><span className="placeholder-item-dot" />{item}</div>)}</div></div><div className="placeholder-note"><span className="health-dot" /> Your learning space is ready to grow with you.</div></div>;
+  return (
+    <div className="placeholder-page max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
+      <div className="page-heading">
+        <div>
+          <div className="eyebrow">YOUR LEARNING SPACE</div>
+          <h1 className="text-2xl sm:text-3xl font-black text-white">{title}</h1>
+          <p className="text-xs sm:text-sm text-emerald-300/80">{subtitle}</p>
+        </div>
+      </div>
+      <div className="placeholder-hero panel-card p-6 rounded-3xl bg-[#072117]/85 border border-emerald-500/25 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="placeholder-icon w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-400">
+            <Icon size={24} />
+          </div>
+          <div>
+            <h2 className="text-base font-black text-white">Your study workspace is ready</h2>
+            <p className="text-xs text-emerald-300/80">Track your saved content, milestones, and active items below.</p>
+          </div>
+        </div>
+        <div className="placeholder-items grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2">
+          {items.map((item) => (
+            <div key={item} className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/20 text-xs font-bold text-emerald-200 flex items-center gap-2">
+              <span className="placeholder-item-dot w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+              <span>{item}</span>
+            </div>
+          ))}
+        </div>
+        <div className="pt-2 flex items-center gap-3">
+          <a href="/tests" className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold inline-flex items-center gap-1.5 transition-transform active:scale-95">
+            <span>Go to Practice Hub</span>
+            <span>→</span>
+          </a>
+          <a href="/explore" className="px-4 py-2 rounded-xl bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 text-xs font-bold hover:text-white transition-colors">
+            Explore Exams
+          </a>
+        </div>
+      </div>
+      <div className="placeholder-note text-xs text-emerald-400/70 flex items-center gap-2">
+        <span className="health-dot" /> Your learning space is ready to grow with you.
+      </div>
+    </div>
+  );
 }
 
 function AdminPlaceholder({ page }) {

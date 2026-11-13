@@ -34,7 +34,7 @@ export default function StudentBottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#04140e]/90 backdrop-blur-xl border-t border-emerald-500/15 shadow-[0_-8px_25px_rgba(0,0,0,0.5)] transition-all duration-300"
+      className="student-bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden bg-[#04140e]/90 backdrop-blur-xl border-t border-emerald-500/15 shadow-[0_-8px_25px_rgba(0,0,0,0.5)] transition-all duration-300"
       aria-label="Student Mobile Navigation"
     >
       <div className="max-w-md mx-auto px-3 py-2 flex items-center justify-around gap-1" style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}>

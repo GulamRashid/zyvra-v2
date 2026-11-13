@@ -198,7 +198,11 @@ export default function UserManager() {
     <div className="page-heading"><div><div className="eyebrow">ADMINISTRATION / ACCESS CONTROL</div><h1>Users & access</h1><p>Review student accounts, balances, purchases and learning grants.</p></div><div className="user-directory-count"><Users size={16} /> {filteredUsers.length} users</div></div>
     {error && <div className="feedback error-feedback">{error}</div>}
     <section className="panel-card user-directory">
-      <div className="user-directory-toolbar"><label className="content-search"><Search size={15} /><input placeholder="Search name, email or ID…" value={search} onChange={(event) => setSearch(event.target.value)} /></label><label className="filter-select">Role<select className="text-input" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="all">All roles</option><option value="student">Students</option><option value="admin">Admins</option></select></label><label className="filter-select">Target exam<select className="text-input" value={examFilter} onChange={(event) => setExamFilter(event.target.value)}><option value="all">All exams</option>{['BPSC', 'SSC', 'CTET', 'NCERT'].map((exam) => <option key={exam}>{exam}</option>)}</select></label></div>
+      <div className="user-directory-toolbar">
+        <label className="content-search"><Search size={15} /><input placeholder="Search name, email or ID…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+        <label className="filter-select">Role<select className="text-input" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="all">All roles</option><option value="student">Students</option><option value="admin">Admins</option></select></label>
+        <label className="filter-select">Target exam<select className="text-input" value={examFilter} onChange={(event) => setExamFilter(event.target.value)}><option value="all">All exams</option>{(catalog?.exams || []).map((exam) => <option key={exam.id} value={exam.title}>{exam.title}</option>)}</select></label>
+      </div>
       {loading ? <LoadingSkeleton rows={5} /> : !filteredUsers.length ? <div className="empty-content"><UserRound size={23} /><strong>No matching users.</strong><span>Adjust your search or filters to see more accounts.</span></div> : <div className="user-directory-list">{filteredUsers.map((profile) => {
         const name = profile.full_name || 'Student';
         const isAdmin = ['admin', 'super_admin'].includes(profile.role);
