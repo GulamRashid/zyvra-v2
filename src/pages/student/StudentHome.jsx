@@ -598,7 +598,7 @@ export default function StudentHome() {
                   </p>
                   {recommendation.test.coin_reward_enabled && (
                     <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">
-                      Coins reward available for qualifying attempts.
+                      Rewards enabled for qualifying attempts.
                     </p>
                   )}
                 </div>

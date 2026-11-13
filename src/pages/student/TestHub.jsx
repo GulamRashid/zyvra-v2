@@ -536,7 +536,7 @@ export default function TestHub() {
                         </div>
                         {test.coin_reward_enabled && (
                           <p className="text-sm text-amber-700 dark:text-amber-300">
-                            Coins reward available for qualifying attempts.
+                            Rewards enabled for qualifying attempts.
                           </p>
                         )}
                       </div>
