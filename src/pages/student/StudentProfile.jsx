@@ -110,7 +110,7 @@ export default function StudentProfile() {
           return true;
         });
 
-        const hasActiveGrant = activeGrants.length > 0 || profile?.role === 'admin' || profile?.is_pro === true;
+        const hasActiveGrant = activeGrants.length > 0 || ['admin', 'super_admin'].includes(profile?.role);
         setIsPro(hasActiveGrant);
 
         if (hasActiveGrant) {
@@ -137,7 +137,7 @@ export default function StudentProfile() {
 
     fetchUserData();
     return () => { active = false; };
-  }, [supabase, user, profile?.role, profile?.is_pro]);
+  }, [supabase, user, profile?.role]);
 
   // Real Derived Stats
   const testsAttemptedCount = useMemo(() => {
