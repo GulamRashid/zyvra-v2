@@ -50,7 +50,7 @@ export default function AdminDashboard() {
       ] = await Promise.allSettled([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('user_access').select('*', { count: 'exact', head: true }).eq('is_active', true),
-        supabase.from('profiles').select('*', { count: 'exact', head: true }).or('email_confirmed_at.is.null,email_verified.is.false'),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('email_verified', false),
         supabase.from('payment_orders').select('amount, status'),
         supabase.from('chapters').select('*', { count: 'exact', head: true }),
         supabase.from('questions').select('*', { count: 'exact', head: true })
@@ -163,7 +163,7 @@ export default function AdminDashboard() {
           const state = metricState[key];
           const displayVal = state.loading
             ? '…'
-            : state.error
+            : state.error || state.value === null || state.value === undefined
               ? '—'
               : key === 'revenue'
                 ? `₹${Number(state.value).toLocaleString('en-IN')}`
