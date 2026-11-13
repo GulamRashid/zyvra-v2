@@ -19,7 +19,6 @@ export default function StudentProfile() {
 
   // Edit profile form state
   const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
   const [targets, setTargets] = useState([]);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileFeedback, setProfileFeedback] = useState('');
@@ -56,7 +55,6 @@ export default function StudentProfile() {
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || profile.name || '');
-      setPhone(profile.phone || '');
       setTargets(Array.isArray(profile.target_exams) ? profile.target_exams : []);
       setDailyTarget(Number(profile.daily_goal_target || 50));
     }
@@ -162,7 +160,7 @@ export default function StudentProfile() {
 
   const displayName = fullName || profile?.full_name || profile?.name || user?.user_metadata?.full_name || (guest ? 'Guest Student' : 'Student');
   const displayEmail = user?.email || (guest ? 'guest@zyvra.in' : '');
-  const displayPhone = phone || profile?.phone || 'Not provided';
+  const displayPhone = profile?.mobile || 'Not provided';
   const referralCode = profile?.referral_code || '';
 
   // Save profile updates to Supabase
@@ -176,7 +174,6 @@ export default function StudentProfile() {
           .from('profiles')
           .update({
             full_name: fullName,
-            phone: phone,
             target_exams: targets
           })
           .eq('id', user.id);
@@ -190,7 +187,7 @@ export default function StudentProfile() {
       }
     } catch (err) {
       console.error('Unable to update profile:', err);
-      setProfileFeedback(getFriendlyErrorMessage(err, 'Profile update nahi ho paya.'));
+      setProfileFeedback(getFriendlyErrorMessage(err, 'Profile update nahi ho paya. Dobara koshish karein.'));
     } finally {
       setSavingProfile(false);
     }
@@ -646,13 +643,15 @@ export default function StudentProfile() {
               </div>
 
               <div>
-                <label className="text-xs font-bold dark:text-emerald-300 text-slate-700 block mb-1">Phone Number</label>
+                <label className="text-xs font-bold dark:text-emerald-300 text-slate-700 block mb-1">
+                  Mobile Number <span className="text-[10px] font-normal text-slate-400 dark:text-neutral-500">(Read-only)</span>
+                </label>
                 <input
                   type="tel"
-                  placeholder="+91 XXXXX XXXXX"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl dark:bg-emerald-950 bg-slate-50 border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 text-xs font-bold focus:outline-none focus:border-amber-400"
+                  value={profile?.mobile || 'Not provided'}
+                  readOnly
+                  disabled
+                  className="w-full px-3 py-2 rounded-xl dark:bg-emerald-950/50 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 dark:text-neutral-400 text-slate-500 text-xs font-medium cursor-not-allowed"
                 />
               </div>
 
