@@ -233,11 +233,11 @@ export default function TestHub() {
             <span>{loadError}</span>
             <button
               type="button"
-              className="shrink-0 rounded-xl border border-rose-300 px-3 py-1.5 text-xs font-bold hover:bg-rose-100 dark:border-rose-400/40 dark:hover:bg-rose-950/50"
+              className="shrink-0 min-h-[44px] rounded-xl border border-rose-300 px-3 py-1.5 text-xs font-bold hover:bg-rose-100 dark:border-rose-400/40 dark:hover:bg-rose-950/50"
               onClick={loadTestData}
               disabled={loading}
             >
-              {loading ? 'Retrying…' : 'Try again'}
+              {loading ? 'Loading…' : 'Try again'}
             </button>
           </div>
         )}
@@ -248,7 +248,7 @@ export default function TestHub() {
             onClick={() => setActiveTab('subjects')}
             className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'subjects'
-                ? 'bg-emerald-500 text-white'
+                ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
                 : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
             }`}
           >
@@ -261,7 +261,7 @@ export default function TestHub() {
             onClick={() => setActiveTab('chapters')}
             className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'chapters'
-                ? 'bg-emerald-500 text-white'
+                ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
                 : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
             }`}
           >
@@ -274,7 +274,7 @@ export default function TestHub() {
             onClick={() => setActiveTab('tests')}
             className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'tests'
-                ? 'bg-emerald-500 text-white'
+                ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
                 : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
             }`}
           >
@@ -287,7 +287,7 @@ export default function TestHub() {
             onClick={() => setActiveTab('custom')}
             className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'custom'
-                ? 'bg-emerald-500 text-white'
+                ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
                 : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
             }`}
           >
@@ -324,7 +324,7 @@ export default function TestHub() {
 
                   <Link
                     to={`/explore/${exams[0]?.slug || exams[0]?.id}`}
-                    className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-extrabold text-sm transition-colors"
+                    className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white font-extrabold text-sm transition-colors"
                   >
                     <span>View Syllabus</span>
                     <ArrowRight size={14} />
@@ -335,7 +335,7 @@ export default function TestHub() {
                 <div className="mt-3.5 pt-3 border-t dark:border-emerald-800/40 border-emerald-200">
                   <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
                     <span className="dark:text-emerald-300 text-emerald-800">Overall Track Completion</span>
-                    <span className="text-amber-800 dark:text-amber-300 font-bold">
+                    <span className="text-emerald-700 dark:text-emerald-300 font-bold">
                       {totalQuestionsSolved} / {totalQuestionsSum} Solved ({aggregateProgressPct}%)
                     </span>
                   </div>
@@ -354,21 +354,21 @@ export default function TestHub() {
               <LoadingSkeleton count={4} />
             ) : displaySubjects.length === 0 ? (
               <div className="p-8 text-center text-sm dark:text-emerald-400/70 text-slate-500 dark:bg-[#12231C] bg-white rounded-3xl border dark:border-emerald-500/15 border-emerald-600/15">
-                <p>No subject folders found in database.</p>
+                <p>No subjects are available yet. Check back soon to start practicing.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {displaySubjects.map((subject) => (
                   <div
                     key={subject.id}
-                    className="p-6 sm:p-8 rounded-3xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 flex flex-col justify-between space-y-3 transition-colors hover:border-emerald-400"
+                    className="p-4 sm:p-6 rounded-3xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 flex flex-col justify-between space-y-3 transition-colors hover:border-emerald-400"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2.5">
                         <span className="text-2xl">{subject.icon}</span>
                         <div>
                           <h4 className="text-sm font-black dark:text-white text-slate-900">{subject.title}</h4>
-                          <span className="text-[10px] dark:text-emerald-300/80 text-slate-500">
+                          <span className="text-sm dark:text-emerald-300/80 text-slate-500">
                             {subject.chaptersCount} Chapters · {subject.questionsCount} Questions
                           </span>
                         </div>
@@ -377,7 +377,7 @@ export default function TestHub() {
                       {/* Play Action */}
                       <Link
                         to={subject.firstTestId ? `/quiz/${subject.firstTestId}` : `/folder/${subject.folderId}`}
-                        className="w-10 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white flex items-center justify-center transition-colors shrink-0"
+                        className="w-10 h-10 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white flex items-center justify-center transition-colors shrink-0"
                         title="Start Practice"
                       >
                         <Play size={14} fill="currentColor" className="ml-0.5 text-black" />
@@ -386,7 +386,7 @@ export default function TestHub() {
 
                     {/* Progress Bar */}
                     <div>
-                      <div className="flex items-center justify-between text-[11px] font-bold dark:text-emerald-300 text-emerald-800 mb-1">
+                      <div className="flex items-center justify-between text-sm font-bold dark:text-emerald-300 text-emerald-800 mb-1">
                         <span>Solved</span>
                         <span>{subject.progress}%</span>
                       </div>
@@ -413,7 +413,7 @@ export default function TestHub() {
               <LoadingSkeleton count={4} />
             ) : chapters.length === 0 ? (
               <div className="p-8 text-center text-sm dark:text-emerald-400/70 text-slate-500 dark:bg-[#12231C] bg-white rounded-3xl border dark:border-emerald-500/15 border-emerald-600/15">
-                <p>No chapters available in database.</p>
+                <p>No chapters are available yet. Check back soon for new study content.</p>
               </div>
             ) : (
               chapters.map((chapter) => {
@@ -431,7 +431,7 @@ export default function TestHub() {
                         <h4 className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 truncate">
                           {chapter.title}
                         </h4>
-                        <div className="text-[10px] dark:text-emerald-400/80 text-slate-500 truncate">
+                        <div className="text-sm dark:text-emerald-400/80 text-slate-500 truncate">
                           {parentFolder?.title || chapter.subject || 'Chapter Practice'} · {chapter.estimated_study_time_minutes || 30} mins
                         </div>
                       </div>
@@ -439,7 +439,7 @@ export default function TestHub() {
 
                     <Link
                       to={`/chapter/${chapter.id}`}
-                      className="px-3.5 py-1.5 rounded-xl dark:bg-emerald-500/20 bg-emerald-100 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 border dark:border-emerald-400/40 border-emerald-300 dark:text-emerald-300 text-emerald-800 font-bold text-xs shrink-0 transition-colors min-h-[36px] flex items-center"
+                      className="px-3.5 py-1.5 rounded-xl dark:bg-emerald-500/20 bg-emerald-100 hover:bg-emerald-200 dark:hover:bg-emerald-500/30 border dark:border-emerald-400/40 border-emerald-300 dark:text-emerald-300 text-emerald-800 font-bold text-xs shrink-0 transition-colors min-h-[44px] flex items-center"
                     >
                       Open Chapter
                     </Link>
@@ -464,7 +464,7 @@ export default function TestHub() {
                   placeholder="Search tests..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-1.5 rounded-xl dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 text-xs placeholder:text-slate-400 dark:placeholder:text-emerald-400/50 focus:outline-none focus:border-amber-400 min-h-[38px]"
+                  className="w-full pl-9 pr-3 py-1.5 rounded-xl dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 text-xs placeholder:text-slate-400 dark:placeholder:text-emerald-400/50 focus:outline-none focus:border-emerald-500 min-h-[44px]"
                 />
               </div>
 
@@ -474,9 +474,9 @@ export default function TestHub() {
                     key={f}
                     type="button"
                     onClick={() => setTestFilter(f)}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold capitalize transition-colors min-h-[36px] ${
+                    className={`px-3 py-1 rounded-xl text-xs font-bold capitalize transition-colors min-h-[44px] ${
                       testFilter === f
-                        ? 'bg-emerald-500 text-white'
+                        ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
                         : 'dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/20 border-slate-300 dark:text-emerald-300 text-slate-700 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
@@ -490,19 +490,23 @@ export default function TestHub() {
               <LoadingSkeleton count={3} />
             ) : filteredTests.length === 0 ? (
               <div className="p-8 text-center text-xs dark:text-emerald-400/70 text-slate-500 dark:bg-[#072117]/60 bg-white rounded-2xl border dark:border-emerald-500/20 border-emerald-600/15">
-                <p>No tests matching criteria found in database.</p>
+                <p>No tests match these filters. Try clearing a filter or check back later.</p>
               </div>
             ) : (
               <div className="space-y-2.5">
                 {filteredTests.map((test) => {
                   const attempts = attemptsByTestId.get(test.id) || [];
-                  const lastAttempt = attempts[0];
+                  const resumableAttempt = attempts.find((attempt) => (
+                    !isComplete(attempt)
+                    && (attempt.state_json || attempt.answers || attempt.responses)
+                  ));
+                  const completedAttempt = attempts.find(isComplete);
                   const qCount = questionCounts[test.id] || 20;
 
                   return (
                     <div
                       key={test.id}
-                      className="p-6 sm:p-8 rounded-3xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-emerald-400 transition-colors"
+                      className="p-4 sm:p-6 rounded-3xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-emerald-400 transition-colors"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
@@ -517,36 +521,45 @@ export default function TestHub() {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2.5 text-xs dark:text-emerald-400/80 text-slate-600">
+                        <div className="flex items-center gap-2.5 text-sm dark:text-emerald-400/80 text-slate-600">
                           <span>⏱️ {test.duration_minutes || 60} mins</span>
                           <span>•</span>
                           <span>❓ {qCount} Questions</span>
-                          {lastAttempt && (
+                          {completedAttempt && (
                             <>
                               <span>•</span>
-                              <span className="text-amber-700 dark:text-amber-300 font-bold">
-                                Last Score: {lastAttempt.score}/{lastAttempt.total_questions}
+                              <span className="text-emerald-700 dark:text-emerald-300 font-bold">
+                                Last Score: {completedAttempt.score}/{completedAttempt.total_questions}
                               </span>
                             </>
                           )}
                         </div>
+                        {test.coin_reward_enabled && (
+                          <p className="text-sm text-amber-700 dark:text-amber-300">
+                            Coins reward available for qualifying attempts.
+                          </p>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        {lastAttempt && (
+                        {completedAttempt && !resumableAttempt && (
                           <Link
-                            to={`/quiz/${test.id}/result`}
-                            className="px-3 py-1.5 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-700 text-xs font-bold hover:text-slate-900 dark:hover:text-white transition-colors min-h-[38px] flex items-center"
+                            to={`/quiz/${test.id}`}
+                            className="px-3 py-1.5 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-700 text-xs font-bold hover:text-slate-900 dark:hover:text-white transition-colors min-h-[44px] flex items-center"
                           >
-                            Analysis
+                            Retake
                           </Link>
                         )}
                         <Link
-                          to={`/quiz/${test.id}`}
-                          className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white text-sm font-black transition-colors flex items-center gap-1.5 min-h-[40px]"
+                          to={resumableAttempt
+                            ? `/quiz/${test.id}`
+                            : completedAttempt
+                              ? `/quiz/result/${completedAttempt.id}`
+                              : `/quiz/${test.id}`}
+                          className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white text-sm font-black transition-colors flex items-center gap-1.5 min-h-[44px]"
                         >
-                          <Play size={13} fill="currentColor" />
-                          <span>{lastAttempt ? 'Retake' : 'Start Test'}</span>
+                          {resumableAttempt ? <Play size={13} fill="currentColor" /> : completedAttempt ? <CheckCircle2 size={15} /> : <Play size={13} fill="currentColor" />}
+                          <span>{resumableAttempt ? 'Resume' : completedAttempt ? 'Review result' : 'Start Test'}</span>
                         </Link>
                       </div>
                     </div>
@@ -562,18 +575,18 @@ export default function TestHub() {
         {/* ======================================================== */}
         {activeTab === 'custom' && (
           <div className="p-6 sm:p-8 rounded-3xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 max-w-xl mx-auto text-center space-y-4">
-            <div className="w-12 h-12 mx-auto rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-500">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-500">
               <SlidersHorizontal size={23} />
             </div>
             <div className="space-y-1">
               <h3 className="text-base sm:text-lg font-black dark:text-white text-slate-900">Custom Practice is coming soon</h3>
-              <p className="text-xs sm:text-sm dark:text-emerald-300/80 text-slate-600">
+              <p className="text-sm dark:text-emerald-300/80 text-slate-600">
                 We are building a reliable question generator for folder, difficulty, and question-count controls. Your selections will be available here once the session can honour them end to end.
               </p>
             </div>
             <Link
               to="/tests?tab=tests"
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm min-h-[44px]"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white font-black text-sm min-h-[44px]"
             >
               <Play size={15} fill="currentColor" />
               <span>Choose an available test</span>
