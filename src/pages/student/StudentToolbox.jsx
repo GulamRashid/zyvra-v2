@@ -1,27 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bookmark, BookOpen, Brain, Calculator, Clock3, LockKeyhole, Percent, Shapes, Superscript, Wrench, ChevronRight, StickyNote, ListChecks, Compass, Dices, Scale, Sigma, Binary, TrendingUp, Landmark } from 'lucide-react';
+import { Bookmark, BookOpen, Brain, Calculator, Clock3, Percent, Shapes, Superscript, StickyNote, ListChecks, Compass, Dices, Scale, Sigma, Binary, TrendingUp, Landmark } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 import { normalizeAccessResult } from '../../lib/commerce';
-import CheckoutModal from '../../components/common/CheckoutModal';
-import SmartCalculator from '../../components/toolbox/math/SmartCalculator';
-import FractionConverter from '../../components/toolbox/math/FractionConverter';
-import SquaresCubes from '../../components/toolbox/math/SquaresCubes';
-import MathFormulaHub from '../../components/toolbox/math/MathFormulaHub';
-import UnitConverter from '../../components/toolbox/math/UnitConverter';
-import ProfitLossCalculator from '../../components/toolbox/math/ProfitLossCalculator';
-import InterestCalculator from '../../components/toolbox/math/InterestCalculator';
-import AlphabetPositions from '../../components/toolbox/reasoning/AlphabetPositions';
-import BloodRelations from '../../components/toolbox/reasoning/BloodRelations';
-import DirectionCompass from '../../components/toolbox/reasoning/DirectionCompass';
-import DiceRules from '../../components/toolbox/reasoning/DiceRules';
-import ConstitutionArticles from '../../components/toolbox/gs/ConstitutionArticles';
-import StickyNotes from '../../components/toolbox/productivity/StickyNotes';
-import PomodoroTimer from '../../components/toolbox/productivity/PomodoroTimer';
-import DailyTargets from '../../components/toolbox/productivity/DailyTargets';
-import ToolUnlockModal from '../../components/toolbox/ToolUnlockModal';
 
 const CATEGORY_CONFIG = [
   { id: 'math', titleKey: 'tbCategoryMath', subtitleKey: 'tbCategoryMathDesc', Icon: Calculator, color: 'gold' },

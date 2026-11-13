@@ -1,9 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, Coins, Gift, ShoppingBag, Sparkles } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-import ShareAndEarnCard from '../../components/common/ShareAndEarnCard';
 
 const LEDGER_PAGE_SIZE = 1000;
 

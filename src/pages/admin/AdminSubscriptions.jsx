@@ -1,11 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  PackageCheck, Search, RefreshCw, ShieldCheck, AlertTriangle,
-  Clock, UserRound, BookOpen, Layers, Key
-} from 'lucide-react';
+
 import { useAuth } from '../../context/AuthContext';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-import StatusBadge from '../../components/common/StatusBadge';
 
 export default function AdminSubscriptions() {
   const { supabase } = useAuth();

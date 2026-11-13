@@ -1,52 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  AlertCircle,
-  ArrowLeft,
-  ArrowRight,
-  Award,
-  BadgeCheck,
-  BarChart3,
-  Bookmark,
-  BookOpen,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
-  CircleX,
-  Clock3,
-  Coins,
-  Filter,
-  Flame,
-  HelpCircle,
-  Layers,
-  Lightbulb,
-  LoaderCircle,
-  MinusCircle,
-  RotateCcw,
-  Share2,
-  Sparkles,
-  Target,
-  Trophy,
-  Zap
-} from 'lucide-react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+
+
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import {
-  extractLocalizedDistractorNote,
-  extractLocalizedExplanation,
   getOptionEntries,
   normalizeCorrectAnswer,
   normalizeRpcObject,
   parseStructuredExplanation,
   unwrapRpcPayload
 } from '../../lib/tests';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-import MathRenderer from '../../components/common/MathRenderer';
-import QuestionFormatter from '../../components/common/QuestionFormatter';
-import { translateText } from '../../lib/translator';
 
 const valueOf = (result, ...keys) => {
   for (const key of keys) {

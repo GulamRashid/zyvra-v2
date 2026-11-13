@@ -1,11 +1,8 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight, BookOpen, ChevronRight, Clock3, Folder, FolderOpen, LockKeyhole } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getChapterAccess, getFolderPath, getFolderPricing, isFolderUnlocked, isPublished } from '../../lib/content';
 import useContentAccess from '../../hooks/useContentAccess';
-import CheckoutModal from '../../components/common/CheckoutModal';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 

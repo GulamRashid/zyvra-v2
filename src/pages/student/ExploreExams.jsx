@@ -1,9 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Atom, BookMarked, BookOpen, Brain, Calculator, FlaskConical, Globe2, GraduationCap, Landmark, ScrollText, Search, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Atom, BookMarked, BookOpen, Brain, Calculator, FlaskConical, Globe2, GraduationCap, Landmark, ScrollText } from 'lucide-react';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { isPublished } from '../../lib/content';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
 const examIcons = { BookOpen, GraduationCap, Landmark, Atom, Calculator, Globe2, Brain, ScrollText, FlaskConical, BookMarked };
 

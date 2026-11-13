@@ -1,15 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  ArrowLeft, ArrowRight, Award, BadgeCheck, BarChart3, Bell,
-  Bookmark, Check, CheckCircle2, ChevronRight, Clock, Coins,
-  Download, Edit3, FileText, Flame, Globe2, HelpCircle, KeyRound,
-  Layers, LogOut, Mail, Moon, Phone, Settings, Shield, Sparkles,
-  Sun, Target, Trash2, Trophy, UserRound, Users, X, Zap
-} from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
-import MountainSunsetAura from '../../components/common/MountainSunsetAura';
 
 export default function StudentProfile() {
   const { user, profile, guest, coinBalance, supabase, signOut, refreshAccount } = useAuth();

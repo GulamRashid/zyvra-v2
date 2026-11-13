@@ -1,8 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BarChart3, CalendarDays, CheckCircle2, Clock3, Target, Trophy } from 'lucide-react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 
 const QUERY_PAGE_SIZE = 1000;
 const ID_BATCH_SIZE = 500;

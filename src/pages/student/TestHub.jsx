@@ -1,39 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import {
-  ArrowLeft,
-  ArrowRight,
-  BadgeCheck,
-  BookOpen,
-  CheckCircle2,
-  ChevronRight,
-  ClipboardList,
-  Clock3,
-  Coins,
-  Compass,
-  FileQuestion,
-  Filter,
-  Flame,
-  GraduationCap,
-  HelpCircle,
-  Layers,
-  LockKeyhole,
-  Play,
-  RotateCcw,
-  Search,
-  SlidersHorizontal,
-  Sparkles,
-  Target,
-  Trophy,
-  X,
-  Zap
-} from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+
+
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-import MountainSunsetAura from '../../components/common/MountainSunsetAura';
-import { TEST_PATTERNS } from '../../lib/tests';
 
 function isComplete(attempt) {
   const status = String(attempt?.status || '').toLowerCase();

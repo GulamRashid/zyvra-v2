@@ -1,34 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
-  ArrowRight,
-  Award,
-  BookOpen,
-  CheckCircle2,
-  ChevronRight,
   ClipboardList,
-  Clock3,
-  Coins,
-  Compass,
-  FileText,
-  Flame,
-  GraduationCap,
-  HelpCircle,
   Layers,
-  Lock,
-  Play,
-  RotateCcw,
-  Sparkles,
   Target,
   TrendingUp,
-  Trophy,
-  Zap
+  Trophy
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
-import MountainSunsetAura from '../../components/common/MountainSunsetAura';
-import OnboardingModal from './OnboardingModal';
 import { getRecommendedPractice } from '../../lib/recommendations';
 
 function isComplete(attempt) {

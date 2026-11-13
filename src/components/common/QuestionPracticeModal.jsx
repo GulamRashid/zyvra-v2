@@ -211,6 +211,10 @@ export default function QuestionPracticeModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose, currentIndex, safeQuestions.length]);
 
+  const optionEntries = useMemo(() => (
+    currentQ ? getResolvedOptionEntries(currentQ) : []
+  ), [currentQ]);
+
   if (!currentQ) return null;
 
   // Resolve question text bilingual
@@ -234,9 +238,6 @@ export default function QuestionPracticeModal({
     ? (questionHindi || questionEnglish)
     : (questionEnglish || questionHindi);
 
-  const optionEntries = useMemo(() => {
-    return getResolvedOptionEntries(currentQ);
-  }, [currentQ]);
   const selectedOption = selectedOptions[currentQId] || null;
   const isAnswered = selectedOption !== null;
   const correctAnswer = normalizeCorrectAnswer(

@@ -1,12 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  CheckCircle2, Coins, Gift, RefreshCw, Save,
-  Search, Share2, Sparkles, TrendingUp, Users, AlertCircle
-} from 'lucide-react';
+
 import { useAuth } from '../../context/AuthContext';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { getReferralSettings, saveReferralSettings } from '../../lib/referrals';
-import StatusBadge from '../../components/common/StatusBadge';
 
 export default function AdminCoins() {
   const { supabase } = useAuth();

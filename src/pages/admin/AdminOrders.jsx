@@ -1,11 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  CreditCard, Search, RefreshCw, CheckCircle2, Clock, XCircle, ArrowUpRight,
-  Filter, FileText, Download, TrendingUp, IndianRupee
-} from 'lucide-react';
+
+
 import { useAuth } from '../../context/AuthContext';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-import StatusBadge from '../../components/common/StatusBadge';
 
 export default function AdminOrders() {
   const { supabase } = useAuth();

@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "lint": "eslint src",
+    "test": "node --test test/recommendations.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
@@ -21,6 +23,9 @@
     "@playwright/test": "^1.65.0",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.21",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "postcss": "^8.5.6",
     "rollup": "npm:@rollup/wasm-node@^4.68.2",
     "tailwindcss": "^3.4.17",

@@ -1,11 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
-import {
-  Activity, TrendingUp, Users, FileQuestion, IndianRupee,
-  Coins, Award, RefreshCw, BarChart3
-} from 'lucide-react';
+import { useEffect, useState } from 'react';
+
 import { useAuth } from '../../context/AuthContext';
-import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-import StatusBadge from '../../components/common/StatusBadge';
 
 const REPORT_QUERY_KEYS = ['users', 'attempts', 'orders', 'wallets', 'referrals', 'recentAttempts'];
 const EMPTY_QUERY_ERRORS = REPORT_QUERY_KEYS.reduce((errors, key) => {

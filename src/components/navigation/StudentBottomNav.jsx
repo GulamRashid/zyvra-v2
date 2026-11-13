@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { BarChart3, Bell, BookOpen, Compass, Home, MoreHorizontal, ShoppingBag, User, WalletCards, Wrench, X } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+import { BarChart3, Bell, BookOpen, Compass, Home, MoreHorizontal, ShoppingBag, User, WalletCards, Wrench } from 'lucide-react';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 
 const navItems = [
