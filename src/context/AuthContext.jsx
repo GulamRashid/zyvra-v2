@@ -27,7 +27,7 @@ export function AuthProvider({ children }) {
     const userId = activeSession.user.id;
     setProfileError('');
     const [profileResult, walletResult] = await Promise.all([
-      supabase.from('profiles').select('id,full_name,target_exams,daily_goal_target,theme,preferred_language,current_streak,onboarding_completed,referral_code,role,is_pro,avatar_url').eq('id', userId).maybeSingle(),
+      supabase.from('profiles').select('account_status,avatar_url,created_at,current_streak,daily_goal_progress,daily_goal_target,daily_goal_type,email,email_verified,full_name,id,last_active_date,mobile,mobile_verified,onboarding_completed,preferred_language,referral_code,role,target_exams,theme,updated_at').eq('id', userId).maybeSingle(),
       supabase.from('coin_wallets').select('balance').eq('user_id', userId).maybeSingle()
     ]);
     if (profileResult.error) {
