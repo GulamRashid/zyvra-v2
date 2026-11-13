@@ -297,6 +297,16 @@ export default function AdminReports() {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: '14px', marginTop: '16px' }}>
+                  {(dropoffInsights.byType[0] || dropoffInsights.hotspots[0]) && (
+                    <div className="feedback" role="status">
+                      {dropoffInsights.byType[0] && (
+                        <div>Most common signal: <strong>{dropoffInsights.byType[0][0].replace(/[_-]+/g, ' ')}</strong> ({dropoffInsights.byType[0][1]} events).</div>
+                      )}
+                      {dropoffInsights.hotspots[0] && (
+                        <div>Most affected question or section: <strong>{dropoffInsights.hotspots[0][0]}</strong> ({dropoffInsights.hotspots[0][1]} events).</div>
+                      )}
+                    </div>
+                  )}
                   <div>
                     <strong style={{ display: 'block', marginBottom: '8px' }}>Event types</strong>
                     {dropoffInsights.byType.map(([type, count]) => (
