@@ -1,5 +1,11 @@
 import { Component } from 'react';
-import { CircleAlert, RefreshCw } from 'lucide-react';
+import { ArrowLeft, CircleAlert, RefreshCw } from 'lucide-react';
+import { Link } from 'react-router-dom';
+
+function isChunkLoadError(error) {
+  const message = typeof error?.message === 'string' ? error.message : String(error || '');
+  return error?.name === 'ChunkLoadError' || /chunk|dynamically imported module|failed to fetch dynamically imported module/i.test(message);
+}
 
 export default class QuizErrorBoundary extends Component {
   state = { hasError: false, error: null };
@@ -14,14 +20,38 @@ export default class QuizErrorBoundary extends Component {
 
   render() {
     if (this.state.hasError) {
-      return <main className="quiz-error-page"><div className="quiz-error-card">
-        <div className="locked-icon"><CircleAlert size={23} /></div>
-        <h1>Quiz load nahi hua</h1>
-        <p>Test load karne mein dikkat hui. Dobara try karein.</p>
-        <button type="button" className="button button-outline min-h-[44px]" onClick={() => window.location.reload()}>
-          <RefreshCw size={15} /> Try again
-        </button>
-      </div></main>;
+      const chunkError = isChunkLoadError(this.state.error);
+      return (
+        <main className="quiz-error-page">
+          <div className="quiz-error-card">
+            <div className="locked-icon"><CircleAlert size={23} /></div>
+            <h1>We couldn’t open this test</h1>
+            <p>
+              {chunkError
+                ? 'A newer version of the app or a network glitch prevented this test from loading. Please reload and try again.'
+                : 'Something went wrong while loading the test. Please return to the test list and try again.'}
+            </p>
+            {chunkError ? (
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  className="button button-outline min-h-[44px]"
+                  onClick={() => window.location.reload()}
+                >
+                  <RefreshCw size={15} /> Reload
+                </button>
+                <Link className="button button-outline min-h-[44px]" to="/tests">
+                  <ArrowLeft size={15} /> Back to tests
+                </Link>
+              </div>
+            ) : (
+              <Link className="button button-outline min-h-[44px]" to="/tests">
+                <ArrowLeft size={15} /> Back to tests
+              </Link>
+            )}
+          </div>
+        </main>
+      );
     }
 
     return this.props.children;
