@@ -1,5 +1,36 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { getPaymentServices, readBody, requireUser, sendJson } from './_payment.js';
+import { getPaymentAdminClient, getPaymentServices, readBody, requireUser, sendJson } from './_payment.js';
+
+export async function verifyPaymentOrder({
+  orderId,
+  razorpayOrderId,
+  userId,
+  client
+}) {
+  const { data: order, error: orderError } = await client
+    .from('payment_orders')
+    .select('id, user_id, razorpay_order_id, gateway_order_id')
+    .eq('id', orderId)
+    .maybeSingle();
+
+  if (orderError) throw orderError;
+  if (!order) {
+    const error = new Error('Payment order not found.');
+    error.statusCode = 404;
+    throw error;
+  }
+  if (order.user_id !== userId) {
+    const error = new Error('Payment order ownership could not be verified.');
+    error.statusCode = 403;
+    throw error;
+  }
+  if (order.razorpay_order_id !== razorpayOrderId && order.gateway_order_id !== razorpayOrderId) {
+    const error = new Error('Payment order association could not be verified.');
+    error.statusCode = 400;
+    throw error;
+  }
+  return order;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -14,8 +45,9 @@ export default async function handler(req, res) {
       return sendJson(res, 400, { error: 'Payment verification details are incomplete.' });
     }
 
-    const { accessToken, supabase, supabaseAdmin, keySecret } = getPaymentServices(req);
+    const { accessToken, supabase, keySecret } = getPaymentServices(req);
     const user = await requireUser(supabase, accessToken);
+    const adminClient = getPaymentAdminClient();
     const secret = (process.env.RAZORPAY_KEY_SECRET || keySecret || '').trim();
     if (!secret) {
       return sendJson(res, 500, { success: false, error: 'Razorpay secret key is not configured.' });
@@ -26,6 +58,15 @@ export default async function handler(req, res) {
     const cleanSignature = String(signature).trim();
     const cleanInternalId = String(internalOrderId).trim();
 
+    // 1. Fetch order & verify ownership and association server-side before signature verification or fulfillment
+    await verifyPaymentOrder({
+      orderId: cleanInternalId,
+      razorpayOrderId: cleanOrderId,
+      userId: user.id,
+      client: adminClient
+    });
+
+    // 2. Only after these checks may the payment signature verification and fulfillment flow continue
     const expectedSignature = createHmac('sha256', secret)
       .update(`${cleanOrderId}|${cleanPaymentId}`)
       .digest('hex');
@@ -40,150 +81,24 @@ export default async function handler(req, res) {
       return sendJson(res, 400, { success: false, error: 'Payment signature verification failed.' });
     }
 
-    let fulfilled = false;
-
-    // 1. Primary fulfillment: RPC call using admin or authenticated Supabase client
-    try {
-      const clientForRpc = supabaseAdmin || supabase;
-      const { data, error } = await clientForRpc.rpc('complete_successful_checkout', {
-        p_order_id: cleanInternalId,
-        p_payment_id: cleanPaymentId,
-        p_payment_signature: cleanSignature
+    const { data, error } = await adminClient.rpc('complete_successful_checkout', {
+      p_order_id: cleanInternalId,
+      p_payment_id: cleanPaymentId,
+      p_payment_signature: cleanSignature
+    });
+    if (error) {
+      console.error('Checkout fulfillment RPC failed:', error);
+      return sendJson(res, 400, {
+        success: false,
+        error: 'The payment could not be confirmed in the database. Please contact support with your payment ID.'
       });
-
-      if (!error) {
-        let result = Array.isArray(data) ? data[0] : data;
-        if (typeof result === 'string') {
-          try { result = JSON.parse(result); } catch (_) {}
-        }
-        if (
-          result === true ||
-          result?.success === true ||
-          (typeof result === 'string' && ['success', 'paid', 'completed'].includes(result.toLowerCase()))
-        ) {
-          fulfilled = true;
-        }
-      } else {
-        console.warn('complete_successful_checkout RPC returned error, engaging server fallback:', error.message || error);
-      }
-    } catch (rpcErr) {
-      console.warn('complete_successful_checkout RPC threw error, engaging server fallback:', rpcErr?.message || rpcErr);
     }
 
-    // 2. Secondary fallback: Direct authoritative database fulfillment via supabaseAdmin
-    if (!fulfilled && supabaseAdmin) {
-      try {
-        let order = null;
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(cleanInternalId);
-        if (isUuid) {
-          const { data: o } = await supabaseAdmin
-            .from('payment_orders')
-            .select('*')
-            .eq('id', cleanInternalId)
-            .maybeSingle();
-          order = o;
-        }
-        if (!order) {
-          const { data: o } = await supabaseAdmin
-            .from('payment_orders')
-            .select('*')
-            .or(`razorpay_order_id.eq.${cleanOrderId},gateway_order_id.eq.${cleanOrderId}`)
-            .maybeSingle();
-          order = o;
-        }
-
-        if (order) {
-          const targetUserId = order.user_id || user.id;
-          const itemType = order.item_type || order.order_type || 'folder';
-          const itemId = String(order.item_id);
-
-          if (order.status === 'paid') {
-            // Already paid idempotency check
-            fulfilled = true;
-          } else {
-            // Update order status to paid
-            await supabaseAdmin
-              .from('payment_orders')
-              .update({
-                status: 'paid',
-                razorpay_payment_id: cleanPaymentId,
-                gateway_payment_id: cleanPaymentId,
-                razorpay_signature: cleanSignature,
-                payment_signature: cleanSignature,
-                amount_paid: Number(order.final_amount || order.amount || 0),
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', order.id);
-
-            // Grant active entitlement in user_access
-            await supabaseAdmin
-              .from('user_access')
-              .upsert({
-                user_id: targetUserId,
-                item_type: itemType,
-                item_id: itemId,
-                status: 'active',
-                is_active: true,
-                starts_at: new Date().toISOString(),
-                updated_at: new Date().toISOString()
-              }, { onConflict: 'user_id,item_type,item_id' });
-
-            // Safely deduct coins from wallet and record transaction
-            const coinsRedeemed = Number(order.coins_redeemed || order.coins_used || 0);
-            if (coinsRedeemed > 0) {
-              const { data: wallet } = await supabaseAdmin
-                .from('coin_wallets')
-                .select('balance')
-                .eq('user_id', targetUserId)
-                .maybeSingle();
-
-              const currentBal = Math.max(0, Math.floor(Number(wallet?.balance || 0)));
-              const newBal = Math.max(0, currentBal - coinsRedeemed);
-
-              await supabaseAdmin
-                .from('coin_wallets')
-                .upsert({
-                  user_id: targetUserId,
-                  balance: newBal,
-                  updated_at: new Date().toISOString()
-                }, { onConflict: 'user_id' });
-
-              const desc = `Redeemed ${coinsRedeemed} coins for ${itemType} purchase`;
-              try {
-                await supabaseAdmin
-                  .from('coin_ledger')
-                  .insert({
-                    user_id: targetUserId,
-                    amount: -coinsRedeemed,
-                    transaction_type: 'redeem',
-                    reason: desc,
-                    description: desc,
-                    created_at: new Date().toISOString()
-                  });
-              } catch (_) {}
-
-              try {
-                await supabaseAdmin
-                  .from('coin_transactions')
-                  .insert({
-                    user_id: targetUserId,
-                    amount: -coinsRedeemed,
-                    transaction_type: 'redeem',
-                    description: desc,
-                    created_at: new Date().toISOString()
-                  });
-              } catch (_) {}
-            }
-
-            fulfilled = true;
-          }
-        }
-      } catch (fallbackErr) {
-        console.error('Authoritative verification fallback error:', fallbackErr);
-      }
+    let result = Array.isArray(data) ? data[0] : data;
+    if (typeof result === 'string') {
+      try { result = JSON.parse(result); } catch (_) {}
     }
-
-    if (!fulfilled) {
+    if (!result?.success) {
       return sendJson(res, 400, {
         success: false,
         error: 'The payment could not be confirmed in the database. Please contact support with your payment ID.'
@@ -194,7 +109,9 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Unable to verify checkout payment:', error);
     const message = error instanceof Error ? error.message : 'Unable to verify payment.';
-    const status = /sign in|session is invalid/i.test(message) ? 401 : 400;
+    const status = error?.statusCode
+      ? error.statusCode
+      : (/sign in|session is invalid/i.test(message) ? 401 : 400);
     return sendJson(res, status, { success: false, error: message });
   }
 }

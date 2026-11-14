@@ -152,7 +152,7 @@ export default function StudentHome() {
       try {
         const { data: tests, error: testsError } = await supabase
           .from('tests')
-          .select('id,title,chapter_id,status,duration_minutes,is_free,price,coin_reward_enabled')
+          .select('id,title,chapter_id,status,duration_minutes,is_free,coin_reward_enabled')
           .in('status', ['published', 'live', 'available']);
         if (testsError) throw testsError;
 

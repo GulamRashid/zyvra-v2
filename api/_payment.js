@@ -42,6 +42,18 @@ export function getPaymentServices(req) {
   return { accessToken, supabase, supabaseAdmin, hasServiceRole: Boolean(serviceRoleKey), razorpay, keyId, keySecret };
 }
 
+export function getPaymentAdminClient() {
+  const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
+  const serviceRoleKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  if (!url || !serviceRoleKey) {
+    throw new Error('Supabase server configuration is incomplete.');
+  }
+
+  return createClient(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+}
+
 export async function requireUser(supabase, accessToken) {
   const { data, error } = await supabase.auth.getUser(accessToken);
   if (error || !data?.user) throw new Error('Your sign-in session is invalid or expired.');

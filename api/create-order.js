@@ -1,5 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
-import { getPaymentServices, readBody, requireUser, sendJson } from './_payment.js';
+import { getPaymentAdminClient, getPaymentServices, readBody, requireUser, sendJson } from './_payment.js';
+
+const SUPPORTED_ITEM_TYPES = new Set(['folder', 'chapter', 'exam']);
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -16,24 +17,20 @@ export default async function handler(req, res) {
     if (!Number.isFinite(requestedAmount) || requestedAmount <= 0 || !Number.isSafeInteger(Math.round(requestedAmount * 100))) {
       return sendJson(res, 400, { error: 'A valid payment amount is required.' });
     }
-    if (!itemType || !itemId || !Number.isSafeInteger(coinsToRedeem) || coinsToRedeem < 0) {
+    if (
+      !SUPPORTED_ITEM_TYPES.has(itemType) ||
+      !itemId ||
+      !Number.isSafeInteger(coinsToRedeem) ||
+      coinsToRedeem < 0 ||
+      coinsToRedeem > 2147483647
+    ) {
       return sendJson(res, 400, { error: 'A valid item and coin redemption amount are required.' });
     }
 
     const { accessToken, supabase, razorpay, keyId } = getPaymentServices(req);
-    const user = await requireUser(supabase, accessToken);
-    const userId = user?.id;
-    if (!userId) {
-      return sendJson(res, 401, { error: 'Unable to authenticate user session.' });
-    }
+    await requireUser(supabase, accessToken);
 
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const supabaseAdminClient = serviceRoleKey
-      ? createClient(supabaseUrl, serviceRoleKey, {
-          auth: { autoRefreshToken: false, persistSession: false }
-        })
-      : supabase;
+    const supabaseAdminClient = getPaymentAdminClient();
 
     let internalOrderId = null;
     let razorpayOrderId = null;
@@ -61,110 +58,8 @@ export default async function handler(req, res) {
       razorpayOrderId = order?.razorpay_order_id;
       amountPaise = Number(order?.amount_paise || Math.round(Number(order?.amount) * 100));
     } catch (rpcError) {
-      console.warn('create_checkout_order RPC failed or unavailable, engaging server-side fallback:', rpcError?.message || rpcError);
-
-      // Server-side fallback using supabaseAdminClient initialized with SUPABASE_SERVICE_ROLE_KEY
-      let basePrice = 0;
-      let itemTitle = '';
-      if (itemType === 'folder') {
-        const { data: folder, error: fErr } = await supabaseAdminClient
-          .from('folders')
-          .select('id, price, title')
-          .eq('id', itemId)
-          .maybeSingle();
-        if (fErr || !folder) throw new Error(fErr?.message || `Folder not found: ${itemId}`);
-        basePrice = Number(folder.price || 0);
-        itemTitle = folder.title || '';
-      } else if (itemType === 'chapter') {
-        const { data: chapter, error: cErr } = await supabaseAdminClient
-          .from('chapters')
-          .select('id, price, title')
-          .eq('id', itemId)
-          .maybeSingle();
-        if (cErr || !chapter) throw new Error(cErr?.message || `Chapter not found: ${itemId}`);
-        basePrice = Number(chapter.price || 0);
-        itemTitle = chapter.title || '';
-      } else if (itemType === 'exam') {
-        const { data: exam, error: eErr } = await supabaseAdminClient
-          .from('exams')
-          .select('id, price, title')
-          .eq('id', itemId)
-          .maybeSingle();
-        if (eErr || !exam) throw new Error(eErr?.message || `Exam not found: ${itemId}`);
-        basePrice = Number(exam.price || 0);
-        itemTitle = exam.title || '';
-      } else {
-        basePrice = 49.00;
-      }
-
-      if (basePrice <= 0) {
-        throw new Error('This item has no price or is free.');
-      }
-
-      let coinsPerRupee = 10;
-      let maxDiscountPct = 20;
-      try {
-        const { data: confRow } = await supabaseAdminClient
-          .from('platform_settings')
-          .select('*')
-          .or('setting_key.eq.coin_redemption_config,key.eq.coin_redemption_config')
-          .limit(1)
-          .maybeSingle();
-        const confVal = confRow?.setting_value || confRow?.value;
-        if (confVal) {
-          coinsPerRupee = Number(confVal.coins_per_rupee || 10);
-          maxDiscountPct = Number(confVal.max_discount_percent || 20);
-        }
-      } catch (_) {}
-
-      let walletBalance = 0;
-      try {
-        const { data: wallet } = await supabaseAdminClient
-          .from('coin_wallets')
-          .select('balance')
-          .eq('user_id', userId)
-          .maybeSingle();
-        walletBalance = Math.max(0, Math.floor(Number(wallet?.balance || 0)));
-      } catch (_) {}
-
-      const maxCoins = Math.min(walletBalance, Math.floor(basePrice * (maxDiscountPct / 100) * coinsPerRupee));
-      const coinsUsed = coinsToRedeem > 0 && maxCoins > 0 ? Math.min(coinsToRedeem, maxCoins) : 0;
-      const discount = coinsUsed > 0 ? Math.min(basePrice, Math.round((coinsUsed / coinsPerRupee) * 100) / 100) : 0;
-      const payable = Math.max(0, basePrice - discount);
-      amountPaise = Math.round(payable * 100);
-
-      const { data: insertedOrder, error: insErr } = await supabaseAdminClient
-        .from('payment_orders')
-        .insert({
-          user_id: userId,
-          order_type: itemType || 'direct',
-          item_type: itemType,
-          item_id: String(itemId),
-          item_title: itemTitle || null,
-          item_name: itemTitle || null,
-          tier: itemType || 'standard',
-          base_amount: basePrice,
-          base_price: basePrice,
-          amount_before_discount: basePrice,
-          coins_used: coinsUsed,
-          coins_redeemed: coinsUsed,
-          discount_amount: discount,
-          coin_discount_amount: discount,
-          coin_discount: discount,
-          final_amount: payable,
-          amount: payable,
-          amount_paid: 0,
-          amount_paise: amountPaise,
-          status: 'created',
-          currency: 'INR'
-        })
-        .select('id')
-        .single();
-
-      if (insErr || !insertedOrder) {
-        throw insErr || new Error('Failed to create payment order record in database.');
-      }
-      internalOrderId = insertedOrder.id;
+      console.error('create_checkout_order RPC failed:', rpcError);
+      throw new Error('The payment order service is unavailable. Please try again.');
     }
 
     if (!internalOrderId || !Number.isSafeInteger(amountPaise) || amountPaise <= 0) {
