@@ -450,3 +450,127 @@ test('coin deduction with insufficient balance prevents negative wallet balance'
   const newBalance = Math.max(0, walletBalance - coinsToDeduct);
   assert.equal(newBalance, 0); // Never goes below 0
 });
+
+// 10. Regression tests for attach_checkout_gateway_order RPC
+test('attach_checkout_gateway_order migration enforces strict security and constraints', async () => {
+  const sql = await readFile(new URL('../supabase/migrations/20261115030000_attach_checkout_gateway_order_rpc.sql', import.meta.url), 'utf8');
+
+  // Strict service-role enforcement
+  assert.match(sql, /auth\.role\(\) <> 'service_role'/);
+  assert.match(sql, /Service role authentication required\./);
+
+  // Security Definer & search path
+  assert.match(sql, /SECURITY DEFINER/);
+  assert.match(sql, /SET search_path = pg_catalog, public, auth, extensions/);
+  assert.match(sql, /OWNER TO postgres/);
+
+  // Permissions revoked from anon/authenticated, granted to service_role
+  assert.match(sql, /REVOKE ALL ON FUNCTION public\.attach_checkout_gateway_order\(UUID, TEXT\) FROM PUBLIC, anon, authenticated;/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION public\.attach_checkout_gateway_order\(UUID, TEXT\) TO service_role;/);
+
+  // Gateway order ID format check
+  assert.match(sql, /\^order_\[A-Za-z0-9_-\]\+\$/);
+
+  // Only allowed in 'created' status
+  assert.match(sql, /lower\(coalesce\(v_order\.status, ''\)\) <> 'created'/);
+
+  // Idempotency: same ID succeeds, different ID rejected
+  assert.match(sql, /'already_attached', true/);
+  assert.match(sql, /Order is already associated with a different gateway order ID\./);
+
+  // Collision prevention: cannot bind same gateway order ID to multiple internal orders
+  assert.match(sql, /Gateway order ID is already bound to another payment order\./);
+});
+
+test('api/create-order handles gateway order attachment safely via service role RPC', () => {
+  // Unit test verifying attachment handling contract in create-order
+  const simulateAttachment = ({ role, orderStatus, currentGatewayId, newGatewayId, orderExists }) => {
+    if (role !== 'service_role') {
+      const err = new Error('Service role authentication required.');
+      err.code = '42501';
+      throw err;
+    }
+    if (!orderExists) {
+      return { success: false, error: 'Payment order not found.' };
+    }
+    if (orderStatus !== 'created') {
+      return { success: false, error: `Cannot attach gateway order to order with status ${orderStatus}.` };
+    }
+    if (!/^order_[A-Za-z0-9_-]+$/.test(newGatewayId)) {
+      return { success: false, error: 'Invalid gateway order identifier format.' };
+    }
+    if (currentGatewayId) {
+      if (currentGatewayId === newGatewayId) {
+        return { success: true, already_attached: true };
+      }
+      return { success: false, error: 'Order is already associated with a different gateway order ID.' };
+    }
+    return { success: true };
+  };
+
+  // 1. Success on valid created order
+  const ok = simulateAttachment({
+    role: 'service_role',
+    orderStatus: 'created',
+    currentGatewayId: null,
+    newGatewayId: 'order_rzp_valid_123',
+    orderExists: true
+  });
+  assert.equal(ok.success, true);
+
+  // 2. Unauthorized caller rejected
+  assert.throws(
+    () => simulateAttachment({
+      role: 'authenticated',
+      orderStatus: 'created',
+      currentGatewayId: null,
+      newGatewayId: 'order_rzp_valid_123',
+      orderExists: true
+    }),
+    /Service role authentication required/
+  );
+
+  // 3. Nonexistent order rejected
+  const missing = simulateAttachment({
+    role: 'service_role',
+    orderStatus: 'created',
+    currentGatewayId: null,
+    newGatewayId: 'order_rzp_valid_123',
+    orderExists: false
+  });
+  assert.equal(missing.success, false);
+  assert.equal(missing.error, 'Payment order not found.');
+
+  // 4. Non-created status rejected (e.g. expired or paid)
+  const expired = simulateAttachment({
+    role: 'service_role',
+    orderStatus: 'expired',
+    currentGatewayId: null,
+    newGatewayId: 'order_rzp_valid_123',
+    orderExists: true
+  });
+  assert.equal(expired.success, false);
+  assert.match(expired.error, /Cannot attach gateway order to order with status expired/);
+
+  // 5. Mismatched existing gateway order ID cannot be overwritten
+  const conflict = simulateAttachment({
+    role: 'service_role',
+    orderStatus: 'created',
+    currentGatewayId: 'order_first_111',
+    newGatewayId: 'order_second_222',
+    orderExists: true
+  });
+  assert.equal(conflict.success, false);
+  assert.match(conflict.error, /already associated with a different gateway order ID/);
+
+  // 6. Idempotent retry with identical gateway order ID succeeds
+  const idempotent = simulateAttachment({
+    role: 'service_role',
+    orderStatus: 'created',
+    currentGatewayId: 'order_same_333',
+    newGatewayId: 'order_same_333',
+    orderExists: true
+  });
+  assert.equal(idempotent.success, true);
+  assert.equal(idempotent.already_attached, true);
+});

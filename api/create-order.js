@@ -77,17 +77,32 @@ export default async function handler(req, res) {
         receipt: `ord_${receiptCode}`
       });
       razorpayOrderId = razorpayOrder.id;
-      const { data: updatedOrder, error: updateError } = await supabaseAdminClient
-        .from('payment_orders')
-        .update({
-          razorpay_order_id: razorpayOrderId,
-          gateway_order_id: razorpayOrderId
-        })
-        .eq('id', internalOrderId)
-        .select('id')
-        .maybeSingle();
-      if (updateError) throw updateError;
-      if (!updatedOrder) throw new Error('The Razorpay order could not be saved to the payment record.');
+
+      // Attach the generated gateway order ID via authoritative service-role RPC
+      const { data: attachData, error: attachError } = await supabaseAdminClient.rpc('attach_checkout_gateway_order', {
+        p_order_id: internalOrderId,
+        p_gateway_order_id: razorpayOrderId
+      });
+
+      if (attachError) {
+        console.error('attach_checkout_gateway_order RPC failed:', {
+          code: attachError.code,
+          message: attachError.message,
+          internalOrderId,
+          razorpayOrderId
+        });
+        throw new Error('Unable to link the payment order. Please try checking out again.');
+      }
+
+      let attachResult = Array.isArray(attachData) ? attachData[0] : attachData;
+      if (typeof attachResult === 'string') {
+        try { attachResult = JSON.parse(attachResult); } catch (_) {}
+      }
+
+      if (!attachResult?.success) {
+        console.error('attach_checkout_gateway_order rejected:', attachResult?.error);
+        throw new Error(attachResult?.error || 'Payment gateway order attachment failed.');
+      }
     } else {
       const razorpayOrder = await razorpay.orders.fetch(razorpayOrderId);
       if (Number(razorpayOrder.amount) !== amountPaise || razorpayOrder.currency !== 'INR') {
