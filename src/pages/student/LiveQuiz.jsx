@@ -16,10 +16,10 @@ import {
   Info,
   ListChecks,
   LoaderCircle,
+  Lock,
   LockKeyhole,
   Pause,
   Play,
-  RotateCcw,
   Target,
   X
 } from 'lucide-react';
@@ -37,6 +37,7 @@ import {
   hasDevanagari,
   hasLatin,
   normalizeCorrectAnswer,
+  normalizeOptionKey,
   normalizeRpcObject,
   sanitizeLiveQuestion,
   unwrapRpcPayload
@@ -149,7 +150,7 @@ function FormattedInstructions({ text }) {
           <li>The countdown timer at the top indicates the remaining time available for completing the exam.</li>
           <li>The Question Palette displayed on the right shows the status of every question using distinct CBT colors.</li>
           <li>Click any question number in the palette to navigate to that question directly.</li>
-          <li>Click an option to select your answer. You can change your selection or click <strong>Clear response</strong> anytime.</li>
+          <li>Click an option to select your answer. Once selected, your answer is <strong>permanently locked</strong> and cannot be changed or cleared.</li>
           <li>Click <strong>Mark for review</strong> if you wish to flag a question and revisit it before final submission.</li>
           <li>You may pause your exam and resume later without losing your responses or remaining time.</li>
         </ul>
@@ -279,6 +280,9 @@ export default function LiveQuiz() {
   const [attemptId, setAttemptId] = useState('');
   const [questions, setQuestions] = useState([]);
   const [responses, setResponses] = useState({});
+  const lockedAnswersRef = useRef(new Map());
+  const [evaluatingQuestionIds, setEvaluatingQuestionIds] = useState(new Set());
+  const [evaluationErrors, setEvaluationErrors] = useState({});
   const [visitedQuestions, setVisitedQuestions] = useState(new Set());
   const [currentIndex, setCurrentIndex] = useState(0);
   const [deadline, setDeadline] = useState(0);
@@ -453,6 +457,11 @@ export default function LiveQuiz() {
     Object.entries(resp).forEach(([k, v]) => {
       if (v?.selected_option !== undefined && v?.selected_option !== null) {
         answersMap[k] = v.selected_option;
+      }
+    });
+    lockedAnswersRef.current.forEach((val, k) => {
+      if (val !== undefined && val !== null && String(val).trim() !== '') {
+        answersMap[k] = val;
       }
     });
 
@@ -671,11 +680,20 @@ export default function LiveQuiz() {
           const markedSet = new Set(Array.isArray(rawMarked) ? rawMarked : Object.keys(rawMarked).filter((k) => rawMarked[k]));
 
           const restoredResponses = { ...rawResponses };
+          lockedAnswersRef.current.clear();
           Object.entries(rawAnswers).forEach(([qId, opt]) => {
+            const sel = typeof opt === 'object' ? opt?.selected_option : opt;
+            const norm = normalizeOptionKey(sel);
+            if (norm) lockedAnswersRef.current.set(qId, norm);
             restoredResponses[qId] = {
               ...(restoredResponses[qId] || {}),
-              selected_option: typeof opt === 'object' ? opt?.selected_option : opt
+              selected_option: norm || sel
             };
+          });
+          Object.entries(rawResponses).forEach(([qId, val]) => {
+            const sel = val?.selected_option;
+            const norm = normalizeOptionKey(sel);
+            if (norm) lockedAnswersRef.current.set(qId, norm);
           });
           markedSet.forEach((qId) => {
             restoredResponses[qId] = {
@@ -793,6 +811,7 @@ export default function LiveQuiz() {
       setAttemptId(activeAttemptId);
       setQuestions(safeQuestions);
       writeQuizCache(user.id, testId, { test, attemptId: activeAttemptId, questions: safeQuestions });
+      lockedAnswersRef.current.clear();
       setResponses({});
       setCurrentIndex(0);
       if (safeQuestions.length > 0) {
@@ -1055,7 +1074,7 @@ export default function LiveQuiz() {
 
     const p_responses = questions.map((q) => ({
       question_id: q.id,
-      selected_option: responses[q.id]?.selected_option || null,
+      selected_option: lockedAnswersRef.current.get(q.id) || responses[q.id]?.selected_option || null,
       marked_for_review: Boolean(responses[q.id]?.marked_for_review),
       time_spent_seconds: timeSpentRef.current[q.id] || 0
     }));
@@ -1182,43 +1201,159 @@ export default function LiveQuiz() {
   const attemptedCount = Object.values(responses || {}).filter((response) => response?.selected_option).length;
   const markedCount = Object.values(responses || {}).filter((response) => response?.marked_for_review).length;
 
-  const answer = (option) => {
-    const nextVal = responses[question.id]?.selected_option === option ? null : option;
+  const answer = async (option) => {
+    if (!question?.id || !option || submitting || pausing) return;
+    const qId = question.id;
+    const targetQId = question.question_id || question.id;
+    const normalizedOpt = normalizeOptionKey(option);
+    if (!normalizedOpt) return;
+
+    // 1. SYNCHRONOUS REF GUARD (Zero-millisecond permanent lock against rapid double-clicks / races)
+    if (lockedAnswersRef.current.has(qId)) {
+      return;
+    }
+
+    // 2. STATE GUARD
+    if (responses[qId]?.selected_option) {
+      return;
+    }
+
+    // 3. SYNCHRONOUS LOCK REGISTRATION
+    lockedAnswersRef.current.set(qId, normalizedOpt);
+
+    // 4. UPDATE RESPONSES & SNAPSHOT
     const nextResponses = {
       ...responses,
-      [question.id]: {
-        ...responses[question.id],
-        selected_option: nextVal
+      [qId]: {
+        ...responses[qId],
+        selected_option: normalizedOpt,
+        locked_at: new Date().toISOString()
       }
     };
     setResponses(nextResponses);
-    saveProgressSnapshot({ responses: nextResponses }, false);
+    saveProgressSnapshot({ responses: nextResponses }, true);
 
-    // If immediate solution mode and question is missing correct_answer, fetch on-demand securely
-    if (test?.solution_mode === 'immediate' && !question?.correct_answer && nextVal && supabase) {
-      const targetId = question.question_id || question.id;
-      supabase
-        .rpc('get_single_question_feedback', {
-          p_test_id: testId,
-          p_question_id: targetId,
-          p_selected_option: nextVal
-        })
-        .then(({ data: rpcData, error: rpcError }) => {
-          if (!rpcError && rpcData?.allowed) {
-            const ans = normalizeCorrectAnswer(rpcData.correct_answer, question.options);
-            if (ans) {
-              question.correct_answer = ans;
-              question.correct_option = ans;
-              question.answer = ans;
-              if (rpcData.explanation) question.explanation = rpcData.explanation;
-              if (rpcData.distractor_notes) question.distractor_notes = rpcData.distractor_notes;
-              setQuestions((prev) => [...prev]);
-            }
-          } else {
-            console.warn('[LiveQuiz:answer] Feedback RPC did not return an allowed answer.');
+    // 5. PRACTICE MODE: Fetch Authoritative Evaluation Securely
+    const isImmediate = test?.solution_mode === 'immediate';
+    const hasAuthoritative = Boolean(normalizeCorrectAnswer(
+      question?.correct_answer ?? question?.correct_option ?? question?.answer,
+      question?.options
+    ));
+
+    if (isImmediate && !hasAuthoritative && supabase) {
+      setEvaluatingQuestionIds((prev) => new Set(prev).add(qId));
+      setEvaluationErrors((prev) => {
+        const next = { ...prev };
+        delete next[qId];
+        return next;
+      });
+
+      try {
+        let res = null;
+        if (attemptId) {
+          const { data: rpcAnswerData, error: rpcAnswerErr } = await supabase.rpc('submit_question_answer', {
+            p_attempt_id: attemptId,
+            p_question_id: targetQId,
+            p_selected_option: normalizedOpt
+          });
+          if (!rpcAnswerErr && rpcAnswerData?.allowed) {
+            res = rpcAnswerData;
           }
+        }
+
+        if (!res) {
+          const { data: rpcData, error: rpcError } = await supabase.rpc('get_single_question_feedback', {
+            p_test_id: testId,
+            p_question_id: targetQId,
+            p_selected_option: normalizedOpt
+          });
+          if (!rpcError && rpcData?.allowed) {
+            res = rpcData;
+          } else if (rpcError) {
+            throw rpcError;
+          }
+        }
+
+        if (res?.allowed) {
+          const ans = normalizeCorrectAnswer(res.correct_answer, question.options);
+          if (ans) {
+            question.correct_answer = ans;
+            question.correct_option = ans;
+            question.answer = ans;
+            if (res.explanation) question.explanation = res.explanation;
+            if (res.distractor_notes) question.distractor_notes = res.distractor_notes;
+            setQuestions((prev) => [...prev]);
+          }
+        } else {
+          console.warn('[LiveQuiz:answer] Feedback RPC did not return an allowed answer:', res);
+        }
+      } catch (err) {
+        console.warn('[LiveQuiz:answer] Error evaluating answer:', err);
+        setEvaluationErrors((prev) => ({
+          ...prev,
+          [qId]: 'Unable to fetch evaluation. Your answer is safely locked.'
+        }));
+      } finally {
+        setEvaluatingQuestionIds((prev) => {
+          const next = new Set(prev);
+          next.delete(qId);
+          return next;
+        });
+      }
+    } else if (attemptId && supabase) {
+      // Mock Test Mode: record locked answer to backend in background
+      supabase
+        .rpc('submit_question_answer', {
+          p_attempt_id: attemptId,
+          p_question_id: targetQId,
+          p_selected_option: normalizedOpt
         })
-        .catch((err) => console.warn('[LiveQuiz:answer] On-demand answer fetch error:', err));
+        .catch((err) => console.warn('[LiveQuiz:answer] Background answer sync error:', err));
+    }
+  };
+
+  const retryEvaluation = async (qId) => {
+    const targetQId = question.question_id || question.id;
+    const selected = lockedAnswersRef.current.get(qId) || responses[qId]?.selected_option;
+    if (!selected || !supabase) return;
+
+    setEvaluatingQuestionIds((prev) => new Set(prev).add(qId));
+    setEvaluationErrors((prev) => {
+      const next = { ...prev };
+      delete next[qId];
+      return next;
+    });
+
+    try {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_single_question_feedback', {
+        p_test_id: testId,
+        p_question_id: targetQId,
+        p_selected_option: selected
+      });
+      if (!rpcError && rpcData?.allowed) {
+        const ans = normalizeCorrectAnswer(rpcData.correct_answer, question.options);
+        if (ans) {
+          question.correct_answer = ans;
+          question.correct_option = ans;
+          question.answer = ans;
+          if (rpcData.explanation) question.explanation = rpcData.explanation;
+          if (rpcData.distractor_notes) question.distractor_notes = rpcData.distractor_notes;
+          setQuestions((prev) => [...prev]);
+        }
+      } else {
+        throw rpcError || new Error('Evaluation not allowed.');
+      }
+    } catch (err) {
+      setEvaluationErrors((prev) => ({
+        ...prev,
+        [qId]: 'Retry failed. Check your internet connection.'
+      }));
+    } finally {
+      setEvaluatingQuestionIds((prev) => {
+        const next = new Set(prev);
+        next.delete(qId);
+        return next;
+      });
     }
   };
 
@@ -1245,15 +1380,6 @@ export default function LiveQuiz() {
       ? 'Quick notes are coming soon for this question.'
       : 'Question reporting is coming soon.');
     window.setTimeout(() => setFeedbackAction(''), 350);
-  };
-
-  const clearResponse = () => {
-    const nextResponses = {
-      ...responses,
-      [question.id]: { ...responses[question.id], selected_option: null }
-    };
-    setResponses(nextResponses);
-    saveProgressSnapshot({ responses: nextResponses }, false);
   };
 
   const goTo = (index) => {
@@ -1946,22 +2072,26 @@ export default function LiveQuiz() {
                   question?.correct_answer ?? question?.correct_option ?? question?.answer,
                   question?.options
                 );
-                const userSelectedOption = responses[question?.id]?.selected_option;
+                const userSelectedOption = lockedAnswersRef.current.get(question?.id) || responses[question?.id]?.selected_option;
+                const isLocked = Boolean(userSelectedOption);
+                const isEvaluating = evaluatingQuestionIds.has(question?.id);
                 const selected = userSelectedOption === key;
-                const isImmediate = test?.solution_mode === 'immediate' && Boolean(userSelectedOption);
-                const isCorrectAnswer = isImmediate && Boolean(qCorrectAnswer && qCorrectAnswer === key);
-                const isWrongSelected = isImmediate && selected && !isCorrectAnswer;
+                const isImmediate = test?.solution_mode === 'immediate';
+                const hasAuthoritativeKey = Boolean(qCorrectAnswer);
+                const isCorrectAnswer = isImmediate && hasAuthoritativeKey && (qCorrectAnswer === key);
+                const isWrongSelected = isImmediate && hasAuthoritativeKey && selected && (qCorrectAnswer !== key);
 
                 return (
                   <button
                     key={key}
                     type="button"
+                    disabled={isLocked || isEvaluating}
                     className={`quiz-option py-3.5 px-4 min-h-[56px] transition-all rounded-2xl ${
                       selected
                         ? 'selected border-2 border-emerald-500 dark:bg-[#12231C] bg-emerald-50'
                         : 'border dark:border-emerald-500/15 border-slate-200 dark:bg-[#12231C] bg-white hover:border-emerald-500/40'
-                    } ${key === 'E' ? 'option-e' : ''} ${isCorrectAnswer ? 'correct-answer' : ''} ${isWrongSelected ? 'wrong-answer' : ''}`}
-                    onClick={() => answer(key)}
+                    } ${key === 'E' ? 'option-e' : ''} ${isCorrectAnswer ? 'correct-answer' : ''} ${isWrongSelected ? 'wrong-answer' : ''} ${isLocked ? 'cursor-default' : ''}`}
+                    onClick={() => !isLocked && !isEvaluating && answer(key)}
                     aria-pressed={selected}
                   >
                     <span className={`quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-black rounded-full flex items-center justify-center ${
@@ -1980,7 +2110,9 @@ export default function LiveQuiz() {
                       </span>
                     </span>
                     <span className="quiz-option-check shrink-0">
-                      {isImmediate ? (
+                      {isEvaluating && selected ? (
+                        <LoaderCircle size={18} className="animate-spin text-emerald-500" />
+                      ) : isImmediate ? (
                         isCorrectAnswer ? (
                           <CheckCircle2 size={20} className="text-[#22c55e]" />
                         ) : isWrongSelected ? (
@@ -1997,12 +2129,49 @@ export default function LiveQuiz() {
           </div>
 
           {/* Immediate Feedback Card in Practice Mode */}
-          {test?.solution_mode === 'immediate' && responses[question.id]?.selected_option && (() => {
-            const selectedOpt = String(responses[question.id]?.selected_option || '').trim().toUpperCase();
+          {test?.solution_mode === 'immediate' && (lockedAnswersRef.current.get(question.id) || responses[question.id]?.selected_option) && (() => {
+            const selectedOpt = String(lockedAnswersRef.current.get(question.id) || responses[question.id]?.selected_option || '').trim().toUpperCase();
             const correctOpt = normalizeCorrectAnswer(
               question?.correct_answer ?? question?.correct_option ?? question?.answer,
               question?.options
             );
+            const isEvaluating = evaluatingQuestionIds.has(question.id);
+            const evalError = evaluationErrors[question.id];
+
+            // If evaluating or awaiting authoritative answer key, display evaluating card - NEVER flash incorrect!
+            if (isEvaluating || (!correctOpt && !evalError)) {
+              return (
+                <div className="immediate-feedback-card mt-4 p-4 rounded-xl border bg-slate-50/80 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center gap-2 font-bold text-sm sm:text-base text-slate-700 dark:text-slate-300">
+                    <LoaderCircle size={18} className="animate-spin text-emerald-500" />
+                    <span>{language === 'hi' ? 'उत्तर की जाँच हो रही है...' : 'Evaluating answer...'}</span>
+                    <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-neutral-200/70 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
+                      {language === 'hi' ? 'अभ्यास मोड' : 'Practice Mode'}
+                    </span>
+                  </div>
+                </div>
+              );
+            }
+
+            if (evalError) {
+              return (
+                <div className="immediate-feedback-card mt-4 p-4 rounded-xl border bg-amber-50/80 dark:bg-amber-950/30 border-amber-300 dark:border-amber-800">
+                  <div className="flex items-center justify-between gap-2 text-sm text-amber-800 dark:text-amber-200">
+                    <span className="flex items-center gap-1.5 font-semibold">
+                      <AlertTriangle size={16} /> {evalError}
+                    </span>
+                    <button
+                      type="button"
+                      className="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-200 dark:bg-amber-800 text-amber-900 dark:text-white hover:opacity-90"
+                      onClick={() => retryEvaluation(question.id)}
+                    >
+                      {language === 'hi' ? 'पुनः प्रयास करें' : 'Retry'}
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
             const isUserCorrect = Boolean(correctOpt && selectedOpt === correctOpt);
 
             return (
@@ -2102,14 +2271,21 @@ export default function LiveQuiz() {
               <ChevronLeft size={16} /> <span>Previous</span>
             </button>
 
-            <button
-              type="button"
-              className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-emerald-950/70 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 dark:text-emerald-300 text-slate-700 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 min-h-[40px]"
-              onClick={clearResponse}
-              disabled={!responses[question.id]?.selected_option}
-            >
-              <RotateCcw size={14} /> <span>Clear</span>
-            </button>
+            {(lockedAnswersRef.current.get(question.id) || responses[question.id]?.selected_option) ? (
+              <div
+                className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-emerald-950/40 bg-emerald-50/70 border dark:border-emerald-500/25 border-emerald-300 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 min-h-[40px] select-none"
+                title="Answer is permanently locked"
+              >
+                <Lock size={13} className="text-emerald-600 dark:text-emerald-400" />
+                <span>{language === 'hi' ? 'उत्तर लॉक है' : 'Answer Locked'}</span>
+              </div>
+            ) : (
+              <div
+                className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-slate-900/40 bg-slate-100 border dark:border-slate-800 border-slate-300 text-slate-500 dark:text-slate-400 text-xs font-medium flex items-center gap-1.5 min-h-[40px] select-none"
+              >
+                <span>{language === 'hi' ? 'अनुत्तरित' : 'Unanswered'}</span>
+              </div>
+            )}
 
             {currentIndex === questions.length - 1 ? (
               <button

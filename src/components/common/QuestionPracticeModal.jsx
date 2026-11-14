@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BookOpen,
   Check,
   ChevronLeft,
   ChevronRight,
   HelpCircle,
-  RotateCcw,
+  Lock,
   Sparkles,
   X
 } from 'lucide-react';
@@ -19,6 +19,7 @@ import {
   hasDevanagari,
   hasLatin,
   normalizeCorrectAnswer,
+  normalizeOptionKey,
   sanitizeLiveQuestion
 } from '../../lib/tests';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
@@ -146,6 +147,7 @@ export default function QuestionPracticeModal({
   const { t } = useThemeLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState({});
+  const lockedAnswersRef = useRef(new Map());
   const [showExplanationMap, setShowExplanationMap] = useState({});
   const [language, setLanguage] = useState('en');
 
@@ -255,27 +257,21 @@ export default function QuestionPracticeModal({
     .filter(([, note]) => note);
 
   const handleSelectOption = (key) => {
+    if (!currentQId || !key) return;
+    // Synchronous Lock Guard & State Guard (First selection locks permanently)
+    if (lockedAnswersRef.current.has(currentQId) || selectedOptions[currentQId]) {
+      return;
+    }
+    const normKey = normalizeOptionKey(key);
+    lockedAnswersRef.current.set(currentQId, normKey);
     setSelectedOptions((prev) => ({
       ...prev,
-      [currentQId]: key
+      [currentQId]: normKey
     }));
     setShowExplanationMap((prev) => ({
       ...prev,
       [currentQId]: true
     }));
-  };
-
-  const handleReset = () => {
-    setSelectedOptions((prev) => {
-      const next = { ...prev };
-      delete next[currentQId];
-      return next;
-    });
-    setShowExplanationMap((prev) => {
-      const next = { ...prev };
-      delete next[currentQId];
-      return next;
-    });
   };
 
   const answeredCount = Object.keys(selectedOptions).length;
@@ -382,14 +378,18 @@ export default function QuestionPracticeModal({
                 const optText = resolveOptionText(opt, key, currentQ, language);
                 const isSelected = selectedOption === key;
                 const isThisCorrect = Boolean(correctAnswer && correctAnswer === key);
+                const isThisWrong = Boolean(correctAnswer && isSelected && correctAnswer !== key);
 
                 let optClass = 'quiz-option';
                 if (isAnswered) {
                   if (isThisCorrect) {
                     optClass += ' correct-answer';
-                  } else if (isSelected && !isThisCorrect) {
+                  } else if (isThisWrong) {
                     optClass += ' wrong-answer';
+                  } else if (isSelected) {
+                    optClass += ' selected';
                   }
+                  optClass += ' cursor-default';
                 } else if (isSelected) {
                   optClass += ' selected';
                 }
@@ -399,6 +399,7 @@ export default function QuestionPracticeModal({
                     key={key}
                     type="button"
                     className={optClass}
+                    disabled={isAnswered}
                     onClick={() => handleSelectOption(key)}
                   >
                     <span className="quiz-option-letter">{key}</span>
@@ -450,13 +451,10 @@ export default function QuestionPracticeModal({
         <footer className="practice-runner-footer">
           <div className="practice-footer-left">
             {isAnswered && (
-              <button
-                type="button"
-                className="button button-outline text-xs"
-                onClick={handleReset}
-              >
-                <RotateCcw size={13} /> Reset
-              </button>
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 select-none">
+                <Lock size={13} />
+                <span>{language === 'hi' ? 'उत्तर लॉक है' : 'Answer Locked'}</span>
+              </div>
             )}
             {!isAnswered && (
               <button

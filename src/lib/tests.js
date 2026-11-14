@@ -636,4 +636,74 @@ export function parseStructuredExplanation(rawExplanation, distractorNotes = nul
   };
 }
 
+/**
+ * Quiz Engine Permanent Answer Lock & Evaluation State Helpers
+ */
+export function normalizeOptionKey(key) {
+  if (!key) return '';
+  const str = String(key).trim().toUpperCase();
+  const match = str.match(/(?:OPTION\s*)?([A-E])/i);
+  return match ? match[1].toUpperCase() : str;
+}
+
+export function isQuestionLocked(questionId, lockedRefOrMap, responses = null) {
+  if (!questionId) return false;
+  if (lockedRefOrMap instanceof Map) {
+    if (lockedRefOrMap.has(questionId) && lockedRefOrMap.get(questionId) !== null) return true;
+  } else if (lockedRefOrMap && typeof lockedRefOrMap === 'object') {
+    if (lockedRefOrMap[questionId] !== undefined && lockedRefOrMap[questionId] !== null) return true;
+  }
+  if (responses && responses[questionId]) {
+    const selected = responses[questionId]?.selected_option ?? responses[questionId]?.selectedOption;
+    if (selected !== undefined && selected !== null && String(selected).trim() !== '') {
+      return true;
+    }
+  }
+  return false;
+}
+
+export function resolveOptionEvaluationState({
+  optionKey,
+  selectedOption,
+  isImmediate = false,
+  correctAnswer = null,
+  isEvaluating = false
+}) {
+  const normKey = normalizeOptionKey(optionKey);
+  const normSelected = normalizeOptionKey(selectedOption);
+  const normCorrect = normalizeOptionKey(correctAnswer);
+
+  const isSelected = Boolean(normSelected && normSelected === normKey);
+  const isLocked = Boolean(normSelected);
+  const hasAuthoritativeKey = Boolean(normCorrect);
+
+  // In immediate mode, evaluation ONLY happens when authoritative key is available
+  const isCorrect = Boolean(isImmediate && hasAuthoritativeKey && normCorrect === normKey);
+  // Wrong ONLY when authoritative key is present, option is selected, and it does NOT match
+  const isWrong = Boolean(isImmediate && hasAuthoritativeKey && isSelected && normCorrect !== normKey);
+
+  return {
+    optionKey: normKey,
+    selectedOption: normSelected,
+    correctAnswer: normCorrect,
+    isSelected,
+    isLocked,
+    hasAuthoritativeKey,
+    isEvaluating: Boolean(isEvaluating && isSelected && !hasAuthoritativeKey),
+    isCorrect,
+    isWrong
+  };
+}
+
+export function mergeLockedAnswers(existingAnswers = {}, incomingAnswers = {}) {
+  const merged = { ...(incomingAnswers || {}) };
+  // Permanent lock: any question that already had a non-null answer cannot be modified or cleared
+  Object.entries(existingAnswers || {}).forEach(([qId, val]) => {
+    if (val !== undefined && val !== null && String(val).trim() !== '') {
+      merged[qId] = val;
+    }
+  });
+  return merged;
+}
+
 
