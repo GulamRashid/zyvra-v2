@@ -38,8 +38,17 @@ export function getPaymentServices(req) {
         auth: { autoRefreshToken: false, persistSession: false }
       })
     : null;
-  const razorpay = new Razorpay({ key_id: keyId, key_secret: keySecret });
+  const razorpay = getRazorpayClient();
   return { accessToken, supabase, supabaseAdmin, hasServiceRole: Boolean(serviceRoleKey), razorpay, keyId, keySecret };
+}
+
+export function getRazorpayClient() {
+  const keyId = (process.env.RAZORPAY_KEY_ID || process.env.VITE_RAZORPAY_KEY_ID || '').trim();
+  const keySecret = (process.env.RAZORPAY_KEY_SECRET || '').trim();
+  if (!keyId || !keySecret) {
+    throw new Error('Razorpay server configuration is incomplete.');
+  }
+  return new Razorpay({ key_id: keyId, key_secret: keySecret });
 }
 
 export function getPaymentAdminClient() {

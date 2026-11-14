@@ -158,12 +158,16 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
               accessToken
             });
           } catch (completionError) {
-            setError(getFriendlyErrorMessage(completionError, 'Payment verification failed. Contact support with your payment ID.'));
+            setError(getFriendlyErrorMessage(completionError, 'Payment verification is pending or failed. If money was debited, your access will activate shortly or contact support with your payment ID.'));
           } finally {
             setBusy(false);
           }
         },
-        modal: { ondismiss: () => setBusy(false) }
+        modal: {
+          ondismiss: () => {
+            setBusy(false);
+          }
+        }
       });
       checkoutInstance.on('payment.failed', (event) => {
         setError(event.error?.description || 'Payment did not complete. Try another payment method.');

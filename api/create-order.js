@@ -10,6 +10,28 @@ export default async function handler(req, res) {
 
   try {
     const body = readBody(req);
+    const { accessToken, supabase, razorpay, keyId } = getPaymentServices(req);
+    const user = await requireUser(supabase, accessToken);
+
+    if (body.action === 'cancel') {
+      const orderIdToCancel = typeof body.orderId === 'string' ? body.orderId.trim() : '';
+      if (!orderIdToCancel) {
+        return sendJson(res, 400, { error: 'Order ID is required for cancellation.' });
+      }
+      const { data: cancelData, error: cancelError } = await supabase.rpc('cancel_checkout_order', {
+        p_order_id: orderIdToCancel
+      });
+      if (cancelError) {
+        console.error('cancel_checkout_order failed:', cancelError);
+        return sendJson(res, 400, { error: 'Unable to cancel payment order.' });
+      }
+      const cancelResult = Array.isArray(cancelData) ? cancelData[0] : cancelData;
+      if (!cancelResult?.success) {
+        return sendJson(res, 400, { error: cancelResult?.error || 'Unable to cancel payment order.' });
+      }
+      return sendJson(res, 200, { success: true, result: cancelResult });
+    }
+
     const requestedAmount = Number(body.amount);
     const itemType = typeof body.itemType === 'string' ? body.itemType.toLowerCase().trim() : '';
     const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
@@ -27,17 +49,149 @@ export default async function handler(req, res) {
       return sendJson(res, 400, { error: 'A valid item and coin redemption amount are required.' });
     }
 
-    const { accessToken, supabase, razorpay, keyId } = getPaymentServices(req);
-    await requireUser(supabase, accessToken);
-
+    const expectedPaise = Math.round(requestedAmount * 100);
     const supabaseAdminClient = getPaymentAdminClient();
+
+    // Check if user already has an active unfulfilled order for this item
+    const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+    const { data: existingOrders } = await supabaseAdminClient
+      .from('payment_orders')
+      .select('id, user_id, amount_paise, coins_redeemed, coins_used, razorpay_order_id, gateway_order_id, status, created_at')
+      .eq('user_id', user.id)
+      .eq('item_type', itemType)
+      .eq('item_id', itemId)
+      .in('status', ['created', 'pending'])
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    const activeOrder = existingOrders?.[0];
+    const existingGatewayOrderId = activeOrder?.razorpay_order_id || activeOrder?.gateway_order_id;
+
+    if (activeOrder && existingGatewayOrderId) {
+      try {
+        const rzpOrder = await razorpay.orders.fetch(existingGatewayOrderId);
+
+        // Case 1: Razorpay order is marked paid
+        if (rzpOrder?.status === 'paid') {
+          let capturedPayment = null;
+          try {
+            const payments = await razorpay.orders.fetchPayments(existingGatewayOrderId);
+            // Strictly select captured payment. Never fallback to uncaptured payment items.
+            capturedPayment = payments?.items?.find((p) => p.status === 'captured') || null;
+          } catch (_) {}
+
+          if (capturedPayment) {
+            await supabaseAdminClient.rpc('complete_successful_checkout_webhook', {
+              p_internal_order_id: activeOrder.id,
+              p_gateway_order_id: existingGatewayOrderId,
+              p_payment_id: capturedPayment.id,
+              p_amount_paise: Number(capturedPayment.amount),
+              p_currency: capturedPayment.currency || 'INR'
+            });
+
+            return sendJson(res, 200, {
+              already_paid: true,
+              id: activeOrder.id,
+              orderId: activeOrder.id,
+              razorpay_order_id: existingGatewayOrderId,
+              amount: activeOrder.amount_paise,
+              amount_paise: activeOrder.amount_paise,
+              currency: 'INR',
+              keyId,
+              message: 'Payment already completed. Access has been unlocked.'
+            });
+          }
+        }
+
+        // Case 2: In-flight payment attempts (e.g. UPI collect or 3DS challenge in progress)
+        if (rzpOrder?.status === 'attempted') {
+          let capturedPayment = null;
+          try {
+            const payments = await razorpay.orders.fetchPayments(existingGatewayOrderId);
+            capturedPayment = payments?.items?.find((p) => p.status === 'captured') || null;
+          } catch (_) {}
+
+          if (capturedPayment) {
+            await supabaseAdminClient.rpc('complete_successful_checkout_webhook', {
+              p_internal_order_id: activeOrder.id,
+              p_gateway_order_id: existingGatewayOrderId,
+              p_payment_id: capturedPayment.id,
+              p_amount_paise: Number(capturedPayment.amount),
+              p_currency: capturedPayment.currency || 'INR'
+            });
+
+            return sendJson(res, 200, {
+              already_paid: true,
+              id: activeOrder.id,
+              orderId: activeOrder.id,
+              razorpay_order_id: existingGatewayOrderId,
+              amount: activeOrder.amount_paise,
+              amount_paise: activeOrder.amount_paise,
+              currency: 'INR',
+              keyId,
+              message: 'Payment completed. Access has been unlocked.'
+            });
+          }
+
+          // Payment attempt is in progress and not captured yet.
+          // Retain coin reservation! Do NOT cancel or supersede without confirmation.
+          const coinsMatch = Number(activeOrder.coins_redeemed ?? activeOrder.coins_used ?? 0) === coinsToRedeem;
+          const amountMatch = Number(activeOrder.amount_paise) === expectedPaise;
+          if (coinsMatch && amountMatch) {
+            return sendJson(res, 200, {
+              id: activeOrder.id,
+              orderId: activeOrder.id,
+              razorpay_order_id: existingGatewayOrderId,
+              amount: activeOrder.amount_paise,
+              amount_paise: activeOrder.amount_paise,
+              currency: 'INR',
+              keyId
+            });
+          }
+
+          // Parameters changed while an attempt is live; do not cancel or release coins
+          return sendJson(res, 409, {
+            error: 'A payment attempt is currently processing for this item. Please wait a few moments or complete your open checkout.'
+          });
+        }
+
+        // Case 3: Order is created (zero payment attempts made).
+        const coinsMatch = Number(activeOrder.coins_redeemed ?? activeOrder.coins_used ?? 0) === coinsToRedeem;
+        const amountMatch = Number(activeOrder.amount_paise) === expectedPaise;
+        const isFresh = activeOrder.created_at >= thirtyMinutesAgo;
+
+        if (coinsMatch && amountMatch && isFresh) {
+          return sendJson(res, 200, {
+            id: activeOrder.id,
+            orderId: activeOrder.id,
+            razorpay_order_id: existingGatewayOrderId,
+            amount: activeOrder.amount_paise,
+            amount_paise: activeOrder.amount_paise,
+            currency: 'INR',
+            keyId
+          });
+        }
+
+        // Case 4: Parameters changed or order is older than 30m, and Razorpay confirms ZERO attempts were made.
+        // It is now safe to cancel prior order to release reserved coins for the new order.
+        try {
+          await supabaseAdminClient.rpc('cancel_checkout_order', { p_order_id: activeOrder.id });
+        } catch (_) {}
+      } catch (rzpErr) {
+        console.warn('Could not inspect existing Razorpay order:', rzpErr?.message);
+      }
+    } else if (activeOrder && !existingGatewayOrderId) {
+      // Order had no gateway order attached; cancel it safely before creating new one
+      try {
+        await supabaseAdminClient.rpc('cancel_checkout_order', { p_order_id: activeOrder.id });
+      } catch (_) {}
+    }
 
     let internalOrderId = null;
     let razorpayOrderId = null;
     let amountPaise = null;
 
-    // The authenticated commerce RPC owns authoritative pricing and persists the
-    // internal order reference required by the existing entitlement workflow.
+    // Authoritative commerce RPC creates the internal order and enforces pricing rules
     try {
       const { data, error } = await supabase.rpc('create_checkout_order', {
         p_item_type: itemType,
@@ -65,7 +219,7 @@ export default async function handler(req, res) {
     if (!internalOrderId || !Number.isSafeInteger(amountPaise) || amountPaise <= 0) {
       throw new Error('The payment service returned an invalid order.');
     }
-    if (Math.abs(amountPaise - Math.round(requestedAmount * 100)) > 1) {
+    if (Math.abs(amountPaise - expectedPaise) > 1) {
       return sendJson(res, 409, { error: 'The server price changed. Reopen checkout to review the latest total.' });
     }
 
@@ -91,6 +245,9 @@ export default async function handler(req, res) {
           internalOrderId,
           razorpayOrderId
         });
+        try {
+          await supabaseAdminClient.rpc('cancel_checkout_order', { p_order_id: internalOrderId });
+        } catch (_) {}
         throw new Error('Unable to link the payment order. Please try checking out again.');
       }
 
@@ -101,6 +258,9 @@ export default async function handler(req, res) {
 
       if (!attachResult?.success) {
         console.error('attach_checkout_gateway_order rejected:', attachResult?.error);
+        try {
+          await supabaseAdminClient.rpc('cancel_checkout_order', { p_order_id: internalOrderId });
+        } catch (_) {}
         throw new Error(attachResult?.error || 'Payment gateway order attachment failed.');
       }
     } else {

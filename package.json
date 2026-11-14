@@ -8,7 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src",
-    "test": "node --test test/recommendations.test.js tests/commerce-and-payment-logic.test.mjs tests/razorpay-webhook.test.mjs tests/toolbox-logic.test.mjs tests/test-scoring-logic.test.mjs tests/referrals-logic.test.mjs tests/content-hierarchy-logic.test.mjs tests/quiz-engine-locking.test.mjs",
+    "test": "node --test test/recommendations.test.js tests/commerce-and-payment-logic.test.mjs tests/razorpay-webhook.test.mjs tests/toolbox-logic.test.mjs tests/test-scoring-logic.test.mjs tests/referrals-logic.test.mjs tests/content-hierarchy-logic.test.mjs tests/quiz-engine-locking.test.mjs tests/db-payment-integration.test.mjs",
     "test:integration": "node tests/test-live-admin.mjs && node tests/test-live-student.mjs && node tests/run-live-audit.mjs"
   },
   "dependencies": {
