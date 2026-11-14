@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 import unusedImports from 'eslint-plugin-unused-imports';
 
@@ -42,8 +43,14 @@ export default [
       }
     },
     plugins: {
+      'react': react,
       'react-hooks': reactHooks,
       'unused-imports': unusedImports
+    },
+    settings: {
+      react: {
+        version: 'detect'
+      }
     },
     rules: {
       'no-unused-vars': ['warn', { args: 'none', ignoreRestSiblings: true }],
@@ -51,7 +58,10 @@ export default [
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       'no-empty': 'warn',
-      'no-useless-escape': 'warn'
+      'no-useless-escape': 'warn',
+      'react/jsx-uses-vars': 'error',
+      'react/jsx-uses-react': 'error',
+      'react/jsx-no-undef': 'error'
     }
   }
 ];
