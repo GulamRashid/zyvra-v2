@@ -1,4 +1,9 @@
 import { useEffect, useState } from 'react';
+import {
+  Activity, Award, BarChart3, FileQuestion, IndianRupee, RefreshCw, Users
+} from 'lucide-react';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import StatusBadge from '../../components/common/StatusBadge';
 
 import { useAuth } from '../../context/AuthContext';
 

@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
-
-import { useNavigate } from 'react-router-dom';
+import {
+  ArrowLeft, BarChart3, Bell, Bookmark, CheckCircle2, ChevronRight,
+  Clock, Download, Edit3, FileText, Flame, HelpCircle, Layers,
+  LogOut, Mail, Phone, Settings, Target, Users
+} from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import MountainSunsetAura from '../../components/common/MountainSunsetAura';
 import { useAuth } from '../../context/AuthContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 

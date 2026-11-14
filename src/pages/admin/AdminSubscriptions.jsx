@@ -1,4 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
+import {
+  BookOpen, Clock, Key, Layers, PackageCheck, RefreshCw, Search
+} from 'lucide-react';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import StatusBadge from '../../components/common/StatusBadge';
 
 import { useAuth } from '../../context/AuthContext';
 

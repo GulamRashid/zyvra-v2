@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, FileText, Play } from 'lucide-react';
-import { useLocation, useParams } from 'react-router-dom';
+import {
+  ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, BookOpen, CheckCircle2,
+  ChevronRight, Clock3, FileText, LoaderCircle, LockKeyhole, Play, Sparkles
+} from 'lucide-react';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import PdfReaderModal from '../../components/common/PdfReaderModal';
+import CheckoutModal from '../../components/common/CheckoutModal';
+import QuestionPracticeModal from '../../components/common/QuestionPracticeModal';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getChapterAccess, getFolderPath, getFolderPricing, isFolderUnlocked, isPublished } from '../../lib/content';
 import useContentAccess from '../../hooks/useContentAccess';

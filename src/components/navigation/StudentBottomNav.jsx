@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { BarChart3, Bell, BookOpen, Compass, Home, MoreHorizontal, ShoppingBag, User, WalletCards, Wrench, X } from 'lucide-react';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 

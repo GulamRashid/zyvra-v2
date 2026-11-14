@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-
-
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  AlertCircle, ArrowLeft, ArrowRight, BarChart3, Bookmark, BookOpen,
+  Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
+  CircleX, Filter, Lightbulb, MinusCircle, RotateCcw, Share2, Target, Trophy
+} from 'lucide-react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import QuestionFormatter from '../../components/common/QuestionFormatter';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';

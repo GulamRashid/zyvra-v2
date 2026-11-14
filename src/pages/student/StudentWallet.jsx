@@ -1,4 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import {
+  ArrowDownLeft, ArrowUpRight, Coins, Gift, ShoppingBag, Sparkles
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import ShareAndEarnCard from '../../components/common/ShareAndEarnCard';
 import { useAuth } from '../../context/AuthContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 

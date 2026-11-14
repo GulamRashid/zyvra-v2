@@ -1,10 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  ArrowRight,
   Bookmark,
+  BookOpen,
+  CheckCircle2,
+  ChevronRight,
+  Flame,
+  Play,
   Target,
   Trophy,
   WalletCards
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import MountainSunsetAura from '../../components/common/MountainSunsetAura';
+import OnboardingModal from './OnboardingModal';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';

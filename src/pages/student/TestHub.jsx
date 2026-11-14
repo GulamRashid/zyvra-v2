@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import {
+  ArrowRight, BookOpen, CheckCircle2, Layers, Play, Search,
+  SlidersHorizontal, Target
+} from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import MountainSunsetAura from '../../components/common/MountainSunsetAura';
 
 
 import { useAuth } from '../../context/AuthContext';

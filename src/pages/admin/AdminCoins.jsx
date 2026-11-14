@@ -1,4 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
+import {
+  AlertCircle, CheckCircle2, Coins, Gift, RefreshCw, Save,
+  Search, Share2, Sparkles, Users
+} from 'lucide-react';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import StatusBadge from '../../components/common/StatusBadge';
 
 import { useAuth } from '../../context/AuthContext';
 import { getReferralSettings, saveReferralSettings } from '../../lib/referrals';

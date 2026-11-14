@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ArrowRight, BarChart3, CalendarDays, CheckCircle2, Clock3, Target, Trophy } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 
