@@ -6,7 +6,7 @@ import ProtectedRoute from './components/layouts/ProtectedRoute';
 import LoadingSkeleton from './components/common/LoadingSkeleton';
 import QuizErrorBoundary from './components/common/QuizErrorBoundary';
 import PwaInstallBanner from './components/common/PwaInstallBanner';
-import { BookOpen, FileQuestion, ShoppingBag, ChartNoAxesColumn, Bookmark, Bell, Wrench, Users, PackageCheck, CreditCard, Coins, Tag, Activity } from 'lucide-react';
+import { BookOpen, FileQuestion, ShoppingBag, Bookmark, Bell, Wrench, Users, PackageCheck, CreditCard, Coins, Tag, Activity } from 'lucide-react';
 
 const AuthPage = lazy(() => import('./pages/auth/AuthPage'));
 const StudentHome = lazy(() => import('./pages/student/StudentHome'));

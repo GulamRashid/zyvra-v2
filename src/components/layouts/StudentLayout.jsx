@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell, ChartNoAxesColumn, ChevronRight, ClipboardList,
   Compass, Home, Menu, Settings, Wrench, X,
-  Shield, LogOut, Coins, Flame
+  Shield, LogOut, Flame
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';

@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowLeft,
-  ArrowRight,
   BookOpen,
   Check,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   HelpCircle,

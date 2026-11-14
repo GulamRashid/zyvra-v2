@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp, Check, CheckSquare, ChevronDown, ClipboardList, Clock3, Coins, FileQuestion, Plus, Search, Square, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, CheckSquare, ClipboardList, Clock3, Coins, FileQuestion, Plus, Search, Square, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getOptionEntries, TEST_PATTERNS } from '../../lib/tests';

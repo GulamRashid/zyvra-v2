@@ -1,39 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  AlertCircle,
-  ArrowRight,
-  BookOpen,
-  Brain,
-  Calculator,
-  Check,
   CheckCircle2,
   ChevronRight,
-  Clock,
-  Compass,
-  Edit,
   Eye,
-  FileText,
   Flame,
-  Globe2,
   GripVertical,
-  HelpCircle,
   Layers,
   Lock,
-  Minus,
-  Percent,
   Plus,
   RefreshCw,
-  RotateCcw,
   Save,
   Search,
-  Settings,
-  Sparkles,
-  ToggleLeft,
-  ToggleRight,
   Trash2,
   Unlock,
-  Wrench,
-  Zap
+  Wrench
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';

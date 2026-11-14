@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, BadgeCheck, BookOpen, Coins, Gift, Search, ShieldCheck, UserRound, Users, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, BookOpen, Coins, Gift, Search, ShieldCheck, UserRound, Users, X } from 'lucide-react';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';

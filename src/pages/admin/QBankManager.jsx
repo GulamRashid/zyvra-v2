@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowDownToLine, BookOpen, Check, ChevronDown, ChevronRight, ChevronUp, FileQuestion, Filter, Layers, LayoutGrid, List, Plus, Search, Trash2, Upload, X } from 'lucide-react';
+import { AlertTriangle, ArrowDownToLine, BookOpen, Check, ChevronDown, ChevronRight, FileQuestion, Filter, Layers, LayoutGrid, List, Plus, Search, Trash2, Upload, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getOptionEntries, hasDevanagari, hasLatin, normalizeImportQuestionText, parseImportCsv, validateImportQuestion } from '../../lib/tests';
 import { getContentErrorMessage, getFolderPath } from '../../lib/content';
