@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { getPaymentAdminClient, getRazorpayClient, sendJson } from './_payment.js';
+import { getPaymentAdminClient, getRazorpayClient, sanitizeErrorMessage, sendJson } from './_payment.js';
 
 // CRITICAL: Disable Vercel automatic body parsing to preserve raw stream buffer
 export const config = {
@@ -7,6 +7,29 @@ export const config = {
 };
 
 const SUPPORTED_EVENTS = new Set(['payment.captured', 'order.paid']);
+
+function methodNotAllowedResponse() {
+  return new Response(JSON.stringify({ error: 'Method not allowed.' }), {
+    status: 405,
+    headers: { 'Content-Type': 'application/json', 'Allow': 'POST' }
+  });
+}
+
+export async function POST(request) {
+  return handler(request);
+}
+
+export async function GET() {
+  return methodNotAllowedResponse();
+}
+
+export async function PUT() {
+  return methodNotAllowedResponse();
+}
+
+export async function DELETE() {
+  return methodNotAllowedResponse();
+}
 
 /**
  * Validates HMAC-SHA256 signature against original request raw bytes.
@@ -337,8 +360,9 @@ export default async function handler(req, res) {
       });
     } catch (error) {
       const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
+      const rawMsg = error?.statusCode ? error.message : 'Webhook processing failed.';
       return new Response(JSON.stringify({
-        error: error?.statusCode ? error.message : 'Webhook processing failed.'
+        error: sanitizeErrorMessage(rawMsg, 'Webhook processing failed.')
       }), {
         status: statusCode,
         headers: { 'Content-Type': 'application/json' }
@@ -376,8 +400,9 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Razorpay webhook processing failed:', error);
     const statusCode = Number.isInteger(error?.statusCode) ? error.statusCode : 500;
+    const rawMsg = error?.statusCode ? error.message : 'Webhook processing failed.';
     return sendJson(res, statusCode, {
-      error: error?.statusCode ? error.message : 'Webhook processing failed.'
+      error: sanitizeErrorMessage(rawMsg, 'Webhook processing failed.')
     });
   }
 }

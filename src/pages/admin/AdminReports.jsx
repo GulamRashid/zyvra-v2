@@ -139,6 +139,12 @@ export default function AdminReports() {
       }
     } catch (err) {
       console.warn('Error loading admin reports:', err.message);
+      if (active()) {
+        setQueryErrors((previous) => requestedKeys.reduce((next, key) => ({
+          ...next,
+          [key]: err.message || 'Report data could not be loaded.'
+        }), previous));
+      }
     } finally {
       if (active()) {
         setLoading(false);

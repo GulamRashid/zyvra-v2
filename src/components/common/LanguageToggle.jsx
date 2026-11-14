@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 
 export default function LanguageToggle({ compact = false }) {
-  const { language, setLanguage, languageError, t } = useThemeLanguage();
+  const { language, setLanguage, languageError } = useThemeLanguage();
   const [syncError, setSyncError] = useState('');
   const toggle = async () => {
     setSyncError('');

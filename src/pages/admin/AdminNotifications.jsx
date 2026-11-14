@@ -18,10 +18,12 @@ export default function AdminNotifications() {
   const [content, setContent] = useState('');
   const [targetAudience, setTargetAudience] = useState('all');
   const [priority, setPriority] = useState('normal');
+  const [loadError, setLoadError] = useState('');
 
   const loadAnnouncements = async (active = () => true) => {
     if (!supabase) return;
     setRefreshing(true);
+    setLoadError('');
     try {
       // Check platform_settings for platform_announcements
       const { data, error } = await supabase
@@ -38,6 +40,10 @@ export default function AdminNotifications() {
       }
     } catch (err) {
       console.warn('Error loading announcements:', err.message);
+      if (active()) {
+        setAnnouncements([]);
+        setLoadError('Announcements could not be loaded. Please refresh or check connection.');
+      }
     } finally {
       if (active()) {
         setLoading(false);
@@ -146,6 +152,12 @@ export default function AdminNotifications() {
           <RefreshCw size={15} className={refreshing ? 'spin' : ''} /> Refresh
         </button>
       </div>
+
+      {loadError && (
+        <div className="banner error-banner" style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444' }}>
+          <strong>Error:</strong> {loadError}
+        </div>
+      )}
 
       {loading ? (
         <LoadingSkeleton rows={4} />

@@ -28,6 +28,8 @@ export default function StudentProfile() {
   // Goals form state
   const [dailyTarget, setDailyTarget] = useState(50);
   const [savingGoals, setSavingGoals] = useState(false);
+  const [goalsFeedback, setGoalsFeedback] = useState('');
+  const [signOutError, setSignOutError] = useState('');
 
   // Referral copy feedback
   const [copiedCode, setCopiedCode] = useState(false);
@@ -186,17 +188,24 @@ export default function StudentProfile() {
   const handleSaveGoals = async (e) => {
     e.preventDefault();
     setSavingGoals(true);
+    setGoalsFeedback('');
     try {
       if (supabase && user) {
-        await supabase
+        const { error } = await supabase
           .from('profiles')
           .update({ daily_goal_target: Number(dailyTarget) })
           .eq('id', user.id);
+        if (error) throw error;
         if (refreshAccount) await refreshAccount();
-        setGoalsModalOpen(false);
+        setGoalsFeedback('Goal saved successfully!');
+        setTimeout(() => {
+          setGoalsFeedback('');
+          setGoalsModalOpen(false);
+        }, 1000);
       }
     } catch (err) {
       console.error('Goal update failed:', err);
+      setGoalsFeedback(getFriendlyErrorMessage(err, 'Goal update nahi ho paya. Dobara koshish karein.'));
     } finally {
       setSavingGoals(false);
     }
@@ -212,11 +221,13 @@ export default function StudentProfile() {
 
   // Sign out
   const handleSignOut = async () => {
+    setSignOutError('');
     try {
       await signOut();
       navigate('/auth');
     } catch (err) {
       console.error('Sign out error:', err);
+      setSignOutError(getFriendlyErrorMessage(err, 'Sign out nahi ho paya. Dobara koshish karein.'));
     }
   };
 
@@ -585,7 +596,12 @@ export default function StudentProfile() {
         </section>
 
         {/* Sign Out Button */}
-        <div className="pt-2">
+        <div className="pt-2 space-y-2">
+          {signOutError && (
+            <div className="p-3 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border dark:border-rose-500/30 border-rose-200 text-rose-600 dark:text-rose-300 text-xs font-bold text-center">
+              {signOutError}
+            </div>
+          )}
           <button
             type="button"
             onClick={handleSignOut}
@@ -684,6 +700,12 @@ export default function StudentProfile() {
                 ✕
               </button>
             </div>
+
+            {goalsFeedback && (
+              <div className={`p-2.5 rounded-xl text-xs font-bold ${goalsFeedback.includes('successfully') ? 'dark:bg-emerald-950/60 bg-emerald-50 text-emerald-600 dark:text-emerald-300 border border-emerald-500/20' : 'dark:bg-rose-950/40 bg-rose-50 text-rose-600 dark:text-rose-300 border border-rose-500/30'}`}>
+                {goalsFeedback}
+              </div>
+            )}
 
             <form onSubmit={handleSaveGoals} className="space-y-4">
               <div>

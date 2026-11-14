@@ -1,60 +1,129 @@
-import { getPaymentAdminClient, getPaymentServices, readBody, requireUser, sendJson } from './_payment.js';
+import {
+  getPaymentAdminClient,
+  getPaymentServices,
+  parseRequestBody,
+  readBody,
+  requireUser,
+  sanitizeErrorMessage,
+  sendJson
+} from './_payment.js';
 
 const SUPPORTED_ITEM_TYPES = new Set(['folder', 'chapter', 'exam']);
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function methodNotAllowedResponse() {
+  return new Response(JSON.stringify({ error: 'Method not allowed.' }), {
+    status: 405,
+    headers: { 'Content-Type': 'application/json', 'Allow': 'POST' }
+  });
+}
+
+export async function POST(request) {
+  return handler(request);
+}
+
+export async function GET() {
+  return methodNotAllowedResponse();
+}
+
+export async function PUT() {
+  return methodNotAllowedResponse();
+}
+
+export async function DELETE() {
+  return methodNotAllowedResponse();
+}
 
 export default async function handler(req, res) {
+  const isWebStandard = req && typeof req.text === 'function' && !res;
+
+  // 1. HTTP Method Check: Only POST is allowed
   if (req.method !== 'POST') {
+    if (isWebStandard) {
+      return methodNotAllowedResponse();
+    }
     res.setHeader('Allow', 'POST');
     return sendJson(res, 405, { error: 'Method not allowed.' });
   }
 
+  // Response helper supporting both Web Standard and Node.js runtimes
+  const respond = (status, payload) => {
+    if (isWebStandard) {
+      return new Response(JSON.stringify(payload), {
+        status,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+    return sendJson(res, status, payload);
+  };
+
   try {
-    const body = readBody(req);
+    let body;
+    try {
+      body = await parseRequestBody(req);
+    } catch (parseErr) {
+      body = readBody(req);
+    }
+
+    if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      return respond(400, { error: 'Request body must be a JSON object.' });
+    }
+
+    // 2. Authentication Verification: Validates Bearer token & active user session
     const { accessToken, supabase, razorpay, keyId } = getPaymentServices(req);
     const user = await requireUser(supabase, accessToken);
 
+    // 3. Handle Order Cancellation Action
     if (body.action === 'cancel') {
       const orderIdToCancel = typeof body.orderId === 'string' ? body.orderId.trim() : '';
-      if (!orderIdToCancel) {
-        return sendJson(res, 400, { error: 'Order ID is required for cancellation.' });
+      if (!orderIdToCancel || !UUID_REGEX.test(orderIdToCancel)) {
+        return respond(400, { error: 'A valid order ID is required for cancellation.' });
       }
       const { data: cancelData, error: cancelError } = await supabase.rpc('cancel_checkout_order', {
         p_order_id: orderIdToCancel
       });
       if (cancelError) {
         console.error('cancel_checkout_order failed:', cancelError);
-        return sendJson(res, 400, { error: 'Unable to cancel payment order.' });
+        return respond(400, { error: 'Unable to cancel payment order.' });
       }
       const cancelResult = Array.isArray(cancelData) ? cancelData[0] : cancelData;
       if (!cancelResult?.success) {
-        return sendJson(res, 400, { error: cancelResult?.error || 'Unable to cancel payment order.' });
+        return respond(400, { error: cancelResult?.error || 'Unable to cancel payment order.' });
       }
-      return sendJson(res, 200, { success: true, result: cancelResult });
+      return respond(200, { success: true, result: cancelResult });
     }
 
+    // 4. Input Validation for Order Creation
     const requestedAmount = Number(body.amount);
     const itemType = typeof body.itemType === 'string' ? body.itemType.toLowerCase().trim() : '';
     const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
     const coinsToRedeem = Number(body.coinsToRedeem || 0);
-    if (!Number.isFinite(requestedAmount) || requestedAmount <= 0 || !Number.isSafeInteger(Math.round(requestedAmount * 100))) {
-      return sendJson(res, 400, { error: 'A valid payment amount is required.' });
+
+    if (
+      !Number.isFinite(requestedAmount) ||
+      requestedAmount <= 0 ||
+      !Number.isSafeInteger(Math.round(requestedAmount * 100))
+    ) {
+      return respond(400, { error: 'A valid payment amount is required.' });
     }
+
     if (
       !SUPPORTED_ITEM_TYPES.has(itemType) ||
       !itemId ||
+      itemId.length > 128 ||
       !Number.isSafeInteger(coinsToRedeem) ||
       coinsToRedeem < 0 ||
       coinsToRedeem > 2147483647
     ) {
-      return sendJson(res, 400, { error: 'A valid item and coin redemption amount are required.' });
+      return respond(400, { error: 'A valid item and coin redemption amount are required.' });
     }
 
     const expectedPaise = Math.round(requestedAmount * 100);
     const supabaseAdminClient = getPaymentAdminClient();
 
-    // Check if user already has an active unfulfilled order for this item
+    // 5. Existing In-Flight Order Check (Deduplication & Safety)
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-    const { data: existingOrders } = await supabaseAdminClient
+    const { data: existingOrders, error: ordersError } = await supabaseAdminClient
       .from('payment_orders')
       .select('id, user_id, amount_paise, coins_redeemed, coins_used, razorpay_order_id, gateway_order_id, status, created_at')
       .eq('user_id', user.id)
@@ -63,6 +132,10 @@ export default async function handler(req, res) {
       .in('status', ['created', 'pending'])
       .order('created_at', { ascending: false })
       .limit(1);
+
+    if (ordersError) {
+      console.warn('Existing orders lookup warning:', ordersError.message);
+    }
 
     const activeOrder = existingOrders?.[0];
     const existingGatewayOrderId = activeOrder?.razorpay_order_id || activeOrder?.gateway_order_id;
@@ -76,7 +149,6 @@ export default async function handler(req, res) {
           let capturedPayment = null;
           try {
             const payments = await razorpay.orders.fetchPayments(existingGatewayOrderId);
-            // Strictly select captured payment. Never fallback to uncaptured payment items.
             capturedPayment = payments?.items?.find((p) => p.status === 'captured') || null;
           } catch (_) {}
 
@@ -89,7 +161,7 @@ export default async function handler(req, res) {
               p_currency: capturedPayment.currency || 'INR'
             });
 
-            return sendJson(res, 200, {
+            return respond(200, {
               already_paid: true,
               id: activeOrder.id,
               orderId: activeOrder.id,
@@ -120,7 +192,7 @@ export default async function handler(req, res) {
               p_currency: capturedPayment.currency || 'INR'
             });
 
-            return sendJson(res, 200, {
+            return respond(200, {
               already_paid: true,
               id: activeOrder.id,
               orderId: activeOrder.id,
@@ -138,7 +210,7 @@ export default async function handler(req, res) {
           const coinsMatch = Number(activeOrder.coins_redeemed ?? activeOrder.coins_used ?? 0) === coinsToRedeem;
           const amountMatch = Number(activeOrder.amount_paise) === expectedPaise;
           if (coinsMatch && amountMatch) {
-            return sendJson(res, 200, {
+            return respond(200, {
               id: activeOrder.id,
               orderId: activeOrder.id,
               razorpay_order_id: existingGatewayOrderId,
@@ -150,7 +222,7 @@ export default async function handler(req, res) {
           }
 
           // Parameters changed while an attempt is live; do not cancel or release coins
-          return sendJson(res, 409, {
+          return respond(409, {
             error: 'A payment attempt is currently processing for this item. Please wait a few moments or complete your open checkout.'
           });
         }
@@ -161,7 +233,7 @@ export default async function handler(req, res) {
         const isFresh = activeOrder.created_at >= thirtyMinutesAgo;
 
         if (coinsMatch && amountMatch && isFresh) {
-          return sendJson(res, 200, {
+          return respond(200, {
             id: activeOrder.id,
             orderId: activeOrder.id,
             razorpay_order_id: existingGatewayOrderId,
@@ -181,7 +253,6 @@ export default async function handler(req, res) {
         console.warn('Could not inspect existing Razorpay order:', rzpErr?.message);
       }
     } else if (activeOrder && !existingGatewayOrderId) {
-      // Order had no gateway order attached; cancel it safely before creating new one
       try {
         await supabaseAdminClient.rpc('cancel_checkout_order', { p_order_id: activeOrder.id });
       } catch (_) {}
@@ -220,7 +291,7 @@ export default async function handler(req, res) {
       throw new Error('The payment service returned an invalid order.');
     }
     if (Math.abs(amountPaise - expectedPaise) > 1) {
-      return sendJson(res, 409, { error: 'The server price changed. Reopen checkout to review the latest total.' });
+      return respond(409, { error: 'The server price changed. Reopen checkout to review the latest total.' });
     }
 
     if (!razorpayOrderId) {
@@ -270,7 +341,7 @@ export default async function handler(req, res) {
       }
     }
 
-    return sendJson(res, 200, {
+    return respond(200, {
       id: internalOrderId,
       orderId: internalOrderId,
       razorpay_order_id: razorpayOrderId,
@@ -281,12 +352,13 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Unable to create checkout order:', error);
-    const message =
+    const rawMessage =
       error?.error?.description ||
       error?.description ||
       error?.message ||
       (typeof error === 'string' ? error : 'Unable to create payment order.');
-    const status = /sign in|session is invalid/i.test(message) ? 401 : 400;
-    return sendJson(res, status, { error: message });
+    const sanitizedMessage = sanitizeErrorMessage(rawMessage, 'Unable to create payment order. Please try again.');
+    const status = error?.statusCode || (/sign in|session is invalid/i.test(rawMessage) ? 401 : 400);
+    return respond(status, { error: sanitizedMessage });
   }
 }

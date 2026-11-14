@@ -22,7 +22,6 @@ import {
   normalizeOptionKey,
   sanitizeLiveQuestion
 } from '../../lib/tests';
-import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 
 function getStoredHindi(value) {
@@ -60,7 +59,9 @@ function getResolvedOptionEntries(currentQuestion) {
   if (typeof raw === 'string') {
     try {
       raw = JSON.parse(raw);
-    } catch (_) {}
+    } catch {
+      // ignore invalid JSON
+    }
   }
 
   // Handle { en: [...], hi: [...] } parallel arrays
@@ -144,7 +145,6 @@ export default function QuestionPracticeModal({
   subject = '',
   onClose
 }) {
-  const { t } = useThemeLanguage();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOptions, setSelectedOptions] = useState({});
   const lockedAnswersRef = useRef(new Map());
@@ -189,6 +189,11 @@ export default function QuestionPracticeModal({
             setExtraAnswerMap((prev) => ({ ...prev, [currentQId]: ans }));
             currentQ.correct_answer = ans;
             currentQ.correct_option = ans;
+            if (data.explanation && !currentQ.explanation) currentQ.explanation = data.explanation;
+            if (data.explanation_hi && !currentQ.explanation_hi) currentQ.explanation_hi = data.explanation_hi;
+            if (data.distractor_notes && (!currentQ.distractor_notes || !Object.keys(currentQ.distractor_notes).length)) {
+              currentQ.distractor_notes = normalizeDistractorNotes(data.distractor_notes);
+            }
           }
         }
       })
@@ -248,11 +253,11 @@ export default function QuestionPracticeModal({
 
   // Explanation text
   const displayedExplanation = extractLocalizedExplanation(
-    parseSerializedValue(currentQ.explanation),
+    parseSerializedValue(currentQ?.explanation),
     language,
     currentQ
   );
-  const localizedDistractorNotes = Object.entries(currentQ.distractor_notes || {})
+  const localizedDistractorNotes = Object.entries(currentQ?.distractor_notes || {})
     .map(([key, note]) => [key, extractLocalizedDistractorNote(note, language)])
     .filter(([, note]) => note);
 

@@ -5,7 +5,7 @@ import MathRenderer from './MathRenderer';
 const MATCHING_HEADER_REGEX = /(?:स्तंभ|सूची|List|Column)\s*[-–—]?\s*(?:I|1)\b[\s\S]*?(?:स्तंभ|सूची|List|Column)\s*[-–—]?\s*(?:II|2)\b/i;
 
 // Regex for trailing prompt / postamble (English & Hindi)
-const PROMPT_REGEX = /(?:[\.\।]\s+|\n+)(Select the correct|Which of the|Choose the|Correct code|Codes?:?|उपर्युक्त|सही कूट|सही कथन|कूट:?|नीचे दिए गए)[\s\S]*$/i;
+const PROMPT_REGEX = /(?:[.।]\s+|\n+)(Select the correct|Which of the|Choose the|Correct code|Codes?:?|उपर्युक्त|सही कूट|सही कथन|कूट:?|नीचे दिए गए)[\s\S]*$/i;
 
 /**
  * Parses multi-line matching column question with explicit headers (e.g. List-I ... List-II)
@@ -59,7 +59,7 @@ function parseHeaderMatchingTable(text) {
     }
 
     // Try splitting line into two items if on the same line: e.g. "(A) Item A   (1) Item 1"
-    const splitMatch = line.match(/^(\([A-Za-z0-9]+\)[^\(\)]+?)\s+(\([A-Za-z0-9]+\).+)$/);
+    const splitMatch = line.match(/^(\([A-Za-z0-9]+\)[^()]+?)\s+(\([A-Za-z0-9]+\).+)$/);
     if (splitMatch) {
       col1Items.push(splitMatch[1].trim());
       col2Items.push(splitMatch[2].trim());
@@ -151,7 +151,7 @@ function parseInlineMatching(text) {
     const end = (i < group1Tokens.length - 1) ? group1Tokens[i + 1].index : group2Tokens[0].index;
     let itemStr = text.slice(start, end).trim();
     if (i === group1Tokens.length - 1) {
-      itemStr = itemStr.replace(/[\.\।\s]+$/, '');
+      itemStr = itemStr.replace(/[.।\s]+$/, '');
     }
     col1Items.push(itemStr);
   }
@@ -169,7 +169,7 @@ function parseInlineMatching(text) {
       const pMatch = rest.match(PROMPT_REGEX);
       if (pMatch) {
         col2Items.push(rest.slice(0, pMatch.index).trim());
-        postamble = pMatch[0].replace(/^[\.\।\s]+/, '').trim();
+        postamble = pMatch[0].replace(/^[.।\s]+/, '').trim();
       } else {
         col2Items.push(rest);
       }
@@ -197,7 +197,7 @@ function parseInlineMatching(text) {
 function parseStatementQuestion(text) {
   if (!text || typeof text !== 'string') return null;
 
-  const tokenRegex = /(?:\(([1-9ivxlcdm]+)\)|(?<=\s|^)([1-9ivxlcdm]+)\.)(?=\s+[^\s\d\)])/gi;
+  const tokenRegex = /(?:\(([1-9ivxlcdm]+)\)|(?<=\s|^)([1-9ivxlcdm]+)\.)(?=\s+[^\s\d)])/gi;
   let match;
   const tokens = [];
   while ((match = tokenRegex.exec(text)) !== null) {
@@ -231,7 +231,7 @@ function parseStatementQuestion(text) {
           badge: tokens[i].badge,
           text: rest.slice(0, pMatch.index).trim()
         });
-        postamble = pMatch[0].replace(/^[\.\।\s]+/, '').trim();
+        postamble = pMatch[0].replace(/^[.।\s]+/, '').trim();
       } else {
         statements.push({
           badge: tokens[i].badge,

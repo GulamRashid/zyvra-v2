@@ -851,7 +851,11 @@ export default function LiveQuiz() {
 
   // Resume paused test
   const handleResumeTest = () => {
-    if (!remaining || !questions.length) return;
+    if (!questions.length) return;
+    if (remaining <= 0) {
+      submit(true);
+      return;
+    }
     setError(null);
     const endAt = Date.now() + Math.max(10, remaining) * 1000;
     setDeadline(endAt);
@@ -1096,20 +1100,6 @@ export default function LiveQuiz() {
       sessionStorage.removeItem(`zyvra-responses-${attemptId}`);
       localStorage.removeItem(`zyvra-active-state-${attemptId}`);
 
-      try {
-        await supabase
-          .from('test_attempts')
-          .update({
-            status: 'completed',
-            completed_at: new Date().toISOString(),
-            submitted_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', attemptId);
-      } catch (markErr) {
-        console.warn('Completed status update note:', markErr);
-      }
-
       navigate(`/quiz/result/${attemptId}`, { replace: true, state: { returnTo } });
     } catch (submitError) {
       submitLock.current = false;
@@ -1125,16 +1115,28 @@ export default function LiveQuiz() {
   useEffect(() => {
     if (testPhase !== 'active' || !deadline || submitting || pausing) return undefined;
 
-    const interval = window.setInterval(() => {
+    const checkTimer = () => {
       const next = getRemaining(deadline);
       setRemaining(next);
       if (next === 0) {
-        window.clearInterval(interval);
         submit(true);
       }
-    }, 1000);
+    };
 
-    return () => window.clearInterval(interval);
+    checkTimer();
+    const interval = window.setInterval(checkTimer, 1000);
+
+    const handleVisibilitySync = () => {
+      if (document.visibilityState === 'visible') {
+        checkTimer();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilitySync);
+
+    return () => {
+      window.clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilitySync);
+    };
   }, [testPhase, deadline, submitting, pausing, submit]);
 
   const questionId = String(question?.id || question?.question_id || currentIndex);
@@ -1325,23 +1327,43 @@ export default function LiveQuiz() {
     });
 
     try {
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_single_question_feedback', {
-        p_test_id: testId,
-        p_question_id: targetQId,
-        p_selected_option: selected
-      });
-      if (!rpcError && rpcData?.allowed) {
-        const ans = normalizeCorrectAnswer(rpcData.correct_answer, question.options);
+      let res = null;
+      if (attemptId) {
+        const { data: rpcAnswerData, error: rpcAnswerErr } = await supabase.rpc('submit_question_answer', {
+          p_attempt_id: attemptId,
+          p_question_id: targetQId,
+          p_selected_option: selected
+        });
+        if (!rpcAnswerErr && rpcAnswerData?.allowed) {
+          res = rpcAnswerData;
+        }
+      }
+
+      if (!res) {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_single_question_feedback', {
+          p_test_id: testId,
+          p_question_id: targetQId,
+          p_selected_option: selected
+        });
+        if (!rpcError && rpcData?.allowed) {
+          res = rpcData;
+        } else if (rpcError) {
+          throw rpcError;
+        }
+      }
+
+      if (res?.allowed) {
+        const ans = normalizeCorrectAnswer(res.correct_answer, question.options);
         if (ans) {
           question.correct_answer = ans;
           question.correct_option = ans;
           question.answer = ans;
-          if (rpcData.explanation) question.explanation = rpcData.explanation;
-          if (rpcData.distractor_notes) question.distractor_notes = rpcData.distractor_notes;
+          if (res.explanation) question.explanation = res.explanation;
+          if (res.distractor_notes) question.distractor_notes = res.distractor_notes;
           setQuestions((prev) => [...prev]);
         }
       } else {
-        throw rpcError || new Error('Evaluation not allowed.');
+        throw new Error(res?.error || 'Evaluation not allowed.');
       }
     } catch (err) {
       setEvaluationErrors((prev) => ({

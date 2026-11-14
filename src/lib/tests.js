@@ -13,7 +13,9 @@ export function getOptionEntries(options) {
   if (typeof options === 'string') {
     try {
       options = JSON.parse(options);
-    } catch (_) {}
+    } catch {
+      // ignore non-json options string
+    }
   }
   if (Array.isArray(options)) return options.map((option, index) => [String.fromCharCode(65 + index), option]);
   if (options && typeof options === 'object') {
@@ -127,7 +129,7 @@ export function normalizeCorrectAnswer(raw, options = []) {
   }
 
   // 4. Option key prefix like "Option A" or "Option (A)" or "(A)"
-  const prefixMatch = str.match(/^(?:Option\s*)?\(?([A-E])\)?(?:\s*[:.\-]|$)/i);
+  const prefixMatch = str.match(/^(?:Option\s*)?\(?([A-E])\)?(?:\s*[:.-]|$)/i);
   if (prefixMatch) {
     return prefixMatch[1].toUpperCase();
   }
@@ -266,7 +268,7 @@ export function parseImportCsv(text) {
     } else if (typeof obj.options === 'string') {
       try {
         obj.options = JSON.parse(obj.options);
-      } catch (_) {
+      } catch {
         // Validation reports the malformed options value.
       }
     }
@@ -334,7 +336,9 @@ export function sanitizeLiveQuestion(question) {
   if (typeof rawOptions === 'string') {
     try {
       rawOptions = JSON.parse(rawOptions);
-    } catch (_) {}
+    } catch {
+      // ignore non-json options string
+    }
   }
 
   // Handle { en: [...], hi: [...] } parallel arrays

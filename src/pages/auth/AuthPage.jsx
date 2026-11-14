@@ -31,11 +31,17 @@ export default function AuthPage() {
     }
   });
   const inputRefs = useRef([]);
-  const { supabase, enterGuestMode, guestDemoEnabled, configurationError } = useAuth();
+  const { user, loading, supabase, enterGuestMode, guestDemoEnabled, configurationError } = useAuth();
   const { theme, setTheme } = useThemeLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const destination = location.state?.from?.pathname || '/';
+
+  useEffect(() => {
+    if (!loading && user) {
+      navigate(destination, { replace: true });
+    }
+  }, [loading, user, destination, navigate]);
 
   useEffect(() => {
     if (!cooldown) return undefined;

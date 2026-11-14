@@ -14,10 +14,12 @@ export default function AdminSubscriptions() {
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
   const [filterType, setFilterType] = useState('all');
+  const [loadError, setLoadError] = useState('');
 
   const loadGrants = async (active = () => true) => {
     if (!supabase) return;
     setRefreshing(true);
+    setLoadError('');
     try {
       const { data, error } = await supabase
         .from('user_access')
@@ -50,6 +52,10 @@ export default function AdminSubscriptions() {
       }
     } catch (err) {
       console.warn('Error loading subscriptions / user_access:', err.message);
+      if (active()) {
+        setGrants([]);
+        setLoadError('Access grants could not be loaded. Please refresh or check connection.');
+      }
     } finally {
       if (active()) {
         setLoading(false);
@@ -142,6 +148,12 @@ export default function AdminSubscriptions() {
           <RefreshCw size={15} className={refreshing ? 'spin' : ''} /> Refresh
         </button>
       </div>
+
+      {loadError && (
+        <div className="banner error-banner" style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444' }}>
+          <strong>Error:</strong> {loadError}
+        </div>
+      )}
 
       {loading ? (
         <LoadingSkeleton rows={4} />

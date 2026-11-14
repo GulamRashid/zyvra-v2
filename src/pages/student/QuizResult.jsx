@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle, ArrowLeft, ArrowRight, BarChart3, Bookmark, BookOpen,
   Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
   CircleX, Filter, Lightbulb, MinusCircle, RotateCcw, Share2, Target, Trophy
 } from 'lucide-react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import QuestionFormatter from '../../components/common/QuestionFormatter';
 import { useAuth } from '../../context/AuthContext';
@@ -36,7 +36,6 @@ function getLocalizedEnglish(value) {
 
 export default function QuizResult() {
   const { attemptId } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
   const { supabase, refreshAccount } = useAuth();
   const { language: appLanguage } = useThemeLanguage();
@@ -56,11 +55,36 @@ export default function QuizResult() {
   // Solution Explanation Collapsible
   const [explanationExpanded, setExplanationExpanded] = useState(true);
 
+  // Bookmark state
+  const [bookmarked, setBookmarked] = useState(() => {
+    try {
+      const bm = JSON.parse(localStorage.getItem('zyvra_bookmarks') || '[]');
+      return Array.isArray(bm) && bm.some((b) => b.attemptId === attemptId || b.id === attemptId);
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleBookmark = () => {
+    try {
+      const bm = JSON.parse(localStorage.getItem('zyvra_bookmarks') || '[]');
+      const list = Array.isArray(bm) ? bm : [];
+      let next;
+      if (bookmarked) {
+        next = list.filter((b) => b.attemptId !== attemptId && b.id !== attemptId);
+        setBookmarked(false);
+      } else {
+        next = [...list, { id: attemptId, attemptId, title: result?.title || result?.test_title || 'Quiz Result', type: 'test_result', savedAt: new Date().toISOString() }];
+        setBookmarked(true);
+      }
+      localStorage.setItem('zyvra_bookmarks', JSON.stringify(next));
+    } catch (e) {
+      console.warn('Unable to toggle bookmark:', e);
+    }
+  };
+
   // Language for solutions: 'en' | 'hi'
   const [language, setLanguage] = useState(appLanguage || 'en');
-  const [translatedData, setTranslatedData] = useState({});
-  const [translatingSolutionId, setTranslatingSolutionId] = useState('');
-  const inFlightTranslations = useRef(new Map());
 
   // Load Attempt Result from Supabase RPC
   useEffect(() => {
@@ -263,10 +287,11 @@ export default function QuizResult() {
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               type="button"
+              onClick={toggleBookmark}
               className="w-8 h-8 sm:w-9 sm:h-9 rounded-full dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 flex items-center justify-center dark:text-emerald-300 text-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors"
-              aria-label="Bookmark"
+              aria-label={bookmarked ? 'Remove bookmark' : 'Bookmark result'}
             >
-              <Bookmark size={15} />
+              <Bookmark size={15} className={bookmarked ? 'fill-amber-400 text-amber-500' : ''} />
             </button>
             <button
               type="button"

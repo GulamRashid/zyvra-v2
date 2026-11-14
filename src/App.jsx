@@ -6,7 +6,7 @@ import ProtectedRoute from './components/layouts/ProtectedRoute';
 import LoadingSkeleton from './components/common/LoadingSkeleton';
 import QuizErrorBoundary from './components/common/QuizErrorBoundary';
 import PwaInstallBanner from './components/common/PwaInstallBanner';
-import { BookOpen, FileQuestion, ShoppingBag, Bookmark, Bell, Wrench, Users, PackageCheck, CreditCard, Coins, Tag, Activity } from 'lucide-react';
+import { FileQuestion, ShoppingBag, Bookmark, Bell, Wrench } from 'lucide-react';
 
 const AuthPage = lazy(() => import('./pages/auth/AuthPage'));
 const StudentHome = lazy(() => import('./pages/student/StudentHome'));
@@ -40,19 +40,6 @@ const studentPages = {
   '/bookmarks': { title: 'Bookmarks', subtitle: 'Keep important questions and content close.', icon: Bookmark, emptyTitle: 'No bookmarks yet', emptyDescription: 'Save important questions and learning content during your study sessions to review them here.', primaryLabel: 'Start practicing', primaryPath: '/tests' },
   '/notifications': { title: 'Notifications', subtitle: 'Your learning and platform updates.', icon: Bell, emptyTitle: 'You are all caught up', emptyDescription: 'Study reminders, test results, and account updates will appear here when there is something new.', primaryLabel: 'Continue learning', primaryPath: '/' },
   '/toolbox': { title: 'Study toolbox', subtitle: 'Simple tools for a sharper study session.', icon: Wrench, items: ['Math tools', 'Polity quick review', 'Reasoning practice'] }
-};
-const adminPages = {
-  '/admin/content': ['Content Manager', 'Organise exams, chapters, learning content and questions.', BookOpen],
-  '/admin/qbank': ['Question Bank', 'Author, review and organise questions for tests and practice.', FileQuestion],
-  '/admin/tests': ['Test Manager', 'Configure test patterns, scoring and question sequences.', FileQuestion],
-  '/admin/users': ['Users & Access', 'Review learner accounts, roles and verification status.', Users],
-  '/admin/subscriptions': ['Subscriptions', 'Manage plans and subscription access.', PackageCheck],
-  '/admin/orders': ['Orders & Payments', 'Review payment records and order status.', CreditCard],
-  '/admin/coins': ['Zyvra Coins', 'Review coin balances and reward activity.', Coins],
-  '/admin/tools': ['Tools (Toolbox)', 'Manage study utilities and their availability.', Wrench],
-  '/admin/pricing': ['Pricing & Offers', 'Manage product pricing, discounts and offers.', Tag],
-  '/admin/reports': ['Reports & Analytics', 'Understand engagement, learning and revenue trends.', Activity],
-  '/admin/notifications': ['Notifications', 'Prepare platform announcements and learner updates.', Bell]
 };
 
 function StudentPlaceholder({ page }) {
@@ -91,11 +78,6 @@ function StudentPlaceholder({ page }) {
       </div>
     </div>
   );
-}
-
-function AdminPlaceholder({ page }) {
-  const [title, subtitle, Icon] = page;
-  return <div className="admin-placeholder"><div className="page-heading"><div><div className="eyebrow">ADMINISTRATION / MODULE</div><h1>{title}</h1><p>{subtitle}</p></div></div><div className="panel-card placeholder-hero"><div className="placeholder-icon"><Icon size={23} /></div><h2>{title} workspace</h2><p>This module is scaffolded and ready for its management workflows.</p><div className="placeholder-items"><div><span className="placeholder-item-dot" />Overview</div><div><span className="placeholder-item-dot" />Management tools</div><div><span className="placeholder-item-dot" />Recent activity</div></div></div></div>;
 }
 
 function AppRoutes() {

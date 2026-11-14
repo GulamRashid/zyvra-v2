@@ -144,7 +144,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
         amount: orderPaise,
         currency: order.currency || 'INR',
         name: 'ZYVRA',
-        description: `${tier}: ${itemTitle}`,
+        description: `${tier ? `${tier}: ` : ''}${itemTitle || 'Zyvra Learning'}`,
         prefill: { email: user.email },
         theme: { color: '#e4b85f' },
         handler: async (response) => {

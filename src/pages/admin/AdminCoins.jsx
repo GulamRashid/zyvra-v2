@@ -24,6 +24,7 @@ export default function AdminCoins() {
   const [settings, setSettings] = useState({ enabled: true, referrerCoins: 50, referredCoins: 20 });
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsFeedback, setSettingsFeedback] = useState({ text: '', type: '' });
+  const [loadError, setLoadError] = useState('');
 
   // Referrals table
   const [referrals, setReferrals] = useState([]);
@@ -35,6 +36,7 @@ export default function AdminCoins() {
   const loadData = async (active = () => true) => {
     if (!supabase) return;
     setRefreshing(true);
+    setLoadError('');
 
     try {
       // 1. Load referral program settings
@@ -115,6 +117,9 @@ export default function AdminCoins() {
       }
     } catch (err) {
       console.warn('Error loading admin coin data:', err);
+      if (active()) {
+        setLoadError('Coin data could not be loaded. Please refresh or check connection.');
+      }
     } finally {
       if (active()) {
         setLoading(false);
@@ -173,6 +178,12 @@ export default function AdminCoins() {
           <RefreshCw size={15} className={refreshing ? 'spin' : ''} /> Refresh
         </button>
       </div>
+
+      {loadError && (
+        <div className="banner error-banner" style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444' }}>
+          <strong>Error:</strong> {loadError}
+        </div>
+      )}
 
       {loading ? (
         <LoadingSkeleton rows={4} />

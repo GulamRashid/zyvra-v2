@@ -37,8 +37,12 @@ export function AuthProvider({ children }) {
     } else {
       setProfile(profileResult.data);
     }
-    if (walletResult.error && walletResult.error.code !== 'PGRST116') throw walletResult.error;
-    setCoinBalance(Number(walletResult.data?.balance || 0));
+    if (walletResult.error && walletResult.error.code !== 'PGRST116') {
+      console.warn('Unable to load wallet balance:', walletResult.error);
+      setCoinBalance(0);
+    } else {
+      setCoinBalance(Number(walletResult.data?.balance || 0));
+    }
 
     if (profileResult.data && !profileResult.data.referral_code) {
       ensureReferralCode(supabase, userId).then((code) => {
@@ -70,7 +74,13 @@ export function AuthProvider({ children }) {
     let active = true;
     const initialize = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Session hydration timeout')), 8000);
+        });
+        const { data, error } = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise
+        ]);
         if (error) throw error;
         if (!active) return;
         setSession(data.session);
@@ -148,12 +158,13 @@ export function AuthProvider({ children }) {
     return () => { active = false; };
   }, []);
 
-  const enterGuestMode = () => {
+  const enterGuestMode = useCallback(() => {
     if (!guestDemoEnabled) throw new Error('Guest demo access is currently disabled.');
     sessionStorage.setItem('zyvra-guest', 'true');
     setGuest(true);
-  };
-  const signOut = async () => {
+  }, [guestDemoEnabled]);
+
+  const signOut = useCallback(async () => {
     sessionStorage.removeItem('zyvra_active_route');
     sessionStorage.removeItem('zyvra_cm_exam_id');
     sessionStorage.removeItem('zyvra_cm_path_ids');
@@ -167,14 +178,14 @@ export function AuthProvider({ children }) {
     if (!supabase) throw new Error(supabaseConfigurationError);
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
-  };
+  }, [guest]);
   const refreshAccount = useCallback(() => loadAccount(session), [loadAccount, session]);
   const role = profile?.role || (guest ? 'guest' : 'student');
   const value = useMemo(() => ({
-    supabase, session, user: session?.user || null,     profile, profileError, coinBalance, loading, guest,
+    supabase, session, user: session?.user || null, profile, profileError, coinBalance, loading, guest,
     guestDemoEnabled, role, isAdmin: ['admin', 'super_admin'].includes(role),
     enterGuestMode, signOut, refreshAccount, configurationError: supabaseConfigurationError
-  }), [session, profile, coinBalance, loading, guest, guestDemoEnabled, role, loadAccount]);
+  }), [session, profile, profileError, coinBalance, loading, guest, guestDemoEnabled, role, enterGuestMode, signOut, refreshAccount]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
