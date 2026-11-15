@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS public.promotional_banners (
   subtitle TEXT,
   cta_text TEXT DEFAULT 'Explore Now',
   cta_link TEXT NOT NULL DEFAULT '/explore',
+  banner_mode TEXT NOT NULL DEFAULT 'card' CHECK (banner_mode IN ('card', 'full_image')),
   graphic_type TEXT NOT NULL DEFAULT 'preset' CHECK (graphic_type IN ('preset', 'custom')),
   preset_icon TEXT NOT NULL DEFAULT 'target',
   custom_image_url TEXT,
@@ -18,6 +19,10 @@ CREATE TABLE IF NOT EXISTS public.promotional_banners (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Ensure banner_mode exists if table was previously created
+ALTER TABLE public.promotional_banners
+  ADD COLUMN IF NOT EXISTS banner_mode TEXT NOT NULL DEFAULT 'card';
 
 -- Index for ordering active banners
 CREATE INDEX IF NOT EXISTS idx_promotional_banners_active_order

@@ -1,19 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
-  Sparkles,
-  Calendar,
-  Coins,
   ArrowRight,
-  CheckCircle2,
-  Share2,
   Target,
   Trophy,
   Rocket,
-  Flame
+  Coins,
+  Flame,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import DailyChallengeModal from '../common/DailyChallengeModal';
 
 const PRESET_ICONS = {
   target: { Icon: Target, color: 'text-indigo-400 bg-indigo-500/15 border-indigo-500/30' },
@@ -23,31 +20,30 @@ const PRESET_ICONS = {
   sale: { Icon: Flame, color: 'text-orange-400 bg-orange-500/15 border-orange-500/30' }
 };
 
-export default function HeroCarousel({ onOpenReferral }) {
+const DEFAULT_BANNER = {
+  id: 'default-course-banner',
+  badge_text: 'ALL EXAMS SYLLABUS',
+  title: 'Target Your Exam With Structured Study Modules',
+  subtitle: 'Chapter notes, high-yield practice questions, and timed mock tests designed for rankers.',
+  cta_text: 'Explore Exams',
+  cta_link: '/explore',
+  banner_mode: 'card',
+  graphic_type: 'preset',
+  preset_icon: 'target'
+};
+
+export default function HeroCarousel() {
+  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [banners, setBanners] = useState([]);
-  const [qotdData, setQotdData] = useState(null);
-  const [isQotdModalOpen, setIsQotdModalOpen] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
 
   // Touch swipe support
   const touchStartXRef = useRef(0);
   const touchEndXRef = useRef(0);
+  const isSwipingRef = useRef(false);
 
-  // 1. Fetch Question of the Day status
-  const fetchQotd = useCallback(async () => {
-    if (!supabase) return;
-    try {
-      const { data, error } = await supabase.rpc('get_today_daily_challenge');
-      if (!error && data) {
-        setQotdData(data);
-      }
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  // 2. Fetch Active Promotional Banners
+  // Fetch Active Promotional Banners strictly from Supabase
   const fetchBanners = useCallback(async () => {
     if (!supabase) return;
     try {
@@ -58,21 +54,24 @@ export default function HeroCarousel({ onOpenReferral }) {
         .order('display_order', { ascending: true })
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
+      if (!error && data && data.length > 0) {
         setBanners(data);
+      } else {
+        setBanners([]);
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('Failed to load promotional banners:', err);
+      setBanners([]);
     }
   }, []);
 
   useEffect(() => {
-    fetchQotd();
     fetchBanners();
-  }, [fetchQotd, fetchBanners]);
+  }, [fetchBanners]);
 
-  // Total slides = 1 (QotD) + banners.length + 1 (Refer & Earn)
-  const totalSlides = 1 + banners.length + 1;
+  // Slides array: use active banners from DB or fallback default banner
+  const slides = banners.length > 0 ? banners : [DEFAULT_BANNER];
+  const totalSlides = slides.length;
 
   // Auto-advance timer (5 seconds)
   useEffect(() => {
@@ -88,256 +87,195 @@ export default function HeroCarousel({ onOpenReferral }) {
   // Touch Swipe Handlers
   const handleTouchStart = (e) => {
     touchStartXRef.current = e.targetTouches[0].clientX;
+    touchEndXRef.current = e.targetTouches[0].clientX;
+    isSwipingRef.current = false;
     setIsPaused(true);
   };
 
   const handleTouchMove = (e) => {
     touchEndXRef.current = e.targetTouches[0].clientX;
+    if (Math.abs(touchStartXRef.current - touchEndXRef.current) > 10) {
+      isSwipingRef.current = true;
+    }
   };
 
   const handleTouchEnd = () => {
     setIsPaused(false);
     const delta = touchStartXRef.current - touchEndXRef.current;
     if (delta > 45) {
-      // Swipe left -> Next slide
+      // Swiped left -> next slide
       setCurrentSlide((prev) => (prev + 1) % totalSlides);
     } else if (delta < -45) {
-      // Swipe right -> Prev slide
+      // Swiped right -> prev slide
       setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
+    }
+    setTimeout(() => {
+      isSwipingRef.current = false;
+    }, 50);
+  };
+
+  // Full-Banner Click Redirect
+  const handleBannerClick = (banner) => {
+    if (isSwipingRef.current) return;
+    const link = banner?.cta_link || '/explore';
+    if (link.startsWith('http://') || link.startsWith('https://')) {
+      window.open(link, '_blank', 'noopener,noreferrer');
+    } else {
+      navigate(link);
     }
   };
 
-  // Called when student finishes daily challenge
-  const handleChallengeCompleted = (result) => {
-    setQotdData((prev) => ({
-      ...prev,
-      attempted: true,
-      attempt: {
-        is_correct: result.is_correct,
-        coins_awarded: result.coins_awarded
-      }
-    }));
-  };
+  const activeBanner = slides[currentSlide] || slides[0];
+  const isFullImage = activeBanner.banner_mode === 'full_image' && Boolean(activeBanner.custom_image_url);
+  const presetObj = PRESET_ICONS[activeBanner.preset_icon] || PRESET_ICONS.target;
+  const PresetIcon = presetObj.Icon;
 
   return (
-    <>
-      <div
-        className="relative overflow-hidden rounded-3xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 shadow-md transition-colors select-none h-[155px] sm:h-[165px]"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-      >
-        {/* Subtle Tech / Geometric SVG Grid Pattern in background */}
-        <div className="absolute inset-0 opacity-[0.04] dark:opacity-[0.08] pointer-events-none">
-          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="hero-grid" width="24" height="24" patternUnits="userSpaceOnUse">
-                <path d="M 24 0 L 0 0 0 24" fill="none" stroke="currentColor" strokeWidth="1" />
-              </pattern>
-            </defs>
-            <rect width="100%" height="100%" fill="url(#hero-grid)" />
-          </svg>
+    <div
+      role="link"
+      tabIndex={0}
+      aria-label={activeBanner.title || 'Promotional Banner'}
+      onClick={() => handleBannerClick(activeBanner)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleBannerClick(activeBanner);
+        }
+      }}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      className="group relative overflow-hidden rounded-2xl w-full h-[165px] sm:h-[185px] md:h-[220px] lg:h-[235px] cursor-pointer select-none transition-all duration-300 shadow-md hover:shadow-xl dark:shadow-indigo-950/40 border dark:border-indigo-500/25 border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+    >
+      {/* FULL-BLEED IMAGE BANNER MODE */}
+      {isFullImage ? (
+        <div className="relative w-full h-full bg-slate-900 overflow-hidden">
+          <img
+            src={activeBanner.custom_image_url}
+            alt={activeBanner.title || 'Promotional banner'}
+            className="w-full h-full object-cover object-center group-hover:scale-[1.02] transition-transform duration-500 ease-out"
+          />
+          {/* Subtle bottom gradient to ensure pagination dots are always visible */}
+          {totalSlides > 1 && (
+            <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/50 via-black/20 to-transparent pointer-events-none" />
+          )}
         </div>
+      ) : (
+        /* TEXT + ICON CARD BANNER MODE */
+        <div className="relative w-full h-full dark:bg-gradient-to-br dark:from-[#1E293B] dark:via-[#0F172A] dark:to-[#0B1120] bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white p-4 sm:p-6 md:p-8 flex items-center justify-between gap-4 overflow-hidden">
+          {/* Subtle Tech / Geometric SVG Grid Pattern in background */}
+          <div className="absolute inset-0 opacity-10 pointer-events-none">
+            <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <pattern id="promo-grid" width="28" height="28" patternUnits="userSpaceOnUse">
+                  <path d="M 28 0 L 0 0 0 28" fill="none" stroke="currentColor" strokeWidth="1" />
+                </pattern>
+              </defs>
+              <rect width="100%" height="100%" fill="url(#promo-grid)" />
+            </svg>
+          </div>
 
-        {/* Ambient Gradient Corner Glow */}
-        <div className="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-gradient-to-br from-indigo-500/20 to-amber-500/10 blur-2xl pointer-events-none" />
+          {/* Ambient Corner Glow */}
+          <div className="absolute -top-16 -right-16 w-52 h-52 rounded-full bg-gradient-to-br from-indigo-500/30 to-amber-500/20 blur-3xl pointer-events-none" />
 
-        {/* Slide Viewport */}
-        <div className="relative z-10 h-full p-4 sm:p-5 flex flex-col justify-between">
-          {/* SLIDE 0: Question of the Day (QotD) */}
-          {currentSlide === 0 && (
-            <div className="flex items-center justify-between gap-3 h-full">
-              <div className="space-y-1.5 max-w-sm sm:max-w-md min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                    <Sparkles size={11} />
-                    <span>DAILY CHALLENGE</span>
-                  </span>
-                  <span className="text-[10px] font-bold text-amber-500 dark:text-amber-400 flex items-center gap-0.5">
-                    <Coins size={12} />
-                    <span>+{qotdData?.reward_coins || 10} Coins</span>
-                  </span>
-                </div>
+          {/* Left Text Content */}
+          <div className="relative z-10 max-w-sm sm:max-w-md md:max-w-lg lg:max-w-xl flex flex-col justify-between h-full py-0.5">
+            <div className="space-y-1 sm:space-y-2">
+              {activeBanner.badge_text && (
+                <span className="inline-flex items-center text-[10px] sm:text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 shadow-xs">
+                  {activeBanner.badge_text}
+                </span>
+              )}
 
-                <h2 className="text-sm sm:text-base font-black dark:text-white text-slate-900 tracking-tight leading-tight line-clamp-1">
-                  {qotdData?.attempted
-                    ? "Today's Challenge Completed!"
-                    : "Question of the Day"}
-                </h2>
+              <h2 className="text-base sm:text-xl md:text-2xl font-black text-white tracking-tight leading-snug line-clamp-2 drop-shadow-sm">
+                {activeBanner.title}
+              </h2>
 
-                <p className="text-xs dark:text-slate-300 text-slate-600 line-clamp-1 font-medium">
-                  {qotdData?.attempted
-                    ? (qotdData.attempt?.is_correct
-                        ? `🎉 Answered correctly (+${qotdData.attempt?.coins_awarded || 10} Coins earned). Tap to review.`
-                        : "Attempted. Review the solution and explanations.")
-                    : (qotdData?.question?.subject
-                        ? `${qotdData.question.subject}: ${qotdData.question.question_text?.slice(0, 70)}...`
-                        : "Test your skills with today's challenge and earn bonus coins.")}
+              {activeBanner.subtitle && (
+                <p className="text-xs sm:text-sm text-slate-300 line-clamp-2 font-medium max-w-md">
+                  {activeBanner.subtitle}
                 </p>
-
-                <div className="pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setIsQotdModalOpen(true)}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl font-black text-xs transition-all active:scale-95 shadow-sm ${
-                      qotdData?.attempted
-                        ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40'
-                        : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_15px_rgba(79,70,229,0.35)]'
-                    }`}
-                  >
-                    {qotdData?.attempted ? (
-                      <>
-                        <CheckCircle2 size={13} className="text-emerald-400" />
-                        <span>Review Solution</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Solve Now</span>
-                        <ArrowRight size={13} />
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Right Hero Graphic */}
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl dark:bg-[#0F172A] bg-slate-50 border dark:border-slate-700/80 border-slate-200 flex items-center justify-center shrink-0 p-2 shadow-inner">
-                {qotdData?.attempted ? (
-                  <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-400 animate-pulse" />
-                ) : (
-                  <Calendar className="w-8 h-8 sm:w-10 sm:h-10 text-amber-400" />
-                )}
-              </div>
+              )}
             </div>
-          )}
 
-          {/* SLIDES 1 to N: Dynamic Promotional Banners */}
-          {currentSlide > 0 && currentSlide <= banners.length && (() => {
-            const banner = banners[currentSlide - 1];
-            if (!banner) return null;
-
-            const presetObj = PRESET_ICONS[banner.preset_icon] || PRESET_ICONS.target;
-            const PresetIcon = presetObj.Icon;
-
-            return (
-              <div className="flex items-center justify-between gap-3 h-full">
-                <div className="space-y-1.5 max-w-sm sm:max-w-md min-w-0">
-                  <span className="inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                    {banner.badge_text || 'PROMO'}
-                  </span>
-
-                  <h2 className="text-sm sm:text-base font-black dark:text-white text-slate-900 tracking-tight leading-tight line-clamp-1">
-                    {banner.title}
-                  </h2>
-
-                  {banner.subtitle && (
-                    <p className="text-xs dark:text-slate-300 text-slate-600 line-clamp-1 font-medium">
-                      {banner.subtitle}
-                    </p>
-                  )}
-
-                  <div className="pt-0.5">
-                    <Link
-                      to={banner.cta_link || '/explore'}
-                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs transition-all active:scale-95 shadow-[0_0_15px_rgba(79,70,229,0.35)]"
-                    >
-                      <span>{banner.cta_text || 'Explore Now'}</span>
-                      <ArrowRight size={13} />
-                    </Link>
-                  </div>
-                </div>
-
-                {/* Right Hero Graphic */}
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl dark:bg-[#0F172A] bg-slate-50 border dark:border-slate-700/80 border-slate-200 flex items-center justify-center shrink-0 p-2 shadow-inner">
-                  {banner.graphic_type === 'custom' && banner.custom_image_url ? (
-                    <img
-                      src={banner.custom_image_url}
-                      alt=""
-                      className="w-full h-full object-contain"
-                    />
-                  ) : (
-                    <PresetIcon className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-400" />
-                  )}
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* FINAL SLIDE: Refer & Earn Modal Trigger */}
-          {currentSlide === totalSlides - 1 && (
-            <div className="flex items-center justify-between gap-3 h-full">
-              <div className="space-y-1.5 max-w-sm sm:max-w-md min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                    <Coins size={11} />
-                    <span>REFER & EARN</span>
-                  </span>
-                  <span className="text-[10px] font-bold text-amber-400">
-                    +50 Coins per friend
-                  </span>
-                </div>
-
-                <h2 className="text-sm sm:text-base font-black dark:text-white text-slate-900 tracking-tight leading-tight line-clamp-1">
-                  Invite Friends & Learn Together
-                </h2>
-
-                <p className="text-xs dark:text-slate-300 text-slate-600 line-clamp-1 font-medium">
-                  Share your link with fellow exam aspirants. You both get rewarded instantly!
-                </p>
-
-                <div className="pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onOpenReferral) {
-                        onOpenReferral();
-                      } else {
-                        window.location.href = '/profile';
-                      }
-                    }}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black font-black text-xs transition-all active:scale-95 shadow-md"
-                  >
-                    <Share2 size={12} strokeWidth={2.5} />
-                    <span>Share Invite Link</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Right Hero Graphic */}
-              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl dark:bg-[#0F172A] bg-slate-50 border dark:border-slate-700/80 border-slate-200 flex items-center justify-center shrink-0 p-2 shadow-inner">
-                <Coins className="w-8 h-8 sm:w-10 sm:h-10 text-amber-400 animate-bounce" />
-              </div>
+            {/* Clickable CTA Pill */}
+            <div className="pt-2">
+              <span className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-indigo-600 group-hover:bg-indigo-500 text-white font-black text-xs sm:text-sm transition-all shadow-[0_0_15px_rgba(79,70,229,0.4)]">
+                <span>{activeBanner.cta_text || 'Explore Now'}</span>
+                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              </span>
             </div>
-          )}
+          </div>
 
-          {/* Bottom Pagination Dots */}
-          <div className="flex items-center justify-center gap-1.5 pt-1">
-            {Array.from({ length: totalSlides }).map((_, idx) => (
-              <button
-                key={idx}
-                type="button"
-                aria-label={`Slide ${idx + 1}`}
-                onClick={() => setCurrentSlide(idx)}
-                className={`transition-all duration-300 rounded-full h-1.5 ${
-                  currentSlide === idx
-                    ? 'w-6 bg-indigo-500 dark:bg-white shadow-sm'
-                    : 'w-1.5 dark:bg-slate-700 bg-slate-300 hover:bg-indigo-400'
-                }`}
+          {/* Right Hero Graphic / Icon */}
+          <div className="relative z-10 w-20 h-20 sm:w-28 sm:h-28 md:w-36 md:h-36 rounded-2xl dark:bg-slate-900/60 bg-white/10 border border-white/10 backdrop-blur-sm flex items-center justify-center shrink-0 p-2 shadow-inner group-hover:scale-105 transition-transform duration-300">
+            {activeBanner.graphic_type === 'custom' && activeBanner.custom_image_url ? (
+              <img
+                src={activeBanner.custom_image_url}
+                alt=""
+                className="max-w-full max-h-full object-contain filter drop-shadow-md"
               />
-            ))}
+            ) : (
+              <PresetIcon className="w-10 h-10 sm:w-14 sm:h-14 md:w-16 md:h-16 text-indigo-400 drop-shadow-[0_0_12px_rgba(99,102,241,0.5)]" />
+            )}
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Daily Challenge Interactive Modal */}
-      <DailyChallengeModal
-        isOpen={isQotdModalOpen}
-        onClose={() => setIsQotdModalOpen(false)}
-        initialChallenge={qotdData}
-        onChallengeCompleted={handleChallengeCompleted}
-      />
-    </>
+      {/* Manual Prev / Next arrows for desktop hover */}
+      {totalSlides > 1 && (
+        <>
+          <button
+            type="button"
+            aria-label="Previous Banner"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
+            }}
+            className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 backdrop-blur-xs border border-white/15"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <button
+            type="button"
+            aria-label="Next Banner"
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentSlide((prev) => (prev + 1) % totalSlides);
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-20 backdrop-blur-xs border border-white/15"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </>
+      )}
+
+      {/* Subtle Pagination Dots */}
+      {totalSlides > 1 && (
+        <div
+          className="absolute bottom-2.5 sm:bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {slides.map((_, idx) => (
+            <button
+              key={idx}
+              type="button"
+              aria-label={`Go to slide ${idx + 1}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCurrentSlide(idx);
+              }}
+              className={`transition-all duration-300 rounded-full h-1.5 ${
+                currentSlide === idx
+                  ? 'w-6 bg-white shadow-sm'
+                  : 'w-1.5 bg-white/40 hover:bg-white/70'
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

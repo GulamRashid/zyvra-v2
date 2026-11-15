@@ -55,6 +55,7 @@ export default function AdminEngagement() {
     subtitle: '',
     cta_text: 'Explore Now',
     cta_link: '/explore',
+    banner_mode: 'card',
     graphic_type: 'preset',
     preset_icon: 'target',
     custom_image_url: '',
@@ -198,6 +199,7 @@ export default function AdminEngagement() {
       subtitle: '',
       cta_text: 'Explore Now',
       cta_link: '/explore',
+      banner_mode: 'card',
       graphic_type: 'preset',
       preset_icon: 'target',
       custom_image_url: '',
@@ -216,6 +218,7 @@ export default function AdminEngagement() {
       subtitle: banner.subtitle || '',
       cta_text: banner.cta_text || 'Explore Now',
       cta_link: banner.cta_link || '/explore',
+      banner_mode: banner.banner_mode || 'card',
       graphic_type: banner.graphic_type || 'preset',
       preset_icon: banner.preset_icon || 'target',
       custom_image_url: banner.custom_image_url || '',
@@ -233,10 +236,13 @@ export default function AdminEngagement() {
     setBannerError('');
     setBannerUploading(true);
     try {
+      const isFullImage = bannerForm.banner_mode === 'full_image';
       const result = await uploadAsset(file, {
         folder: 'banners',
-        allowedExtensions: ['svg', 'png', 'webp', 'jpg', 'jpeg'],
-        maxSizeBytes: 800 * 1024 // 800 KB max for banner graphics
+        allowedExtensions: isFullImage
+          ? ['png', 'webp', 'jpg', 'jpeg']
+          : ['svg', 'png', 'webp', 'jpg', 'jpeg'],
+        maxSizeBytes: isFullImage ? 1500 * 1024 : 800 * 1024
       });
       setBannerForm((prev) => ({
         ...prev,
@@ -262,18 +268,25 @@ export default function AdminEngagement() {
       return;
     }
 
+    const isFullImage = bannerForm.banner_mode === 'full_image';
+    if (isFullImage && !bannerForm.custom_image_url) {
+      setBannerError('Please upload a banner image for Full Banner Image mode.');
+      return;
+    }
+
     setBannerSaving(true);
     setBannerError('');
     try {
       const payload = {
-        badge_text: bannerForm.badge_text.trim(),
+        badge_text: isFullImage ? (bannerForm.badge_text?.trim() || '') : bannerForm.badge_text.trim(),
         title: bannerForm.title.trim(),
-        subtitle: bannerForm.subtitle.trim(),
-        cta_text: bannerForm.cta_text.trim(),
+        subtitle: isFullImage ? '' : bannerForm.subtitle.trim(),
+        cta_text: bannerForm.cta_text.trim() || 'Explore Now',
         cta_link: bannerForm.cta_link.trim(),
-        graphic_type: bannerForm.graphic_type,
+        banner_mode: bannerForm.banner_mode || 'card',
+        graphic_type: isFullImage ? 'custom' : bannerForm.graphic_type,
         preset_icon: bannerForm.preset_icon,
-        custom_image_url: bannerForm.graphic_type === 'custom' ? bannerForm.custom_image_url : null,
+        custom_image_url: (isFullImage || bannerForm.graphic_type === 'custom') ? bannerForm.custom_image_url : null,
         is_active: bannerForm.is_active,
         display_order: Number(bannerForm.display_order) || 0,
         updated_at: new Date().toISOString()
@@ -503,9 +516,16 @@ export default function AdminEngagement() {
                     <div>
                       {/* Top Row: Badge & Status */}
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                          {banner.badge_text || 'PROMO'}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {banner.badge_text && (
+                            <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                              {banner.badge_text}
+                            </span>
+                          )}
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full dark:bg-slate-800 bg-slate-100 text-slate-400 border dark:border-slate-700 border-slate-300">
+                            {banner.banner_mode === 'full_image' ? '🖼️ Full Banner' : '📝 Card'}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-1.5">
                           <button
                             type="button"
@@ -529,7 +549,7 @@ export default function AdminEngagement() {
                           <h3 className="text-sm font-black dark:text-white text-slate-900 leading-snug line-clamp-2">
                             {banner.title}
                           </h3>
-                          {banner.subtitle && (
+                          {banner.subtitle && banner.banner_mode !== 'full_image' && (
                             <p className="text-xs dark:text-slate-400 text-slate-600 mt-1 line-clamp-2">
                               {banner.subtitle}
                             </p>
@@ -540,17 +560,27 @@ export default function AdminEngagement() {
                         </div>
 
                         {/* Graphic Icon / Image */}
-                        <div className="w-12 h-12 rounded-2xl dark:bg-[#0F172A] bg-slate-100 border dark:border-slate-700 border-slate-200 flex items-center justify-center shrink-0 p-1.5 shadow-inner">
-                          {banner.graphic_type === 'custom' && banner.custom_image_url ? (
+                        {banner.banner_mode === 'full_image' && banner.custom_image_url ? (
+                          <div className="w-20 h-12 rounded-xl dark:bg-[#0F172A] bg-slate-100 border dark:border-slate-700 border-slate-200 overflow-hidden shrink-0 shadow-inner">
                             <img
                               src={banner.custom_image_url}
                               alt=""
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-cover"
                             />
-                          ) : (
-                            <PresetIcon size={22} className={presetObj.color.split(' ')[0]} />
-                          )}
-                        </div>
+                          </div>
+                        ) : (
+                          <div className="w-12 h-12 rounded-2xl dark:bg-[#0F172A] bg-slate-100 border dark:border-slate-700 border-slate-200 flex items-center justify-center shrink-0 p-1.5 shadow-inner">
+                            {banner.graphic_type === 'custom' && banner.custom_image_url ? (
+                              <img
+                                src={banner.custom_image_url}
+                                alt=""
+                                className="w-full h-full object-contain"
+                              />
+                            ) : (
+                              <PresetIcon size={22} className={presetObj.color.split(' ')[0]} />
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -872,61 +902,64 @@ export default function AdminEngagement() {
             )}
 
             <form onSubmit={handleSaveBanner} className="space-y-3.5">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
-                    Badge Tag (e.g. NEW MOCK, OFFER)
-                  </label>
-                  <input
-                    type="text"
-                    value={bannerForm.badge_text}
-                    onChange={(e) => setBannerForm({ ...bannerForm, badge_text: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
+              {/* Banner Layout Mode Toggle */}
+              <div>
+                <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1.5">
+                  Banner Layout Mode *
+                </label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setBannerForm({ ...bannerForm, banner_mode: 'full_image' })}
+                    className={`p-3 rounded-2xl border text-left transition-all ${
+                      bannerForm.banner_mode === 'full_image'
+                        ? 'dark:bg-indigo-600/25 bg-indigo-50 border-indigo-500 text-indigo-400 shadow-sm ring-1 ring-indigo-500'
+                        : 'dark:bg-slate-900 bg-slate-50 dark:border-slate-800 border-slate-200 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span className="block text-xs font-black dark:text-white text-slate-900">
+                      🖼️ Full Banner Image
+                    </span>
+                    <span className="block text-[10px] text-slate-400 mt-0.5 leading-snug">
+                      800×320 px (5:2 ratio) — entire image is clickable
+                    </span>
+                  </button>
 
-                <div>
-                  <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
-                    Display Order
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={bannerForm.display_order}
-                    onChange={(e) => setBannerForm({ ...bannerForm, display_order: Number(e.target.value) })}
-                    className="w-full px-3 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setBannerForm({ ...bannerForm, banner_mode: 'card' })}
+                    className={`p-3 rounded-2xl border text-left transition-all ${
+                      bannerForm.banner_mode === 'card'
+                        ? 'dark:bg-indigo-600/25 bg-indigo-50 border-indigo-500 text-indigo-400 shadow-sm ring-1 ring-indigo-500'
+                        : 'dark:bg-slate-900 bg-slate-50 dark:border-slate-800 border-slate-200 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <span className="block text-xs font-black dark:text-white text-slate-900">
+                      📝 Text + Icon Card
+                    </span>
+                    <span className="block text-[10px] text-slate-400 mt-0.5 leading-snug">
+                      Title, subtitle, CTA pill & 200×200 px SVG/icon graphic
+                    </span>
+                  </button>
                 </div>
               </div>
 
+              {/* Title Input */}
               <div>
                 <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
-                  Banner Title *
+                  {bannerForm.banner_mode === 'full_image' ? 'Banner Name / Alt Text *' : 'Banner Title *'}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. UPSC Prelims 2026 Test Series is Live!"
+                  placeholder={bannerForm.banner_mode === 'full_image' ? 'e.g. UPSC Prelims 2026 Test Series' : 'e.g. UPSC Prelims 2026 Test Series is Live!'}
                   value={bannerForm.title}
                   onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
                   className="w-full px-3 py-2 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
-              <div>
-                <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
-                  Subtitle / Description
-                </label>
-                <textarea
-                  rows="2"
-                  placeholder="e.g. Full-length mock tests with bilingual solutions and rank prediction."
-                  value={bannerForm.subtitle}
-                  onChange={(e) => setBannerForm({ ...bannerForm, subtitle: e.target.value })}
-                  className="w-full px-3 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-medium dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              {/* Call to Action Link & Presets */}
+              {/* Destination Link */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block">
@@ -946,7 +979,7 @@ export default function AdminEngagement() {
                     </button>
                   ))}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className={bannerForm.banner_mode === 'full_image' ? 'w-full' : 'grid grid-cols-2 gap-2'}>
                   <input
                     type="text"
                     required
@@ -955,89 +988,212 @@ export default function AdminEngagement() {
                     onChange={(e) => setBannerForm({ ...bannerForm, cta_link: e.target.value })}
                     className="w-full px-3 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
                   />
-                  <input
-                    type="text"
-                    placeholder="Button Text (e.g. Explore Now)"
-                    value={bannerForm.cta_text}
-                    onChange={(e) => setBannerForm({ ...bannerForm, cta_text: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
-                  />
+                  {bannerForm.banner_mode !== 'full_image' && (
+                    <input
+                      type="text"
+                      placeholder="Button Text (e.g. Explore Now)"
+                      value={bannerForm.cta_text}
+                      onChange={(e) => setBannerForm({ ...bannerForm, cta_text: e.target.value })}
+                      className="w-full px-3 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
+                    />
+                  )}
                 </div>
               </div>
 
-              {/* Graphic Type: Preset vs Custom */}
-              <div className="space-y-2 pt-1 border-t dark:border-slate-800 border-slate-200">
-                <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block">
-                  Graphic Style
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <label
-                    className={`p-2.5 rounded-xl border cursor-pointer flex items-center gap-2 ${
-                      bannerForm.graphic_type === 'preset'
-                        ? 'dark:bg-indigo-600/20 border-indigo-500 text-white'
-                        : 'dark:bg-slate-900 bg-slate-50 dark:border-slate-700 border-slate-300 text-slate-400'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="graphic_type"
-                      value="preset"
-                      checked={bannerForm.graphic_type === 'preset'}
-                      onChange={() => setBannerForm({ ...bannerForm, graphic_type: 'preset' })}
-                      className="accent-indigo-500"
-                    />
-                    <span className="text-xs font-bold">Glowing SVG Preset</span>
-                  </label>
+              {/* CARD MODE SPECIFIC FIELDS */}
+              {bannerForm.banner_mode === 'card' && (
+                <>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
+                        Badge Tag (e.g. NEW MOCK, OFFER)
+                      </label>
+                      <input
+                        type="text"
+                        value={bannerForm.badge_text}
+                        onChange={(e) => setBannerForm({ ...bannerForm, badge_text: e.target.value })}
+                        className="w-full px-3 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
 
-                  <label
-                    className={`p-2.5 rounded-xl border cursor-pointer flex items-center gap-2 ${
-                      bannerForm.graphic_type === 'custom'
-                        ? 'dark:bg-indigo-600/20 border-indigo-500 text-white'
-                        : 'dark:bg-slate-900 bg-slate-50 dark:border-slate-700 border-slate-300 text-slate-400'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="graphic_type"
-                      value="custom"
-                      checked={bannerForm.graphic_type === 'custom'}
-                      onChange={() => setBannerForm({ ...bannerForm, graphic_type: 'custom' })}
-                      className="accent-indigo-500"
-                    />
-                    <span className="text-xs font-bold">Custom Uploaded Graphic</span>
-                  </label>
-                </div>
-
-                {bannerForm.graphic_type === 'preset' ? (
-                  <div className="flex gap-2 pt-1">
-                    {PRESET_ICONS.map((p) => {
-                      const IconComponent = p.Icon;
-                      const isSelected = bannerForm.preset_icon === p.id;
-
-                      return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setBannerForm({ ...bannerForm, preset_icon: p.id })}
-                          className={`flex-1 p-2 rounded-xl border flex flex-col items-center gap-1 transition-all ${
-                            isSelected
-                              ? 'dark:bg-indigo-600/30 border-indigo-500 text-white shadow-sm'
-                              : 'dark:bg-slate-900 bg-slate-50 dark:border-slate-800 border-slate-200 text-slate-400 hover:text-white'
-                          }`}
-                        >
-                          <IconComponent size={20} className={p.color.split(' ')[0]} />
-                          <span className="text-[10px] font-bold">{p.label.split(' ')[0]}</span>
-                        </button>
-                      );
-                    })}
+                    <div>
+                      <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
+                        Display Order
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={bannerForm.display_order}
+                        onChange={(e) => setBannerForm({ ...bannerForm, display_order: Number(e.target.value) })}
+                        className="w-full px-3 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
                   </div>
-                ) : (
+
+                  <div>
+                    <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
+                      Subtitle / Description
+                    </label>
+                    <textarea
+                      rows="2"
+                      placeholder="e.g. Full-length mock tests with bilingual solutions and rank prediction."
+                      value={bannerForm.subtitle}
+                      onChange={(e) => setBannerForm({ ...bannerForm, subtitle: e.target.value })}
+                      className="w-full px-3 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-medium dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  {/* Graphic Type: Preset vs Custom */}
+                  <div className="space-y-2 pt-1 border-t dark:border-slate-800 border-slate-200">
+                    <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block">
+                      Card Graphic Style
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <label
+                        className={`p-2.5 rounded-xl border cursor-pointer flex items-center gap-2 ${
+                          bannerForm.graphic_type === 'preset'
+                            ? 'dark:bg-indigo-600/20 border-indigo-500 text-white'
+                            : 'dark:bg-slate-900 bg-slate-50 dark:border-slate-700 border-slate-300 text-slate-400'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="graphic_type"
+                          value="preset"
+                          checked={bannerForm.graphic_type === 'preset'}
+                          onChange={() => setBannerForm({ ...bannerForm, graphic_type: 'preset' })}
+                          className="accent-indigo-500"
+                        />
+                        <span className="text-xs font-bold">Glowing SVG Preset</span>
+                      </label>
+
+                      <label
+                        className={`p-2.5 rounded-xl border cursor-pointer flex items-center gap-2 ${
+                          bannerForm.graphic_type === 'custom'
+                            ? 'dark:bg-indigo-600/20 border-indigo-500 text-white'
+                            : 'dark:bg-slate-900 bg-slate-50 dark:border-slate-700 border-slate-300 text-slate-400'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="graphic_type"
+                          value="custom"
+                          checked={bannerForm.graphic_type === 'custom'}
+                          onChange={() => setBannerForm({ ...bannerForm, graphic_type: 'custom' })}
+                          className="accent-indigo-500"
+                        />
+                        <span className="text-xs font-bold">Custom Uploaded Graphic</span>
+                      </label>
+                    </div>
+
+                    {bannerForm.graphic_type === 'preset' ? (
+                      <div className="flex gap-2 pt-1">
+                        {PRESET_ICONS.map((p) => {
+                          const IconComponent = p.Icon;
+                          const isSelected = bannerForm.preset_icon === p.id;
+
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => setBannerForm({ ...bannerForm, preset_icon: p.id })}
+                              className={`flex-1 p-2 rounded-xl border flex flex-col items-center gap-1 transition-all ${
+                                isSelected
+                                  ? 'dark:bg-indigo-600/30 border-indigo-500 text-white shadow-sm'
+                                  : 'dark:bg-slate-900 bg-slate-50 dark:border-slate-800 border-slate-200 text-slate-400 hover:text-white'
+                              }`}
+                            >
+                              <IconComponent size={20} className={p.color.split(' ')[0]} />
+                              <span className="text-[10px] font-bold">{p.label.split(' ')[0]}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="file"
+                            ref={bannerFileInputRef}
+                            accept=".svg,.png,.webp,image/svg+xml,image/png,image/webp"
+                            onChange={handleCustomImageUpload}
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            disabled={bannerUploading}
+                            onClick={() => bannerFileInputRef.current?.click()}
+                            className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5"
+                          >
+                            {bannerUploading ? (
+                              <>
+                                <RefreshCw size={13} className="animate-spin" />
+                                <span>Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload size={13} />
+                                <span>Upload SVG/Image</span>
+                              </>
+                            )}
+                          </button>
+
+                          {bannerForm.custom_image_url && (
+                            <div className="w-10 h-10 rounded-xl dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 p-1 flex items-center justify-center shrink-0">
+                              <img
+                                src={bannerForm.custom_image_url}
+                                alt=""
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
+                          )}
+                        </div>
+
+                        <UploadGuide
+                          formats=".svg (vector), .png, .webp"
+                          dimensions="200×200 px (1:1 Square)"
+                          maxSize="Max 100 KB for SVG, 800 KB for PNG/WebP"
+                          notes="Transparent background SVG/PNG cutouts look best against dark surfaces."
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {/* FULL IMAGE BANNER MODE SPECIFIC FIELDS */}
+              {bannerForm.banner_mode === 'full_image' && (
+                <div className="space-y-3 pt-1 border-t dark:border-slate-800 border-slate-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block">
+                        Full Banner Image *
+                      </label>
+                      <span className="text-[10px] text-slate-400">
+                        Entire card will be filled with this image and made clickable.
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block text-right mb-1">
+                        Display Order
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={bannerForm.display_order}
+                        onChange={(e) => setBannerForm({ ...bannerForm, display_order: Number(e.target.value) })}
+                        className="w-20 px-2 py-1 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900 text-right focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <div className="flex items-center gap-3">
                       <input
                         type="file"
                         ref={bannerFileInputRef}
-                        accept=".svg,.png,.webp,image/svg+xml,image/png,image/webp"
+                        accept=".png,.webp,.jpg,.jpeg,image/png,image/webp,image/jpeg"
                         onChange={handleCustomImageUpload}
                         className="hidden"
                       />
@@ -1045,41 +1201,51 @@ export default function AdminEngagement() {
                         type="button"
                         disabled={bannerUploading}
                         onClick={() => bannerFileInputRef.current?.click()}
-                        className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5"
+                        className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5"
                       >
                         {bannerUploading ? (
                           <>
                             <RefreshCw size={13} className="animate-spin" />
-                            <span>Uploading...</span>
+                            <span>Uploading Banner...</span>
                           </>
                         ) : (
                           <>
-                            <Upload size={13} />
-                            <span>Upload SVG/Image</span>
+                            <Upload size={14} />
+                            <span>{bannerForm.custom_image_url ? 'Change Banner Image' : 'Upload Banner Image'}</span>
                           </>
                         )}
                       </button>
 
                       {bannerForm.custom_image_url && (
-                        <div className="w-10 h-10 rounded-xl dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 p-1 flex items-center justify-center shrink-0">
-                          <img
-                            src={bannerForm.custom_image_url}
-                            alt=""
-                            className="w-full h-full object-contain"
-                          />
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setBannerForm({ ...bannerForm, custom_image_url: '' })}
+                          className="text-xs text-rose-400 hover:underline"
+                        >
+                          Remove
+                        </button>
                       )}
                     </div>
 
+                    {bannerForm.custom_image_url && (
+                      <div className="w-full h-32 rounded-2xl dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 overflow-hidden shadow-inner">
+                        <img
+                          src={bannerForm.custom_image_url}
+                          alt="Banner Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+
                     <UploadGuide
-                      formats=".svg (vector), .png, .webp"
-                      dimensions="800×320 px (5:2 Wide) or 200×200 px (1:1 Square)"
-                      maxSize="Max 100 KB for SVG, 800 KB for PNG/WebP"
-                      notes="Transparent background SVG/PNG cutouts look best against dark surfaces."
+                      formats=".png, .webp, .jpg"
+                      dimensions="800×320 px (5:2 ratio recommended)"
+                      maxSize="Max 1.5 MB"
+                      notes="Full-bleed banner image. The entire banner is clickable with zero text overlay."
                     />
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
               {/* Active Toggle */}
               <div className="pt-2">

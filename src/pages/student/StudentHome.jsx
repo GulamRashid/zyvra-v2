@@ -12,7 +12,6 @@ import {
   X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import MountainSunsetAura from '../../components/common/MountainSunsetAura';
 import OnboardingModal from './OnboardingModal';
 import HeroCarousel from '../../components/student/HeroCarousel';
 import ShareAndEarnCard from '../../components/common/ShareAndEarnCard';
@@ -325,29 +324,29 @@ export default function StudentHome() {
     <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-800 transition-colors duration-200 overflow-x-hidden">
       {shouldShowOnboarding && <OnboardingModal />}
 
-      {/* Top Ambient Tech/Data Grid Aura */}
-      <div className="relative">
-        <MountainSunsetAura height={120} showSun={true} />
+      {/* Top Hero Promotional Banner */}
+      <section className="px-3.5 sm:px-6 pt-3 sm:pt-4 max-w-5xl mx-auto" aria-label="Featured Announcements">
+        <HeroCarousel />
+      </section>
 
-        {/* Greeting Header overlaid on Tech Banner */}
-        <div className="px-3.5 sm:px-6 pt-4 pb-2 relative z-10 max-w-5xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight dark:text-white text-slate-900 flex items-center gap-2">
-                <span>{greetingPhrase}, {firstName}</span>
-                <span className="text-amber-500 select-none">⚡</span>
-              </h1>
-              <p className="dark:text-slate-400 text-slate-600 text-xs sm:text-sm mt-1 font-medium">
-                {language === 'hi'
-                  ? 'अपनी तैयारी जारी रखें और लक्ष्य के करीब पहुँचें।'
-                  : 'Keep the streak, stay ahead in your preparation.'}
-              </p>
-            </div>
+      {/* Greeting Header */}
+      <div className="px-3.5 sm:px-6 pt-3 pb-1 max-w-5xl mx-auto">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight dark:text-white text-slate-900 flex items-center gap-2">
+              <span>{greetingPhrase}, {firstName}</span>
+              <span className="text-amber-500 select-none">⚡</span>
+            </h1>
+            <p className="dark:text-slate-400 text-slate-600 text-xs sm:text-sm mt-0.5 font-medium">
+              {language === 'hi'
+                ? 'अपनी तैयारी जारी रखें और लक्ष्य के करीब पहुँचें।'
+                : 'Keep the streak, stay ahead in your preparation.'}
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="px-3 sm:px-6 max-w-5xl mx-auto flex flex-col space-y-5 sm:space-y-6 -mt-2 relative z-10">
+      <div className="px-3 sm:px-6 max-w-5xl mx-auto flex flex-col space-y-5 sm:space-y-6 pt-1 relative z-10">
         {dashboardError && (
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-200" role="alert">
             <span>{dashboardError}</span>
@@ -432,13 +431,8 @@ export default function StudentHome() {
           )}
         </section>
 
-        {/* Dynamic Hero Carousel: QotD + Admin Banners + Refer & Earn */}
-        <section className="order-2">
-          <HeroCarousel onOpenReferral={() => setInviteModalOpen(true)} />
-        </section>
-
         {/* Quick Action 5-Tile Row */}
-        <section className="order-3">
+        <section className="order-2">
           <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
             {quickActionTiles.map((tile) => {
               const Icon = tile.icon;
