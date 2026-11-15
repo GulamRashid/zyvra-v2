@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowDownToLine, BookOpen, Check, ChevronDown, ChevronRight, Download, FileQuestion, Filter, HelpCircle, Layers, LayoutGrid, List, Plus, Search, Sparkles, Trash2, Upload, X } from 'lucide-react';
+import { AlertTriangle, BookOpen, Check, ChevronDown, ChevronRight, Download, FileQuestion, Filter, HelpCircle, Layers, LayoutGrid, List, Plus, Search, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getOptionEntries, hasDevanagari, hasLatin, normalizeImportQuestionText, parseImportCsv, validateImportQuestion } from '../../lib/tests';
 import { AI_CSV_GENERATION_PROMPT, CSV_TEMPLATE, JSON_TEMPLATE } from '../../lib/question-templates';
@@ -483,38 +483,22 @@ function ImportDialog({ chapters, onClose, onImported }) {
         </button>
       </div>
 
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-2">
         <button
           type="button"
-          className="text-button text-xs flex items-center gap-1 text-slate-300 hover:text-white"
-          onClick={() => { setJson(getPreparedCsvTemplate()); setPreview(null); }}
-          title="Load sample CSV with all 5 question types into editor"
-        >
-          <ArrowDownToLine size={14} /> CSV Template
-        </button>
-        <button
-          type="button"
-          className="text-button text-xs flex items-center gap-1 text-slate-300 hover:text-white"
-          onClick={() => { setJson(getPreparedJsonTemplate()); setPreview(null); }}
-          title="Load sample JSON with all 5 question types into editor"
-        >
-          <ArrowDownToLine size={14} /> JSON Template
-        </button>
-        <button
-          type="button"
-          className="text-button text-xs flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-bold"
+          className="text-button text-xs flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-bold"
           onClick={downloadSampleCsv}
           title="Download .csv template with all 5 competitive question types"
         >
-          <Download size={14} /> Download Sample CSV
+          <Download size={14} /> Download CSV Template
         </button>
         <button
           type="button"
-          className="text-button text-xs flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-bold"
+          className="text-button text-xs flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 font-bold"
           onClick={downloadSampleJson}
           title="Download .json template with all 5 competitive question types"
         >
-          <Download size={14} /> Download Sample JSON
+          <Download size={14} /> Download JSON Template
         </button>
       </div>
     </div>
@@ -647,16 +631,23 @@ function ImportDialog({ chapters, onClose, onImported }) {
       onChange={(event) => { setJson(event.target.value); setPreview(null); }}
       rows="10"
       spellCheck="false"
-      placeholder={`Paste CSV (with headers) or JSON array of questions.
-
-Supported competitive formats:
-1. Standard MCQ (4 options A-D in EN & HI)
-2. BPSC / State PCS MCQ (5 options A-E including "None of the above / More than one of the above")
-3. Multi-Statement ("Consider the following statements: | (1)... | (2)... | Which of the statements given above is/are correct?")
-4. Assertion & Reason ("Assertion (A):... | Reason (R):... | Choose the correct code:")
-5. Match the Following ("Match Column I with Column II: | Column I: (1)... | Column II: (A)... | Choose the correct matching:")
-
-Click "CSV Template" or "JSON Template" above to pre-fill all 5 complete bilingual examples!`}
+      placeholder={`[
+  {
+    "question_type": "mcq",
+    "question_text": "Which article guarantees equality before law?",
+    "question_text_hi": "विधि के समक्ष समता किस अनुच्छेद में है?",
+    "options": [
+      { "en": "Article 12", "hi": "अनुच्छेद 12" },
+      { "en": "Article 14", "hi": "अनुच्छेद 14" },
+      { "en": "Article 19", "hi": "अनुच्छेद 19" },
+      { "en": "Article 21", "hi": "अनुच्छेद 21" }
+    ],
+    "correct_answer": "B",
+    "subject": "Polity",
+    "difficulty": "easy"
+  }
+]
+// Or paste your CSV rows (with headers) here...`}
     />
     <button className="button button-outline" onClick={validate} disabled={isValidating || isImporting}><Filter size={15} /> {isValidating ? 'Validating…' : 'Validate & preview'}</button>
     {error && <div className="feedback error-feedback">{error}</div>}
@@ -739,7 +730,30 @@ Click "CSV Template" or "JSON Template" above to pre-fill all 5 complete bilingu
         </div>
       ))}
     </div>}
-    <footer className="import-modal-actions"><button type="button" className="button button-outline" onClick={onClose} disabled={isImporting}>Cancel</button>{importProgress && <span className="field-hint">Saved {importProgress.saved} of {importProgress.total} questions…</span>}<button type="button" className="button button-primary" onClick={handleImportQuestions} disabled={isImporting || isValidating || !validCount}>{isImporting ? `Saving ${importProgress?.saved || 0} of ${importProgress?.total || validCount}…` : validCount ? `Import ${validCount} remaining question${validCount === 1 ? '' : 's'} (${importStatus})` : 'All valid rows saved'}</button></footer>
+    <footer className="import-modal-actions">
+      <button type="button" className="button button-outline" onClick={onClose} disabled={isImporting}>
+        Cancel
+      </button>
+      {importProgress && (
+        <span className="field-hint">
+          Saved {importProgress.saved} of {importProgress.total} questions…
+        </span>
+      )}
+      <button
+        type="button"
+        className="button button-primary"
+        onClick={handleImportQuestions}
+        disabled={isImporting || isValidating || !validCount}
+      >
+        {isImporting
+          ? `Saving ${importProgress?.saved || 0} of ${importProgress?.total || validCount}…`
+          : validCount
+            ? `Import ${validCount} Valid Question${validCount === 1 ? '' : 's'} (${importStatus})`
+            : importedCount > 0
+              ? `Saved ${importedCount} Question${importedCount === 1 ? '' : 's'}`
+              : 'Import Valid Questions'}
+      </button>
+    </footer>
   </section></div>;
 }
 
