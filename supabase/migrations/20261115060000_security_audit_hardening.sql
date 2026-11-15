@@ -37,6 +37,10 @@ UPDATE public.tests
   SET access_mode = CASE WHEN coalesce(is_free, true) = true THEN 'free' ELSE 'paid_own' END
   WHERE access_mode IS NULL;
 
+-- Ensure public.questions has question_type
+ALTER TABLE IF EXISTS public.questions
+  ADD COLUMN IF NOT EXISTS question_type text DEFAULT 'mcq';
+
 -- Revoke direct mutation permissions on test_attempts from anon and authenticated
 REVOKE INSERT, UPDATE, DELETE ON public.test_attempts FROM anon, authenticated;
 GRANT SELECT ON public.test_attempts TO authenticated;

@@ -253,6 +253,33 @@ export function parseImportCsv(text) {
       obj.question_hi = qHi;
     }
 
+    const expEn = obj.explanation_en || obj.explanation_text_en || '';
+    const expHi = obj.explanation_hi || obj.explanation_text_hi || obj.explanation_hindi || '';
+    if (expEn) obj.explanation_en = expEn;
+    if (expHi) obj.explanation_hi = expHi;
+    if (!obj.explanation) {
+      if (expEn && expHi) {
+        obj.explanation = `English: ${expEn}\n\nHindi: ${expHi}`;
+      } else {
+        obj.explanation = expEn || expHi || '';
+      }
+    }
+
+    let qType = String(obj.question_type || obj.type || '').trim().toLowerCase();
+    if (!['mcq', 'statement', 'matching'].includes(qType)) {
+      const combined = `${obj.question_text || ''} ${obj.question_text_hi || ''}`.trim();
+      if (/(?:Column|List|स्तंभ|सूची)\s*[-–—]?\s*(?:I|1)\b/i.test(combined) && /(?:Column|List|स्तंभ|सूची)\s*[-–—]?\s*(?:II|2)\b/i.test(combined)) {
+        qType = 'matching';
+      } else if (/(?:^|\s|[|;])(?:\([1-9ivx]+\)|[1-9ivx]+\.)(?=\s+\S)/i.test(combined) && /(?:^|\s|[|;])(?:\([A-Ea-e]\)|[A-Ea-e]\.)(?=\s+\S)/i.test(combined)) {
+        qType = 'matching';
+      } else if (/(?:^|\s|[|;])(?:\(([1-9ivxlcdm]+)\)|([1-9ivxlcdm]+)\.)(?=\s+\S)/i.test(combined) && /(?:statements?|कथन|उपर्युक्त|Which of)/i.test(combined)) {
+        qType = 'statement';
+      } else {
+        qType = 'mcq';
+      }
+    }
+    obj.question_type = qType;
+
     if (!obj.options) {
       const options = [];
       ['a', 'b', 'c', 'd', 'e'].forEach((letter) => {
@@ -451,6 +478,9 @@ export function validateImportQuestion(question, index, seenIds = new Set(), see
   const normalizedAnswer = Array.isArray(answer) ? answer : [answer];
   if (!normalizedAnswer.length || normalizedAnswer.some((value) => !allowedAnswers.includes(String(value).toUpperCase()))) errors.push('correct_answer must be an option letter present in options.');
   if (question.difficulty && !['easy', 'medium', 'hard'].includes(String(question.difficulty).toLowerCase())) errors.push('difficulty must be easy, medium or hard.');
+  if (question.question_type && !['mcq', 'statement', 'matching'].includes(String(question.question_type).toLowerCase())) {
+    errors.push('question_type must be mcq, statement, or matching.');
+  }
   if (question.id && seenIds.has(String(question.id))) errors.push('duplicate question id in import.');
   if (question.id) seenIds.add(String(question.id));
   const normalizedText = normalizeImportQuestionText(question);

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ArrowDownToLine, BookOpen, Check, ChevronDown, ChevronRight, FileQuestion, Filter, Layers, LayoutGrid, List, Plus, Search, Trash2, Upload, X } from 'lucide-react';
+import { AlertTriangle, ArrowDownToLine, BookOpen, Check, ChevronDown, ChevronRight, Download, FileQuestion, Filter, HelpCircle, Layers, LayoutGrid, List, Plus, Search, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getOptionEntries, hasDevanagari, hasLatin, normalizeImportQuestionText, parseImportCsv, validateImportQuestion } from '../../lib/tests';
 import { getContentErrorMessage, getFolderPath } from '../../lib/content';
@@ -102,8 +102,34 @@ const TEMPLATE = JSON.stringify([{
   tags: ['constitution', 'fundamental-rights']
 }], null, 2);
 
-const CSV_TEMPLATE = `question_text,option_a,option_b,option_c,option_d,correct_answer,subject,difficulty,usage_scope,chapter_id,explanation,tags
-"Which article guarantees equality before law?","Article 12","Article 14","Article 19","Article 21","B","Polity","easy","both","replace-with-chapter-uuid","Article 14 guarantees equality before law.","constitution,fundamental-rights"`;
+const CSV_TEMPLATE = `question_type,question_en,question_hi,option_a_en,option_a_hi,option_b_en,option_b_hi,option_c_en,option_c_hi,option_d_en,option_d_hi,correct_answer,subject,difficulty,usage_scope,chapter_id,explanation_en,explanation_hi,tags
+mcq,"Which article of the Indian Constitution guarantees Equality Before Law?","भारतीय संविधान का कौन-सा अनुच्छेद विधि के समक्ष समता की गारंटी देता है?","Article 12","अनुच्छेद 12","Article 14","अनुच्छेद 14","Article 19","अनुच्छेद 19","Article 21","अनुच्छेद 21","B","Polity","easy","both","replace-with-chapter-uuid","Article 14 guarantees equality before law and equal protection of laws.","अनुच्छेद 14 विधि के समक्ष समता और विधियों के समान संरक्षण की गारंटी देता है।","polity,fundamental-rights"
+statement,"Consider the following statements regarding the Indus Valley Civilization: | (1) Harappa was located on the banks of River Ravi. | (2) Lothal was an important dockyard and port city. | Which of the above statements is/are correct?","सिंधु घाटी सभ्यता के संदर्भ में निम्नलिखित कथनों पर विचार कीजिए: | (1) हड़प्पा रावी नदी के तट पर स्थित था। | (2) लोथल एक प्रमुख गोदीबाड़ा (डॉकयार्ड) और बंदरगाह शहर था। | उपर्युक्त कथनों में से कौन-सा/से सही है/हैं?","1 only","केवल 1","2 only","केवल 2","Both 1 and 2","1 और 2 दोनों","Neither 1 nor 2","न तो 1 और न ही 2","C","History","medium","both","replace-with-chapter-uuid","Both statements are historically accurate. Harappa is situated on the Ravi, while Lothal in Gujarat was an ancient port.","दोनों कथन ऐतिहासिक रूप से सत्य हैं। हड़प्पा रावी नदी पर तथा गुजरात का लोथल प्रसिद्ध बंदरगाह था।","history,ancient,indus-valley"
+matching,"Match Column I with Column II: Column I: (1) Harappa (2) Mohenjodaro (3) Lothal (4) Kalibangan | Column II: (A) Ravi (B) Indus (C) Bhogava (D) Ghaggar | Choose the correct matching:","सूची-I को सूची-II से सुमेलित कीजिए: सूची-I: (1) हड़प्पा (2) मोहनजोदड़ो (3) लोथल (4) कालीबंगा | सूची-II: (A) रावी (B) सिंधु (C) भोगवा (D) घग्गर | सही मिलान चुनिए:","1-A, 2-B, 3-C, 4-D","1-A, 2-B, 3-C, 4-D","1-B, 2-A, 3-D, 4-C","1-B, 2-A, 3-D, 4-C","1-C, 2-D, 3-A, 4-B","1-C, 2-D, 3-A, 4-B","1-D, 2-C, 3-B, 4-A","1-D, 2-C, 3-B, 4-A","A","History","hard","both","replace-with-chapter-uuid","Harappa is on the Ravi, Mohenjodaro on the Indus, Lothal on Bhogava, and Kalibangan on Ghaggar.","हड़प्पा रावी नदी के तट पर, मोहनजोदड़ो सिंधु पर, लोथल भोगवा पर तथा कालीबंगा घग्गर पर स्थित है।","history,ancient,matching"`;
+
+const AI_CSV_GENERATION_PROMPT = `You are an expert exam question author for the Zyvra competitive exam platform.
+Generate a valid CSV with exactly the following columns:
+question_type,question_en,question_hi,option_a_en,option_a_hi,option_b_en,option_b_hi,option_c_en,option_c_hi,option_d_en,option_d_hi,correct_answer,subject,difficulty,usage_scope,chapter_id,explanation_en,explanation_hi,tags
+
+Rules & Question Types:
+1. question_type: 'mcq', 'statement', or 'matching'.
+2. MCQ format:
+   - question_en: Direct question text.
+   - question_hi: Accurate Hindi translation.
+   - 4 distinct options (A, B, C, D) in English and Hindi.
+3. Statement format:
+   - question_en: "Consider the following statements: | (1) [Statement 1] | (2) [Statement 2] | Which of the above statements is/are correct?"
+   - question_hi: "निम्नलिखित कथनों पर विचार कीजिए: | (1) [कथन 1] | (2) [कथन 2] | उपर्युक्त कथनों में से कौन-सा/से सही है/हैं?"
+   - Options: (A) 1 only / केवल 1, (B) 2 only / केवल 2, (C) Both 1 and 2 / 1 और 2 दोनों, (D) Neither 1 nor 2 / न तो 1 और न ही 2.
+4. Matching format:
+   - question_en: "Match Column I with Column II: Column I: (1) [Item 1] (2) [Item 2] (3) [Item 3] (4) [Item 4] | Column II: (A) [Item A] (B) [Item B] (C) [Item C] (D) [Item D] | Choose the correct matching:"
+   - question_hi: "सूची-I को सूची-II से सुमेलित कीजिए: सूची-I: (1) [मद 1] (2) [मद 2] (3) [मद 3] (4) [मद 4] | सूची-II: (A) [मद A] (B) [मद B] (C) [मद C] (D) [मद D] | सही मिलान चुनिए:"
+   - Options: Standard codes like (A) 1-A, 2-B, 3-C, 4-D, etc.
+5. All fields containing commas or quotes MUST be wrapped in double quotes. Inner double quotes must be escaped as ("").
+6. correct_answer must be one of: A, B, C, D.
+7. difficulty: easy, medium, or hard.
+8. usage_scope: both, practice_only, or test_only.
+9. chapter_id: UUID of the target chapter.`;
 
 function normalizeQuestion(row) {
   const entries = getOptionEntries(row.options);
@@ -222,6 +248,29 @@ function ImportDialog({ chapters, onClose, onImported }) {
   const [isValidating, setIsValidating] = useState(false);
   const [importProgress, setImportProgress] = useState(null);
   const [error, setError] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
+  const [activeGuideTab, setActiveGuideTab] = useState('mcq');
+  const [copiedPrompt, setCopiedPrompt] = useState(false);
+
+  const handleCopyAiPrompt = async () => {
+    try {
+      await navigator.clipboard.writeText(AI_CSV_GENERATION_PROMPT);
+      setCopiedPrompt(true);
+      setTimeout(() => setCopiedPrompt(false), 2500);
+    } catch {
+      // fallback
+    }
+  };
+
+  const downloadSampleCsv = () => {
+    const blob = new Blob([CSV_TEMPLATE], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'zyvra-bilingual-question-template.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
@@ -322,6 +371,7 @@ function ImportDialog({ chapters, onClose, onImported }) {
       return {
         question_text: qEn || String(row.question_text || '').trim(),
         question_text_hi: qHi,
+        question_type: row.question_type || 'mcq',
         options: (row.options || []).map((option) => {
           let optEn = typeof option === 'string' ? option.trim() : String(option.en || option.text || '').trim();
           let optHi = typeof option === 'object' && option ? String(option.hi || option.text_hi || '').trim() : '';
@@ -424,13 +474,131 @@ function ImportDialog({ chapters, onClose, onImported }) {
   return <div className="modal-backdrop import-modal-backdrop"><section className="content-dialog import-dialog" role="dialog" aria-modal="true" aria-labelledby="import-title">
     <header className="import-modal-header"><div><div className="eyebrow">SAFE BULK AUTHORING</div><h2 id="import-title">Import questions from CSV or JSON</h2></div><button className="modal-close" type="button" aria-label="Close dialog" onClick={onClose}><X size={18} /></button></header>
     <p className="dialog-intro">Review all rows before saving. Questions will be imported with status: <strong>{importStatus}</strong> and usage scope from each row or the default below.</p>
-    <div className="import-template-row">
-      <span>Optional usage_scope: both, practice_only, or test_only (defaults to both).</span>
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <button type="button" className="text-button" onClick={() => setJson(CSV_TEMPLATE)}><ArrowDownToLine size={14} /> CSV template</button>
-        <button type="button" className="text-button" onClick={() => setJson(TEMPLATE)}><ArrowDownToLine size={14} /> JSON template</button>
+    <div className="import-template-row flex flex-wrap items-center justify-between gap-2.5 my-2.5 p-3 rounded-2xl bg-slate-900/60 border border-slate-700/60">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="button button-outline text-xs py-1.5 px-3 flex items-center gap-1.5"
+          onClick={() => setShowGuide(!showGuide)}
+        >
+          <HelpCircle size={14} className="text-amber-400" />
+          <span>{showGuide ? 'Hide Formatting Guide' : 'Question Formatting Guide'}</span>
+        </button>
+
+        <button
+          type="button"
+          className="button button-primary text-xs py-1.5 px-3 flex items-center gap-1.5 shadow-sm"
+          onClick={handleCopyAiPrompt}
+          title="Copy AI prompt to generate question batches in Claude / ChatGPT"
+        >
+          {copiedPrompt ? <Check size={14} className="text-emerald-400" /> : <Sparkles size={14} className="text-amber-300" />}
+          <span>{copiedPrompt ? 'Prompt Copied!' : 'Copy AI Prompt for CSV'}</span>
+        </button>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="text-button text-xs flex items-center gap-1 text-slate-300 hover:text-white"
+          onClick={() => { setJson(CSV_TEMPLATE); setPreview(null); }}
+        >
+          <ArrowDownToLine size={14} /> CSV Template
+        </button>
+        <button
+          type="button"
+          className="text-button text-xs flex items-center gap-1 text-slate-300 hover:text-white"
+          onClick={() => { setJson(TEMPLATE); setPreview(null); }}
+        >
+          <ArrowDownToLine size={14} /> JSON Template
+        </button>
+        <button
+          type="button"
+          className="text-button text-xs flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-bold"
+          onClick={downloadSampleCsv}
+        >
+          <Download size={14} /> Download Sample CSV
+        </button>
       </div>
     </div>
+
+    {/* On-screen Question Type Formatting Guide */}
+    {showGuide && (
+      <div className="formatting-guide-card my-3 p-3.5 rounded-2xl bg-slate-900/90 border border-amber-500/30 space-y-3">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-black uppercase tracking-wider text-amber-400">
+              Question Type Standards & Syntax
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 text-xs">
+            <button
+              type="button"
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${activeGuideTab === 'mcq' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+              onClick={() => setActiveGuideTab('mcq')}
+            >
+              1. MCQ
+            </button>
+            <button
+              type="button"
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${activeGuideTab === 'statement' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+              onClick={() => setActiveGuideTab('statement')}
+            >
+              2. Statement
+            </button>
+            <button
+              type="button"
+              className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${activeGuideTab === 'matching' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+              onClick={() => setActiveGuideTab('matching')}
+            >
+              3. Match Following
+            </button>
+          </div>
+        </div>
+
+        {activeGuideTab === 'mcq' && (
+          <div className="text-xs space-y-2 text-slate-300">
+            <p><strong>Standard MCQ:</strong> Single-choice question with 4 options (A, B, C, D) in English & Hindi.</p>
+            <div className="p-2.5 rounded-xl bg-slate-950 font-mono text-[11px] space-y-1 text-slate-300 overflow-x-auto">
+              <div className="text-slate-400"># English:</div>
+              <div>question_en: &quot;Which article of the Constitution guarantees equality before law?&quot;</div>
+              <div className="text-slate-400 mt-1"># Hindi:</div>
+              <div>question_hi: &quot;भारतीय संविधान का कौन-सा अनुच्छेद विधि के समक्ष समता की गारंटी देता है?&quot;</div>
+              <div className="text-slate-400 mt-1"># Options:</div>
+              <div>option_a_en: &quot;Article 12&quot; | option_b_en: &quot;Article 14&quot; | correct_answer: &quot;B&quot;</div>
+            </div>
+          </div>
+        )}
+
+        {activeGuideTab === 'statement' && (
+          <div className="text-xs space-y-2 text-slate-300">
+            <p><strong>Statement Questions:</strong> Use pipe <code className="text-amber-400">|</code> between the prompt, numbered items <code className="text-amber-400">(1)</code>, <code className="text-amber-400">(2)</code>, and the closing question.</p>
+            <div className="p-2.5 rounded-xl bg-slate-950 font-mono text-[11px] space-y-1 text-slate-300 overflow-x-auto">
+              <div className="text-slate-400"># English Syntax:</div>
+              <div>&quot;Consider the following statements: | (1) Statement 1 | (2) Statement 2 | Which of the above statements is/are correct?&quot;</div>
+              <div className="text-slate-400 mt-1"># Hindi Syntax:</div>
+              <div>&quot;निम्नलिखित कथनों पर विचार कीजिए: | (1) कथन 1 | (2) कथन 2 | उपर्युक्त कथनों में से कौन-सा/से सही है/हैं?&quot;</div>
+              <div className="text-slate-400 mt-1"># Options:</div>
+              <div>A: 1 only / केवल 1 | B: 2 only / केवल 2 | C: Both 1 and 2 / 1 और 2 दोनों | D: Neither 1 nor 2</div>
+            </div>
+          </div>
+        )}
+
+        {activeGuideTab === 'matching' && (
+          <div className="text-xs space-y-2 text-slate-300">
+            <p><strong>Match the Following:</strong> Use <code className="text-amber-400">Column I: (1)... (2)... | Column II: (A)... (B)... | Choose the correct matching:</code>. Automatically parsed into an interactive 2-column table with zero duplicate text!</p>
+            <div className="p-2.5 rounded-xl bg-slate-950 font-mono text-[11px] space-y-1 text-slate-300 overflow-x-auto">
+              <div className="text-slate-400"># English Syntax:</div>
+              <div>&quot;Match Column I with Column II: Column I: (1) Harappa (2) Mohenjodaro | Column II: (A) Ravi (B) Indus | Choose the correct matching:&quot;</div>
+              <div className="text-slate-400 mt-1"># Hindi Syntax (सूची / स्तंभ):</div>
+              <div>&quot;सूची-I को सूची-II से सुमेलित कीजिए: सूची-I: (1) हड़प्पा (2) मोहनजोदड़ो | सूची-II: (A) रावी (B) सिंधु | सही मिलान चुनिए:&quot;</div>
+              <div className="text-slate-400 mt-1"># Options:</div>
+              <div>A: 1-A, 2-B | B: 1-B, 2-A | C: 1-A, 2-A | D: 1-B, 2-B</div>
+            </div>
+          </div>
+        )}
+      </div>
+    )}
+
     <div className="qbank-form-grid">
       <label className="field-label">Default import status
         <select className="text-input" value={importStatus} onChange={(event) => setImportStatus(event.target.value)}>
@@ -483,7 +651,79 @@ function ImportDialog({ chapters, onClose, onImported }) {
       <div className="feedback" role="status">{preview.length} rows scanned, {validCount} ready, {duplicateCount} duplicates, {invalidCount} invalid</div>
       {rejectedCount > 0 && <button type="button" className="button button-outline" onClick={downloadRejectedRows}>Download rejected rows CSV ({rejectedCount})</button>}
       {preview.length > previewItems.length && <small className="field-hint">Showing first 50 of {preview.length} rows.</small>}
-      {previewItems.map((item, index) => <div className={`import-preview-row ${item.valid ? 'valid' : 'invalid'}`} key={item.row?.id || index}><span>{item.valid ? <Check size={14} /> : <X size={14} />}</span><div><strong>{item.row?.question_text || `Row ${index + 1}`}</strong><small>{item.imported ? 'Saved in this import' : `Usage: ${usageScopeLabel(item.row?.usage_scope)}`}</small>{item.errors.map((message) => <small key={message}>{message}</small>)}</div></div>)}
+      {previewItems.map((item, index) => (
+        <div className={`import-preview-row ${item.valid ? 'valid' : 'invalid'} p-3 rounded-2xl border mb-3`} key={item.row?.id || index}>
+          <div className="flex items-start gap-3 w-full">
+            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 mt-1 ${item.valid ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
+              {item.valid ? <Check size={14} /> : <X size={14} />}
+            </span>
+            <div className="flex-1 space-y-2.5 overflow-hidden">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                    {item.row?.question_type || 'mcq'}
+                  </span>
+                  <span className="text-xs font-bold text-slate-400">Row {index + 1}</span>
+                </div>
+                <small className="text-xs text-slate-400">
+                  {item.imported ? 'Saved in this import' : `Usage: ${usageScopeLabel(item.row?.usage_scope)} · Difficulty: ${item.row?.difficulty || 'medium'}`}
+                </small>
+              </div>
+
+              {/* Formatted English Question */}
+              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700/60">
+                <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Question (English)</div>
+                <QuestionFormatter text={item.row?.question_text || item.row?.question_en} />
+              </div>
+
+              {/* Formatted Hindi Question if present */}
+              {(item.row?.question_text_hi || item.row?.question_hi) && (
+                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700/60">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">प्रश्न (Hindi)</div>
+                  <QuestionFormatter text={item.row?.question_text_hi || item.row?.question_hi} />
+                </div>
+              )}
+
+              {/* Formatted Answer Options */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                {(item.row?.options || []).map((opt, oIdx) => {
+                  const letter = String.fromCharCode(65 + oIdx);
+                  const isCorrect = String(item.row?.correct_answer || '').toUpperCase() === letter;
+                  const optEn = typeof opt === 'string' ? opt : opt?.en || opt?.text || '';
+                  const optHi = typeof opt === 'object' ? opt?.hi || opt?.text_hi || '' : '';
+                  return (
+                    <div
+                      key={letter}
+                      className={`p-2 rounded-xl border text-xs flex items-center justify-between gap-2 transition-colors ${
+                        isCorrect
+                          ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-bold'
+                          : 'bg-slate-800/40 border-slate-700/50 text-slate-300'
+                      }`}
+                    >
+                      <span className="font-mono font-bold mr-1">{letter}.</span>
+                      <span className="flex-1">{optEn} {optHi && <span className="opacity-75">({optHi})</span>}</span>
+                      {isCorrect && <Check size={13} className="text-emerald-400 shrink-0" />}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {item.row?.explanation && (
+                <div className="text-xs text-slate-400 pt-1">
+                  <strong className="text-slate-300">Explanation: </strong>
+                  {item.row.explanation}
+                </div>
+              )}
+
+              {item.errors.map((message) => (
+                <div key={message} className="text-xs font-semibold text-rose-400 bg-rose-500/10 px-2 py-1 rounded">
+                  {message}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ))}
     </div>}
     <footer className="import-modal-actions"><button type="button" className="button button-outline" onClick={onClose} disabled={isImporting}>Cancel</button>{importProgress && <span className="field-hint">Saved {importProgress.saved} of {importProgress.total} questions…</span>}<button type="button" className="button button-primary" onClick={handleImportQuestions} disabled={isImporting || isValidating || !validCount}>{isImporting ? `Saving ${importProgress?.saved || 0} of ${importProgress?.total || validCount}…` : validCount ? `Import ${validCount} remaining question${validCount === 1 ? '' : 's'} (${importStatus})` : 'All valid rows saved'}</button></footer>
   </section></div>;
