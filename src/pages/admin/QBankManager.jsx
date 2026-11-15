@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, ArrowDownToLine, BookOpen, Check, ChevronDown, ChevronRight, Download, FileQuestion, Filter, HelpCircle, Layers, LayoutGrid, List, Plus, Search, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getOptionEntries, hasDevanagari, hasLatin, normalizeImportQuestionText, parseImportCsv, validateImportQuestion } from '../../lib/tests';
+import { AI_CSV_GENERATION_PROMPT, CSV_TEMPLATE, JSON_TEMPLATE } from '../../lib/question-templates';
 import { getContentErrorMessage, getFolderPath } from '../../lib/content';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { useAuth } from '../../context/AuthContext';
@@ -88,48 +89,6 @@ const usageScopeLabel = (scope) => ({
 const normalizeUsageScope = (scope) => usageScopes.includes(String(scope || '').toLowerCase())
   ? String(scope).toLowerCase()
   : 'both';
-const TEMPLATE = JSON.stringify([{
-  question_text: 'Which article guarantees equality before law?',
-  question_text_hi: 'कानून के समक्ष समानता किस अनुच्छेद में दी गई है?',
-  options: [{ en: 'Article 12', hi: 'अनुच्छेद 12' }, { en: 'Article 14', hi: 'अनुच्छेद 14' }, { en: 'Article 19', hi: 'अनुच्छेद 19' }, { en: 'Article 21', hi: 'अनुच्छेद 21' }],
-  correct_answer: 'B',
-  explanation: 'Article 14 guarantees equality before law and equal protection of the laws.',
-  distractor_notes: { A: 'Defines the State.', C: 'Lists freedoms.', D: 'Protects life and personal liberty.' },
-  subject: 'Polity',
-  difficulty: 'easy',
-  usage_scope: 'both',
-  chapter_id: 'replace-with-chapter-uuid',
-  tags: ['constitution', 'fundamental-rights']
-}], null, 2);
-
-const CSV_TEMPLATE = `question_type,question_en,question_hi,option_a_en,option_a_hi,option_b_en,option_b_hi,option_c_en,option_c_hi,option_d_en,option_d_hi,correct_answer,subject,difficulty,usage_scope,chapter_id,explanation_en,explanation_hi,tags
-mcq,"Which article of the Indian Constitution guarantees Equality Before Law?","भारतीय संविधान का कौन-सा अनुच्छेद विधि के समक्ष समता की गारंटी देता है?","Article 12","अनुच्छेद 12","Article 14","अनुच्छेद 14","Article 19","अनुच्छेद 19","Article 21","अनुच्छेद 21","B","Polity","easy","both","replace-with-chapter-uuid","Article 14 guarantees equality before law and equal protection of laws.","अनुच्छेद 14 विधि के समक्ष समता और विधियों के समान संरक्षण की गारंटी देता है।","polity,fundamental-rights"
-statement,"Consider the following statements regarding the Indus Valley Civilization: | (1) Harappa was located on the banks of River Ravi. | (2) Lothal was an important dockyard and port city. | Which of the above statements is/are correct?","सिंधु घाटी सभ्यता के संदर्भ में निम्नलिखित कथनों पर विचार कीजिए: | (1) हड़प्पा रावी नदी के तट पर स्थित था। | (2) लोथल एक प्रमुख गोदीबाड़ा (डॉकयार्ड) और बंदरगाह शहर था। | उपर्युक्त कथनों में से कौन-सा/से सही है/हैं?","1 only","केवल 1","2 only","केवल 2","Both 1 and 2","1 और 2 दोनों","Neither 1 nor 2","न तो 1 और न ही 2","C","History","medium","both","replace-with-chapter-uuid","Both statements are historically accurate. Harappa is situated on the Ravi, while Lothal in Gujarat was an ancient port.","दोनों कथन ऐतिहासिक रूप से सत्य हैं। हड़प्पा रावी नदी पर तथा गुजरात का लोथल प्रसिद्ध बंदरगाह था।","history,ancient,indus-valley"
-matching,"Match Column I with Column II: Column I: (1) Harappa (2) Mohenjodaro (3) Lothal (4) Kalibangan | Column II: (A) Ravi (B) Indus (C) Bhogava (D) Ghaggar | Choose the correct matching:","सूची-I को सूची-II से सुमेलित कीजिए: सूची-I: (1) हड़प्पा (2) मोहनजोदड़ो (3) लोथल (4) कालीबंगा | सूची-II: (A) रावी (B) सिंधु (C) भोगवा (D) घग्गर | सही मिलान चुनिए:","1-A, 2-B, 3-C, 4-D","1-A, 2-B, 3-C, 4-D","1-B, 2-A, 3-D, 4-C","1-B, 2-A, 3-D, 4-C","1-C, 2-D, 3-A, 4-B","1-C, 2-D, 3-A, 4-B","1-D, 2-C, 3-B, 4-A","1-D, 2-C, 3-B, 4-A","A","History","hard","both","replace-with-chapter-uuid","Harappa is on the Ravi, Mohenjodaro on the Indus, Lothal on Bhogava, and Kalibangan on Ghaggar.","हड़प्पा रावी नदी के तट पर, मोहनजोदड़ो सिंधु पर, लोथल भोगवा पर तथा कालीबंगा घग्गर पर स्थित है।","history,ancient,matching"`;
-
-const AI_CSV_GENERATION_PROMPT = `You are an expert exam question author for the Zyvra competitive exam platform.
-Generate a valid CSV with exactly the following columns:
-question_type,question_en,question_hi,option_a_en,option_a_hi,option_b_en,option_b_hi,option_c_en,option_c_hi,option_d_en,option_d_hi,correct_answer,subject,difficulty,usage_scope,chapter_id,explanation_en,explanation_hi,tags
-
-Rules & Question Types:
-1. question_type: 'mcq', 'statement', or 'matching'.
-2. MCQ format:
-   - question_en: Direct question text.
-   - question_hi: Accurate Hindi translation.
-   - 4 distinct options (A, B, C, D) in English and Hindi.
-3. Statement format:
-   - question_en: "Consider the following statements: | (1) [Statement 1] | (2) [Statement 2] | Which of the above statements is/are correct?"
-   - question_hi: "निम्नलिखित कथनों पर विचार कीजिए: | (1) [कथन 1] | (2) [कथन 2] | उपर्युक्त कथनों में से कौन-सा/से सही है/हैं?"
-   - Options: (A) 1 only / केवल 1, (B) 2 only / केवल 2, (C) Both 1 and 2 / 1 और 2 दोनों, (D) Neither 1 nor 2 / न तो 1 और न ही 2.
-4. Matching format:
-   - question_en: "Match Column I with Column II: Column I: (1) [Item 1] (2) [Item 2] (3) [Item 3] (4) [Item 4] | Column II: (A) [Item A] (B) [Item B] (C) [Item C] (D) [Item D] | Choose the correct matching:"
-   - question_hi: "सूची-I को सूची-II से सुमेलित कीजिए: सूची-I: (1) [मद 1] (2) [मद 2] (3) [मद 3] (4) [मद 4] | सूची-II: (A) [मद A] (B) [मद B] (C) [मद C] (D) [मद D] | सही मिलान चुनिए:"
-   - Options: Standard codes like (A) 1-A, 2-B, 3-C, 4-D, etc.
-5. All fields containing commas or quotes MUST be wrapped in double quotes. Inner double quotes must be escaped as ("").
-6. correct_answer must be one of: A, B, C, D.
-7. difficulty: easy, medium, or hard.
-8. usage_scope: both, practice_only, or test_only.
-9. chapter_id: UUID of the target chapter.`;
 
 function normalizeQuestion(row) {
   const entries = getOptionEntries(row.options);
@@ -262,12 +221,34 @@ function ImportDialog({ chapters, onClose, onImported }) {
     }
   };
 
+  const getPreparedCsvTemplate = () => {
+    const chapterId = chapters?.[0]?.id || 'replace-with-chapter-uuid';
+    return CSV_TEMPLATE.replace(/replace-with-chapter-uuid/g, chapterId);
+  };
+
+  const getPreparedJsonTemplate = () => {
+    const chapterId = chapters?.[0]?.id || 'replace-with-chapter-uuid';
+    return JSON_TEMPLATE.replace(/replace-with-chapter-uuid/g, chapterId);
+  };
+
   const downloadSampleCsv = () => {
-    const blob = new Blob([CSV_TEMPLATE], { type: 'text/csv;charset=utf-8' });
+    const content = getPreparedCsvTemplate();
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.download = 'zyvra-bilingual-question-template.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadSampleJson = () => {
+    const content = getPreparedJsonTemplate();
+    const blob = new Blob([content], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'zyvra-bilingual-question-template.json';
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -332,13 +313,18 @@ function ImportDialog({ chapters, onClose, onImported }) {
         .map((question) => normalizeImportQuestionText(question))
         .filter(Boolean));
       const checked = rows.map((row, index) => {
+        let targetChapterId = row?.chapter_id;
+        if ((!targetChapterId || targetChapterId === 'replace-with-chapter-uuid') && chapters.length > 0) {
+          targetChapterId = chapters[0].id;
+          row.chapter_id = targetChapterId;
+        }
         const result = validateImportQuestion(row, index, seen, seenQuestionTexts);
         const usageScope = String(row?.usage_scope || importUsageScope).trim().toLowerCase();
         const usageScopeValid = usageScopes.includes(usageScope);
         if (!usageScopeValid) {
           result.errors.push(`Row ${index + 1}: usage_scope must be both, practice_only, or test_only.`);
         }
-        const chapterValid = chapters.some((chapter) => chapter.id === row?.chapter_id);
+        const chapterValid = chapters.some((chapter) => chapter.id === targetChapterId);
         if (!chapterValid) result.errors.push(`Row ${index + 1}: chapter_id must match a chapter in this catalogue.`);
         result.valid = result.valid && chapterValid && usageScopeValid;
         return {
@@ -384,7 +370,8 @@ function ImportDialog({ chapters, onClose, onImported }) {
           return { en: optEn, hi: optHi };
         }),
         correct_answer: String(Array.isArray(row.correct_answer) ? row.correct_answer[0] : row.correct_answer || 'A').trim().toUpperCase(),
-        explanation: String(row.explanation || '').trim() || null,
+        explanation: String(row.explanation || row.explanation_en || '').trim() || null,
+        explanation_hi: String(row.explanation_hi || '').trim() || null,
         distractor_notes: row.distractor_notes && typeof row.distractor_notes === 'object' && !Array.isArray(row.distractor_notes) ? row.distractor_notes : {},
         subject: String(row.subject || '').trim(),
         difficulty: String(row.difficulty || 'medium').toLowerCase(),
@@ -496,18 +483,20 @@ function ImportDialog({ chapters, onClose, onImported }) {
         </button>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-wrap">
         <button
           type="button"
           className="text-button text-xs flex items-center gap-1 text-slate-300 hover:text-white"
-          onClick={() => { setJson(CSV_TEMPLATE); setPreview(null); }}
+          onClick={() => { setJson(getPreparedCsvTemplate()); setPreview(null); }}
+          title="Load sample CSV with all 5 question types into editor"
         >
           <ArrowDownToLine size={14} /> CSV Template
         </button>
         <button
           type="button"
           className="text-button text-xs flex items-center gap-1 text-slate-300 hover:text-white"
-          onClick={() => { setJson(TEMPLATE); setPreview(null); }}
+          onClick={() => { setJson(getPreparedJsonTemplate()); setPreview(null); }}
+          title="Load sample JSON with all 5 question types into editor"
         >
           <ArrowDownToLine size={14} /> JSON Template
         </button>
@@ -515,8 +504,17 @@ function ImportDialog({ chapters, onClose, onImported }) {
           type="button"
           className="text-button text-xs flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-bold"
           onClick={downloadSampleCsv}
+          title="Download .csv template with all 5 competitive question types"
         >
           <Download size={14} /> Download Sample CSV
+        </button>
+        <button
+          type="button"
+          className="text-button text-xs flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-bold"
+          onClick={downloadSampleJson}
+          title="Download .json template with all 5 competitive question types"
+        >
+          <Download size={14} /> Download Sample JSON
         </button>
       </div>
     </div>
@@ -527,7 +525,7 @@ function ImportDialog({ chapters, onClose, onImported }) {
         <div className="flex items-center justify-between border-b border-slate-800 pb-2">
           <div className="flex items-center gap-2">
             <span className="text-xs font-black uppercase tracking-wider text-amber-400">
-              Question Type Standards & Syntax
+              Competitive Exam Question Standards & Syntax
             </span>
           </div>
           <div className="flex items-center gap-1.5 text-xs">
@@ -536,14 +534,14 @@ function ImportDialog({ chapters, onClose, onImported }) {
               className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${activeGuideTab === 'mcq' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
               onClick={() => setActiveGuideTab('mcq')}
             >
-              1. MCQ
+              1. MCQ (4 & 5-Option)
             </button>
             <button
               type="button"
               className={`px-2.5 py-1 rounded-lg font-bold transition-colors ${activeGuideTab === 'statement' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
               onClick={() => setActiveGuideTab('statement')}
             >
-              2. Statement
+              2. Statement & Assertion-Reason
             </button>
             <button
               type="button"
@@ -557,42 +555,42 @@ function ImportDialog({ chapters, onClose, onImported }) {
 
         {activeGuideTab === 'mcq' && (
           <div className="text-xs space-y-2 text-slate-300">
-            <p><strong>Standard MCQ:</strong> Single-choice question with 4 options (A, B, C, D) in English & Hindi.</p>
+            <p><strong>Standard 4-Option & 5-Option BPSC Style MCQ:</strong> Single-choice question with 4 (A-D) or 5 (A-E) options in English & Hindi. For BPSC, Option E represents <em>&quot;None of the above / More than one of the above&quot;</em>.</p>
             <div className="p-2.5 rounded-xl bg-slate-950 font-mono text-[11px] space-y-1 text-slate-300 overflow-x-auto">
-              <div className="text-slate-400"># English:</div>
-              <div>question_en: &quot;Which article of the Constitution guarantees equality before law?&quot;</div>
-              <div className="text-slate-400 mt-1"># Hindi:</div>
-              <div>question_hi: &quot;भारतीय संविधान का कौन-सा अनुच्छेद विधि के समक्ष समता की गारंटी देता है?&quot;</div>
-              <div className="text-slate-400 mt-1"># Options:</div>
+              <div className="text-slate-400"># Standard 4-Option (leave option_e empty in CSV):</div>
+              <div>question_en: &quot;Which article of the Indian Constitution guarantees Equality Before Law?&quot;</div>
               <div>option_a_en: &quot;Article 12&quot; | option_b_en: &quot;Article 14&quot; | correct_answer: &quot;B&quot;</div>
+              <div className="text-slate-400 mt-2"># BPSC 5-Option:</div>
+              <div>option_e_en: &quot;None of the above / More than one of the above&quot;</div>
+              <div>option_e_hi: &quot;उपर्युक्त में से कोई नहीं / उपर्युक्त में से एक से अधिक&quot;</div>
             </div>
           </div>
         )}
 
         {activeGuideTab === 'statement' && (
           <div className="text-xs space-y-2 text-slate-300">
-            <p><strong>Statement Questions:</strong> Use pipe <code className="text-amber-400">|</code> between the prompt, numbered items <code className="text-amber-400">(1)</code>, <code className="text-amber-400">(2)</code>, and the closing question.</p>
+            <p><strong>Statement & Assertion-Reason Questions:</strong> Use pipe <code className="text-amber-400">|</code> delimiters between prompt, numbered items / statements, and the concluding instruction.</p>
             <div className="p-2.5 rounded-xl bg-slate-950 font-mono text-[11px] space-y-1 text-slate-300 overflow-x-auto">
-              <div className="text-slate-400"># English Syntax:</div>
-              <div>&quot;Consider the following statements: | (1) Statement 1 | (2) Statement 2 | Which of the above statements is/are correct?&quot;</div>
-              <div className="text-slate-400 mt-1"># Hindi Syntax:</div>
-              <div>&quot;निम्नलिखित कथनों पर विचार कीजिए: | (1) कथन 1 | (2) कथन 2 | उपर्युक्त कथनों में से कौन-सा/से सही है/हैं?&quot;</div>
-              <div className="text-slate-400 mt-1"># Options:</div>
-              <div>A: 1 only / केवल 1 | B: 2 only / केवल 2 | C: Both 1 and 2 / 1 और 2 दोनों | D: Neither 1 nor 2</div>
+              <div className="text-slate-400"># Multi-Statement Question Syntax:</div>
+              <div>&quot;Consider the following statements: | (1) Statement 1 | (2) Statement 2 | Which of the statements given above is/are correct?&quot;</div>
+              <div className="text-slate-400 mt-2"># Assertion & Reason Question Syntax:</div>
+              <div>&quot;Assertion (A): [Assertion text] | Reason (R): [Reason text] | Choose the correct code:&quot;</div>
+              <div className="text-slate-400 mt-1"># Hindi Equivalent:</div>
+              <div>&quot;अभिकथन (A): [कथन] | कारण (R): [कारण] | सही कूट का चयन कीजिए:&quot;</div>
             </div>
           </div>
         )}
 
         {activeGuideTab === 'matching' && (
           <div className="text-xs space-y-2 text-slate-300">
-            <p><strong>Match the Following:</strong> Use <code className="text-amber-400">Column I: (1)... (2)... | Column II: (A)... (B)... | Choose the correct matching:</code>. Automatically parsed into an interactive 2-column table with zero duplicate text!</p>
+            <p><strong>Match the Following:</strong> Use standardized pipe delimiters: <code className="text-amber-400">Match Column I with Column II: | Column I: (1)... (2)... | Column II: (A)... (B)... | Choose the correct matching:</code>. Automatically parsed into a bilingual 2-column comparison table with zero duplicate text.</p>
             <div className="p-2.5 rounded-xl bg-slate-950 font-mono text-[11px] space-y-1 text-slate-300 overflow-x-auto">
               <div className="text-slate-400"># English Syntax:</div>
-              <div>&quot;Match Column I with Column II: Column I: (1) Harappa (2) Mohenjodaro | Column II: (A) Ravi (B) Indus | Choose the correct matching:&quot;</div>
-              <div className="text-slate-400 mt-1"># Hindi Syntax (सूची / स्तंभ):</div>
-              <div>&quot;सूची-I को सूची-II से सुमेलित कीजिए: सूची-I: (1) हड़प्पा (2) मोहनजोदड़ो | सूची-II: (A) रावी (B) सिंधु | सही मिलान चुनिए:&quot;</div>
+              <div>&quot;Match Column I with Column II: | Column I: (1) Harappa (2) Mohenjodaro | Column II: (A) Ravi (B) Indus | Choose the correct matching:&quot;</div>
+              <div className="text-slate-400 mt-2"># Hindi Syntax (स्तंभ / सूची):</div>
+              <div>&quot;स्तंभ I को स्तंभ II से सुमेलित कीजिए: | स्तंभ I: (1) हड़प्पा (2) मोहनजोदड़ो | स्तंभ II: (A) रावी (B) सिंधु | सही मिलान चुनिए:&quot;</div>
               <div className="text-slate-400 mt-1"># Options:</div>
-              <div>A: 1-A, 2-B | B: 1-B, 2-A | C: 1-A, 2-A | D: 1-B, 2-B</div>
+              <div>A: 1-A, 2-B | B: 1-B, 2-A | C: 1-C, 2-D | D: 1-D, 2-C</div>
             </div>
           </div>
         )}
@@ -643,7 +641,23 @@ function ImportDialog({ chapters, onClose, onImported }) {
         maxSize="Max 5 MB per batch"
       />
     </div>
-    <textarea className="text-input import-json-input" value={json} onChange={(event) => { setJson(event.target.value); setPreview(null); }} rows="10" spellCheck="false" placeholder="Paste CSV (with headers) or a JSON array of question objects…" />
+    <textarea
+      className="text-input import-json-input font-mono text-xs"
+      value={json}
+      onChange={(event) => { setJson(event.target.value); setPreview(null); }}
+      rows="10"
+      spellCheck="false"
+      placeholder={`Paste CSV (with headers) or JSON array of questions.
+
+Supported competitive formats:
+1. Standard MCQ (4 options A-D in EN & HI)
+2. BPSC / State PCS MCQ (5 options A-E including "None of the above / More than one of the above")
+3. Multi-Statement ("Consider the following statements: | (1)... | (2)... | Which of the statements given above is/are correct?")
+4. Assertion & Reason ("Assertion (A):... | Reason (R):... | Choose the correct code:")
+5. Match the Following ("Match Column I with Column II: | Column I: (1)... | Column II: (A)... | Choose the correct matching:")
+
+Click "CSV Template" or "JSON Template" above to pre-fill all 5 complete bilingual examples!`}
+    />
     <button className="button button-outline" onClick={validate} disabled={isValidating || isImporting}><Filter size={15} /> {isValidating ? 'Validating…' : 'Validate & preview'}</button>
     {error && <div className="feedback error-feedback">{error}</div>}
     {preview && <div className="import-preview">

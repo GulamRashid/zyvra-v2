@@ -264,13 +264,13 @@ export function parseMatchingQuestion(text) {
 export function parseStatementQuestion(text) {
   if (!text || typeof text !== 'string') return null;
 
-  const tokenRegex = /(?:^|\s|[|;])(?:\(([1-9ivxlcdm]+)\)|([1-9ivxlcdm]+)\.)(?=\s+\S)/gi;
+  const tokenRegex = /(?:^|\s|[|;])(?:\(([1-9ivxlcdm]+)\)|([1-9ivxlcdm]+)\.|((?:Assertion|Reason|अभिकथन|कारण)\s*(?:\([AR]\))?[:：]?|\([AR]\)[:：]))(?=\s+\S)/gi;
   let match;
   const tokens = [];
   while ((match = tokenRegex.exec(text)) !== null) {
     const rawMatch = match[0];
     const badge = rawMatch.replace(/^[|\s;]+/, '').trim();
-    const tokenVal = match[1] || match[2];
+    const tokenVal = match[1] || match[2] || match[3];
     const matchIndex = match.index + (rawMatch.length - rawMatch.trimStart().length);
     tokens.push({
       badge,
