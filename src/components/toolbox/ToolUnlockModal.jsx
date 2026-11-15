@@ -14,7 +14,7 @@ export default function ToolUnlockModal({ title, price, validityDays, comboPrice
       }}
     >
       <section
-        className="w-full max-w-sm p-6 rounded-3xl dark:bg-[#04140e] bg-white border dark:border-emerald-500/30 border-slate-300 text-center space-y-4 shadow-xl relative"
+        className="w-full max-w-sm p-6 rounded-3xl dark:bg-[#0B1120] bg-white border dark:border-slate-700/60 border-slate-300 text-center space-y-4 shadow-xl relative"
         role="dialog"
         aria-modal="true"
         aria-labelledby="tool-unlock-title"
@@ -33,13 +33,13 @@ export default function ToolUnlockModal({ title, price, validityDays, comboPrice
         </div>
 
         <div>
-          <div className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 tracking-wider">
+          <div className="text-[10px] uppercase font-bold text-amber-500 dark:text-amber-400 tracking-wider">
             {t('tbPremium')}
           </div>
           <h2 id="tool-unlock-title" className="text-base font-black dark:text-white text-slate-900 mt-0.5">
             {t('tbUnlockTitle')}: {title}
           </h2>
-          <p className="text-xs dark:text-emerald-300/80 text-slate-600 mt-1">
+          <p className="text-xs dark:text-slate-400 text-slate-600 mt-1">
             {t('tbUnlockDescription')}
           </p>
         </div>
@@ -47,7 +47,7 @@ export default function ToolUnlockModal({ title, price, validityDays, comboPrice
         <div className="space-y-2 pt-2">
           <button
             type="button"
-            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 text-black text-xs font-black shadow-glowGold flex items-center justify-center gap-1.5 min-h-[44px]"
+            className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-glowIndigo flex items-center justify-center gap-1.5 min-h-[44px]"
             onClick={onBuy}
             disabled={!price}
           >
@@ -61,7 +61,7 @@ export default function ToolUnlockModal({ title, price, validityDays, comboPrice
           {comboPrice > 0 && (
             <button
               type="button"
-              className="w-full py-2.5 rounded-xl dark:bg-emerald-950/80 bg-slate-100 hover:bg-slate-200 dark:hover:bg-emerald-900 border dark:border-emerald-500/25 border-slate-300 dark:text-emerald-300 text-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 min-h-[44px]"
+              className="w-full py-2.5 rounded-xl dark:bg-slate-800 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-800 text-xs font-bold flex items-center justify-center gap-1.5 min-h-[44px]"
               onClick={onBuyCombo}
             >
               <Sparkles size={14} className="text-amber-500" />

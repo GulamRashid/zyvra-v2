@@ -355,7 +355,7 @@ export default function StudentAnalytics() {
 
                           <div className="flex items-center gap-2 shrink-0">
                             <div className="text-right">
-                              <strong className="text-sm font-black dark:text-emerald-400 text-emerald-700 block">
+                              <strong className="text-sm font-black dark:text-emerald-400 text-emerald-600 block">
                                 {percent ? `${percent.toFixed(1)}%` : score.toLocaleString()}
                               </strong>
                               {blankCount > 0 && (

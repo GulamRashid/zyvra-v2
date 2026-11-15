@@ -310,7 +310,7 @@ export default function StudentProfile() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="w-9 h-9 rounded-full dark:bg-emerald-950/70 bg-white/90 border dark:border-emerald-500/20 border-slate-300 flex items-center justify-center dark:text-white text-slate-800 hover:bg-slate-100 dark:hover:bg-emerald-900/80 transition-colors shadow-sm"
+              className="w-9 h-9 rounded-full dark:bg-slate-800 bg-white/90 border dark:border-slate-700/60 border-slate-300 flex items-center justify-center dark:text-white text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
               aria-label="Back"
             >
               <ArrowLeft size={18} />
@@ -319,7 +319,7 @@ export default function StudentProfile() {
               <span className="text-amber-400 font-extrabold text-xl leading-none">⚡</span>
               <div>
                 <span className="dark:text-white text-slate-900 font-black tracking-wider text-base">Zyvra</span>
-                <span className="dark:text-emerald-400/80 text-emerald-700 text-[10px] block -mt-0.5 font-bold uppercase tracking-widest">
+                <span className="dark:text-indigo-400/80 text-indigo-700 text-[10px] block -mt-0.5 font-bold uppercase tracking-widest">
                   My Profile
                 </span>
               </div>
@@ -329,7 +329,7 @@ export default function StudentProfile() {
           <div className="flex items-center gap-2">
             <Link
               to="/notifications"
-              className="w-9 h-9 rounded-full dark:bg-emerald-950/70 bg-white/90 border dark:border-emerald-500/20 border-slate-300 flex items-center justify-center dark:text-white text-slate-800 hover:bg-slate-100 dark:hover:bg-emerald-900/80 relative transition-colors shadow-sm"
+              className="w-9 h-9 rounded-full dark:bg-slate-800 bg-white/90 border dark:border-slate-700/60 border-slate-300 flex items-center justify-center dark:text-white text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 relative transition-colors shadow-sm"
               aria-label="Notifications"
             >
               <Bell size={16} />
@@ -337,7 +337,7 @@ export default function StudentProfile() {
             <button
               type="button"
               onClick={() => setEditProfileOpen(true)}
-              className="w-9 h-9 rounded-full dark:bg-emerald-950/70 bg-white/90 border dark:border-emerald-500/20 border-slate-300 flex items-center justify-center dark:text-white text-slate-800 hover:bg-slate-100 dark:hover:bg-emerald-900/80 transition-colors shadow-sm"
+              className="w-9 h-9 rounded-full dark:bg-slate-800 bg-white/90 border dark:border-slate-700/60 border-slate-300 flex items-center justify-center dark:text-white text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-sm"
               aria-label="Settings"
             >
               <Settings size={16} />
@@ -351,8 +351,8 @@ export default function StudentProfile() {
             <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
               {/* Profile Avatar with Edit Badge */}
               <div className="relative shrink-0">
-                <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-emerald-600 via-teal-500 to-amber-500 p-[2px] shadow-[0_0_20px_rgba(34,197,94,0.25)]">
-                  <div className="w-full h-full rounded-full dark:bg-[#07261b] bg-white flex items-center justify-center font-black text-xl sm:text-2xl text-amber-500 overflow-hidden">
+                <div className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-indigo-500 via-indigo-600 to-amber-500 p-[2px] shadow-[0_0_20px_rgba(79,70,229,0.25)]">
+                  <div className="w-full h-full rounded-full dark:bg-[#0B1120] bg-white flex items-center justify-center font-black text-xl sm:text-2xl text-amber-500 overflow-hidden">
                     {profile?.avatar_url ? (
                       <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
                     ) : (
@@ -363,7 +363,7 @@ export default function StudentProfile() {
                 <button
                   type="button"
                   onClick={() => setEditProfileOpen(true)}
-                  className="absolute bottom-0 right-0 w-5 h-5 sm:w-6 sm:h-6 rounded-full dark:bg-black/80 bg-white border dark:border-emerald-400 border-slate-300 dark:text-emerald-300 text-slate-700 flex items-center justify-center shadow-md hover:bg-slate-100 dark:hover:bg-emerald-900 transition-colors"
+                  className="absolute bottom-0 right-0 w-5 h-5 sm:w-6 sm:h-6 rounded-full dark:bg-black/80 bg-white border dark:border-indigo-400 border-slate-300 dark:text-indigo-300 text-slate-700 flex items-center justify-center shadow-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                   aria-label="Edit Profile Picture"
                 >
                   <Edit3 size={11} />
@@ -382,22 +382,22 @@ export default function StudentProfile() {
                       <span>Premium</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold dark:bg-emerald-950 bg-emerald-100 border dark:border-emerald-500/30 border-emerald-300 dark:text-emerald-400 text-emerald-800">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold dark:bg-emerald-500/20 bg-emerald-100 border dark:border-emerald-500/30 border-emerald-300 dark:text-emerald-400 text-emerald-600">
                       Free plan
                     </span>
                   )}
                 </div>
 
                 {displayEmail && (
-                  <div className="flex items-center gap-1.5 text-xs dark:text-emerald-300/80 text-slate-600 font-medium truncate">
-                    <Mail size={12} className="text-emerald-500 shrink-0" />
+                  <div className="flex items-center gap-1.5 text-xs dark:text-slate-400 text-slate-600 font-medium truncate">
+                    <Mail size={12} className="text-indigo-500 shrink-0" />
                     <span className="truncate max-w-[170px] sm:max-w-xs">{displayEmail}</span>
                   </div>
                 )}
 
                 {displayPhone !== 'Not provided' && (
-                  <div className="flex items-center gap-1.5 text-xs dark:text-emerald-300/80 text-slate-600 font-medium">
-                    <Phone size={12} className="text-emerald-500 shrink-0" />
+                  <div className="flex items-center gap-1.5 text-xs dark:text-slate-400 text-slate-600 font-medium">
+                    <Phone size={12} className="text-indigo-500 shrink-0" />
                     <span>{displayPhone}</span>
                   </div>
                 )}
@@ -408,7 +408,7 @@ export default function StudentProfile() {
             <button
               type="button"
               onClick={() => setEditProfileOpen(true)}
-              className="px-3 sm:px-3.5 py-1.5 rounded-full dark:bg-emerald-950/70 bg-white border dark:border-emerald-500/30 border-slate-300 hover:border-emerald-400 text-xs font-bold dark:text-emerald-300 text-slate-700 hover:text-black dark:hover:text-white flex items-center gap-1.5 shrink-0 transition-all shadow-sm hover:scale-105 active:scale-95"
+              className="px-3 sm:px-3.5 py-1.5 rounded-full dark:bg-slate-800/80 bg-white border dark:border-slate-700/60 border-slate-300 hover:border-indigo-400 text-xs font-bold dark:text-slate-200 text-slate-700 hover:text-black dark:hover:text-white flex items-center gap-1.5 shrink-0 transition-all shadow-sm hover:scale-105 active:scale-95"
             >
               <Edit3 size={13} />
               <span className="hidden xs:inline">Edit</span>
@@ -419,7 +419,7 @@ export default function StudentProfile() {
 
       <div className="px-3 sm:px-6 max-w-2xl mx-auto space-y-3.5 sm:space-y-4 -mt-2 relative z-10">
         {/* Pro Membership / Upgrade Card */}
-        <section className="relative overflow-hidden rounded-2xl dark:bg-gradient-to-r dark:from-[#1c1808] dark:via-[#0f2118] dark:to-[#071811] bg-gradient-to-r from-amber-50 via-emerald-50/70 to-white border dark:border-amber-500/35 border-amber-300/80 p-3.5 sm:p-5 shadow-[0_4px_25px_rgba(245,197,66,0.12)] flex items-center justify-between gap-3 sm:gap-4">
+        <section className="relative overflow-hidden rounded-2xl dark:bg-gradient-to-r dark:from-[#1c1808] dark:via-slate-900 dark:to-slate-900 bg-gradient-to-r from-amber-50 via-indigo-50/40 to-white border dark:border-amber-500/35 border-amber-300/80 p-3.5 sm:p-5 shadow-[0_4px_25px_rgba(245,197,66,0.12)] flex items-center justify-between gap-3 sm:gap-4">
           <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-black font-black text-lg sm:text-xl shadow-[0_0_15px_rgba(245,197,66,0.35)] shrink-0">
               👑
@@ -459,14 +459,14 @@ export default function StudentProfile() {
         {/* 4 Stats Cards Grid (Real Aggregates - 360px optimized) */}
         <section className="grid grid-cols-4 gap-1.5 sm:gap-3">
           {/* Card 1: Tests Attempted */}
-          <div className="dark:bg-[#072117]/85 bg-white shadow-sm backdrop-blur-md border dark:border-emerald-500/20 border-slate-200 rounded-2xl p-2 sm:p-3 text-center flex flex-col items-center justify-center">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg dark:bg-teal-500/20 bg-teal-100 dark:text-teal-300 text-teal-800 flex items-center justify-center mb-1">
+          <div className="dark:bg-[#1E293B] bg-white shadow-sm backdrop-blur-md border dark:border-slate-700/60 border-slate-200 rounded-2xl p-2 sm:p-3 text-center flex flex-col items-center justify-center">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg dark:bg-indigo-500/20 bg-indigo-100 dark:text-indigo-400 text-indigo-800 flex items-center justify-center mb-1">
               <Target size={14} />
             </div>
             <div className="text-sm sm:text-lg font-black dark:text-white text-slate-900 tracking-tight">
               {testsAttemptedCount}
             </div>
-            <div className="text-[8px] sm:text-[10px] dark:text-emerald-400/70 text-slate-500 font-semibold leading-tight mt-0.5">
+            <div className="text-[8px] sm:text-[10px] dark:text-slate-400 text-slate-500 font-semibold leading-tight mt-0.5">
               Tests
             </div>
           </div>
@@ -486,7 +486,7 @@ export default function StudentProfile() {
 
           {/* Card 3: Accuracy */}
           <div className="dark:bg-[#1E293B] bg-white shadow-sm backdrop-blur-md border dark:border-slate-700/60 border-slate-200 rounded-2xl p-2 sm:p-3 text-center flex flex-col items-center justify-center">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-800 flex items-center justify-center mb-1">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-400 text-emerald-600 flex items-center justify-center mb-1">
               <CheckCircle2 size={14} />
             </div>
             <div className="text-sm sm:text-lg font-black dark:text-white text-slate-900 tracking-tight">
@@ -544,91 +544,91 @@ export default function StudentProfile() {
         <section className="grid grid-cols-4 gap-1.5 sm:gap-3">
           <Link
             to="/bookmarks"
-            className="dark:bg-[#072117]/85 bg-white shadow-sm backdrop-blur-md border dark:border-emerald-500/20 border-slate-200 hover:border-emerald-500/40 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 group min-h-[64px]"
+            className="dark:bg-[#1E293B]/85 bg-white shadow-sm backdrop-blur-md border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/40 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 group min-h-[64px]"
           >
-            <Bookmark size={16} className="text-emerald-500 mb-1 group-hover:scale-110 transition-transform" />
+            <Bookmark size={16} className="text-amber-500 mb-1 group-hover:scale-110 transition-transform" />
             <span className="text-[11px] sm:text-xs font-bold dark:text-white text-slate-900">Bookmarks</span>
-            <span className="text-[10px] sm:text-[11px] font-black dark:text-emerald-300 text-emerald-700 mt-0.5">{bookmarksCount}</span>
+            <span className="text-[10px] sm:text-[11px] font-black dark:text-indigo-400 text-indigo-700 mt-0.5">{bookmarksCount}</span>
           </Link>
 
           <Link
             to="/toolbox"
-            className="dark:bg-[#072117]/85 bg-white shadow-sm backdrop-blur-md border dark:border-emerald-500/20 border-slate-200 hover:border-emerald-500/40 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 group min-h-[64px]"
+            className="dark:bg-[#1E293B]/85 bg-white shadow-sm backdrop-blur-md border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/40 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 group min-h-[64px]"
           >
-            <FileText size={16} className="text-emerald-500 mb-1 group-hover:scale-110 transition-transform" />
+            <FileText size={16} className="text-indigo-500 mb-1 group-hover:scale-110 transition-transform" />
             <span className="text-[11px] sm:text-xs font-bold dark:text-white text-slate-900">My Notes</span>
-            <span className="text-[10px] sm:text-[11px] font-black dark:text-emerald-300 text-emerald-700 mt-0.5">{notesCount}</span>
+            <span className="text-[10px] sm:text-[11px] font-black dark:text-indigo-400 text-indigo-700 mt-0.5">{notesCount}</span>
           </Link>
 
           <Link
             to="/purchases"
-            className="dark:bg-[#072117]/85 bg-white shadow-sm backdrop-blur-md border dark:border-emerald-500/20 border-slate-200 hover:border-emerald-500/40 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 group min-h-[64px]"
+            className="dark:bg-[#1E293B]/85 bg-white shadow-sm backdrop-blur-md border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/40 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 group min-h-[64px]"
           >
-            <Download size={16} className="text-emerald-500 mb-1 group-hover:scale-110 transition-transform" />
+            <Download size={16} className="text-indigo-500 mb-1 group-hover:scale-110 transition-transform" />
             <span className="text-[11px] sm:text-xs font-bold dark:text-white text-slate-900">Purchases</span>
-            <span className="text-[10px] sm:text-[11px] font-black dark:text-emerald-300 text-emerald-700 mt-0.5">{isPro ? (unlockedCount > 0 ? `${unlockedCount} unlocked` : 'Active') : '0'}</span>
+            <span className="text-[10px] sm:text-[11px] font-black dark:text-indigo-400 text-indigo-700 mt-0.5">{isPro ? (unlockedCount > 0 ? `${unlockedCount} unlocked` : 'Active') : '0'}</span>
           </Link>
 
           <Link
             to="/analytics"
-            className="dark:bg-[#072117]/85 bg-white shadow-sm backdrop-blur-md border dark:border-emerald-500/20 border-slate-200 hover:border-emerald-500/40 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 group min-h-[64px]"
+            className="dark:bg-[#1E293B]/85 bg-white shadow-sm backdrop-blur-md border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/40 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center transition-all hover:scale-105 active:scale-95 group min-h-[64px]"
           >
-            <Clock size={16} className="text-emerald-500 mb-1 group-hover:scale-110 transition-transform" />
+            <Clock size={16} className="text-indigo-500 mb-1 group-hover:scale-110 transition-transform" />
             <span className="text-[11px] sm:text-xs font-bold dark:text-white text-slate-900">History</span>
-            <span className="text-[10px] sm:text-[11px] font-black dark:text-emerald-300 text-emerald-700 mt-0.5">{testsAttemptedCount}</span>
+            <span className="text-[10px] sm:text-[11px] font-black dark:text-indigo-400 text-indigo-700 mt-0.5">{testsAttemptedCount}</span>
           </Link>
         </section>
 
         {/* Action Menu List */}
-        <section className="dark:bg-[#072117]/85 bg-white shadow-sm backdrop-blur-md border dark:border-emerald-500/20 border-slate-200 rounded-2xl divide-y dark:divide-emerald-800/40 divide-slate-100 overflow-hidden">
+        <section className="dark:bg-[#1E293B]/85 bg-white shadow-sm backdrop-blur-md border dark:border-slate-700/60 border-slate-200 rounded-2xl divide-y dark:divide-slate-700/40 divide-slate-100 overflow-hidden">
           <Link
             to="/purchases"
-            className="flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-emerald-950/60 transition-colors group min-h-[48px]"
+            className="flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group min-h-[48px]"
           >
             <div className="flex items-center gap-3">
-              <Layers size={18} className="text-emerald-500" />
+              <Layers size={18} className="text-indigo-500" />
               <div>
                 <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block">My Purchases</span>
-                <span className="text-[10px] dark:text-emerald-400/70 text-slate-500">View active packages & unlocks</span>
+                <span className="text-[10px] dark:text-slate-400 text-slate-500">View active packages & unlocks</span>
               </div>
             </div>
-            <ChevronRight size={16} className="dark:text-emerald-400/50 text-slate-400 group-hover:dark:text-white group-hover:text-black group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={16} className="dark:text-slate-500 text-slate-400 group-hover:dark:text-white group-hover:text-black group-hover:translate-x-0.5 transition-all" />
           </Link>
 
           <button
             type="button"
             onClick={() => setGoalsModalOpen(true)}
-            className="w-full flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-emerald-950/60 transition-colors group text-left min-h-[48px]"
+            className="w-full flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group text-left min-h-[48px]"
           >
             <div className="flex items-center gap-3">
-              <Target size={18} className="text-emerald-500" />
+              <Target size={18} className="text-indigo-500" />
               <div>
                 <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block">My Goals & Plan</span>
-                <span className="text-[10px] dark:text-emerald-400/70 text-slate-500">Set target: {dailyTarget} questions/day</span>
+                <span className="text-[10px] dark:text-slate-400 text-slate-500">Set target: {dailyTarget} questions/day</span>
               </div>
             </div>
-            <ChevronRight size={16} className="dark:text-emerald-400/50 text-slate-400 group-hover:dark:text-white group-hover:text-black group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={16} className="dark:text-slate-500 text-slate-400 group-hover:dark:text-white group-hover:text-black group-hover:translate-x-0.5 transition-all" />
           </button>
 
           <Link
             to="/analytics"
-            className="flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-emerald-950/60 transition-colors group min-h-[48px]"
+            className="flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group min-h-[48px]"
           >
             <div className="flex items-center gap-3">
-              <BarChart3 size={18} className="text-emerald-500" />
+              <BarChart3 size={18} className="text-indigo-500" />
               <div>
                 <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block">Performance Report</span>
-                <span className="text-[10px] dark:text-emerald-400/70 text-slate-500">Detailed analysis & weak area detection</span>
+                <span className="text-[10px] dark:text-slate-400 text-slate-500">Detailed analysis & weak area detection</span>
               </div>
             </div>
-            <ChevronRight size={16} className="dark:text-emerald-400/50 text-slate-400 group-hover:dark:text-white group-hover:text-black group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={16} className="dark:text-slate-500 text-slate-400 group-hover:dark:text-white group-hover:text-black group-hover:translate-x-0.5 transition-all" />
           </Link>
 
           {referralCode && (
             <button
               type="button"
               onClick={() => setInviteModalOpen(true)}
-              className="w-full flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-emerald-950/60 transition-colors group text-left min-h-[48px]"
+              className="w-full flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group text-left min-h-[48px]"
             >
               <div className="flex items-center gap-3">
                 <Users size={18} className="text-amber-500" />
@@ -639,26 +639,26 @@ export default function StudentProfile() {
                       Earn Coins
                     </span>
                   </div>
-                  <span className="text-[10px] dark:text-emerald-400/70 text-slate-500">Invite friends & get bonus coins</span>
+                  <span className="text-[10px] dark:text-slate-400 text-slate-500">Invite friends & get bonus coins</span>
                 </div>
               </div>
-              <ChevronRight size={16} className="dark:text-emerald-400/50 text-slate-400 group-hover:dark:text-white group-hover:text-black group-hover:translate-x-0.5 transition-all" />
+              <ChevronRight size={16} className="dark:text-slate-500 text-slate-400 group-hover:dark:text-white group-hover:text-black group-hover:translate-x-0.5 transition-all" />
             </button>
           )}
 
           <button
             type="button"
             onClick={() => setSupportModalOpen(true)}
-            className="w-full flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-emerald-950/60 transition-colors group text-left min-h-[48px]"
+            className="w-full flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group text-left min-h-[48px]"
           >
             <div className="flex items-center gap-3">
-              <HelpCircle size={18} className="text-emerald-500" />
+              <HelpCircle size={18} className="text-indigo-500" />
               <div>
                 <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block">Help & Support</span>
-                <span className="text-[10px] dark:text-emerald-400/70 text-slate-500">FAQ, contact details & inquiries</span>
+                <span className="text-[10px] dark:text-slate-400 text-slate-500">FAQ, contact details & inquiries</span>
               </div>
             </div>
-            <ChevronRight size={16} className="dark:text-emerald-400/50 text-slate-400 group-hover:dark:text-white group-hover:text-black group-hover:translate-x-0.5 transition-all" />
+            <ChevronRight size={16} className="dark:text-slate-500 text-slate-400 group-hover:dark:text-white group-hover:text-black group-hover:translate-x-0.5 transition-all" />
           </button>
         </section>
 
@@ -683,7 +683,7 @@ export default function StudentProfile() {
       {/* Edit Profile Modal */}
       {editProfileOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md p-6 rounded-3xl dark:bg-[#04140e] bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 space-y-4 shadow-xl">
+          <div className="w-full max-w-md p-6 rounded-3xl dark:bg-[#0B1120] bg-white border dark:border-slate-700/60 border-slate-300 dark:text-white text-slate-900 space-y-4 shadow-xl">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-black flex items-center gap-2">
                 <Edit3 size={18} className="text-amber-500" />
@@ -699,25 +699,25 @@ export default function StudentProfile() {
             </div>
 
             {profileFeedback && (
-              <div className="p-2.5 rounded-xl dark:bg-emerald-950 bg-emerald-50 border dark:border-emerald-500/40 border-emerald-300 dark:text-emerald-300 text-emerald-800 text-xs font-bold">
+              <div className="p-2.5 rounded-xl dark:bg-slate-800 bg-slate-50 border dark:border-slate-700 border-slate-200 text-slate-800 dark:text-slate-200 text-xs font-bold">
                 {profileFeedback}
               </div>
             )}
 
             <form onSubmit={handleSaveProfile} className="space-y-3">
               <div>
-                <label className="text-xs font-bold dark:text-emerald-300 text-slate-700 block mb-1">Full Name</label>
+                <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">Full Name</label>
                 <input
                   type="text"
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl dark:bg-emerald-950 bg-slate-50 border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 text-xs font-bold focus:outline-none focus:border-amber-400"
+                  className="w-full px-3 py-2 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700/60 border-slate-300 dark:text-white text-slate-900 text-xs font-bold focus:outline-none focus:border-amber-400"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold dark:text-emerald-300 text-slate-700 block mb-1">
+                <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
                   Mobile Number <span className="text-[10px] font-normal text-slate-400 dark:text-neutral-500">(Read-only)</span>
                 </label>
                 <input
@@ -725,7 +725,7 @@ export default function StudentProfile() {
                   value={profile?.mobile || 'Not provided'}
                   readOnly
                   disabled
-                  className="w-full px-3 py-2 rounded-xl dark:bg-emerald-950/50 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 dark:text-neutral-400 text-slate-500 text-xs font-medium cursor-not-allowed"
+                  className="w-full px-3 py-2 rounded-xl dark:bg-slate-900/50 bg-slate-100 border dark:border-slate-700/40 border-slate-300 dark:text-neutral-400 text-slate-500 text-xs font-medium cursor-not-allowed"
                 />
               </div>
 
@@ -733,7 +733,7 @@ export default function StudentProfile() {
                 <button
                   type="button"
                   onClick={() => setEditProfileOpen(false)}
-                  className="px-3.5 py-1.5 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[44px]"
+                  className="px-3.5 py-1.5 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-slate-300 text-slate-700 min-h-[44px]"
                 >
                   Cancel
                 </button>
@@ -753,7 +753,7 @@ export default function StudentProfile() {
       {/* Goals Modal */}
       {goalsModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm p-6 rounded-3xl dark:bg-[#04140e] bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 space-y-4 shadow-xl">
+          <div className="w-full max-w-sm p-6 rounded-3xl dark:bg-[#0B1120] bg-white border dark:border-slate-700/60 border-slate-300 dark:text-white text-slate-900 space-y-4 shadow-xl">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-black flex items-center gap-2">
                 <Target size={18} className="text-amber-500" />
@@ -769,14 +769,14 @@ export default function StudentProfile() {
             </div>
 
             {goalsFeedback && (
-              <div className={`p-2.5 rounded-xl text-xs font-bold ${goalsFeedback.includes('successfully') ? 'dark:bg-emerald-950/60 bg-emerald-50 text-emerald-600 dark:text-emerald-300 border border-emerald-500/20' : 'dark:bg-rose-950/40 bg-rose-50 text-rose-600 dark:text-rose-300 border border-rose-500/30'}`}>
+              <div className={`p-2.5 rounded-xl text-xs font-bold ${goalsFeedback.includes('successfully') ? 'dark:bg-emerald-500/20 bg-emerald-50 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30' : 'dark:bg-rose-950/40 bg-rose-50 text-rose-600 dark:text-rose-300 border border-rose-500/30'}`}>
                 {goalsFeedback}
               </div>
             )}
 
             <form onSubmit={handleSaveGoals} className="space-y-4">
               <div>
-                <label className="text-xs font-bold dark:text-emerald-300 text-slate-700 block mb-1">
+                <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
                   Target Questions Per Day: {dailyTarget}
                 </label>
                 <input
@@ -794,7 +794,7 @@ export default function StudentProfile() {
                 <button
                   type="button"
                   onClick={() => setGoalsModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[44px]"
+                  className="px-3.5 py-1.5 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-slate-300 text-slate-700 min-h-[44px]"
                 >
                   Cancel
                 </button>
@@ -814,23 +814,23 @@ export default function StudentProfile() {
       {/* Invite Modal */}
       {inviteModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md p-6 rounded-3xl dark:bg-[#04140e] bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 space-y-4 shadow-xl">
+          <div className="w-full max-w-md p-6 rounded-3xl dark:bg-[#0B1120] bg-white border dark:border-slate-700/60 border-slate-300 dark:text-white text-slate-900 space-y-4 shadow-xl">
             <div className="w-12 h-12 rounded-2xl dark:bg-amber-400/20 bg-amber-100 border dark:border-amber-400/30 border-amber-300 flex items-center justify-center mx-auto text-2xl">
               🎁
             </div>
             <div className="text-center">
               <h3 className="text-base font-black">Invite Friends & Earn Coins</h3>
-              <p className="text-xs dark:text-emerald-300/80 text-slate-600 mt-1">
+              <p className="text-xs dark:text-slate-400 text-slate-600 mt-1">
                 Share your referral link. When your friend joins Zyvra, both of you earn bonus coins!
               </p>
             </div>
 
             {/* Referral Code Box */}
             <div className="space-y-1.5 text-left">
-              <label className="text-[11px] font-bold uppercase tracking-wider dark:text-emerald-400/80 text-slate-500">
+              <label className="text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">
                 Referral Code
               </label>
-              <div className="p-3 rounded-2xl dark:bg-black/60 bg-slate-100 border dark:border-emerald-500/30 border-slate-300 flex items-center justify-between gap-2">
+              <div className="p-3 rounded-2xl dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-between gap-2">
                 <span className="font-mono text-sm font-black dark:text-amber-300 text-amber-700 tracking-wider">
                   {referralCode || 'Generating code...'}
                 </span>
@@ -847,18 +847,18 @@ export default function StudentProfile() {
 
             {/* Direct Invite Link Box */}
             <div className="space-y-1.5 text-left">
-              <label className="text-[11px] font-bold uppercase tracking-wider dark:text-emerald-400/80 text-slate-500">
+              <label className="text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500">
                 Direct Invite Link
               </label>
-              <div className="p-3 rounded-2xl dark:bg-black/60 bg-slate-100 border dark:border-emerald-500/30 border-slate-300 flex items-center justify-between gap-2">
-                <span className="font-mono text-xs dark:text-emerald-200/90 text-slate-700 truncate max-w-[200px] sm:max-w-[250px]">
+              <div className="p-3 rounded-2xl dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-between gap-2">
+                <span className="font-mono text-xs dark:text-slate-300 text-slate-700 truncate max-w-[200px] sm:max-w-[250px]">
                   {inviteUrl}
                 </span>
                 <button
                   type="button"
                   onClick={handleCopyLink}
                   disabled={!referralCode}
-                  className="px-3 py-1.5 rounded-xl dark:bg-emerald-950 bg-slate-200 hover:bg-slate-300 dark:hover:bg-emerald-900 border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-800 text-xs font-bold inline-flex items-center gap-1.5 transition-colors shrink-0 disabled:opacity-50"
+                  className="px-3 py-1.5 rounded-xl dark:bg-slate-800 bg-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-800 text-xs font-bold inline-flex items-center gap-1.5 transition-colors shrink-0 disabled:opacity-50"
                 >
                   {copiedLink ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy Link</>}
                 </button>
@@ -867,7 +867,7 @@ export default function StudentProfile() {
 
             {/* Direct Share Shortcuts */}
             <div className="space-y-2 pt-1">
-              <div className="text-[11px] font-bold uppercase tracking-wider dark:text-emerald-400/80 text-slate-500 text-left">
+              <div className="text-[11px] font-bold uppercase tracking-wider dark:text-slate-400 text-slate-500 text-left">
                 Direct Share
               </div>
               <div className="grid grid-cols-3 gap-2">
@@ -875,10 +875,10 @@ export default function StudentProfile() {
                   type="button"
                   onClick={handleNativeShare}
                   disabled={!referralCode}
-                  className="py-2.5 px-2 rounded-2xl dark:bg-emerald-950/70 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 hover:border-emerald-400 dark:text-emerald-200 text-slate-700 flex flex-col items-center justify-center gap-1 text-[11px] font-bold transition-all disabled:opacity-50"
+                  className="py-2.5 px-2 rounded-2xl dark:bg-slate-800/70 bg-slate-100 border dark:border-slate-700 border-slate-300 hover:border-indigo-500 dark:text-slate-200 text-slate-700 flex flex-col items-center justify-center gap-1 text-[11px] font-bold transition-all disabled:opacity-50"
                   aria-label="Native Share"
                 >
-                  <Share2 size={18} className="text-emerald-500" />
+                  <Share2 size={18} className="text-indigo-400" />
                   <span>Share</span>
                 </button>
                 <a
@@ -912,7 +912,7 @@ export default function StudentProfile() {
             <button
               type="button"
               onClick={() => setInviteModalOpen(false)}
-              className="w-full py-2.5 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[44px] transition-colors"
+              className="w-full py-2.5 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-slate-300 text-slate-700 min-h-[44px] transition-colors"
             >
               Close
             </button>
@@ -923,7 +923,7 @@ export default function StudentProfile() {
       {/* Support Modal */}
       {supportModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm p-6 rounded-3xl dark:bg-[#04140e] bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 space-y-4 shadow-xl">
+          <div className="w-full max-w-sm p-6 rounded-3xl dark:bg-[#0B1120] bg-white border dark:border-slate-700/60 border-slate-300 dark:text-white text-slate-900 space-y-4 shadow-xl">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-black flex items-center gap-2">
                 <HelpCircle size={18} className="text-amber-500" />
@@ -937,9 +937,9 @@ export default function StudentProfile() {
                 ✕
               </button>
             </div>
-            <div className="space-y-2 text-xs dark:text-emerald-300/90 text-slate-600">
+            <div className="space-y-2 text-xs dark:text-slate-400 text-slate-600">
               <p>For inquiries, test issues, or billing assistance:</p>
-              <div className="p-3 rounded-xl dark:bg-emerald-950/80 bg-slate-50 border dark:border-emerald-500/30 border-slate-300 space-y-1">
+              <div className="p-3 rounded-xl dark:bg-slate-900/80 bg-slate-50 border dark:border-slate-700 border-slate-300 space-y-1">
                 <div>📧 Email: <span className="dark:text-white text-slate-900 font-bold">support@zyvra.in</span></div>
                 <div>💬 WhatsApp: <span className="dark:text-white text-slate-900 font-bold">+91 98765 43210</span></div>
                 <div>⏰ Support Hours: <span className="dark:text-white text-slate-900 font-bold">10 AM – 7 PM IST</span></div>
@@ -948,7 +948,7 @@ export default function StudentProfile() {
             <button
               type="button"
               onClick={() => setSupportModalOpen(false)}
-              className="w-full py-2 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[44px]"
+              className="w-full py-2 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-slate-300 text-slate-700 min-h-[44px]"
             >
               Close
             </button>

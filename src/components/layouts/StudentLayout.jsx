@@ -136,8 +136,8 @@ export default function StudentLayout() {
             </NavLink>
 
             {isAdmin && (
-              <NavLink className="button admin-shortcut bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-200 border border-emerald-500/30 text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5" to="/admin">
-                <Shield size={14} className="text-emerald-400" />
+              <NavLink className="button admin-shortcut bg-indigo-900/60 hover:bg-indigo-800/80 text-indigo-200 border border-indigo-500/30 text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5" to="/admin">
+                <Shield size={14} className="text-indigo-400" />
                 <span>{t('adminPanel')}</span>
               </NavLink>
             )}

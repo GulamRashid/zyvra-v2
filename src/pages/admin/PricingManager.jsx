@@ -582,11 +582,11 @@ export default function PricingManager() {
   }, [dynamicTree, treeSearch]);
 
   return (
-    <div className="min-h-screen bg-[#04140e] text-[#f0fdf4] p-4 sm:p-6 space-y-5">
+    <div className="min-h-screen bg-[#0B1120] text-slate-100 p-4 sm:p-6 space-y-5">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold mb-1">
+          <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-bold mb-1">
             <span>Pricing & Offers</span>
             <ChevronRight size={13} />
             <span className="text-white">Pricing Control</span>
@@ -595,7 +595,7 @@ export default function PricingManager() {
             <Tag className="w-6 h-6 text-amber-400" />
             <span>Pricing & Offers Control Center</span>
           </h1>
-          <p className="text-xs text-emerald-300/80 mt-0.5">
+          <p className="text-xs text-slate-400 mt-0.5">
             Configure price, discount, and access rules directly on your database content.
           </p>
         </div>
@@ -604,7 +604,7 @@ export default function PricingManager() {
           <button
             type="button"
             onClick={() => { refreshCatalog(); fetchTests(); fetchSettings(); }}
-            className="px-3 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
           >
             <RefreshCw size={13} className={catalogLoading ? 'animate-spin' : ''} />
             <span>Refresh</span>
@@ -625,7 +625,7 @@ export default function PricingManager() {
         <div
           className={`p-3 rounded-xl text-xs font-bold flex items-center justify-between border ${
             statusMessage.type === 'success'
-              ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
+              ? 'bg-slate-800 border-emerald-500/50 text-emerald-300'
               : 'bg-rose-950/80 border-rose-500/50 text-rose-300'
           }`}
         >
@@ -636,56 +636,56 @@ export default function PricingManager() {
 
       {/* Real Summary Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-        <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/20">
-          <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
+          <div className="flex items-center gap-2 text-xs text-indigo-400 font-semibold mb-1">
             <Layers size={14} /> Total Items
           </div>
           <div className="text-xl font-black text-white">{totalItemsCount}</div>
-          <div className="text-[10px] text-emerald-300/70 mt-0.5">Real Database Content</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Real Database Content</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/20">
+        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
           <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold mb-1">
             <Unlock size={14} /> Free Items
           </div>
           <div className="text-xl font-black text-emerald-400">{freeItemsCount}</div>
-          <div className="text-[10px] text-emerald-300/70 mt-0.5">
+          <div className="text-[10px] text-slate-400 mt-0.5">
             {totalItemsCount > 0 ? Math.round((freeItemsCount / totalItemsCount) * 100) : 0}% of catalog
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/20">
+        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
           <div className="flex items-center gap-2 text-xs text-amber-400 font-semibold mb-1">
             <Lock size={14} /> Paid Items
           </div>
           <div className="text-xl font-black text-amber-400">{paidItemsCount}</div>
-          <div className="text-[10px] text-emerald-300/70 mt-0.5">
+          <div className="text-[10px] text-slate-400 mt-0.5">
             {totalItemsCount > 0 ? Math.round((paidItemsCount / totalItemsCount) * 100) : 0}% of catalog
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/20">
-          <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
+          <div className="flex items-center gap-2 text-xs text-indigo-400 font-semibold mb-1">
             <Folder size={14} /> Folders
           </div>
           <div className="text-xl font-black text-white">{folders.length}</div>
-          <div className="text-[10px] text-emerald-300/70 mt-0.5">Under {exams.length} Exam(s)</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Under {exams.length} Exam(s)</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/20">
-          <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
+          <div className="flex items-center gap-2 text-xs text-indigo-400 font-semibold mb-1">
             <FileText size={14} /> Chapters
           </div>
           <div className="text-xl font-black text-white">{chapters.length}</div>
-          <div className="text-[10px] text-emerald-300/70 mt-0.5">{tests.length} Active Tests</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">{tests.length} Active Tests</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/20">
+        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
           <div className="flex items-center gap-2 text-xs text-amber-400 font-semibold mb-1">
             <BadgePercent size={14} /> Active Coupons
           </div>
           <div className="text-xl font-black text-amber-400">{coupons.length}</div>
-          <div className="text-[10px] text-emerald-300/70 mt-0.5">Configured</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Configured</div>
         </div>
       </div>
 
@@ -694,16 +694,16 @@ export default function PricingManager() {
         {/* ======================================================== */}
         {/* COLUMN 1 (4 Cols): Real Tree View Content Hierarchy */}
         {/* ======================================================== */}
-        <div className="lg:col-span-4 p-4 rounded-3xl bg-emerald-950/40 border border-emerald-500/20 flex flex-col h-[420px] lg:h-[680px]">
+        <div className="lg:col-span-4 p-4 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 flex flex-col h-[420px] lg:h-[680px]">
           <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-emerald-300">
+            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-200">
               <FolderOpen size={15} className="text-amber-400" />
               <span>Database Content Tree</span>
             </div>
             <button
               type="button"
               onClick={() => setCreateFolderModalOpen(true)}
-              className="p-1 rounded-lg bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 text-[11px] font-bold flex items-center gap-1 px-2"
+              className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 text-[11px] font-bold flex items-center gap-1 px-2"
               title="Add folder under selected"
             >
               <Plus size={12} />
@@ -713,13 +713,13 @@ export default function PricingManager() {
 
           {/* Search Filter */}
           <div className="relative mb-3">
-            <Search size={14} className="absolute left-3 top-2.5 text-emerald-400/60" />
+            <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
             <input
               type="text"
               placeholder="Search content in database..."
               value={treeSearch}
               onChange={(e) => setTreeSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-500/30 text-white text-xs placeholder:text-emerald-400/50 focus:outline-none focus:border-amber-400"
+              className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder:text-slate-400 focus:outline-none focus:border-indigo-500"
             />
           </div>
 
@@ -728,7 +728,7 @@ export default function PricingManager() {
             {catalogLoading || loadingTests ? (
               <LoadingSkeleton count={5} />
             ) : visibleTree.length === 0 ? (
-              <div className="p-6 text-center text-xs text-emerald-400/70 space-y-2">
+              <div className="p-6 text-center text-xs text-slate-400 space-y-2">
                 <p>No content found in database.</p>
                 <button
                   type="button"
@@ -749,8 +749,8 @@ export default function PricingManager() {
                     }}
                     className={`flex items-center justify-between p-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${
                       selectedItemId === examNode.id
-                        ? 'bg-emerald-500/30 border border-emerald-400 text-white'
-                        : 'hover:bg-emerald-900/40 text-emerald-100'
+                        ? 'bg-indigo-600/25 border border-indigo-500 text-white'
+                        : 'hover:bg-slate-800 text-slate-200'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
@@ -760,7 +760,7 @@ export default function PricingManager() {
                           e.stopPropagation();
                           toggleNode(examNode.id);
                         }}
-                        className="text-emerald-400 hover:text-white"
+                        className="text-slate-400 hover:text-white"
                       >
                         {expandedNodes.has(examNode.id) ? (
                           <ChevronDown size={14} />
@@ -771,14 +771,14 @@ export default function PricingManager() {
                       <GraduationCap size={15} className="text-amber-400 shrink-0" />
                       <span className="truncate">{examNode.title}</span>
                     </div>
-                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-900/80 text-emerald-300 shrink-0">
+                    <span className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700/60 text-slate-300 shrink-0">
                       Exam · ₹{examNode.price}
                     </span>
                   </div>
 
                   {/* Child Folders / Items under Exam */}
                   {expandedNodes.has(examNode.id) && examNode.children?.length > 0 && (
-                    <div className="pl-4 space-y-0.5 border-l border-emerald-800/40 ml-2">
+                    <div className="pl-4 space-y-0.5 border-l border-slate-700/60 ml-2">
                       {examNode.children.map((folderNode) => (
                         <div key={folderNode.id} className="space-y-0.5">
                           {/* Folder Row */}
@@ -789,8 +789,8 @@ export default function PricingManager() {
                             }}
                             className={`flex items-center justify-between p-1.5 rounded-xl text-xs font-semibold cursor-pointer transition-colors ${
                               selectedItemId === folderNode.id
-                                ? 'bg-emerald-500/30 border border-emerald-400 text-white'
-                                : 'hover:bg-emerald-900/30 text-emerald-200'
+                                ? 'bg-indigo-600/25 border border-indigo-500 text-white'
+                                : 'hover:bg-slate-800/80 text-slate-300'
                             }`}
                           >
                             <div className="flex items-center gap-2 truncate">
@@ -800,7 +800,7 @@ export default function PricingManager() {
                                   e.stopPropagation();
                                   toggleNode(folderNode.id);
                                 }}
-                                className="text-emerald-400 hover:text-white"
+                                className="text-slate-400 hover:text-white"
                               >
                                 {folderNode.children?.length > 0 ? (
                                   expandedNodes.has(folderNode.id) ? (
@@ -812,17 +812,19 @@ export default function PricingManager() {
                                   <span className="w-3 inline-block" />
                                 )}
                               </button>
-                              <Folder size={14} className="text-emerald-400 shrink-0" />
+                              <Folder size={14} className="text-indigo-400 shrink-0" />
                               <span className="truncate">{folderNode.title}</span>
                             </div>
-                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-emerald-950 border border-emerald-500/30 text-emerald-400 shrink-0">
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded bg-slate-900 border border-slate-700/60 shrink-0 ${
+                              folderNode.accessMode === 'free' ? 'text-emerald-400' : 'text-slate-300'
+                            }`}>
                               {folderNode.accessMode === 'free' ? 'Free' : `₹${folderNode.price}`}
                             </span>
                           </div>
 
                           {/* Children under Folder (Subfolders, Chapters, Tests) */}
                           {expandedNodes.has(folderNode.id) && folderNode.children?.length > 0 && (
-                            <div className="pl-4 space-y-0.5 border-l border-emerald-800/40 ml-2">
+                            <div className="pl-4 space-y-0.5 border-l border-slate-700/60 ml-2">
                               {folderNode.children.map((child) => (
                                 <div
                                   key={child.id}
@@ -832,21 +834,21 @@ export default function PricingManager() {
                                   }}
                                   className={`flex items-center justify-between p-1.5 rounded-xl text-[11px] font-medium cursor-pointer transition-colors ${
                                     selectedItemId === child.id
-                                      ? 'bg-amber-500/25 border border-amber-400/80 text-white font-bold'
-                                      : 'hover:bg-emerald-900/20 text-emerald-300/90'
+                                      ? 'bg-indigo-600/25 border border-indigo-500 text-white font-bold'
+                                      : 'hover:bg-slate-800/60 text-slate-400'
                                   }`}
                                 >
                                   <div className="flex items-center gap-1.5 truncate">
                                     {child.type === 'chapter' ? (
-                                      <FileText size={13} className="text-teal-400 shrink-0" />
+                                      <FileText size={13} className="text-indigo-400 shrink-0" />
                                     ) : child.type === 'test' ? (
                                       <FileQuestion size={13} className="text-amber-400 shrink-0" />
                                     ) : (
-                                      <Folder size={13} className="text-emerald-400 shrink-0" />
+                                      <Folder size={13} className="text-indigo-400 shrink-0" />
                                     )}
                                     <span className="truncate">{child.title}</span>
                                   </div>
-                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-black/40 text-emerald-300 shrink-0">
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-slate-900/80 border border-slate-700/60 text-slate-400 shrink-0">
                                     {child.type}
                                   </span>
                                 </div>
@@ -866,10 +868,10 @@ export default function PricingManager() {
         {/* ======================================================== */}
         {/* COLUMN 2 (5 Cols): Real Item Pricing & Access Editor */}
         {/* ======================================================== */}
-        <div className="lg:col-span-5 p-5 rounded-3xl bg-emerald-950/40 border border-emerald-500/20 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-5 p-5 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 flex flex-col justify-between space-y-4">
           <div className="space-y-4">
             {/* Header of selected item */}
-            <div className="flex items-start justify-between gap-3 pb-3 border-b border-emerald-500/20">
+            <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-700/60">
               <div className="flex items-center gap-2.5">
                 <div className="w-10 h-10 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-300">
                   {selectedItemType === 'exam' ? (
@@ -884,7 +886,7 @@ export default function PricingManager() {
                   <h3 className="text-sm font-black text-white leading-tight">
                     {currentSelectedItem?.title || 'Select Content from Tree'}
                   </h3>
-                  <div className="flex items-center gap-2 text-[10px] text-emerald-400/80 mt-0.5">
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400 mt-0.5">
                     <span className="capitalize">Type: {selectedItemType}</span>
                     {effectivePricing.isInherited && (
                       <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">
@@ -909,7 +911,7 @@ export default function PricingManager() {
 
             {/* Access Type Radio Group */}
             <div>
-              <label className="text-[11px] font-black uppercase tracking-wider text-emerald-300 block mb-2">
+              <label className="text-[11px] font-black uppercase tracking-wider text-slate-300 block mb-2">
                 Access Type
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -923,8 +925,8 @@ export default function PricingManager() {
                     key={type.id}
                     className={`p-2.5 rounded-xl border cursor-pointer transition-all ${
                       formAccessType === type.id
-                        ? 'bg-emerald-500/20 border-emerald-400 text-white shadow-sm'
-                        : 'bg-emerald-950/60 border-emerald-500/20 text-emerald-300/80 hover:bg-emerald-900/40'
+                        ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-sm'
+                        : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:bg-slate-800'
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -934,11 +936,11 @@ export default function PricingManager() {
                         value={type.id}
                         checked={formAccessType === type.id}
                         onChange={(e) => setFormAccessType(e.target.value)}
-                        className="accent-amber-400 cursor-pointer"
+                        className="accent-indigo-500 cursor-pointer"
                       />
                       <span className="text-xs font-bold text-white">{type.label}</span>
                     </div>
-                    <p className="text-[10px] text-emerald-400/70 ml-5 mt-0.5">{type.desc}</p>
+                    <p className="text-[10px] text-slate-400 ml-5 mt-0.5">{type.desc}</p>
                   </label>
                 ))}
               </div>
@@ -946,10 +948,10 @@ export default function PricingManager() {
 
             {/* Price & Discount Settings (if paid) */}
             {formAccessType === 'paid' && (
-              <div className="p-3.5 rounded-2xl bg-emerald-950/70 border border-emerald-500/30 space-y-3">
+              <div className="p-3.5 rounded-2xl bg-slate-900/70 border border-slate-700/60 space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="text-[11px] font-bold text-emerald-300 block mb-1">
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
                       Base Price (₹)
                     </label>
                     <input
@@ -957,12 +959,12 @@ export default function PricingManager() {
                       min="0"
                       value={formPrice}
                       onChange={(e) => setFormPrice(Number(e.target.value))}
-                      className="w-full px-3 py-1.5 rounded-xl bg-emerald-950 border border-emerald-500/40 text-white font-black text-sm focus:outline-none focus:border-amber-400"
+                      className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-black text-sm focus:outline-none focus:border-indigo-500"
                     />
                   </div>
 
                   <div>
-                    <label className="text-[11px] font-bold text-emerald-300 block mb-1">
+                    <label className="text-[11px] font-bold text-slate-300 block mb-1">
                       Discount ({formDiscountType === 'percentage' ? '%' : '₹'})
                     </label>
                     <div className="flex gap-1.5">
@@ -971,12 +973,12 @@ export default function PricingManager() {
                         min="0"
                         value={formDiscountValue}
                         onChange={(e) => setFormDiscountValue(Number(e.target.value))}
-                        className="w-full px-3 py-1.5 rounded-xl bg-emerald-950 border border-emerald-500/40 text-white font-black text-sm focus:outline-none focus:border-amber-400"
+                        className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-white font-black text-sm focus:outline-none focus:border-indigo-500"
                       />
                       <button
                         type="button"
                         onClick={() => setFormDiscountType(formDiscountType === 'percentage' ? 'flat' : 'percentage')}
-                        className="px-2 rounded-xl bg-emerald-900 border border-emerald-500/30 text-xs font-bold text-emerald-300"
+                        className="px-2 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-200 hover:bg-slate-700"
                       >
                         {formDiscountType === 'percentage' ? '%' : '₹'}
                       </button>
@@ -985,15 +987,15 @@ export default function PricingManager() {
                 </div>
 
                 {/* Calculated Effective Price Pill */}
-                <div className="flex items-center justify-between p-2 rounded-xl bg-black/40 border border-emerald-500/20 text-xs">
-                  <span className="text-emerald-300/80">Net Effective Student Price:</span>
+                <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-700/60 text-xs">
+                  <span className="text-slate-400">Net Effective Student Price:</span>
                   <div className="flex items-center gap-2">
                     {formPrice > finalPrice && (
                       <span className="text-neutral-400 line-through text-[11px]">₹{formPrice}</span>
                     )}
                     <span className="text-base font-black text-amber-400">₹{finalPrice}</span>
                     {formDiscountValue > 0 && (
-                      <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold">
+                      <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-bold border border-emerald-500/30">
                         {formDiscountType === 'percentage' ? `${formDiscountValue}% OFF` : `₹${formDiscountValue} OFF`}
                       </span>
                     )}
@@ -1001,7 +1003,7 @@ export default function PricingManager() {
                 </div>
 
                 {/* Coin Purchase Option */}
-                <div className="space-y-1.5 pt-1 border-t border-emerald-500/20">
+                <div className="space-y-1.5 pt-1 border-t border-slate-700/60">
                   <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-white">
                     <input
                       type="checkbox"
@@ -1020,15 +1022,15 @@ export default function PricingManager() {
 
                   {formCoinAllowed && (
                     <div className="flex items-center gap-2 pl-6">
-                      <span className="text-[11px] text-emerald-300">Coin Price:</span>
+                      <span className="text-[11px] text-slate-300">Coin Price:</span>
                       <input
                         type="number"
                         min="0"
                         value={formCoinPrice}
                         onChange={(e) => setFormCoinPrice(Number(e.target.value))}
-                        className="w-24 px-2.5 py-1 rounded-lg bg-emerald-950 border border-emerald-500/30 text-amber-300 font-bold text-xs"
+                        className="w-24 px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-amber-300 font-bold text-xs"
                       />
-                      <span className="text-[10px] text-emerald-400/60">(10 Coins = ₹1)</span>
+                      <span className="text-[10px] text-slate-400">(10 Coins = ₹1)</span>
                     </div>
                   )}
                 </div>
@@ -1036,11 +1038,11 @@ export default function PricingManager() {
             )}
 
             {/* Recursive Inheritance Toggle (Zero DB row spamming) */}
-            <div className="p-3 rounded-2xl bg-emerald-950/50 border border-emerald-500/20 space-y-1">
+            <div className="p-3 rounded-2xl bg-slate-900/50 border border-slate-700/60 space-y-1">
               <label className="flex items-center justify-between cursor-pointer select-none">
                 <div>
                   <span className="text-xs font-bold text-white block">Recursive Child Inheritance</span>
-                  <span className="text-[10px] text-emerald-300/70 block">
+                  <span className="text-[10px] text-slate-400 block">
                     Automatically applies access rules to all subfolders & chapters without spamming DB rows.
                   </span>
                 </div>
@@ -1073,8 +1075,8 @@ export default function PricingManager() {
         {/* ======================================================== */}
         <div className="lg:col-span-3 space-y-4">
           {/* Quick Actions */}
-          <div className="p-4 rounded-3xl bg-emerald-950/40 border border-emerald-500/20 space-y-2">
-            <h3 className="text-xs font-black uppercase tracking-wider text-emerald-300 flex items-center gap-1.5 mb-2">
+          <div className="p-4 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 space-y-2">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5 mb-2">
               <Zap size={14} className="text-amber-400" />
               <span>Quick Actions</span>
             </h3>
@@ -1086,7 +1088,7 @@ export default function PricingManager() {
                 setFormPrice(0);
                 setFormDiscountValue(0);
               }}
-              className="w-full py-2 px-3 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/20 text-emerald-200 text-xs font-bold text-left flex items-center justify-between transition-colors"
+              className="w-full py-2 px-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-slate-200 text-xs font-bold text-left flex items-center justify-between transition-colors"
             >
               <span>Make Item Free</span>
               <Unlock size={13} className="text-emerald-400" />
@@ -1101,7 +1103,7 @@ export default function PricingManager() {
                 setFormCoinAllowed(true);
                 setFormCoinPrice(800);
               }}
-              className="w-full py-2 px-3 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/20 text-emerald-200 text-xs font-bold text-left flex items-center justify-between transition-colors"
+              className="w-full py-2 px-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-slate-200 text-xs font-bold text-left flex items-center justify-between transition-colors"
             >
               <span>Apply Standard ₹99 Pack</span>
               <Tag size={13} className="text-amber-400" />
@@ -1110,41 +1112,41 @@ export default function PricingManager() {
             <button
               type="button"
               onClick={() => setCreateFolderModalOpen(true)}
-              className="w-full py-2 px-3 rounded-xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/20 text-emerald-200 text-xs font-bold text-left flex items-center justify-between transition-colors"
+              className="w-full py-2 px-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/60 text-slate-200 text-xs font-bold text-left flex items-center justify-between transition-colors"
             >
               <span>Create New Folder</span>
-              <FolderPlus size={13} className="text-amber-400" />
+              <FolderPlus size={13} className="text-indigo-400" />
             </button>
           </div>
 
           {/* Real Coupons Configured */}
-          <div className="p-4 rounded-3xl bg-emerald-950/40 border border-emerald-500/20 space-y-2.5">
+          <div className="p-4 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 space-y-2.5">
             <div className="flex items-center justify-between">
-              <h3 className="text-xs font-black uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
                 <BadgePercent size={14} className="text-amber-400" />
                 <span>Configured Coupons</span>
               </h3>
-              <span className="text-[10px] text-emerald-400 font-bold">{coupons.length} Active</span>
+              <span className="text-[10px] text-indigo-400 font-bold">{coupons.length} Active</span>
             </div>
 
             <div className="space-y-1.5 max-h-[300px] overflow-y-auto no-scrollbar">
               {coupons.length === 0 ? (
-                <div className="p-3 text-center text-xs text-emerald-400/60">
+                <div className="p-3 text-center text-xs text-slate-400">
                   No coupons configured in system.
                 </div>
               ) : (
                 coupons.map((c) => (
                   <div
                     key={c.id || c.code}
-                    className="p-2.5 rounded-xl bg-black/40 border border-emerald-500/20 flex items-center justify-between"
+                    className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-700/60 flex items-center justify-between"
                   >
                     <div>
                       <div className="text-xs font-mono font-black text-amber-300">{c.code}</div>
-                      <div className="text-[10px] text-emerald-400/70">
+                      <div className="text-[10px] text-slate-400">
                         {c.discount_type === 'percent' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`} · {c.scope || 'global'}
                       </div>
                     </div>
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300">
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       Active
                     </span>
                   </div>
@@ -1158,7 +1160,7 @@ export default function PricingManager() {
       {/* Modal: Create New Folder */}
       {createFolderModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-[#04140e] border border-emerald-500/30 text-white space-y-4">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-[#0B1120] border border-slate-700 text-white space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-black flex items-center gap-2">
                 <FolderPlus size={18} className="text-amber-400" />
@@ -1175,7 +1177,7 @@ export default function PricingManager() {
 
             <form onSubmit={handleCreateFolder} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-emerald-300 block mb-1">
+                <label className="text-xs font-bold text-slate-300 block mb-1">
                   Folder Title *
                 </label>
                 <input
@@ -1184,18 +1186,18 @@ export default function PricingManager() {
                   placeholder="e.g. Class 7 or Science"
                   value={newFolderTitle}
                   onChange={(e) => setNewFolderTitle(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-emerald-950 border border-emerald-500/30 text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none focus:border-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-emerald-300 block mb-1">
+                <label className="text-xs font-bold text-slate-300 block mb-1">
                   Initial Access
                 </label>
                 <select
                   value={newFolderPricingMode}
                   onChange={(e) => setNewFolderPricingMode(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-emerald-950 border border-emerald-500/30 text-white text-xs font-bold focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none focus:border-indigo-500"
                 >
                   <option value="free">Free (Everyone)</option>
                   <option value="paid">Paid</option>
@@ -1205,7 +1207,7 @@ export default function PricingManager() {
 
               {newFolderPricingMode === 'paid' && (
                 <div>
-                  <label className="text-xs font-bold text-emerald-300 block mb-1">
+                  <label className="text-xs font-bold text-slate-300 block mb-1">
                     Price (₹)
                   </label>
                   <input
@@ -1213,7 +1215,7 @@ export default function PricingManager() {
                     min="0"
                     value={newFolderPrice}
                     onChange={(e) => setNewFolderPrice(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl bg-emerald-950 border border-emerald-500/30 text-white text-xs font-bold focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               )}
@@ -1222,7 +1224,7 @@ export default function PricingManager() {
                 <button
                   type="button"
                   onClick={() => setCreateFolderModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-xl bg-emerald-950 border border-emerald-500/20 text-xs font-bold text-neutral-300"
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300"
                 >
                   Cancel
                 </button>

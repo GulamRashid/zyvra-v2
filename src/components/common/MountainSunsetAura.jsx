@@ -79,7 +79,7 @@ export default function MountainSunsetAura({ className = '', height = 180, showS
       </svg>
 
       {/* Subtle Mist / Gradient Fade at bottom to seamlessly blend with page background */}
-      <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t dark:from-[#0B1120] dark:via-[#0B1120]/70 from-[#F7FAF8] via-[#F7FAF8]/70 to-transparent transition-colors duration-300" />
+      <div className="absolute bottom-0 inset-x-0 h-16 bg-gradient-to-t dark:from-[#0B1120] dark:via-[#0B1120]/70 from-[#F8FAFC] via-[#F8FAFC]/70 to-transparent transition-colors duration-300" />
     </div>
   );
 }

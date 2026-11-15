@@ -327,11 +327,11 @@ export default function AdminTools() {
   const activeCount = tools.filter((t) => t.active).length;
 
   return (
-    <div className="min-h-screen bg-[#04140e] text-[#f0fdf4] p-4 sm:p-6 space-y-5">
+    <div className="min-h-screen bg-[#0B1120] text-slate-100 p-4 sm:p-6 space-y-5">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold mb-1">
+          <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-bold mb-1">
             <span>Tools (Toolbox)</span>
             <ChevronRight size={13} />
             <span className="text-white">Toolbox Manager</span>
@@ -340,7 +340,7 @@ export default function AdminTools() {
             <Wrench className="w-6 h-6 text-amber-400" />
             <span>Student Toolbox Manager</span>
           </h1>
-          <p className="text-xs text-emerald-300/80 mt-0.5">
+          <p className="text-xs text-slate-400 mt-0.5">
             Organize study tools, drag to reorder, configure access, and test live mobile behavior.
           </p>
         </div>
@@ -349,7 +349,7 @@ export default function AdminTools() {
           <button
             type="button"
             onClick={fetchToolsConfig}
-            className="px-3 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             <span>Refresh</span>
@@ -370,7 +370,7 @@ export default function AdminTools() {
         <div
           className={`p-3 rounded-xl text-xs font-bold flex items-center justify-between border ${
             statusMessage.type === 'success'
-              ? 'bg-emerald-950/80 border-emerald-500/50 text-emerald-300'
+              ? 'bg-slate-800 border-indigo-500/50 text-indigo-300'
               : 'bg-rose-950/80 border-rose-500/50 text-rose-300'
           }`}
         >
@@ -381,36 +381,36 @@ export default function AdminTools() {
 
       {/* Real Summary Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/20">
-          <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
+          <div className="flex items-center gap-2 text-xs text-indigo-400 font-semibold mb-1">
             <Layers size={14} /> Total Tools
           </div>
           <div className="text-xl font-black text-white">{totalCount}</div>
-          <div className="text-[10px] text-emerald-300/70 mt-0.5">In Database Config</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">In Database Config</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/20">
+        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
           <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold mb-1">
             <Unlock size={14} /> Free Tools
           </div>
           <div className="text-xl font-black text-emerald-400">{freeCount}</div>
-          <div className="text-[10px] text-emerald-300/70 mt-0.5">Always Free Access</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Always Free Access</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/20">
+        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
           <div className="flex items-center gap-2 text-xs text-amber-400 font-semibold mb-1">
             <Lock size={14} /> Paid / Pro Tools
           </div>
           <div className="text-xl font-black text-amber-400">{paidCount}</div>
-          <div className="text-[10px] text-emerald-300/70 mt-0.5">Require Purchase or Pro</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Require Purchase or Pro</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-emerald-950/60 border border-emerald-500/20">
-          <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
+          <div className="flex items-center gap-2 text-xs text-indigo-400 font-semibold mb-1">
             <CheckCircle2 size={14} /> Active for Students
           </div>
           <div className="text-xl font-black text-white">{activeCount}</div>
-          <div className="text-[10px] text-emerald-300/70 mt-0.5">Visible in Toolbox</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">Visible in Toolbox</div>
         </div>
       </div>
 
@@ -419,13 +419,13 @@ export default function AdminTools() {
         {/* ======================================================== */}
         {/* COLUMN 1 (5 Cols): Reorderable Tools Table */}
         {/* ======================================================== */}
-        <div className="lg:col-span-5 p-4 rounded-3xl bg-emerald-950/40 border border-emerald-500/20 flex flex-col h-[440px] lg:h-[700px]">
+        <div className="lg:col-span-5 p-4 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 flex flex-col h-[440px] lg:h-[700px]">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-xs font-black uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+            <div className="text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
               <GripVertical size={14} className="text-amber-400" />
               <span>Toolbox Layout (Drag to Reorder)</span>
             </div>
-            <span className="text-[10px] text-emerald-400/80">
+            <span className="text-[10px] text-slate-400">
               {filteredTools.length} of {tools.length}
             </span>
           </div>
@@ -433,19 +433,19 @@ export default function AdminTools() {
           {/* Search & Filter Bar */}
           <div className="flex gap-2 mb-3">
             <div className="relative flex-1">
-              <Search size={14} className="absolute left-3 top-2.5 text-emerald-400/60" />
+              <Search size={14} className="absolute left-3 top-2.5 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search tools..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-500/30 text-white text-xs placeholder:text-emerald-400/50 focus:outline-none focus:border-amber-400"
+                className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder:text-slate-400 focus:outline-none focus:border-indigo-500"
               />
             </div>
             <select
               value={accessFilter}
               onChange={(e) => setAccessFilter(e.target.value)}
-              className="px-2 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 text-xs font-bold focus:outline-none"
+              className="px-2 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-bold focus:outline-none"
             >
               <option value="all">All Access</option>
               <option value="free">Free</option>
@@ -458,7 +458,7 @@ export default function AdminTools() {
             {loading ? (
               <LoadingSkeleton count={5} />
             ) : filteredTools.length === 0 ? (
-              <div className="p-6 text-center text-xs text-emerald-400/70">
+              <div className="p-6 text-center text-xs text-slate-400">
                 No tools matching search filter.
               </div>
             ) : (
@@ -474,12 +474,12 @@ export default function AdminTools() {
                     onClick={() => setSelectedToolId(tool.id)}
                     className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-emerald-500/25 border-emerald-400 text-white shadow-sm'
-                        : 'bg-emerald-950/60 border-emerald-500/20 text-emerald-200 hover:bg-emerald-900/40'
+                        ? 'bg-indigo-600/25 border-indigo-500 text-white shadow-sm'
+                        : 'bg-slate-900/60 border-slate-700/60 text-slate-200 hover:bg-slate-800'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <div className="cursor-grab active:cursor-grabbing text-emerald-500/50 hover:text-amber-400">
+                      <div className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-amber-400">
                         <GripVertical size={15} />
                       </div>
                       <span className="text-base shrink-0">{tool.iconChar}</span>
@@ -492,7 +492,7 @@ export default function AdminTools() {
                             </span>
                           )}
                         </div>
-                        <div className="text-[10px] text-emerald-400/70 truncate">{tool.category}</div>
+                        <div className="text-[10px] text-slate-400 truncate">{tool.category}</div>
                       </div>
                     </div>
 
@@ -548,21 +548,21 @@ export default function AdminTools() {
         {/* ======================================================== */}
         {/* COLUMN 2 (3 Cols): Access & Pricing Editor */}
         {/* ======================================================== */}
-        <div className="lg:col-span-3 p-4 rounded-3xl bg-emerald-950/40 border border-emerald-500/20 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-3 p-4 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 flex flex-col justify-between space-y-4">
           <div className="space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b border-emerald-500/20">
+            <div className="flex items-center gap-2 pb-2 border-b border-slate-700/60">
               <span className="text-xl">{selectedTool?.iconChar || '🔧'}</span>
               <div>
                 <h3 className="text-xs font-black text-white truncate">
                   {selectedTool?.name || 'Select a Tool'}
                 </h3>
-                <span className="text-[10px] text-emerald-400/80">Configure Tool Access</span>
+                <span className="text-[10px] text-slate-400">Configure Tool Access</span>
               </div>
             </div>
 
             {/* Access Type Switch */}
             <div>
-              <label className="text-[11px] font-bold text-emerald-300 block mb-1.5">Access Type</label>
+              <label className="text-[11px] font-bold text-slate-300 block mb-1.5">Access Type</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'free', label: 'Free' },
@@ -574,8 +574,8 @@ export default function AdminTools() {
                     onClick={() => setEditAccessType(id)}
                     className={`py-1.5 rounded-xl text-xs font-bold border transition-colors ${
                       editAccessType === id
-                        ? 'bg-emerald-500/25 border-emerald-400 text-white'
-                        : 'bg-emerald-950 border-emerald-500/20 text-neutral-400 hover:text-white'
+                        ? 'bg-indigo-600/25 border-indigo-500 text-white'
+                        : 'bg-slate-900 border-slate-700 text-neutral-400 hover:text-white'
                     }`}
                   >
                     {label}
@@ -587,20 +587,20 @@ export default function AdminTools() {
             {/* Price (if paid) */}
             {editAccessType === 'paid' && (
               <div>
-                <label className="text-[11px] font-bold text-emerald-300 block mb-1">Price (₹)</label>
+                <label className="text-[11px] font-bold text-slate-300 block mb-1">Price (₹)</label>
                 <input
                   type="number"
                   min="0"
                   value={editPrice}
                   onChange={(e) => setEditPrice(Number(e.target.value))}
-                  className="w-full px-3 py-1.5 rounded-xl bg-emerald-950 border border-emerald-500/30 text-white text-xs font-black focus:outline-none focus:border-amber-400"
+                  className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-black focus:outline-none focus:border-amber-400"
                 />
               </div>
             )}
 
             {/* Global Access Rules Toggles */}
-            <div className="p-3 rounded-2xl bg-emerald-950/60 border border-emerald-500/20 space-y-2 mt-2">
-              <h4 className="text-[10px] font-black uppercase tracking-wider text-emerald-300">
+            <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-700/60 space-y-2 mt-2">
+              <h4 className="text-[10px] font-black uppercase tracking-wider text-indigo-300">
                 Global Display Rules
               </h4>
               <div className="space-y-1.5 text-xs font-semibold">
@@ -643,7 +643,7 @@ export default function AdminTools() {
         {/* COLUMN 3 (4 Cols): Live Reactive Mobile Preview */}
         {/* ======================================================== */}
         <div className="lg:col-span-4 flex flex-col items-center">
-          <div className="text-xs font-black uppercase tracking-wider text-emerald-300 mb-2 flex items-center gap-1.5">
+          <div className="text-xs font-black uppercase tracking-wider text-indigo-300 mb-2 flex items-center gap-1.5">
             <Eye size={14} className="text-amber-400" />
             <span>Student Live View (Real-time)</span>
           </div>
@@ -657,7 +657,7 @@ export default function AdminTools() {
             </div>
 
             {/* Inner Phone Screen Content */}
-            <div className="w-full h-full bg-[#04140e] rounded-[32px] overflow-y-auto no-scrollbar text-white flex flex-col justify-between pt-4 pb-2 relative">
+            <div className="w-full h-full bg-[#0B1120] rounded-[32px] overflow-y-auto no-scrollbar text-white flex flex-col justify-between pt-4 pb-2 relative">
               {/* Phone Status Bar */}
               <div className="px-3 flex items-center justify-between text-[10px] font-bold text-neutral-400 mb-2">
                 <span>10:24</span>
@@ -679,13 +679,13 @@ export default function AdminTools() {
                 </div>
 
                 {/* Banner */}
-                <div className="p-2.5 rounded-2xl bg-gradient-to-r from-[#06291d] to-[#041911] border border-emerald-500/30 flex items-center gap-2">
+                <div className="p-2.5 rounded-2xl bg-gradient-to-r from-slate-900 to-[#1E293B] border border-slate-700/60 flex items-center gap-2">
                   <div className="w-7 h-7 rounded-xl bg-amber-400/20 flex items-center justify-center text-sm shrink-0">
                     🧰
                   </div>
                   <div>
                     <h4 className="text-[11px] font-black text-white">Zyvra Study Toolbox</h4>
-                    <p className="text-[9px] text-emerald-300/80">Smart Exam Utilities</p>
+                    <p className="text-[9px] text-slate-400">Smart Exam Utilities</p>
                   </div>
                 </div>
 
@@ -695,7 +695,7 @@ export default function AdminTools() {
                     <span className="flex items-center gap-1">
                       <Flame size={11} className="text-amber-400 fill-amber-400" /> Featured Tools
                     </span>
-                    <span className="text-[8px] text-emerald-400">View All →</span>
+                    <span className="text-[8px] text-indigo-400">View All →</span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-1.5">
@@ -706,7 +706,7 @@ export default function AdminTools() {
                       return (
                         <div
                           key={tool.id}
-                          className="p-2 rounded-xl bg-[#072117] border border-emerald-500/20 flex flex-col items-center text-center relative"
+                          className="p-2 rounded-xl bg-[#1E293B] border border-slate-700/60 flex flex-col items-center text-center relative"
                         >
                           <span className="text-base mb-1">{tool.iconChar}</span>
                           <span className="text-[10px] font-bold text-white truncate w-full">
@@ -719,7 +719,7 @@ export default function AdminTools() {
                               {isLocked ? <Lock size={8} /> : 'Pro 👑'}
                             </span>
                           ) : (
-                            <span className="mt-1 px-1.5 py-0.2 rounded text-[8px] font-extrabold bg-[#22c55e]/20 text-[#22c55e]">
+                            <span className="mt-1 px-1.5 py-0.2 rounded text-[8px] font-extrabold bg-emerald-500/20 text-emerald-400">
                               Free
                             </span>
                           )}
@@ -736,7 +736,7 @@ export default function AdminTools() {
                     {tools.map((t) => (
                       <div
                         key={t.id}
-                        className="p-1.5 rounded-xl bg-[#072117] border border-emerald-500/20 flex items-center justify-between text-left"
+                        className="p-1.5 rounded-xl bg-[#1E293B] border border-slate-700/60 flex items-center justify-between text-left"
                       >
                         <div className="flex items-center gap-2 truncate">
                           <span className="text-xs">{t.iconChar}</span>
@@ -747,10 +747,10 @@ export default function AdminTools() {
                                 <Lock size={8} className="text-amber-400" />
                               )}
                             </div>
-                            <div className="text-[8px] text-emerald-400/70">{t.category}</div>
+                            <div className="text-[8px] text-slate-400">{t.category}</div>
                           </div>
                         </div>
-                        <span className="text-[8px] px-1 rounded bg-black/40 text-emerald-300">
+                        <span className="text-[8px] px-1 rounded bg-black/40 text-slate-300">
                           {t.accessType === 'free' ? 'Free' : `₹${t.price}`}
                         </span>
                       </div>
@@ -760,11 +760,11 @@ export default function AdminTools() {
               </div>
 
               {/* Phone Bottom Nav */}
-              <div className="px-4 py-2 border-t border-emerald-800/30 flex items-center justify-between text-[9px] text-emerald-400/70">
-                <span className="text-emerald-300">Home</span>
-                <span className="text-emerald-300">Tests</span>
-                <span className="text-amber-300 font-extrabold">Toolbox</span>
-                <span className="text-emerald-300">Profile</span>
+              <div className="px-4 py-2 border-t border-slate-700/40 flex items-center justify-between text-[9px] text-slate-400">
+                <span className="text-slate-300">Home</span>
+                <span className="text-slate-300">Tests</span>
+                <span className="text-amber-400 font-extrabold">Toolbox</span>
+                <span className="text-slate-300">Profile</span>
               </div>
             </div>
           </div>
@@ -774,7 +774,7 @@ export default function AdminTools() {
       {/* Modal: Add Tool */}
       {addModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-[#04140e] border border-emerald-500/30 text-white space-y-4">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-[#0B1120] border border-slate-700/60 text-white space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-black flex items-center gap-2">
                 <Plus size={18} className="text-amber-400" />
@@ -791,23 +791,23 @@ export default function AdminTools() {
 
             <form onSubmit={handleAddTool} className="space-y-3">
               <div>
-                <label className="text-xs font-bold text-emerald-300 block mb-1">Tool Name *</label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Tool Name *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. Formula Library or Unit Converter"
                   value={newToolName}
                   onChange={(e) => setNewToolName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-emerald-950 border border-emerald-500/30 text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none focus:border-amber-400"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold text-emerald-300 block mb-1">Category</label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Category</label>
                 <select
                   value={newToolCategory}
                   onChange={(e) => setNewToolCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-emerald-950 border border-emerald-500/30 text-white text-xs font-bold focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none"
                 >
                   <option value="Quantitative Aptitude">Quantitative Aptitude</option>
                   <option value="Reasoning">Reasoning</option>
@@ -818,11 +818,11 @@ export default function AdminTools() {
               </div>
 
               <div>
-                <label className="text-xs font-bold text-emerald-300 block mb-1">Access Type</label>
+                <label className="text-xs font-bold text-slate-300 block mb-1">Access Type</label>
                 <select
                   value={newToolAccessType}
                   onChange={(e) => setNewToolAccessType(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-emerald-950 border border-emerald-500/30 text-white text-xs font-bold focus:outline-none"
+                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none"
                 >
                   <option value="free">Free</option>
                   <option value="paid">Paid</option>
@@ -831,13 +831,13 @@ export default function AdminTools() {
 
               {newToolAccessType === 'paid' && (
                 <div>
-                  <label className="text-xs font-bold text-emerald-300 block mb-1">Price (₹)</label>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Price (₹)</label>
                   <input
                     type="number"
                     min="0"
                     value={newToolPrice}
                     onChange={(e) => setNewToolPrice(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl bg-emerald-950 border border-emerald-500/30 text-white text-xs font-bold focus:outline-none"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none"
                   />
                 </div>
               )}
@@ -846,7 +846,7 @@ export default function AdminTools() {
                 <button
                   type="button"
                   onClick={() => setAddModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-xl bg-emerald-950 border border-emerald-500/20 text-xs font-bold text-neutral-300"
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-neutral-300"
                 >
                   Cancel
                 </button>

@@ -1779,7 +1779,7 @@ export default function LiveQuiz() {
       onPaste={(event) => event.preventDefault()}
     >
       {toast && (
-        <div className="fixed right-4 top-4 z-[120] rounded-xl border border-emerald-400/30 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-lg dark:bg-[#12231C] dark:text-emerald-100" role="status" aria-live="polite">
+        <div className="fixed right-4 top-4 z-[120] rounded-xl border border-indigo-400/30 bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-lg dark:bg-[#1E293B] dark:text-slate-100" role="status" aria-live="polite">
           {toast}
         </div>
       )}
@@ -1978,12 +1978,12 @@ export default function LiveQuiz() {
         {/* Active Question Panel */}
         <section className="quiz-question-panel">
           {/* Top Horizontal Question Palette (Matching Mockup 1794580723902.png) */}
-          <div className="flex items-center gap-1.5 p-2 dark:bg-[#072117]/90 bg-white backdrop-blur-md rounded-2xl border dark:border-emerald-500/20 border-emerald-600/15 mb-3 select-none shadow-sm">
+          <div className="flex items-center gap-1.5 p-2 dark:bg-[#1E293B]/90 bg-white backdrop-blur-md rounded-2xl border dark:border-slate-700/60 border-slate-200 mb-3 select-none shadow-sm">
             <button
               type="button"
               onClick={() => goTo(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
-              className="quiz-mobile-nav-button w-8 h-8 rounded-xl dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 flex items-center justify-center dark:text-emerald-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-emerald-900 transition-colors shrink-0"
+              className="quiz-mobile-nav-button w-8 h-8 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
               aria-label="Previous question"
             >
               <ChevronLeft size={16} />
@@ -1998,7 +1998,7 @@ export default function LiveQuiz() {
                 const isVisited = visitedQuestions.has(qId) || hasAnswer || isMarked || currentIndex === idx;
                 const isCurrent = currentIndex === idx;
 
-                let badgeClasses = 'dark:bg-emerald-950/50 bg-slate-100 border dark:border-emerald-800/40 border-slate-200 dark:text-emerald-400/60 text-slate-600';
+                let badgeClasses = 'dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-200 dark:text-slate-400 text-slate-600';
                 if (isCurrent) {
                   badgeClasses = 'border-2 border-slate-400 bg-slate-400/20 text-slate-700 dark:text-slate-200 ring-2 ring-slate-400/30 font-black';
                 } else if (isMarked) {
@@ -2027,7 +2027,7 @@ export default function LiveQuiz() {
               type="button"
               onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
               disabled={currentIndex === questions.length - 1}
-              className="quiz-mobile-nav-button w-8 h-8 rounded-xl dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 flex items-center justify-center dark:text-emerald-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-emerald-900 transition-colors shrink-0"
+              className="quiz-mobile-nav-button w-8 h-8 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
               aria-label="Next question"
             >
               <ChevronRight size={16} />
@@ -2215,12 +2215,12 @@ export default function LiveQuiz() {
             return (
               <div className={`immediate-feedback-card mt-4 p-4 rounded-xl border ${
                 isUserCorrect
-                  ? 'bg-emerald-50/80 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-800'
+                  ? 'bg-emerald-50/80 dark:bg-emerald-500/10 border-emerald-300 dark:border-emerald-500/30'
                   : 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-300 dark:border-rose-800'
               }`}>
                 <div className="flex items-center gap-2 mb-2 font-bold text-sm sm:text-base">
                   {isUserCorrect ? (
-                    <span className="text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+                    <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                       <CheckCircle2 size={18} /> {language === 'hi' ? 'सही उत्तर!' : 'Correct Answer!'}
                     </span>
                   ) : (
@@ -2299,10 +2299,10 @@ export default function LiveQuiz() {
           })()}
 
           {/* Navigation Controls matching Mockup 1794580723902.png */}
-          <div className="flex items-center justify-between gap-2 pt-4 mt-2 border-t dark:border-emerald-500/15 border-slate-200">
+          <div className="flex items-center justify-between gap-2 pt-4 mt-2 border-t dark:border-slate-700/60 border-slate-200">
             <button
               type="button"
-              className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-emerald-950/70 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 dark:text-emerald-300 text-slate-700 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 min-h-[40px]"
+              className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-700 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 min-h-[40px]"
               onClick={() => goTo(Math.max(0, currentIndex - 1))}
               disabled={!currentIndex}
             >
@@ -2311,10 +2311,10 @@ export default function LiveQuiz() {
 
             {(lockedAnswersRef.current.get(question.id) || responses[question.id]?.selected_option) ? (
               <div
-                className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-emerald-950/40 bg-emerald-50/70 border dark:border-emerald-500/25 border-emerald-300 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 min-h-[40px] select-none"
+                className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-indigo-950/40 bg-indigo-50 border dark:border-indigo-500/25 border-indigo-200 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center gap-1.5 min-h-[40px] select-none"
                 title="Answer is permanently locked"
               >
-                <Lock size={13} className="text-emerald-600 dark:text-emerald-400" />
+                <Lock size={13} className="text-indigo-600 dark:text-indigo-400" />
                 <span>{language === 'hi' ? 'उत्तर लॉक है' : 'Answer Locked'}</span>
               </div>
             ) : (
@@ -2337,7 +2337,7 @@ export default function LiveQuiz() {
             ) : (
               <button
                 type="button"
-                className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-colors flex items-center gap-1 min-h-[40px]"
+                className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm transition-colors flex items-center gap-1 min-h-[40px] shadow-glowIndigo"
                 onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
               >
                 <span>Next</span> <ChevronRight size={16} />
@@ -2346,11 +2346,11 @@ export default function LiveQuiz() {
           </div>
 
           {/* Bottom Toolbar matching Mockup 1794580723902.png: Question List | Mark for Review | Notes | Report */}
-          <div className="grid grid-cols-4 gap-1 sm:gap-1.5 pt-3 mt-3 border-t dark:border-emerald-800/30 border-slate-200">
+          <div className="grid grid-cols-4 gap-1 sm:gap-1.5 pt-3 mt-3 border-t dark:border-slate-700/60 border-slate-200">
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
-              className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-emerald-300 text-slate-600 hover:bg-slate-100 dark:hover:bg-emerald-950/60 transition-colors min-h-[44px]"
+              className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
             >
               <Grid3X3 size={16} />
               <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">Question List</span>
@@ -2374,7 +2374,7 @@ export default function LiveQuiz() {
               type="button"
               onClick={() => handleFeedbackAction('notes')}
               disabled={feedbackAction !== ''}
-              className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-emerald-300 text-slate-600 hover:bg-slate-100 dark:hover:bg-emerald-950/60 transition-colors min-h-[44px]"
+              className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
             >
               {feedbackAction === 'notes' ? <LoaderCircle size={16} className="animate-spin" /> : <FileText size={16} />}
               <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">Notes</span>
@@ -2383,7 +2383,7 @@ export default function LiveQuiz() {
               type="button"
               onClick={() => handleFeedbackAction('report')}
               disabled={feedbackAction !== ''}
-              className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-emerald-300 text-slate-600 hover:bg-slate-100 dark:hover:bg-emerald-950/60 transition-colors min-h-[44px]"
+              className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
             >
               {feedbackAction === 'report' ? <LoaderCircle size={16} className="animate-spin" /> : <AlertTriangle size={16} />}
               <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">Report</span>

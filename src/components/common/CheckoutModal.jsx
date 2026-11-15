@@ -146,7 +146,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
         name: 'ZYVRA',
         description: `${tier ? `${tier}: ` : ''}${itemTitle || 'Zyvra Learning'}`,
         prefill: { email: user.email },
-        theme: { color: '#e4b85f' },
+        theme: { color: '#4F46E5' },
         handler: async (response) => {
           setBusy(true);
           try {
@@ -189,7 +189,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
       }}
     >
       <section
-        className="w-full max-w-md p-5 sm:p-6 rounded-3xl dark:bg-[#04140e] bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 shadow-xl relative space-y-4 max-h-[calc(100dvh-24px)] overflow-y-auto"
+        className="w-full max-w-md p-5 sm:p-6 rounded-3xl dark:bg-[#0B1120] bg-white border dark:border-slate-700/60 border-slate-300 dark:text-white text-slate-900 shadow-xl relative space-y-4 max-h-[calc(100dvh-24px)] overflow-y-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="checkout-title"
@@ -206,21 +206,21 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
 
         {complete ? (
           <div className="text-center space-y-3 py-4">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-[#22c55e] flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
               <BadgeCheck size={32} />
             </div>
-            <div className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider">
+            <div className="text-[10px] uppercase font-bold text-emerald-400 tracking-wider">
               {simulated ? t('localPreview') : t('accessUnlocked')}
             </div>
             <h2 className="text-lg font-black dark:text-white text-slate-900">
               {simulated ? t('previewComplete') : t('readyToBegin')}
             </h2>
-            <p className="text-xs dark:text-emerald-300/80 text-slate-600">
+            <p className="text-xs dark:text-slate-400 text-slate-600">
               {simulated ? t('noPaymentMade') : t('paymentVerified')}
             </p>
             <button
               type="button"
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-xs font-black shadow-glowGold min-h-[44px]"
+              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-glowIndigo min-h-[44px]"
               onClick={onClose}
             >
               {simulated ? t('closePreview') : t('continueLearning')}
@@ -229,7 +229,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
         ) : (
           <>
             <div>
-              <div className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 tracking-wider">
+              <div className="text-[10px] uppercase font-bold text-amber-500 dark:text-amber-400 tracking-wider">
                 {t('secureCheckout')}
               </div>
               <h2 id="checkout-title" className="text-base sm:text-lg font-black dark:text-white text-slate-900 mt-0.5">
@@ -237,12 +237,12 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
               </h2>
             </div>
 
-            <div className="p-3.5 rounded-2xl dark:bg-emerald-950/60 bg-slate-50 border dark:border-emerald-500/20 border-slate-200 flex items-center justify-between gap-3">
+            <div className="p-3.5 rounded-2xl dark:bg-[#1E293B]/80 bg-slate-50 border dark:border-slate-700/60 border-slate-200 flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
                   {itemTitle}
                 </strong>
-                <span className="text-[10px] text-slate-500 dark:text-emerald-300/70 block truncate">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">
                   {itemType === 'folder'
                     ? language === 'hi'
                       ? 'फ़ोल्डर और इसके सभी सब-फ़ोल्डर व अध्याय अनलॉक होंगे'
@@ -250,32 +250,32 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
                     : tier}
                 </span>
               </div>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-black dark:bg-emerald-500/20 bg-emerald-100 text-emerald-800 dark:text-emerald-300 border border-emerald-300 shrink-0">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black dark:bg-indigo-500/20 bg-indigo-100 text-indigo-800 dark:text-indigo-300 border border-indigo-300 dark:border-indigo-500/30 shrink-0">
                 {tier}
               </span>
             </div>
 
             {loading ? (
-              <div className="p-6 text-center text-xs dark:text-emerald-300 text-slate-600 font-bold flex items-center justify-center gap-2">
+              <div className="p-6 text-center text-xs dark:text-slate-300 text-slate-600 font-bold flex items-center justify-center gap-2">
                 <LoaderCircle className="animate-spin" size={16} /> <span>{t('preparingCheckout')}</span>
               </div>
             ) : (
               <div className="space-y-3">
-                <div className="p-3.5 rounded-2xl dark:bg-emerald-950/40 bg-slate-50 border dark:border-emerald-500/20 border-slate-200 space-y-2.5 text-xs">
+                <div className="p-3.5 rounded-2xl dark:bg-[#1E293B]/60 bg-slate-50 border dark:border-slate-700/60 border-slate-200 space-y-2.5 text-xs">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500 dark:text-emerald-300/80">{t('basePrice')}</span>
+                    <span className="text-slate-500 dark:text-slate-400">{t('basePrice')}</span>
                     <strong className="font-extrabold dark:text-white text-slate-900">{formatRupees(pricing.base)}</strong>
                   </div>
 
                   {/* Coin redemption option */}
-                  <label className="p-2 rounded-xl dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/20 border-slate-200 flex items-center justify-between cursor-pointer">
+                  <label className="p-2 rounded-xl dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 flex items-center justify-between cursor-pointer">
                     <div className="flex items-center gap-2 min-w-0">
                       <Coins size={16} className="text-amber-500 shrink-0" />
                       <div className="min-w-0">
                         <strong className="text-xs font-bold dark:text-white text-slate-900 block">
                           {t('redeemCoins')}
                         </strong>
-                        <small className="text-[10px] text-slate-400 dark:text-emerald-400/60 block truncate">
+                        <small className="text-[10px] text-slate-400 dark:text-slate-400 block truncate">
                           {t('balance')}: {walletBalance.toLocaleString(language === 'hi' ? 'hi-IN' : 'en-US')} {t('coins')} ({config.coins_per_rupee} coins = ₹1)
                         </small>
                       </div>
@@ -299,16 +299,16 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
                       </div>
                       <div className="flex items-center justify-between">
                         <span>{t('discount')}</span>
-                        <strong className="font-mono font-bold text-[#22c55e]">
+                        <strong className="font-mono font-bold text-emerald-400">
                           −{formatRupees(pricing.discount)}
                         </strong>
                       </div>
                     </div>
                   )}
 
-                  <div className="pt-2 border-t dark:border-emerald-800/30 border-slate-200 flex items-center justify-between text-sm">
+                  <div className="pt-2 border-t dark:border-slate-700/60 border-slate-200 flex items-center justify-between text-sm">
                     <span className="font-black dark:text-white text-slate-900">{t('payableNow')}</span>
-                    <strong className="text-base font-black text-amber-600 dark:text-amber-400">
+                    <strong className="text-base font-black text-amber-500 dark:text-amber-400">
                       {formatRupees(pricing.payable)}
                     </strong>
                   </div>
@@ -327,7 +327,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
 
                 <button
                   type="button"
-                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 text-black font-black text-xs sm:text-sm shadow-glowGold flex items-center justify-center gap-2 min-h-[44px] transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
+                  className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm shadow-glowIndigo flex items-center justify-center gap-2 min-h-[44px] transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
                   onClick={checkout}
                   disabled={busy || !user || !purchasesEnabled}
                 >
@@ -341,7 +341,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
                   </span>
                 </button>
 
-                <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 dark:text-emerald-400/60 font-medium">
+                <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-medium">
                   <LockKeyhole size={12} />
                   <span>{t('paymentVerification')}</span>
                 </div>

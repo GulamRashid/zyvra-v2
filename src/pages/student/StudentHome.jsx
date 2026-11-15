@@ -69,8 +69,8 @@ const quickActionTiles = [
     subtitle: 'Full length',
     path: '/tests?tab=tests',
     icon: Target,
-    bg: 'dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 dark:text-emerald-300 text-emerald-800',
-    iconBg: 'dark:bg-teal-500/20 bg-teal-100 dark:text-teal-300 text-teal-700'
+    bg: 'dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-200 text-slate-800',
+    iconBg: 'dark:bg-indigo-500/20 bg-indigo-100 dark:text-indigo-400 text-indigo-700'
   },
   {
     id: 'leaderboard',
@@ -78,8 +78,8 @@ const quickActionTiles = [
     subtitle: 'Top ranks',
     path: '/analytics',
     icon: Trophy,
-    bg: 'dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 dark:text-emerald-300 text-emerald-800',
-    iconBg: 'dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-700'
+    bg: 'dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-200 text-slate-800',
+    iconBg: 'dark:bg-indigo-500/20 bg-indigo-100 dark:text-indigo-400 text-indigo-700'
   },
   {
     id: 'bookmarks',
@@ -87,8 +87,8 @@ const quickActionTiles = [
     subtitle: 'Saved questions',
     path: '/bookmarks',
     icon: Bookmark,
-    bg: 'dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 dark:text-emerald-300 text-emerald-800',
-    iconBg: 'dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-700'
+    bg: 'dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-200 text-slate-800',
+    iconBg: 'dark:bg-amber-500/20 bg-amber-100 dark:text-amber-400 text-amber-700'
   },
   {
     id: 'wallet',
@@ -96,8 +96,8 @@ const quickActionTiles = [
     subtitle: 'Your coins',
     path: '/wallet',
     icon: WalletCards,
-    bg: 'dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 dark:text-emerald-300 text-emerald-800',
-    iconBg: 'dark:bg-amber-500/20 bg-amber-100 dark:text-amber-700 text-amber-700'
+    bg: 'dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-200 text-slate-800',
+    iconBg: 'dark:bg-amber-500/20 bg-amber-100 dark:text-amber-400 text-amber-700'
   }
 ];
 
@@ -342,9 +342,9 @@ export default function StudentHome() {
       title: exam.title,
       subtitle: exam.description || 'Chapter tests & practice questions',
       badge: exam.icon === 'GraduationCap' ? '🎓' : exam.icon === 'BookOpen' ? '📖' : '🏛️',
-      color: 'dark:bg-[#12231C] bg-white',
-      borderColor: 'border-emerald-500/30',
-      badgeBg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30',
+      color: 'dark:bg-[#1E293B] bg-white',
+      borderColor: 'dark:border-slate-700/60 border-slate-200',
+      badgeBg: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
       path: `/explore/${exam.slug || exam.id}`
     }));
   }, [exams]);
@@ -355,7 +355,7 @@ export default function StudentHome() {
   );
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 transition-colors duration-200 overflow-x-hidden">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-800 transition-colors duration-200 overflow-x-hidden">
       {shouldShowOnboarding && <OnboardingModal />}
 
       {/* Top Ambient Tech/Data Grid Aura */}
@@ -456,7 +456,7 @@ export default function StudentHome() {
               <span>Profile data abhi load nahi ho paya.</span>
               <button
                 type="button"
-                className="min-h-[44px] shrink-0 rounded-lg border border-emerald-400/30 px-3 text-xs font-bold text-emerald-800 hover:bg-emerald-500/10 dark:text-emerald-200"
+                className="min-h-[44px] shrink-0 rounded-lg border border-indigo-400/30 px-3 text-xs font-bold text-indigo-700 hover:bg-indigo-500/10 dark:text-indigo-200"
                 onClick={() => refreshAccount().catch((error) => console.error('Unable to retry profile data:', error))}
               >
                 Try again
@@ -516,8 +516,8 @@ export default function StudentHome() {
                   onClick={() => setActiveSlide(idx)}
                   className={`transition-all duration-300 rounded-full h-1.5 ${
                     activeSlide === idx
-                      ? 'w-6 dark:bg-white bg-emerald-700 shadow-sm'
-                      : 'w-1.5 dark:bg-emerald-700/50 bg-emerald-300/70 hover:bg-emerald-500'
+                      ? 'w-6 dark:bg-white bg-indigo-600 shadow-sm'
+                      : 'w-1.5 dark:bg-slate-700 bg-slate-300 hover:bg-indigo-400'
                   }`}
                 />
               ))}
@@ -558,7 +558,7 @@ export default function StudentHome() {
             </h3>
             <Link
               to="/tests"
-              className="text-sm font-semibold dark:text-emerald-400 text-emerald-700 hover:text-emerald-800 dark:hover:text-emerald-300 flex items-center gap-1 transition-colors min-h-[32px]"
+              className="text-sm font-semibold dark:text-indigo-400 text-indigo-600 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors min-h-[32px]"
             >
               <span>{recommendation
                 ? (language === 'hi' ? 'दूसरा लक्ष्य चुनें' : 'Choose another goal')
@@ -651,7 +651,7 @@ export default function StudentHome() {
               </h3>
               <Link
                 to="/explore"
-                className="text-sm font-semibold dark:text-emerald-400 text-emerald-700 hover:text-emerald-800 dark:hover:text-emerald-300 flex items-center gap-1 transition-colors min-h-[32px]"
+                className="text-sm font-semibold dark:text-indigo-400 text-indigo-600 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors min-h-[32px]"
               >
                 <span>{language === 'hi' ? 'सभी देखें' : 'View All'}</span>
                 <ChevronRight size={14} />
@@ -663,19 +663,19 @@ export default function StudentHome() {
                 <Link
                   key={exam.id}
                   to={exam.path}
-                  className="dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-colors hover:border-emerald-400 group min-h-[120px]"
+                  className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-colors hover:border-indigo-500 group min-h-[120px]"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg border bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border-emerald-500/30">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg border bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30">
                       {exam.badge}
                     </div>
                     <ChevronRight size={16} className="text-slate-400 dark:text-white/40 group-hover:text-slate-800 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
                   </div>
                   <div>
-                    <h4 className="text-base font-extrabold dark:text-white text-slate-900 tracking-tight group-hover:text-emerald-700 dark:group-hover:text-emerald-300 transition-colors">
+                    <h4 className="text-base font-extrabold dark:text-white text-slate-900 tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                       {exam.title}
                     </h4>
-                    <p className="text-xs font-medium dark:text-emerald-400/80 text-slate-600 mt-0.5 line-clamp-2">
+                    <p className="text-xs font-medium dark:text-slate-400 text-slate-600 mt-0.5 line-clamp-2">
                       {exam.subtitle}
                     </p>
                   </div>

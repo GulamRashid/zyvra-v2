@@ -17,9 +17,9 @@ function AccessBadge({ label }) {
   const isPurchased = lower.includes('purchased');
   const isComing = lower.includes('coming');
 
-  let badgeClasses = 'bg-[#22c55e]/20 text-emerald-700 dark:text-emerald-300 border border-[#22c55e]/30';
+  let badgeClasses = 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30';
   if (isPurchased) {
-    badgeClasses = 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 font-black';
+    badgeClasses = 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 font-black';
   } else if (isPaid) {
     badgeClasses = 'bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/40 font-bold';
   } else if (isComing) {
@@ -73,17 +73,17 @@ export default function FolderView() {
   const isCurrentFolderUnlocked = hasPurchasedExam || pricing.amount <= 0 || isFolderUnlocked(folder?.id, folders, purchasedFolderIds) || accessByKey[`folder:${folder?.id}`] === true;
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
       <div className="max-w-3xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Breadcrumbs */}
         <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-indigo-400/80 overflow-x-auto no-scrollbar py-1">
-          <Link to="/explore" className="hover:text-emerald-700 dark:hover:text-white whitespace-nowrap">
+          <Link to="/explore" className="hover:text-indigo-600 dark:hover:text-white whitespace-nowrap">
             Explore
           </Link>
           <ChevronRight size={13} className="shrink-0 text-slate-400" />
           {exam && (
             <>
-              <Link to={`/explore/${encodeURIComponent(exam.slug)}`} className="hover:text-emerald-700 dark:hover:text-white whitespace-nowrap">
+              <Link to={`/explore/${encodeURIComponent(exam.slug)}`} className="hover:text-indigo-600 dark:hover:text-white whitespace-nowrap">
                 {exam.title}
               </Link>
               <ChevronRight size={13} className="shrink-0 text-slate-400" />
@@ -95,7 +95,7 @@ export default function FolderView() {
               {index === path.length - 1 ? (
                 <span className="dark:text-white text-slate-900 font-extrabold truncate">{item.title}</span>
               ) : (
-                <Link to={`/folder/${item.id}`} className="hover:text-emerald-700 dark:hover:text-white">
+                <Link to={`/folder/${item.id}`} className="hover:text-indigo-600 dark:hover:text-white">
                   {item.title}
                 </Link>
               )}
@@ -175,7 +175,7 @@ export default function FolderView() {
 
             {/* Paywall Banner if Locked */}
             {pricing.amount > 0 && !isCurrentFolderUnlocked && (
-              <section className="p-4 sm:p-5 rounded-2xl dark:bg-gradient-to-r dark:from-amber-950/40 dark:to-emerald-950/40 bg-amber-50/90 border dark:border-amber-500/30 border-amber-300/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+              <section className="p-4 sm:p-5 rounded-2xl dark:bg-gradient-to-r dark:from-amber-950/40 dark:to-slate-800/60 bg-amber-50/90 border dark:border-amber-500/30 border-amber-300/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-500 shrink-0">
                     <LockKeyhole size={18} />
@@ -214,21 +214,21 @@ export default function FolderView() {
             {/* Section Heading */}
             <div className="flex items-center justify-between px-1">
               <div>
-                <div className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider">
+                <div className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 tracking-wider">
                   Inside This Section
                 </div>
                 <h2 className="text-base font-black dark:text-white text-slate-900">Topics & chapters</h2>
               </div>
-              <span className="text-sm font-bold dark:text-emerald-300 text-emerald-800">
+              <span className="text-sm font-bold dark:text-slate-300 text-slate-700">
                 {childFolders.length + folderChapters.length} learning items
               </span>
             </div>
 
             {!childFolders.length && !folderChapters.length && (
-              <div className="p-8 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 text-center space-y-2">
-                <FolderOpen size={24} className="mx-auto text-emerald-500 opacity-60" />
+              <div className="p-8 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-2">
+                <FolderOpen size={24} className="mx-auto text-indigo-500 opacity-60" />
                 <strong className="block text-sm dark:text-white text-slate-900">More learning content coming soon.</strong>
-                <span className="text-xs text-slate-500 dark:text-emerald-300/80">This section is being prepared for you.</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">This section is being prepared for you.</span>
               </div>
             )}
 
@@ -243,18 +243,18 @@ export default function FolderView() {
                 return (
                   <article
                     key={child.id}
-                    className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 hover:border-emerald-400 transition-all space-y-2"
+                    className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 transition-all space-y-2"
                   >
                     <Link to={`/folder/${child.id}`} className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl dark:bg-emerald-950/80 bg-emerald-50 border dark:border-emerald-500/25 border-emerald-200 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                           <Folder size={18} />
                         </div>
                         <div className="min-w-0">
                           <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
                             {child.title}
                           </strong>
-                          <small className="text-sm dark:text-emerald-300/70 text-slate-500 block truncate">
+                          <small className="text-sm dark:text-slate-400 text-slate-500 block truncate">
                             {child.description || `${count} chapters to explore`}
                           </small>
                         </div>
@@ -262,12 +262,12 @@ export default function FolderView() {
 
                       <div className="flex items-center gap-2 shrink-0">
                         <AccessBadge label={childStatus ? 'Coming Soon' : childPricing.amount ? (isChildUnlocked ? 'Purchased' : 'Paid') : 'Free'} />
-                        <ChevronRight size={17} className="text-slate-400 dark:text-emerald-400/50" />
+                        <ChevronRight size={17} className="text-slate-400 dark:text-slate-500" />
                       </div>
                     </Link>
 
                     {childPricing.amount > 0 && !isChildUnlocked && (
-                      <div className="pt-2 border-t dark:border-emerald-800/25 border-slate-100 flex justify-end">
+                      <div className="pt-2 border-t dark:border-slate-700/40 border-slate-100 flex justify-end">
                         <button
                           type="button"
                           className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[44px]"
@@ -289,19 +289,19 @@ export default function FolderView() {
                 return (
                   <article
                     key={chapter.id}
-                    className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 hover:border-emerald-400 transition-all space-y-2"
+                    className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 transition-all space-y-2"
                   >
                     <Link to={`/chapter/${chapter.id}`} className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl dark:bg-emerald-950/80 bg-emerald-50 border dark:border-emerald-500/25 border-emerald-200 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                        <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                           <BookOpen size={18} />
                         </div>
                         <div className="min-w-0">
                           <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
                             {chapter.title}
                           </strong>
-                          <div className="text-sm dark:text-emerald-300/70 text-slate-500 flex items-center gap-2 mt-0.5">
-                            <span className="font-semibold text-emerald-700 dark:text-emerald-300">{chapter.subject || 'General'}</span>
+                          <div className="text-sm dark:text-slate-400 text-slate-500 flex items-center gap-2 mt-0.5">
+                            <span className="font-semibold text-indigo-600 dark:text-indigo-400">{chapter.subject || 'General'}</span>
                             <span>•</span>
                             <span><Clock3 size={11} className="inline mr-0.5" />{chapter.estimated_study_time_minutes || '—'} min</span>
                           </div>
@@ -310,12 +310,12 @@ export default function FolderView() {
 
                       <div className="flex items-center gap-2 shrink-0">
                         <AccessBadge label={access.amount > 0 ? (isChapterUnlocked ? 'Purchased' : access.label) : access.label} />
-                        <ArrowRight size={16} className="text-slate-400 dark:text-emerald-400/50" />
+                        <ArrowRight size={16} className="text-slate-400 dark:text-slate-500" />
                       </div>
                     </Link>
 
                     {access.amount > 0 && !isChapterUnlocked && (
-                      <div className="pt-2 border-t dark:border-emerald-800/25 border-slate-100 flex justify-end">
+                      <div className="pt-2 border-t dark:border-slate-700/40 border-slate-100 flex justify-end">
                         <button
                           type="button"
                           className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[44px]"
@@ -334,7 +334,7 @@ export default function FolderView() {
             {parent && (
               <div className="pt-2">
                 <Link
-                  className="inline-flex items-center gap-1.5 text-xs font-bold dark:text-emerald-400 text-emerald-800 hover:underline min-h-[44px]"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold dark:text-indigo-400 text-indigo-600 hover:underline min-h-[44px]"
                   to={`/folder/${parent.id}`}
                 >
                   <ArrowRight className="rotate-180" size={14} /> <span>Back to {parent.title}</span>

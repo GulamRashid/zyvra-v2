@@ -50,30 +50,30 @@ function StudentPlaceholder({ page }) {
         <div>
           <div className="eyebrow">YOUR LEARNING SPACE</div>
           <h1 className="text-2xl sm:text-3xl font-black text-white">{title}</h1>
-          <p className="text-xs sm:text-sm text-emerald-300/80">{subtitle}</p>
+          <p className="text-xs sm:text-sm dark:text-slate-400 text-slate-600">{subtitle}</p>
         </div>
       </div>
-      <div className="placeholder-hero panel-card p-6 rounded-3xl bg-[#072117]/85 border border-emerald-500/25 space-y-4">
+      <div className="placeholder-hero panel-card p-6 rounded-3xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 space-y-4">
         <div className="flex items-center gap-3">
           <div className="placeholder-icon w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-400">
             <Icon size={24} />
           </div>
           <div>
             <h2 className="text-base font-black text-white">{emptyTitle || 'This space is empty for now'}</h2>
-            <p className="text-xs text-emerald-300/80">{emptyDescription || 'Your learning activity will appear here when it is available.'}</p>
+            <p className="text-xs dark:text-slate-400 text-slate-600">{emptyDescription || 'Your learning activity will appear here when it is available.'}</p>
           </div>
         </div>
         <div className="pt-2 flex items-center gap-3">
-          <a href={primaryPath || '/tests'} className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold inline-flex items-center gap-1.5 transition-transform active:scale-95">
+          <a href={primaryPath || '/tests'} className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-glowIndigo inline-flex items-center gap-1.5 transition-transform active:scale-95">
             <span>{primaryLabel || 'Go to Practice Hub'}</span>
             <span>→</span>
           </a>
-          <a href="/explore" className="px-4 py-2 rounded-xl bg-emerald-950/80 border border-emerald-500/30 text-emerald-300 text-xs font-bold hover:text-white transition-colors">
+          <a href="/explore" className="px-4 py-2 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-700 text-xs font-bold hover:text-black dark:hover:text-white transition-colors">
             Explore Exams
           </a>
         </div>
       </div>
-      <div className="placeholder-note text-xs text-emerald-400/70 flex items-center gap-2">
+      <div className="placeholder-note text-xs dark:text-slate-400 text-slate-500 flex items-center gap-2">
         <span className="health-dot" /> We will keep this space up to date as your learning journey grows.
       </div>
     </div>

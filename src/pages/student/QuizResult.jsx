@@ -497,7 +497,7 @@ export default function QuizResult() {
                               Skipped
                             </span>
                           )}
-                          <span className="px-2 py-0.5 rounded-md dark:bg-emerald-950/60 bg-emerald-50 border dark:border-emerald-500/30 border-emerald-200 text-emerald-600 dark:text-emerald-400">
+                          <span className="px-2 py-0.5 rounded-md dark:bg-emerald-500/15 bg-emerald-50 border dark:border-emerald-500/30 border-emerald-200 text-emerald-600 dark:text-emerald-400">
                             Ans: {correctKey || 'B'} ✓
                           </span>
                         </div>
@@ -687,7 +687,7 @@ export default function QuizResult() {
                         let badgeClasses = 'dark:bg-slate-800 bg-slate-200 border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-700';
 
                         if (isThisCorrect) {
-                          optionClasses = 'border-2 border-emerald-500 dark:bg-emerald-950/30 bg-emerald-50/90 dark:text-white text-slate-900 shadow-[0_0_20px_rgba(16,185,129,0.18)]';
+                          optionClasses = 'border-2 border-emerald-500 dark:bg-emerald-500/10 bg-emerald-50/90 dark:text-white text-slate-900 shadow-[0_0_20px_rgba(16,185,129,0.18)]';
                           badgeClasses = 'bg-emerald-500 text-slate-950 font-black border-emerald-500';
                         } else if (isThisSelected && !isThisCorrect) {
                           optionClasses = 'border-2 border-red-500/80 dark:bg-red-950/40 bg-red-50 dark:text-red-100 text-red-900';
