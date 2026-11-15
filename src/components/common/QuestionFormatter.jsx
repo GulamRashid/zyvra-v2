@@ -10,7 +10,7 @@ export { parseMatchingQuestion, parseStatementQuestion };
  * - Clean Vertical Indented List for Statement Questions with bold badges and gap: 8px
  * - Preserves line breaks and renders LaTeX formulas via MathRenderer
  */
-export default function QuestionFormatter({ text, className = '' }) {
+export default function QuestionFormatter({ text, language, className = '' }) {
   if (!text) return null;
   const rawText = typeof text === 'string' ? text : String(text || '');
 
@@ -24,7 +24,7 @@ export default function QuestionFormatter({ text, className = '' }) {
     }));
 
     return (
-      <div className={`question-formatted-container text-slate-900 dark:text-slate-100 ${className}`.trim()}>
+      <div lang={language} className={`question-formatted-container text-slate-900 dark:text-slate-100 ${className}`.trim()}>
         {matchingData.preamble && (
           <div className="question-preamble font-bold text-slate-900 dark:text-slate-100 mb-3 whitespace-pre-line leading-relaxed">
             <MathRenderer>{matchingData.preamble}</MathRenderer>
@@ -67,7 +67,7 @@ export default function QuestionFormatter({ text, className = '' }) {
   const statementData = parseStatementQuestion(rawText);
   if (statementData && statementData.statements.length > 0) {
     return (
-      <div className={`question-formatted-container text-slate-900 dark:text-slate-100 ${className}`.trim()}>
+      <div lang={language} className={`question-formatted-container text-slate-900 dark:text-slate-100 ${className}`.trim()}>
         {statementData.preamble && (
           <div className="question-preamble font-bold text-slate-900 dark:text-slate-100 mb-2.5 whitespace-pre-line leading-relaxed">
             <MathRenderer>{statementData.preamble}</MathRenderer>
@@ -100,7 +100,7 @@ export default function QuestionFormatter({ text, className = '' }) {
   const lines = rawText.split('\n');
 
   return (
-    <div className={`question-formatted-container text-slate-900 dark:text-slate-100 whitespace-pre-line leading-relaxed ${className}`.trim()}>
+    <div lang={language} className={`question-formatted-container text-slate-900 dark:text-slate-100 whitespace-pre-line leading-relaxed ${className}`.trim()}>
       {lines.map((line, idx) => {
         const trimmed = line.trim();
         if (!trimmed) {

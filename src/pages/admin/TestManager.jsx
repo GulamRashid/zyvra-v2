@@ -92,11 +92,21 @@ function TestEditor({ test, chapters, linkedOptionCounts, onClose, onSaved }) {
   </form></div>;
 }
 
+function getQuestionTags(question) {
+  if (!question || !question.tags) return [];
+  if (Array.isArray(question.tags)) return question.tags.map((t) => String(t).trim()).filter(Boolean);
+  if (typeof question.tags === 'string') {
+    return question.tags.split(',').map((t) => t.trim()).filter(Boolean);
+  }
+  return [];
+}
+
 export default function TestManager() {
   const { chapters } = useContentCatalog();
   const [tests, setTests] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [testQuestions, setTestQuestions] = useState([]);
+  const [allTestQuestions, setAllTestQuestions] = useState([]);
   const [selectedTestId, setSelectedTestId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -104,6 +114,8 @@ export default function TestManager() {
   const [query, setQuery] = useState('');
   const [questionSearch, setQuestionSearch] = useState('');
   const [usageScopeFilter, setUsageScopeFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('all');
+  const [hideUsedInOtherSets, setHideUsedInOtherSets] = useState(false);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
   const [editor, setEditor] = useState(null);
   const [testToDelete, setTestToDelete] = useState(null);
@@ -112,19 +124,65 @@ export default function TestManager() {
 
   const refresh = async () => {
     if (!supabase) { setError('Supabase is not configured.'); setLoading(false); return; }
-    const [testResult, questionResult] = await Promise.all([
+    const [testResult, questionResult, tqResult] = await Promise.all([
       supabase.from('tests').select('*').order('created_at', { ascending: false }),
-      supabase.from('questions').select('*').order('created_at', { ascending: false })
+      supabase.from('questions').select('*').order('created_at', { ascending: false }),
+      supabase.from('test_questions').select('id, test_id, question_id, display_order')
     ]);
-    const failed = [testResult, questionResult].find((result) => result.error);
+    const failed = [testResult, questionResult, tqResult].find((result) => result.error);
     if (failed) throw failed.error;
     setTests(testResult.data || []);
     setQuestions(questionResult.data || []);
+    setAllTestQuestions(tqResult.data || []);
     setLoading(false);
   };
   useEffect(() => { refresh().catch((loadError) => { setError(getContentErrorMessage(loadError, 'Unable to load tests.')); setLoading(false); }); }, []);
+
   const selectedTest = tests.find((test) => test.id === selectedTestId);
   const testPattern = TEST_PATTERNS.find((pattern) => pattern.value === selectedTest?.pattern) || TEST_PATTERNS[0];
+  const testById = useMemo(() => new Map(tests.map((test) => [test.id, test])), [tests]);
+
+  // Map from question_id to array of tests where this question is assigned
+  const questionUsageMap = useMemo(() => {
+    const map = new Map();
+    (allTestQuestions || []).forEach((tq) => {
+      const test = testById.get(tq.test_id);
+      if (!test) return;
+      const list = map.get(tq.question_id) || [];
+      if (!list.some((t) => t.id === test.id)) {
+        list.push(test);
+      }
+      map.set(tq.question_id, list);
+    });
+    return map;
+  }, [allTestQuestions, testById]);
+
+  // Unique tags across questions in this chapter
+  const availableTags = useMemo(() => {
+    if (!selectedTest) return [];
+    const tagSet = new Set();
+    questions.forEach((q) => {
+      if (q.chapter_id === selectedTest.chapter_id) {
+        getQuestionTags(q).forEach((tag) => tagSet.add(tag));
+      }
+    });
+    return Array.from(tagSet).sort((a, b) => a.localeCompare(b));
+  }, [questions, selectedTest]);
+
+  // Count of compatible questions in this chapter already used in other tests
+  const usedInOtherSetsCount = useMemo(() => {
+    if (!selectedTest) return 0;
+    const currentTestQuestionIds = new Set(testQuestions.map((tq) => tq.question_id));
+    return questions.filter((q) => {
+      if (q.chapter_id !== selectedTest.chapter_id) return false;
+      if (currentTestQuestionIds.has(q.id)) return false;
+      const otherTests = (questionUsageMap.get(q.id) || []).filter(
+        (t) => t.chapter_id === selectedTest.chapter_id && t.id !== selectedTest.id
+      );
+      return otherTests.length > 0;
+    }).length;
+  }, [questions, selectedTest, testQuestions, questionUsageMap]);
+
   const compatibleQuestions = useMemo(() => {
     if (!selectedTest) return [];
     return questions.filter((question) => {
@@ -134,14 +192,39 @@ export default function TestManager() {
       if (!['both', 'test_only'].includes(usageScope)) return false;
       if (usageScopeFilter !== 'all' && usageScope !== usageScopeFilter) return false;
       if (question.chapter_id !== selectedTest.chapter_id) return false;
+
+      // Tag filter
+      if (tagFilter !== 'all') {
+        const qTags = getQuestionTags(question).map((t) => t.toLowerCase());
+        if (!qTags.includes(tagFilter.toLowerCase())) return false;
+      }
+
+      // Hide questions already used in other sets in the same chapter
+      if (hideUsedInOtherSets) {
+        const otherTests = (questionUsageMap.get(question.id) || []).filter(
+          (t) => t.chapter_id === selectedTest.chapter_id && t.id !== selectedTest.id
+        );
+        if (otherTests.length > 0) return false;
+      }
+
       const search = questionSearch.trim().toLowerCase();
-      return !search || `${question.question_text?.en || question.question_text || ''} ${question.subject || ''} ${question.tags || ''}`.toLowerCase().includes(search);
+      if (!search) return true;
+
+      const qTextEn = question.question_text?.en || question.question_text || '';
+      const qTextHi = question.question_text_hi || question.question_hi || '';
+      const qSubject = question.subject || '';
+      const qType = question.question_type || 'mcq';
+      const qTags = getQuestionTags(question).join(' ');
+      const combined = `${qTextEn} ${qTextHi} ${qSubject} ${qType} ${qTags}`.toLowerCase();
+      return combined.includes(search);
     });
-  }, [questions, selectedTest, testPattern, questionSearch, usageScopeFilter]);
+  }, [questions, selectedTest, testPattern, questionSearch, usageScopeFilter, tagFilter, hideUsedInOtherSets, questionUsageMap]);
+
   const unlinkedQuestions = useMemo(() => {
     const existing = new Set(testQuestions.map((item) => item.question_id));
     return compatibleQuestions.filter((question) => !existing.has(question.id));
   }, [compatibleQuestions, testQuestions]);
+
   const allSelected = unlinkedQuestions.length > 0 && unlinkedQuestions.every((q) => selectedQuestionIds.includes(q.id));
   const toggleSelectAll = () => {
     if (allSelected) {
@@ -182,8 +265,14 @@ export default function TestManager() {
         display_order: testQuestions.length + index
       }));
       if (additions.length) {
-        const { error: addError } = await supabase.from('test_questions').insert(additions);
+        const { data: insertedTq, error: addError } = await supabase
+          .from('test_questions')
+          .insert(additions)
+          .select('id, test_id, question_id, display_order');
         if (addError) throw addError;
+        if (insertedTq) {
+          setAllTestQuestions((prev) => [...prev, ...insertedTq]);
+        }
       }
       await loadTestQuestions(selectedTest.id);
     } catch (addError) { setError(getContentErrorMessage(addError, 'Unable to add questions to this test.')); }
@@ -207,6 +296,7 @@ export default function TestManager() {
     try {
       const { error: removeError } = await supabase.from('test_questions').delete().eq('id', link.id);
       if (removeError) throw removeError;
+      setAllTestQuestions((prev) => prev.filter((item) => item.id !== link.id));
       await loadTestQuestions(selectedTest.id);
     } catch (removeError) { setError(getContentErrorMessage(removeError, 'Unable to remove question.')); }
   };
@@ -218,6 +308,8 @@ export default function TestManager() {
     try {
       // 1. Delete dependent records cleanly
       await supabase.from('test_questions').delete().eq('test_id', test.id);
+      await supabase.from('test_attempts').delete().eq('test_id', test.id);
+      setAllTestQuestions((prev) => prev.filter((item) => item.test_id !== test.id));
       await supabase.from('test_attempts').delete().eq('test_id', test.id);
 
       // 2. Delete test from tests table and verify rows deleted
@@ -300,7 +392,163 @@ export default function TestManager() {
         </div>
         <div className="test-config-chips"><span><Clock3 size={14} /> {selectedTest.duration_minutes} min</span><span><FileQuestion size={14} /> {orderedQuestions.length} questions</span><span>+{selectedTest.positive_marks} / −{selectedTest.negative_marks}</span><span><Coins size={14} /> {selectedTest.coin_reward_enabled ? 'Rewards enabled' : 'No rewards'}</span></div>
         <section className="test-order-section"><div className="section-heading"><div><div className="eyebrow">QUESTION SEQUENCE</div><h2>Test questions</h2></div><span className="chapter-item-count">Drag-free ordering controls</span></div>{!orderedQuestions.length && <div className="empty-content test-empty"><FileQuestion size={22} /><strong>No questions added yet.</strong><span>Use the question bank below to build this test.</span></div>}{orderedQuestions.map(({ id, question }, index) => <div className="test-order-row" key={id}><span className="order-number">{String(index + 1).padStart(2, '0')}</span><div><strong>{question.question_text?.en || question.question_text}</strong><span>{question.subject} · {getOptionEntries(question.options).length} options</span></div><div className="order-controls"><button title="Move up" aria-label="Move question up" disabled={!index || savingOrder} onClick={() => moveQuestion(index, -1)}><ArrowUp size={15} /></button><button title="Move down" aria-label="Move question down" disabled={index === orderedQuestions.length - 1 || savingOrder} onClick={() => moveQuestion(index, 1)}><ArrowDown size={15} /></button><button title="Remove question" aria-label="Remove question" onClick={() => removeQuestion(testQuestions[index])}><Trash2 size={15} /></button></div></div>)}</section>
-        <section className="test-question-picker"><div className="section-heading"><div><div className="eyebrow">COMPATIBLE QUESTIONS</div><h2>Question bank</h2></div><span className="chapter-item-count">{testPattern.optionCount}-option · Published</span></div><div className="test-question-picker-toolbar"><label className="content-search"><Search size={14} /><input value={questionSearch} onChange={(event) => setQuestionSearch(event.target.value)} placeholder="Search this chapter’s questions…" /></label><label className="filter-select"><span>Usage scope</span><select className="text-input" value={usageScopeFilter} onChange={(event) => setUsageScopeFilter(event.target.value)}><option value="all">All test-eligible</option><option value="test_only">Test Only</option><option value="both">Both</option></select></label><button type="button" className="button button-outline" disabled={!unlinkedQuestions.length} onClick={toggleSelectAll} title={allSelected ? 'Deselect all filtered questions' : 'Select all filtered questions'}>{allSelected ? <CheckSquare size={14} /> : <Square size={14} />} {allSelected ? 'Deselect all' : unlinkedQuestions.length ? `Select all (${unlinkedQuestions.length})` : 'Select all'}</button></div><div className="compatible-list">{unlinkedQuestions.map((question) => <label className="compatible-question" key={question.id}><input type="checkbox" checked={selectedQuestionIds.includes(question.id)} onChange={(event) => setSelectedQuestionIds((current) => event.target.checked ? [...current, question.id] : current.filter((id) => id !== question.id))} /><span><strong>{question.question_text?.en || question.question_text}</strong><small>{question.subject} · {question.difficulty} · {question.usage_scope === 'test_only' ? 'Test Only' : 'Both'}</small></span></label>)}</div>{!unlinkedQuestions.length && <p className="field-hint">No additional published {testPattern.optionCount}-option questions are mapped to this chapter.</p>}<button className="button button-primary" disabled={!selectedQuestionIds.length} onClick={addSelected}><Plus size={14} /> Add {selectedQuestionIds.length || ''} selected question{selectedQuestionIds.length === 1 ? '' : 's'}</button></section>
+        <section className="test-question-picker">
+          <div className="section-heading">
+            <div>
+              <div className="eyebrow">COMPATIBLE QUESTIONS</div>
+              <h2>Question bank</h2>
+            </div>
+            <span className="chapter-item-count">{testPattern.optionCount}-option · Published</span>
+          </div>
+
+          <div className="test-question-picker-toolbar">
+            <label className="content-search">
+              <Search size={14} />
+              <input
+                value={questionSearch}
+                onChange={(event) => setQuestionSearch(event.target.value)}
+                placeholder="Search text, tags (e.g. Part 1, Set 2), type…"
+              />
+            </label>
+
+            {availableTags.length > 0 && (
+              <label className="filter-select">
+                <span>Tag</span>
+                <select className="text-input" value={tagFilter} onChange={(event) => setTagFilter(event.target.value)}>
+                  <option value="all">All tags ({availableTags.length})</option>
+                  {availableTags.map((tag) => (
+                    <option key={tag} value={tag}>#{tag}</option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <label className="filter-select">
+              <span>Usage scope</span>
+              <select className="text-input" value={usageScopeFilter} onChange={(event) => setUsageScopeFilter(event.target.value)}>
+                <option value="all">All test-eligible</option>
+                <option value="test_only">Test Only</option>
+                <option value="both">Both</option>
+              </select>
+            </label>
+
+            <button
+              type="button"
+              className="button button-outline"
+              disabled={!unlinkedQuestions.length}
+              onClick={toggleSelectAll}
+              title={allSelected ? 'Deselect all filtered questions' : 'Select all filtered questions'}
+            >
+              {allSelected ? <CheckSquare size={14} /> : <Square size={14} />} {allSelected ? 'Deselect all' : unlinkedQuestions.length ? `Select all (${unlinkedQuestions.length})` : 'Select all'}
+            </button>
+          </div>
+
+          {/* Smart Multi-Set Filter Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 mb-3 rounded-xl bg-slate-900/60 border border-slate-700/60 text-xs">
+            <label className="flex items-center gap-2 cursor-pointer font-medium text-slate-300 hover:text-white transition-colors">
+              <input
+                type="checkbox"
+                className="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 bg-slate-950"
+                checked={hideUsedInOtherSets}
+                onChange={(e) => setHideUsedInOtherSets(e.target.checked)}
+              />
+              <span>Hide questions already used in other sets</span>
+              {usedInOtherSetsCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                  {usedInOtherSetsCount} in other sets
+                </span>
+              )}
+            </label>
+
+            {tagFilter !== 'all' && (
+              <div className="flex items-center gap-1.5 text-slate-400">
+                <span>Active Tag:</span>
+                <span className="px-2 py-0.5 rounded bg-indigo-600 text-white font-bold text-[11px] flex items-center gap-1">
+                  #{tagFilter}
+                  <button
+                    type="button"
+                    onClick={() => setTagFilter('all')}
+                    className="hover:text-rose-200 ml-1 font-black"
+                    title="Clear tag filter"
+                  >
+                    ×
+                  </button>
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="compatible-list">
+            {unlinkedQuestions.map((question) => {
+              const otherTests = (questionUsageMap.get(question.id) || []).filter(
+                (t) => t.chapter_id === selectedTest.chapter_id && t.id !== selectedTest.id
+              );
+              const qTags = getQuestionTags(question);
+
+              return (
+                <label className="compatible-question" key={question.id}>
+                  <input
+                    type="checkbox"
+                    checked={selectedQuestionIds.includes(question.id)}
+                    onChange={(event) =>
+                      setSelectedQuestionIds((current) =>
+                        event.target.checked
+                          ? [...current, question.id]
+                          : current.filter((id) => id !== question.id)
+                      )
+                    }
+                  />
+                  <span>
+                    <strong>{question.question_text?.en || question.question_text}</strong>
+                    <small>
+                      {question.subject} · {question.difficulty} · {question.usage_scope === 'test_only' ? 'Test Only' : 'Both'}
+                    </small>
+                    <span className="flex items-center gap-1.5 flex-wrap pt-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700/60">
+                        {question.question_type || 'mcq'}
+                      </span>
+                      {otherTests.length > 0 && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                          Used in: {otherTests.map((t) => t.title).join(', ')}
+                        </span>
+                      )}
+                      {qTags.map((tag) => (
+                        <span
+                          key={tag}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setTagFilter(tagFilter === tag ? 'all' : tag);
+                          }}
+                          className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
+                            tagFilter === tag
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-800 text-slate-400 hover:text-slate-200'
+                          }`}
+                          title={`Filter by tag "${tag}"`}
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+
+          {!unlinkedQuestions.length && (
+            <p className="field-hint">
+              {hideUsedInOtherSets && usedInOtherSetsCount > 0
+                ? `All available ${testPattern.optionCount}-option questions in this chapter are already assigned to other sets (or current filters match 0 questions). Uncheck "Hide questions already used in other sets" to view them.`
+                : `No additional published ${testPattern.optionCount}-option questions match the current filters.`}
+            </p>
+          )}
+
+          <button className="button button-primary" disabled={!selectedQuestionIds.length} onClick={addSelected}>
+            <Plus size={14} /> Add {selectedQuestionIds.length || ''} selected question{selectedQuestionIds.length === 1 ? '' : 's'}
+          </button>
+        </section>
       </>}</section>
     </div>
     {editor && <TestEditor

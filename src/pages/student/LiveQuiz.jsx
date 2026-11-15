@@ -20,6 +20,7 @@ import {
   LockKeyhole,
   Pause,
   Play,
+  RotateCcw,
   Target,
   X
 } from 'lucide-react';
@@ -150,7 +151,7 @@ function FormattedInstructions({ text }) {
           <li>The countdown timer at the top indicates the remaining time available for completing the exam.</li>
           <li>The Question Palette displayed on the right shows the status of every question using distinct CBT colors.</li>
           <li>Click any question number in the palette to navigate to that question directly.</li>
-          <li>Click an option to select your answer. Once selected, your answer is <strong>permanently locked</strong> and cannot be changed or cleared.</li>
+          <li>Click an option to select your answer. In Test Mode, you can freely change your selection or click <strong>Clear Response</strong> anytime before submitting. In Practice Mode, your answer is verified immediately upon selection.</li>
           <li>Click <strong>Mark for review</strong> if you wish to flag a question and revisit it before final submission.</li>
           <li>You may pause your exam and resume later without losing your responses or remaining time.</li>
         </ul>
@@ -1233,20 +1234,20 @@ export default function LiveQuiz() {
     const normalizedOpt = normalizeOptionKey(option);
     if (!normalizedOpt) return;
 
-    // 1. SYNCHRONOUS REF GUARD (Zero-millisecond permanent lock against rapid double-clicks / races)
-    if (lockedAnswersRef.current.has(qId)) {
-      return;
+    const isImmediate = test?.solution_mode === 'immediate';
+
+    // 1. PRACTICE MODE GUARD: Strict permanent lock on first selection
+    if (isImmediate) {
+      if (lockedAnswersRef.current.has(qId) || responses[qId]?.selected_option) {
+        return;
+      }
+      lockedAnswersRef.current.set(qId, normalizedOpt);
+    } else {
+      // 2. TEST / EXAM MODE: Update selection freely
+      lockedAnswersRef.current.set(qId, normalizedOpt);
     }
 
-    // 2. STATE GUARD
-    if (responses[qId]?.selected_option) {
-      return;
-    }
-
-    // 3. SYNCHRONOUS LOCK REGISTRATION
-    lockedAnswersRef.current.set(qId, normalizedOpt);
-
-    // 4. UPDATE RESPONSES & SNAPSHOT
+    // 3. UPDATE RESPONSES & SNAPSHOT
     const nextResponses = {
       ...responses,
       [qId]: {
@@ -1258,8 +1259,7 @@ export default function LiveQuiz() {
     setResponses(nextResponses);
     saveProgressSnapshot({ responses: nextResponses }, true);
 
-    // 5. PRACTICE MODE: Fetch Authoritative Evaluation Securely
-    const isImmediate = test?.solution_mode === 'immediate';
+    // 4. PRACTICE MODE: Fetch Authoritative Evaluation Securely
     const hasAuthoritative = Boolean(normalizeCorrectAnswer(
       question?.correct_answer ?? question?.correct_option ?? question?.answer,
       question?.options
@@ -1326,7 +1326,7 @@ export default function LiveQuiz() {
         });
       }
     } else if (attemptId && supabase) {
-      // Mock Test Mode: record locked answer to backend in background
+      // Test Mode (or immediate with known answer): record updated answer to backend in background
       supabase
         .rpc('submit_question_answer', {
           p_attempt_id: attemptId,
@@ -1336,6 +1336,37 @@ export default function LiveQuiz() {
         .catch((err) => console.warn('[LiveQuiz:answer] Background answer sync error:', err));
     }
   };
+
+  const clearResponse = useCallback(() => {
+    if (!question?.id || submitting || pausing) return;
+    const isImmediate = test?.solution_mode === 'immediate';
+    if (isImmediate) return; // Cannot clear in immediate practice mode
+
+    const qId = question.id;
+    const targetQId = question.question_id || question.id;
+
+    lockedAnswersRef.current.delete(qId);
+
+    const nextResponses = {
+      ...responses,
+      [qId]: {
+        ...responses[qId],
+        selected_option: null
+      }
+    };
+    setResponses(nextResponses);
+    saveProgressSnapshot({ responses: nextResponses }, true);
+
+    if (attemptId && supabase) {
+      supabase
+        .rpc('submit_question_answer', {
+          p_attempt_id: attemptId,
+          p_question_id: targetQId,
+          p_selected_option: null
+        })
+        .catch((err) => console.warn('[LiveQuiz:clearResponse] Background clear sync error:', err));
+    }
+  }, [question, submitting, pausing, test?.solution_mode, responses, saveProgressSnapshot, attemptId, supabase]);
 
   const retryEvaluation = async (qId) => {
     const targetQId = question.question_id || question.id;
@@ -2052,7 +2083,7 @@ export default function LiveQuiz() {
             lang={language}
             aria-busy={translatingQuestionId === questionId}
           >
-            <QuestionFormatter text={displayedQuestionText} />
+            <QuestionFormatter text={displayedQuestionText} language={language} />
             {language === 'hi' && !questionHindi && translatingQuestionId === questionId && (
               <LoaderCircle className="translation-inline-spinner" size={14} aria-label="Translating" />
             )}
@@ -2118,10 +2149,10 @@ export default function LiveQuiz() {
                   question?.options
                 );
                 const userSelectedOption = lockedAnswersRef.current.get(question?.id) || responses[question?.id]?.selected_option;
-                const isLocked = Boolean(userSelectedOption);
+                const isImmediate = test?.solution_mode === 'immediate';
+                const isLocked = isImmediate && Boolean(userSelectedOption);
                 const isEvaluating = evaluatingQuestionIds.has(question?.id);
                 const selected = userSelectedOption === key;
-                const isImmediate = test?.solution_mode === 'immediate';
                 const hasAuthoritativeKey = Boolean(qCorrectAnswer);
                 const isCorrectAnswer = isImmediate && hasAuthoritativeKey && (qCorrectAnswer === key);
                 const isWrongSelected = isImmediate && hasAuthoritativeKey && selected && (qCorrectAnswer !== key);
@@ -2164,7 +2195,7 @@ export default function LiveQuiz() {
                           <CircleX size={20} className="text-rose-500" />
                         ) : null
                       ) : (
-                        selected && <CheckCircle2 size={20} className="text-[#22c55e]" />
+                        selected && <Check size={18} className="text-indigo-600 dark:text-indigo-400 font-bold" />
                       )}
                     </span>
                   </button>
@@ -2316,20 +2347,49 @@ export default function LiveQuiz() {
               <ChevronLeft size={16} /> <span>Previous</span>
             </button>
 
-            {(lockedAnswersRef.current.get(question.id) || responses[question.id]?.selected_option) ? (
-              <div
-                className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-indigo-950/40 bg-indigo-50 border dark:border-indigo-500/25 border-indigo-200 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center gap-1.5 min-h-[40px] select-none"
-                title="Answer is permanently locked"
-              >
-                <Lock size={13} className="text-indigo-600 dark:text-indigo-400" />
-                <span>{language === 'hi' ? 'उत्तर लॉक है' : 'Answer Locked'}</span>
-              </div>
+            {test?.solution_mode === 'immediate' ? (
+              (lockedAnswersRef.current.get(question.id) || responses[question.id]?.selected_option) ? (
+                <div
+                  className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-indigo-950/40 bg-indigo-50 border dark:border-indigo-500/25 border-indigo-200 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center gap-1.5 min-h-[40px] select-none"
+                  title="Answer is permanently locked"
+                >
+                  <Lock size={13} className="text-indigo-600 dark:text-indigo-400" />
+                  <span>{language === 'hi' ? 'उत्तर लॉक है' : 'Answer Locked'}</span>
+                </div>
+              ) : (
+                <div
+                  className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-slate-900/40 bg-slate-100 border dark:border-slate-800 border-slate-300 text-slate-500 dark:text-slate-400 text-xs font-medium flex items-center gap-1.5 min-h-[40px] select-none"
+                >
+                  <span>{language === 'hi' ? 'अनुत्तरित' : 'Unanswered'}</span>
+                </div>
+              )
             ) : (
-              <div
-                className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-slate-900/40 bg-slate-100 border dark:border-slate-800 border-slate-300 text-slate-500 dark:text-slate-400 text-xs font-medium flex items-center gap-1.5 min-h-[40px] select-none"
-              >
-                <span>{language === 'hi' ? 'अनुत्तरित' : 'Unanswered'}</span>
-              </div>
+              (lockedAnswersRef.current.get(question.id) || responses[question.id]?.selected_option) ? (
+                <div className="flex items-center gap-1.5">
+                  <div
+                    className="quiz-mobile-action-button px-3 sm:px-3.5 py-2 sm:py-2.5 rounded-full dark:bg-emerald-950/40 bg-emerald-50 border dark:border-emerald-500/25 border-emerald-200 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1.5 min-h-[40px] select-none"
+                  >
+                    <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
+                    <span>{language === 'hi' ? 'उत्तर दिया' : 'Answered'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearResponse}
+                    disabled={submitting || pausing}
+                    className="quiz-mobile-action-button px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full dark:bg-rose-950/30 bg-rose-50 border dark:border-rose-800/40 border-rose-200 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-xs font-bold flex items-center gap-1 min-h-[40px] transition-colors"
+                    title={language === 'hi' ? 'उत्तर हटाएं' : 'Clear Response'}
+                  >
+                    <RotateCcw size={12} />
+                    <span>{language === 'hi' ? 'उत्तर हटाएं' : 'Clear Response'}</span>
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-slate-900/40 bg-slate-100 border dark:border-slate-800 border-slate-300 text-slate-500 dark:text-slate-400 text-xs font-medium flex items-center gap-1.5 min-h-[40px] select-none"
+                >
+                  <span>{language === 'hi' ? 'अनुत्तरित' : 'Unanswered'}</span>
+                </div>
+              )
             )}
 
             {currentIndex === questions.length - 1 ? (

@@ -90,6 +90,10 @@ export default function QuizResult() {
   // Language for solutions: 'en' | 'hi'
   const [language, setLanguage] = useState(appLanguage || 'en');
 
+  // Peer Benchmarking Stats
+  const [peerStats, setPeerStats] = useState(null);
+  const [loadingPeerStats, setLoadingPeerStats] = useState(false);
+
   // Load Attempt Result from Supabase RPC
   useEffect(() => {
     let active = true;
@@ -115,6 +119,9 @@ export default function QuizResult() {
 
       if (!active) return;
       setResult(resultData);
+      if (resultData.peer_stats) {
+        setPeerStats(resultData.peer_stats);
+      }
       setSolutions(Array.isArray(answerRows) ? answerRows : []);
       refreshAccount().catch((err) => console.error('Account refresh error:', err));
       setLoading(false);
@@ -130,15 +137,76 @@ export default function QuizResult() {
     return () => { active = false; };
   }, [supabase, attemptId, refreshAccount]);
 
-  const currentSolution = solutions[currentSolutionIndex] || null;
-
   // Processed scorecard numbers
-  const scorecard = result ? (result.scorecard || result.summary || result) : {};
+  const scorecard = useMemo(() => {
+    return result ? (result.scorecard || result.summary || result) : {};
+  }, [result]);
   const score = Number(valueOf(scorecard, 'score', 'total_score', 'final_score')) || 34; // mockup baseline
   const rawPercentage = Number(valueOf(scorecard, 'percentage', 'score_percentage'));
   const percentage = rawPercentage > 0 && rawPercentage <= 1
     ? Math.round(rawPercentage * 100)
     : (rawPercentage || 68); // mockup baseline 68%
+
+  // Load Peer Benchmark Data if not provided by result
+  useEffect(() => {
+    let active = true;
+    if (result?.peer_stats) {
+      setPeerStats(result.peer_stats);
+      return;
+    }
+
+    const testId = result?.test_id;
+    if (!testId || !supabase) return;
+
+    setLoadingPeerStats(true);
+    const fetchPeerStats = async () => {
+      try {
+        const { data: rpcStats, error: rpcErr } = await supabase.rpc('get_test_peer_benchmarks', {
+          p_attempt_id: attemptId
+        });
+        if (!rpcErr && rpcStats) {
+          if (active) setPeerStats(rpcStats);
+          return;
+        }
+
+        // Direct table query fallback
+        const { data: attempts, error: fetchErr } = await supabase
+          .from('test_attempts')
+          .select('id, score, time_spent_seconds, status')
+          .eq('test_id', testId)
+          .in('status', ['submitted', 'completed', 'graded', 'finished']);
+
+        if (!fetchErr && Array.isArray(attempts) && attempts.length > 0) {
+          const totalAttempts = attempts.length;
+          const userScore = Number(valueOf(scorecard, 'score', 'total_score', 'final_score')) || 0;
+          const totalScores = attempts.reduce((acc, curr) => acc + (Number(curr.score) || 0), 0);
+          const avgScore = Math.round((totalScores / totalAttempts) * 10) / 10;
+          const belowCount = attempts.filter((a) => (Number(a.score) || 0) < userScore).length;
+          const percentile = totalAttempts > 1
+            ? Math.round((belowCount / (totalAttempts - 1)) * 100)
+            : 100;
+
+          if (active) {
+            setPeerStats({
+              total_attempts: totalAttempts,
+              average_score: avgScore,
+              percentile,
+              score_diff: Math.round((userScore - avgScore) * 10) / 10
+            });
+          }
+        }
+      } catch (e) {
+        console.warn('Unable to load peer stats:', e);
+      } finally {
+        if (active) setLoadingPeerStats(false);
+      }
+    };
+
+    fetchPeerStats();
+    return () => { active = false; };
+  }, [result?.peer_stats, result?.test_id, attemptId, supabase, scorecard]);
+
+  const currentSolution = solutions[currentSolutionIndex] || null;
   const totalQuestions = solutions.length || 50;
 
   // Calculated stats across questions
@@ -169,12 +237,37 @@ export default function QuizResult() {
     return { correctCount, incorrectCount, unattemptedCount };
   }, [solutions]);
 
-  // Topic Analysis Aggregate
+  // Topic Analysis Aggregate: Real Question Grouping by Tags/Subject/Topic
   const topicAnalysis = useMemo(() => {
     const map = new Map();
     solutions.forEach((item) => {
       const question = item.question || item;
-      const topic = question.topic || question.subject || 'General Concepts';
+      let topic = null;
+      const rawTags = question.tags;
+      let tagsList = [];
+      if (Array.isArray(rawTags)) {
+        tagsList = rawTags;
+      } else if (typeof rawTags === 'string') {
+        try {
+          const parsed = JSON.parse(rawTags);
+          if (Array.isArray(parsed)) tagsList = parsed;
+          else tagsList = rawTags.split(',').map((s) => s.trim());
+        } catch {
+          tagsList = rawTags.split(',').map((s) => s.trim());
+        }
+      }
+
+      const genericTagSet = new Set(['both', 'practice_only', 'test_only', 'mcq', 'bpsc', 'upsc', 'ncert', 'a', 'b', 'c', 'd', 'e']);
+      const validTags = tagsList
+        .map((t) => String(t || '').trim())
+        .filter((t) => t.length > 1 && !genericTagSet.has(t.toLowerCase()));
+
+      if (validTags.length > 0) {
+        topic = validTags[0];
+      } else {
+        topic = question.topic || question.subject || result?.chapter_title || result?.test_title || 'General Concepts';
+      }
+
       if (!map.has(topic)) {
         map.set(topic, { total: 0, correct: 0, incorrect: 0, unattempted: 0 });
       }
@@ -182,7 +275,7 @@ export default function QuizResult() {
       entry.total += 1;
 
       const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? null;
-      const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? null;
+      const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? question.correct_answer ?? null;
       const correctKey = normalizeCorrectAnswer(rawCorrect, question.options);
       const chosenKey = Array.isArray(selected) ? selected[0] : selected;
       const hasSelection = Boolean(chosenKey);
@@ -193,22 +286,16 @@ export default function QuizResult() {
       else entry.unattempted += 1;
     });
 
-    // Default topics fallback if single or empty
-    if (map.size <= 1) {
-      return [
-        { topic: 'Body Fluids & Circulation', total: 18, correct: 14, incorrect: 3, unattempted: 1, accuracy: 78 },
-        { topic: 'Respiratory System', total: 12, correct: 8, incorrect: 4, unattempted: 0, accuracy: 67 },
-        { topic: 'Digestion & Absorption', total: 10, correct: 7, incorrect: 2, unattempted: 1, accuracy: 70 },
-        { topic: 'Neural Control & Coordination', total: 10, correct: 5, incorrect: 5, unattempted: 0, accuracy: 50 }
-      ];
+    if (map.size === 0) {
+      return [];
     }
 
     return Array.from(map.entries()).map(([topic, data]) => ({
       topic,
       ...data,
       accuracy: Math.round((data.correct / Math.max(1, data.total)) * 100)
-    }));
-  }, [solutions]);
+    })).sort((a, b) => b.total - a.total);
+  }, [solutions, result]);
 
   // Filtered Questions for Review List
   const filteredSolutions = useMemo(() => {
@@ -646,6 +733,7 @@ export default function QuizResult() {
 
               const qEn = question.question_text_en || getLocalizedEnglish(question.question_text) || question.text || '';
               const qHi = question.question_text_hi || getStoredHindi(question.question_text) || question.text_hi || '';
+              const displayedQuestionText = language === 'hi' ? (qHi || qEn) : (qEn || qHi);
 
               return (
                 <div className="space-y-3.5">
@@ -661,25 +749,19 @@ export default function QuizResult() {
                       </span>
                     </div>
 
-                    {/* Bilingual Question Text */}
+                    {/* Localized Question Text */}
                     <div className="space-y-1.5">
-                      {qHi && (
-                        <h3 className="text-base sm:text-lg font-bold dark:text-white text-slate-900 leading-relaxed">
-                          <QuestionFormatter text={qHi} />
-                        </h3>
-                      )}
-                      {qEn && (
-                        <p className="text-xs sm:text-sm dark:text-slate-300 text-slate-600 leading-relaxed font-medium">
-                          <QuestionFormatter text={qEn} />
-                        </p>
-                      )}
+                      <h3 className="text-base sm:text-lg font-bold dark:text-white text-slate-900 leading-relaxed">
+                        <QuestionFormatter text={displayedQuestionText} language={language} />
+                      </h3>
                     </div>
 
-                    {/* 5 Options list with High-Fidelity Status Highlights */}
+                    {/* Options list with High-Fidelity Status Highlights */}
                     <div className="space-y-2 pt-1">
                       {options.map(([key, opt]) => {
                         const optEn = getLocalizedEnglish(opt);
                         const optHi = getStoredHindi(opt);
+                        const displayedOpt = language === 'hi' ? (optHi || optEn) : (optEn || optHi);
                         const isThisCorrect = key === correctKey;
                         const isThisSelected = chosenKey === key;
 
@@ -703,9 +785,8 @@ export default function QuizResult() {
                               <span className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${badgeClasses}`}>
                                 {key}
                               </span>
-                              <div className="text-xs sm:text-sm font-semibold leading-relaxed flex-1">
-                                {optHi && <span>{optHi} </span>}
-                                {optEn && <span className="dark:text-slate-400 text-slate-600">({optEn})</span>}
+                              <div className="text-xs sm:text-sm font-semibold leading-relaxed flex-1" lang={language}>
+                                <QuestionFormatter text={displayedOpt} language={language} />
                               </div>
                             </div>
 
@@ -760,7 +841,7 @@ export default function QuizResult() {
                       <div className="space-y-4 pt-1 text-xs sm:text-sm leading-relaxed dark:text-slate-300 text-slate-700 font-medium">
                         {/* Main explanation body */}
                         <div className="p-3.5 dark:bg-slate-900/60 bg-slate-50 rounded-2xl border dark:border-slate-700/50 border-slate-200">
-                          <QuestionFormatter text={currentParsed.mainExplanation || 'Explanation details for this question.'} />
+                          <QuestionFormatter text={currentParsed.mainExplanation || 'Explanation details for this question.'} language={language} />
                         </div>
 
                         {/* Why other options are wrong section (Matching Mockup 1794580723887.png) */}
@@ -777,7 +858,7 @@ export default function QuizResult() {
                                     {optKey}
                                   </span>
                                   <span className="dark:text-slate-300 text-slate-700 font-medium">
-                                    <strong className="dark:text-white text-slate-900">Option {optKey}:</strong> {reason}
+                                    <strong className="dark:text-white text-slate-900">Option {optKey}:</strong> <QuestionFormatter text={reason} language={language} className="inline" />
                                   </span>
                                 </div>
                               ))}
@@ -887,6 +968,11 @@ export default function QuizResult() {
                   </div>
                 </div>
               ))}
+              {topicAnalysis.length === 0 && (
+                <div className="p-6 text-center text-xs dark:text-slate-400 text-slate-500 rounded-2xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200">
+                  No topic breakdown available for this attempt.
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -906,25 +992,57 @@ export default function QuizResult() {
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
-              <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center">
-                <div className="text-[10px] uppercase font-bold dark:text-slate-400 text-slate-500">Your Percentile</div>
-                <div className="text-lg sm:text-xl font-black dark:text-amber-400 text-amber-600 mt-1">84.6%</div>
-                <span className="text-[10px] dark:text-indigo-400 text-indigo-600">Top 15%</span>
+            {loadingPeerStats ? (
+              <div className="p-8 text-center">
+                <LoadingSkeleton rows={3} />
               </div>
+            ) : (() => {
+              const totalAttempts = peerStats?.total_attempts ?? 1;
+              const hasPeers = totalAttempts > 1;
+              const timeSpent = Number(result?.time_spent_seconds || scorecard?.time_spent_seconds || 0);
+              const avgTimePerQuestion = totalQuestions > 0 ? Math.round(timeSpent / totalQuestions) : 0;
+              const userScore = score;
+              const avgScore = peerStats?.average_score ?? userScore;
+              const scoreDiff = peerStats?.score_diff ?? 0;
+              const percentile = peerStats?.percentile ?? 100;
 
-              <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center">
-                <div className="text-[10px] uppercase font-bold dark:text-slate-400 text-slate-500">Average Score</div>
-                <div className="text-lg sm:text-xl font-black dark:text-white text-slate-900 mt-1">26.4</div>
-                <span className="text-[10px] text-emerald-400">+7.6 vs Avg</span>
-              </div>
+              return (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                  {/* Card 1: Percentile */}
+                  <div className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
+                    <div className="text-[10px] sm:text-xs uppercase font-bold dark:text-slate-400 text-slate-500">Your Percentile</div>
+                    <div className="text-xl sm:text-2xl font-black dark:text-amber-400 text-amber-600 my-1">
+                      {hasPeers ? `${percentile}%` : '1st Attempt'}
+                    </div>
+                    <span className="text-[11px] font-semibold dark:text-indigo-400 text-indigo-600">
+                      {hasPeers ? `Top ${Math.max(1, Math.round(100 - percentile))}% (${totalAttempts} attempts)` : 'Awaiting more attempts for peer percentile'}
+                    </span>
+                  </div>
 
-              <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center">
-                <div className="text-[10px] uppercase font-bold dark:text-slate-400 text-slate-500">Avg Time / Q</div>
-                <div className="text-lg sm:text-xl font-black dark:text-white text-slate-900 mt-1">46s</div>
-                <span className="text-[10px] text-emerald-400">Fast & Steady</span>
-              </div>
-            </div>
+                  {/* Card 2: Average Score */}
+                  <div className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
+                    <div className="text-[10px] sm:text-xs uppercase font-bold dark:text-slate-400 text-slate-500">Average Score</div>
+                    <div className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 my-1">
+                      {hasPeers ? avgScore : userScore}
+                    </div>
+                    <span className={`text-[11px] font-semibold ${!hasPeers ? 'dark:text-slate-400 text-slate-500' : scoreDiff >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      {hasPeers ? `${scoreDiff >= 0 ? `+${scoreDiff}` : scoreDiff} vs Avg` : 'Your score (1st Attempt)'}
+                    </span>
+                  </div>
+
+                  {/* Card 3: Avg Time / Question */}
+                  <div className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
+                    <div className="text-[10px] sm:text-xs uppercase font-bold dark:text-slate-400 text-slate-500">Avg Time / Q</div>
+                    <div className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 my-1">
+                      {avgTimePerQuestion}s
+                    </div>
+                    <span className="text-[11px] font-semibold text-emerald-500">
+                      {avgTimePerQuestion === 0 ? 'Fast & Accurate' : avgTimePerQuestion <= 35 ? 'Fast & Steady' : avgTimePerQuestion <= 70 ? 'Optimal Pace' : 'Moderate Pace'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
       </div>

@@ -203,6 +203,9 @@ function ImportDialog({ chapters, onClose, onImported }) {
   const [preview, setPreview] = useState(null);
   const [importStatus, setImportStatus] = useState('published');
   const [importUsageScope, setImportUsageScope] = useState('both');
+  const [tests, setTests] = useState([]);
+  const [selectedChapterId, setSelectedChapterId] = useState('');
+  const [selectedTestId, setSelectedTestId] = useState('');
   const [isImporting, setIsImporting] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [importProgress, setImportProgress] = useState(null);
@@ -210,6 +213,32 @@ function ImportDialog({ chapters, onClose, onImported }) {
   const [showGuide, setShowGuide] = useState(false);
   const [activeGuideTab, setActiveGuideTab] = useState('mcq');
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const loadTests = async () => {
+      if (!supabase) return;
+      try {
+        const { data, error: testsErr } = await supabase
+          .from('tests')
+          .select('id, title, chapter_id, status, pattern')
+          .order('title', { ascending: true });
+        if (!testsErr && data && active) {
+          setTests(data);
+        }
+      } catch (err) {
+        console.error('Failed to load tests for import dialog:', err);
+      }
+    };
+    loadTests();
+    return () => { active = false; };
+  }, []);
+
+  const chapterById = useMemo(() => new Map((chapters || []).map((c) => [c.id, c])), [chapters]);
+  const availableTests = useMemo(() => {
+    if (!selectedChapterId) return tests;
+    return tests.filter((t) => t.chapter_id === selectedChapterId);
+  }, [tests, selectedChapterId]);
 
   const handleCopyAiPrompt = async () => {
     try {
@@ -222,12 +251,12 @@ function ImportDialog({ chapters, onClose, onImported }) {
   };
 
   const getPreparedCsvTemplate = () => {
-    const chapterId = chapters?.[0]?.id || 'replace-with-chapter-uuid';
+    const chapterId = selectedChapterId || (selectedTestId ? tests.find((t) => t.id === selectedTestId)?.chapter_id : null) || chapters?.[0]?.id || 'replace-with-chapter-uuid';
     return CSV_TEMPLATE.replace(/replace-with-chapter-uuid/g, chapterId);
   };
 
   const getPreparedJsonTemplate = () => {
-    const chapterId = chapters?.[0]?.id || 'replace-with-chapter-uuid';
+    const chapterId = selectedChapterId || (selectedTestId ? tests.find((t) => t.id === selectedTestId)?.chapter_id : null) || chapters?.[0]?.id || 'replace-with-chapter-uuid';
     return JSON_TEMPLATE.replace(/replace-with-chapter-uuid/g, chapterId);
   };
 
@@ -314,8 +343,10 @@ function ImportDialog({ chapters, onClose, onImported }) {
         .filter(Boolean));
       const checked = rows.map((row, index) => {
         let targetChapterId = row?.chapter_id;
-        if ((!targetChapterId || targetChapterId === 'replace-with-chapter-uuid') && chapters.length > 0) {
-          targetChapterId = chapters[0].id;
+        if (!targetChapterId || targetChapterId === 'replace-with-chapter-uuid') {
+          targetChapterId = selectedChapterId
+            || (selectedTestId ? tests.find((t) => t.id === selectedTestId)?.chapter_id : null)
+            || (chapters.length > 0 ? chapters[0].id : null);
           row.chapter_id = targetChapterId;
         }
         const result = validateImportQuestion(row, index, seen, seenQuestionTexts);
@@ -400,13 +431,20 @@ function ImportDialog({ chapters, onClose, onImported }) {
     setImportProgress({ saved: 0, total: validRows.length });
     setError('');
     let savedCount = 0;
+    const allInsertedIds = [];
     try {
       const batchSize = 50;
       for (let start = 0; start < validRows.length; start += batchSize) {
         const batch = validRows.slice(start, start + batchSize);
-        const { error: insertError } = await supabase.from('questions').insert(batch);
+        const { data: insertedData, error: insertError } = await supabase
+          .from('questions')
+          .insert(batch)
+          .select('id');
         if (insertError) {
           throw new Error(`Import stopped after ${start} of ${validRows.length} rows: ${insertError.message}`);
+        }
+        if (insertedData) {
+          allInsertedIds.push(...insertedData.map((item) => item.id));
         }
         const savedItems = validItems.slice(start, start + batch.length);
         setPreview((current) => current
@@ -414,6 +452,35 @@ function ImportDialog({ chapters, onClose, onImported }) {
           : current);
         savedCount = Math.min(start + batch.length, validRows.length);
         setImportProgress({ saved: savedCount, total: validRows.length });
+      }
+
+      // If a target test is selected, automatically link all newly imported questions in exact sequence
+      if (selectedTestId && allInsertedIds.length > 0) {
+        const { data: maxOrderData } = await supabase
+          .from('test_questions')
+          .select('display_order')
+          .eq('test_id', selectedTestId)
+          .order('display_order', { ascending: false })
+          .limit(1);
+
+        const currentMax = (maxOrderData && maxOrderData.length > 0 && Number.isInteger(maxOrderData[0].display_order))
+          ? maxOrderData[0].display_order
+          : -1;
+
+        const testQuestionsPayload = allInsertedIds.map((questionId, index) => ({
+          test_id: selectedTestId,
+          question_id: questionId,
+          display_order: currentMax + 1 + index
+        }));
+
+        for (let i = 0; i < testQuestionsPayload.length; i += 50) {
+          const tqBatch = testQuestionsPayload.slice(i, i + 50);
+          const { error: tqError } = await supabase.from('test_questions').insert(tqBatch);
+          if (tqError) {
+            console.error('Failed to auto-assign questions to test:', tqError);
+            throw new Error(`Questions were saved to Question Bank, but linking to test failed: ${tqError.message}`);
+          }
+        }
       }
     } catch (insertError) {
       console.error('DB Insert Failed:', insertError);
@@ -582,12 +649,64 @@ function ImportDialog({ chapters, onClose, onImported }) {
     )}
 
     <div className="qbank-form-grid">
+      <label className="field-label">Chapter
+        <select
+          className="text-input"
+          value={selectedChapterId}
+          onChange={(event) => {
+            const chId = event.target.value;
+            setSelectedChapterId(chId);
+            if (chId && selectedTestId) {
+              const currentTest = tests.find((t) => t.id === selectedTestId);
+              if (currentTest && currentTest.chapter_id !== chId) {
+                setSelectedTestId('');
+              }
+            }
+          }}
+        >
+          <option value="">All Chapters / From template</option>
+          {chapters.map((chapter) => (
+            <option value={chapter.id} key={chapter.id}>
+              {chapter.title}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="field-label">Link Imported Questions to Test
+        <select
+          className="text-input"
+          value={selectedTestId}
+          onChange={(event) => {
+            const testId = event.target.value;
+            setSelectedTestId(testId);
+            if (testId) {
+              const targetTest = tests.find((t) => t.id === testId);
+              if (targetTest?.chapter_id && !selectedChapterId) {
+                setSelectedChapterId(targetTest.chapter_id);
+              }
+            }
+          }}
+        >
+          <option value="">None — Save to Question Bank only</option>
+          {availableTests.map((test) => {
+            const ch = chapterById.get(test.chapter_id);
+            return (
+              <option value={test.id} key={test.id}>
+                {test.title} {ch ? `(${ch.title})` : ''}
+              </option>
+            );
+          })}
+        </select>
+      </label>
+
       <label className="field-label">Default import status
         <select className="text-input" value={importStatus} onChange={(event) => setImportStatus(event.target.value)}>
           <option value="published">Published</option>
           <option value="draft">Draft</option>
         </select>
       </label>
+
       <label className="field-label">Default usage scope
         <select className="text-input" value={importUsageScope} onChange={(event) => setImportUsageScope(event.target.value)}>
           <option value="both">Both</option>
@@ -596,6 +715,12 @@ function ImportDialog({ chapters, onClose, onImported }) {
         </select>
       </label>
     </div>
+
+    {selectedTestId && (
+      <div className="flex items-center gap-2 p-2.5 my-2 rounded-xl bg-indigo-500/10 border border-indigo-500/25 text-xs text-indigo-300">
+        <span>⚡ Auto-assign active: Questions will be saved to Question Bank and added to <strong>{tests.find((t) => t.id === selectedTestId)?.title}</strong> in sequence.</span>
+      </div>
+    )}
     <div className="file-upload-section" style={{ margin: '10px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
         <label className="button button-outline" style={{ cursor: 'pointer', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -748,9 +873,9 @@ function ImportDialog({ chapters, onClose, onImported }) {
         {isImporting
           ? `Saving ${importProgress?.saved || 0} of ${importProgress?.total || validCount}…`
           : validCount
-            ? `Import ${validCount} Valid Question${validCount === 1 ? '' : 's'} (${importStatus})`
+            ? `Import ${validCount} Valid Question${validCount === 1 ? '' : 's'}${selectedTestId ? ' & Link to Test' : ''} (${importStatus})`
             : importedCount > 0
-              ? `Saved ${importedCount} Question${importedCount === 1 ? '' : 's'}`
+              ? `Saved ${importedCount} Question${importedCount === 1 ? '' : 's'}${selectedTestId ? ' & Linked to Test' : ''}`
               : 'Import Valid Questions'}
       </button>
     </footer>
