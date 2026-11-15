@@ -99,23 +99,52 @@ export default function QuizResult() {
     let active = true;
     const loadResult = async () => {
       if (!supabase) throw new Error('Supabase is not configured.');
-      const { data, error: rpcError } = await supabase.rpc('get_test_attempt_result', {
-        p_attempt_id: attemptId
-      });
-      if (rpcError) throw rpcError;
+      let resultData = null;
+      let answerRows = [];
 
-      const payload = unwrapRpcPayload(data);
-      const root = normalizeRpcObject(data);
-      const resultData = Array.isArray(payload) ? root : { ...root, ...payload };
+      try {
+        const { data, error: rpcError } = await supabase.rpc('get_test_attempt_result', {
+          p_attempt_id: attemptId
+        });
+        if (rpcError) throw rpcError;
+
+        const payload = unwrapRpcPayload(data);
+        const root = normalizeRpcObject(data);
+        resultData = Array.isArray(payload) ? root : { ...root, ...payload };
+      } catch (rpcErr) {
+        console.warn('get_test_attempt_result RPC error, attempting direct attempt fallback:', rpcErr);
+        // Direct attempt query fallback for student accounts
+        const { data: directAttempt, error: attemptErr } = await supabase
+          .from('test_attempts')
+          .select('*, tests(*)')
+          .eq('id', attemptId)
+          .maybeSingle();
+
+        if (attemptErr || !directAttempt) {
+          throw rpcErr || attemptErr || new Error('No result returned for this test attempt.');
+        }
+
+        resultData = {
+          attempt_id: directAttempt.id,
+          test_id: directAttempt.test_id,
+          test_title: directAttempt.tests?.title || 'Test Result',
+          score: directAttempt.score || 0,
+          total_marks: directAttempt.max_score || directAttempt.total_marks || 0,
+          percentage: directAttempt.percentage || 0,
+          time_spent_seconds: directAttempt.time_spent_seconds || 0,
+          solutions: []
+        };
+      }
+
       if (!resultData || !Object.keys(resultData).length) {
         throw new Error('No result returned for this test attempt.');
       }
 
-      const answerRows =
+      answerRows =
         resultData.solutions ||
         resultData.questions ||
         resultData.answers ||
-        (Array.isArray(payload) ? payload : []);
+        [];
 
       if (!active) return;
       setResult(resultData);

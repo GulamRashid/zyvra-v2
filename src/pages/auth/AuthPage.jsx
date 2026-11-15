@@ -11,10 +11,8 @@ export default function AuthPage() {
   const [method, setMethod] = useState('otp');
   const [step, setStep] = useState('email');
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [isNewAccount, setIsNewAccount] = useState(false);
   const [otp, setOtp] = useState(Array(6).fill(''));
   const [cooldown, setCooldown] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -70,7 +68,9 @@ export default function AuthPage() {
     try {
       const { error: authError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        options: isNewAccount && name.trim() ? { data: { full_name: name.trim() } } : undefined
+        options: {
+          shouldCreateUser: true
+        }
       });
       if (authError) throw authError;
       setStep('verify');
@@ -202,19 +202,18 @@ export default function AuthPage() {
           </form>
           <div className="resend-row">{cooldown ? <span>Resend code in <strong>00:{String(cooldown).padStart(2, '0')}</strong></span> : <button className="text-button" disabled={busy} onClick={sendOtp}>Resend code</button>}</div>
         </> : <>
-          <div className="auth-tabs"><button className={method === 'otp' ? 'selected' : ''} onClick={() => { setMethod('otp'); setError(''); }}>Quick OTP / New Account</button><button className={method === 'password' ? 'selected' : ''} onClick={() => { setMethod('password'); setError(''); }}>Sign In with Password</button></div>
+          <div className="auth-tabs">
+            <button className={method === 'otp' ? 'selected' : ''} onClick={() => { setMethod('otp'); setError(''); }}>Quick OTP / New Account</button>
+            <button className={method === 'password' ? 'selected' : ''} onClick={() => { setMethod('password'); setError(''); }}>Sign In with Password</button>
+          </div>
           <form onSubmit={method === 'otp' ? sendOtp : passwordAuth}>
-            {method === 'otp' && <label className="auth-new-account"><input type="checkbox" checked={isNewAccount} onChange={(event) => setIsNewAccount(event.target.checked)} /> I'm new to Zyvra — create an account</label>}
-            {method === 'otp' && isNewAccount && (
-              <>
-                <label className="field-label">Full name<input className="text-input" value={name} onChange={(event) => setName(event.target.value)} required placeholder="e.g. Ananya Kumar" autoComplete="name" /></label>
-                <label className="field-label">Referral code (Optional)<div className="input-with-icon"><Gift size={17} /><input className="text-input uppercase" value={refCode} onChange={(event) => setRefCode(event.target.value.trim().toUpperCase())} placeholder="e.g. ZYVRA100" autoComplete="off" /></div></label>
-              </>
-            )}
             <label className="field-label">Email address<div className="input-with-icon"><Mail size={17} /><input className="text-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="you@example.com" autoComplete="email" /></div></label>
             {method === 'password' && <label className="field-label">Password<div className="input-with-icon"><KeyRound size={17} /><input className="text-input" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={6} placeholder="Your password" autoComplete="current-password" /><button className="password-eye" type="button" onClick={() => setShowPassword(!showPassword)} aria-label="Show or hide password">{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></label>}
-            {method === 'otp' && <p className="field-hint">We'll send a 6-digit code via email to verify your identity. No password required.</p>}
-            <button type="submit" className="button button-gold button-full" disabled={busy}>{busy ? 'Please wait…' : method === 'otp' ? <>Send verification code <ArrowRight size={16} /></> : <>Sign in <ArrowRight size={16} /></>}</button>
+            {method === 'otp' && !refCode && (
+              <label className="field-label">Referral code (Optional)<div className="input-with-icon"><Gift size={17} /><input className="text-input uppercase" value={refCode} onChange={(event) => setRefCode(event.target.value.trim().toUpperCase())} placeholder="e.g. ZYVRA100" autoComplete="off" /></div></label>
+            )}
+            {method === 'otp' && <p className="field-hint">We'll send a 6-digit code via email to verify your identity. Works for both new signups and existing accounts without a password.</p>}
+            <button type="submit" className="button button-gold button-full" disabled={busy}>{busy ? 'Please wait…' : method === 'otp' ? <>Send 6-Digit OTP <ArrowRight size={16} /></> : <>Sign in <ArrowRight size={16} /></>}</button>
           </form>
           {method === 'password' && <button className="text-button auth-switch" onClick={() => { setMethod('otp'); setError(''); setMessage(''); setStep('email'); }}>Forgot password? Sign in with OTP instead</button>}
         </>}
