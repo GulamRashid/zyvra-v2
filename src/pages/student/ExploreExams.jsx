@@ -1,14 +1,10 @@
 import { useMemo, useState } from 'react';
-import {
-  Atom, BookMarked, BookOpen, Brain, Calculator, FlaskConical,
-  Globe2, GraduationCap, Landmark, ScrollText, Search, Users
-} from 'lucide-react';
+import { BookOpen, GraduationCap, Search, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import ContentIcon from '../../components/common/ContentIcon';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { isPublished } from '../../lib/content';
-
-const examIcons = { BookOpen, GraduationCap, Landmark, Atom, Calculator, Globe2, Brain, ScrollText, FlaskConical, BookMarked };
 
 export default function ExploreExams() {
   const { exams, folders, chapters, loading, error } = useContentCatalog();
@@ -114,7 +110,6 @@ export default function ExploreExams() {
         {/* Exams Grid (1-column on mobile 360px, 2-column on tablet+) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           {visibleExams.map((exam) => {
-            const Icon = examIcons[exam.icon] || GraduationCap;
             const examFolders = folders.filter((folder) => folder.exam_id === exam.id && isPublished(folder));
             const folderIds = new Set(examFolders.map((folder) => folder.id));
             const chapterCount = chapters.filter((chapter) => folderIds.has(chapter.folder_id) && isPublished(chapter)).length;
@@ -127,7 +122,7 @@ export default function ExploreExams() {
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
                     <div className="w-10 h-10 rounded-2xl dark:bg-slate-800 bg-indigo-50 border dark:border-slate-700 border-indigo-200 flex items-center justify-center text-indigo-400 shrink-0">
-                      <Icon size={20} />
+                      <ContentIcon icon={exam.icon_url || exam.icon} className="w-5 h-5 text-indigo-400" fallback={GraduationCap} />
                     </div>
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                       {exam.category || 'Exam'}

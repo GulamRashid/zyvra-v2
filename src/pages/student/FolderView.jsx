@@ -5,6 +5,7 @@ import {
 import { Link, useParams } from 'react-router-dom';
 import CheckoutModal from '../../components/common/CheckoutModal';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import ContentIcon from '../../components/common/ContentIcon';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getChapterAccess, getFolderPath, getFolderPricing, isFolderUnlocked, isPublished } from '../../lib/content';
 import useContentAccess from '../../hooks/useContentAccess';
@@ -69,7 +70,6 @@ export default function FolderView() {
   }, [accessByKey]);
 
   const hasPurchasedExam = examIsPaid && accessByKey[`exam:${exam?.id}`] === true;
-  const isRootPurchased = rootFolder ? (hasPurchasedExam || rootPricing.amount <= 0 || isFolderUnlocked(rootFolder.id, folders, purchasedFolderIds) || accessByKey[`folder:${rootFolder.id}`] === true) : false;
   const isCurrentFolderUnlocked = hasPurchasedExam || pricing.amount <= 0 || isFolderUnlocked(folder?.id, folders, purchasedFolderIds) || accessByKey[`folder:${folder?.id}`] === true;
 
   return (
@@ -135,7 +135,7 @@ export default function FolderView() {
             <section className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50/90 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-4 sm:p-6 shadow-sm space-y-3">
               <div className="flex items-center gap-2">
                 <div className="w-10 h-10 rounded-xl dark:bg-indigo-950/80 bg-white border dark:border-indigo-500/30 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-xs shrink-0">
-                  <FolderOpen size={20} />
+                  <ContentIcon icon={folder.icon_url || folder.icon} className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fallback={FolderOpen} />
                 </div>
                 <div>
                   <div className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 tracking-wider">
@@ -248,7 +248,7 @@ export default function FolderView() {
                     <Link to={`/folder/${child.id}`} className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                          <Folder size={18} />
+                          <ContentIcon icon={child.icon_url || child.icon} className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fallback={Folder} />
                         </div>
                         <div className="min-w-0">
                           <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">

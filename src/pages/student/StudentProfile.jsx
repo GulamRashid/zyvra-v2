@@ -2,10 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, BarChart3, Bell, Bookmark, Check, CheckCircle2, ChevronRight,
   Clock, Copy, Download, Edit3, FileText, Flame, HelpCircle, Layers,
-  LogOut, Mail, MessageCircle, Phone, Send, Settings, Share2, Target, Users
+  LogOut, Mail, MessageCircle, Phone, Send, Settings, Share2, Target, Upload, Users
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import MountainSunsetAura from '../../components/common/MountainSunsetAura';
+import UploadGuide from '../../components/common/UploadGuide';
+import { uploadAsset } from '../../lib/storage';
 import { useAuth } from '../../context/AuthContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 import { ensureReferralCode } from '../../lib/referrals';
@@ -22,6 +24,8 @@ export default function StudentProfile() {
 
   // Edit profile form state
   const [fullName, setFullName] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [targets, setTargets] = useState([]);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileFeedback, setProfileFeedback] = useState('');
@@ -52,6 +56,7 @@ export default function StudentProfile() {
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || profile.name || '');
+      setAvatarUrl(profile.avatar_url || '');
       setTargets(Array.isArray(profile.target_exams) ? profile.target_exams : []);
       setDailyTarget(Number(profile.daily_goal_target || 50));
       if (profile.referral_code) {
@@ -177,6 +182,27 @@ export default function StudentProfile() {
   const inviteUrl = referralCode ? `${window.location.origin}/auth?ref=${referralCode}` : `${window.location.origin}/auth`;
   const inviteMessage = `Zyvra par mere saath exams ki taiyari karein! 🚀\nUse my referral code ${referralCode} to get free bonus coins on signup:\n${inviteUrl}`;
 
+  // Avatar upload handler
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    setProfileFeedback('');
+    try {
+      const url = await uploadAsset(file, {
+        folder: 'avatars',
+        allowedExtensions: ['png', 'jpg', 'jpeg', 'webp'],
+        maxSizeBytes: 2 * 1024 * 1024
+      });
+      setAvatarUrl(url);
+      setProfileFeedback('Avatar image uploaded! Click "Save Profile" to apply changes.');
+    } catch (err) {
+      setProfileFeedback(err.message || 'Avatar upload failed.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   // Save profile updates to Supabase
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -188,7 +214,8 @@ export default function StudentProfile() {
           .from('profiles')
           .update({
             full_name: fullName,
-            target_exams: targets
+            target_exams: targets,
+            avatar_url: avatarUrl || profile?.avatar_url || null
           })
           .eq('id', user.id);
         if (error) throw error;
@@ -705,6 +732,48 @@ export default function StudentProfile() {
             )}
 
             <form onSubmit={handleSaveProfile} className="space-y-3">
+              <div>
+                <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
+                  Profile Picture
+                </label>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <Users size={24} className="text-slate-400" />
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer transition-colors">
+                      <Upload size={14} />
+                      <span>{uploadingAvatar ? 'Uploading…' : 'Choose Photo'}</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={handleAvatarUpload}
+                        disabled={uploadingAvatar}
+                      />
+                    </label>
+                    {avatarUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setAvatarUrl('')}
+                        className="block text-[11px] text-rose-400 hover:underline"
+                      >
+                        Remove photo
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <UploadGuide
+                  formats=".png, .webp, .jpg"
+                  dimensions="300×300 px (1:1 Square)"
+                  maxSize="Max 2 MB"
+                />
+              </div>
+
               <div>
                 <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">Full Name</label>
                 <input

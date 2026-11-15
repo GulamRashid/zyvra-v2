@@ -33,6 +33,7 @@ const AdminSubscriptions = lazy(() => import('./pages/admin/AdminSubscriptions')
 const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications'));
 const AdminTools = lazy(() => import('./pages/admin/AdminTools'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
+const AdminEngagement = lazy(() => import('./pages/admin/AdminEngagement'));
 
 const studentPages = {
   '/tests': { title: 'Practice & tests', subtitle: 'Build your confidence with focused practice.', icon: FileQuestion, items: ['Daily practice', 'Chapter tests', 'Mock exams'] },
@@ -87,6 +88,7 @@ function AppRoutes() {
     <Route path="/quiz/result/:attemptId" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />
     <Route path="/admin" element={<ProtectedRoute admin><AdminLayout /></ProtectedRoute>}>
       <Route index element={<AdminDashboard />} />
+      <Route path="engagement" element={<AdminEngagement />} />
       <Route path="content" element={<ContentManager />} />
       <Route path="qbank" element={<QBankManager />} />
       <Route path="tests" element={<TestManager />} />

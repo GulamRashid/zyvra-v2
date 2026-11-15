@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Activity, Bell, ClipboardList, Coins, FileQuestion, FileText, Gauge, LogOut, Menu, PackageCheck, ShoppingCart, Tag, Users, Wrench, X } from 'lucide-react';
+import { Activity, Bell, ClipboardList, Coins, FileQuestion, FileText, Gauge, LogOut, Menu, PackageCheck, ShoppingCart, Sparkles, Tag, Users, Wrench, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
 
 const modules = [
   { to: '/admin', label: 'Dashboard', Icon: Gauge, end: true },
+  { to: '/admin/engagement', label: 'Banners & QotD', Icon: Sparkles },
   { to: '/admin/content', label: 'Content Manager', Icon: FileText },
   { to: '/admin/qbank', label: 'Question Bank', Icon: FileQuestion },
   { to: '/admin/tests', label: 'Test Manager', Icon: ClipboardList },

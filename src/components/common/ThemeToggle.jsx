@@ -1,34 +1,36 @@
-import { useState } from 'react';
-import { Monitor, Moon, Sun } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
-
-const choices = [
-  { value: 'dark', label: 'Dark', Icon: Moon },
-  { value: 'light', label: 'Light', Icon: Sun },
-  { value: 'system', label: 'System', Icon: Monitor }
-];
 
 export default function ThemeToggle() {
   const { theme, setTheme } = useThemeLanguage();
   const { user } = useAuth();
-  const [error, setError] = useState('');
-  const current = choices.find((choice) => choice.value === theme) || choices[0];
-  const selectTheme = async (event) => {
-    setError('');
+
+  // If theme is explicitly light, active mode is light; otherwise dark
+  const isLight = theme === 'light';
+
+  const handleToggle = async () => {
+    const nextTheme = isLight ? 'dark' : 'light';
     try {
-      await setTheme(event.target.value, user?.id);
-    } catch (error) {
-      setError(error.message || 'Theme preference could not be synced.');
+      await setTheme(nextTheme, user?.id);
+    } catch (err) {
+      console.error('Theme sync error:', err);
     }
   };
-  return <span className="theme-control">
-    <label className="icon-select" title={error || 'Appearance'}>
-      <current.Icon size={16} />
-      <select aria-label="Appearance" value={theme} onChange={selectTheme}>
-        {choices.map(({ value, label }) => <option key={value} value={value}>{label}</option>)}
-      </select>
-    </label>
-    {error && <span className="theme-error" role="alert">{error}</span>}
-  </span>;
+
+  return (
+    <button
+      type="button"
+      onClick={handleToggle}
+      className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-200 active:scale-95 dark:bg-slate-800/80 bg-slate-100 hover:dark:bg-slate-700 hover:bg-slate-200 border dark:border-slate-700/60 border-slate-300 shadow-sm"
+      aria-label={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+      title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
+    >
+      {isLight ? (
+        <Moon size={18} className="text-indigo-600 transition-transform hover:-rotate-12" />
+      ) : (
+        <Sun size={18} className="text-amber-400 transition-transform hover:rotate-45" />
+      )}
+    </button>
+  );
 }

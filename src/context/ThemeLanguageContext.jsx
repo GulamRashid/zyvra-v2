@@ -645,7 +645,7 @@ export function ThemeLanguageProvider({ children }) {
       root.classList.toggle('dark', !light);
       root.style.colorScheme = light ? 'light' : 'dark';
       const themeColor = document.querySelector('meta[name="theme-color"]');
-      themeColor?.setAttribute('content', light ? '#F7FAF8' : '#0B1120');
+      themeColor?.setAttribute('content', light ? '#F8FAFC' : '#0B1120');
     };
     applyTheme();
     system.addEventListener?.('change', applyTheme);

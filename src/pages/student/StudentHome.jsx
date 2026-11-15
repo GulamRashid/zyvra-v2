@@ -3,17 +3,20 @@ import {
   ArrowRight,
   Bookmark,
   BookOpen,
-  CheckCircle2,
   ChevronRight,
   Flame,
   Play,
   Target,
   Trophy,
-  WalletCards
+  WalletCards,
+  X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import MountainSunsetAura from '../../components/common/MountainSunsetAura';
 import OnboardingModal from './OnboardingModal';
+import HeroCarousel from '../../components/student/HeroCarousel';
+import ShareAndEarnCard from '../../components/common/ShareAndEarnCard';
+import ContentIcon from '../../components/common/ContentIcon';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
@@ -113,7 +116,7 @@ export default function StudentHome() {
   const [dashboardLoading, setDashboardLoading] = useState(Boolean(supabase && user));
   const [dashboardError, setDashboardError] = useState('');
   const [overviewRetry, setOverviewRetry] = useState(0);
-  const [activeSlide, setActiveSlide] = useState(0);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
   // User Greeting Info
   const fullName = profile?.full_name || profile?.name || user?.user_metadata?.full_name || '';
@@ -204,43 +207,6 @@ export default function StudentHome() {
     loadOverview();
     return () => { active = false; };
   }, [supabase, user, overviewRetry]);
-
-  // Dynamic Hero Banners built strictly from actual DB records
-  const dynamicBanners = useMemo(() => {
-    if (exams && exams.length > 0) {
-      return exams.map((exam, idx) => ({
-        id: exam.id,
-        tag: idx === 0 ? 'FEATURED EXAM SERIES' : 'POPULAR CHOICE',
-        title: exam.title,
-        subtitle: exam.description || 'Structured Chapter Practice & Mock Tests',
-        exam: exam.title,
-        path: `/explore/${exam.slug || exam.id}`,
-        buttonText: 'Start Learning',
-        badgeText: exam.title.slice(0, 5).toUpperCase(),
-      }));
-    }
-    return [
-      {
-        id: 'default',
-        tag: 'WELCOME TO ZYVRA',
-        title: 'Master Your Competitive Exams',
-        subtitle: 'High-yield MCQs with structured explanations and instant analytics',
-        exam: 'General Preparation',
-        path: '/tests',
-        buttonText: 'Explore Tests',
-        badgeText: 'ZYVRA',
-      }
-    ];
-  }, [exams]);
-
-  // Carousel auto-rotate
-  useEffect(() => {
-    if (dynamicBanners.length <= 1) return;
-    const timer = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % dynamicBanners.length);
-    }, 6000);
-    return () => clearInterval(timer);
-  }, [dynamicBanners.length]);
 
   // Real Streak (No fake baseline)
   const streak = useMemo(() => {
@@ -341,6 +307,7 @@ export default function StudentHome() {
       id: exam.id,
       title: exam.title,
       subtitle: exam.description || 'Chapter tests & practice questions',
+      icon: exam.icon_url || exam.icon || 'GraduationCap',
       badge: exam.icon === 'GraduationCap' ? '🎓' : exam.icon === 'BookOpen' ? '📖' : '🏛️',
       color: 'dark:bg-[#1E293B] bg-white',
       borderColor: 'dark:border-slate-700/60 border-slate-200',
@@ -465,64 +432,9 @@ export default function StudentHome() {
           )}
         </section>
 
-        {/* Hero Banner Carousel (Built from Real Exams in DB) */}
-        <section className="order-2 relative overflow-hidden rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-indigo-500/25 border-slate-200 p-6 sm:p-8 transition-colors duration-200 shadow-md">
-          <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="space-y-2 max-w-lg">
-              <span className="inline-block text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-400/30">
-                {dynamicBanners[activeSlide]?.tag}
-              </span>
-              <h2 className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
-                {dynamicBanners[activeSlide]?.title}
-              </h2>
-              <p className="text-sm dark:text-slate-300 text-slate-600 font-medium line-clamp-2">
-                {dynamicBanners[activeSlide]?.subtitle}
-              </p>
-              <div className="pt-2">
-                <Link
-                  to={dynamicBanners[activeSlide]?.path}
-                  className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-extrabold text-sm transition-colors min-h-[44px] shadow-[0_0_20px_rgba(79,70,229,0.3)]"
-                >
-                  <span>{dynamicBanners[activeSlide]?.buttonText}</span>
-                  <ArrowRight size={15} strokeWidth={2.5} />
-                </Link>
-              </div>
-            </div>
-
-            {/* Right Side Exam Pill Card */}
-            <div className="hidden sm:flex items-center justify-center relative w-40 h-32 shrink-0">
-              <div className="w-28 h-24 dark:bg-[#0F172A] bg-slate-50 border dark:border-indigo-500/20 border-slate-200 rounded-2xl p-3 flex flex-col justify-between shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
-                    {dynamicBanners[activeSlide]?.badgeText}
-                  </span>
-                  <CheckCircle2 size={16} className="text-emerald-500 dark:text-emerald-400" />
-                </div>
-                <div className="text-xs dark:text-slate-300 text-slate-700 font-bold truncate">
-                  {dynamicBanners[activeSlide]?.exam}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Carousel Dot Indicators */}
-          {dynamicBanners.length > 1 && (
-            <div className="flex items-center justify-center gap-1.5 pt-4">
-              {dynamicBanners.map((slide, idx) => (
-                <button
-                  key={slide.id}
-                  type="button"
-                  aria-label={`Go to slide ${idx + 1}`}
-                  onClick={() => setActiveSlide(idx)}
-                  className={`transition-all duration-300 rounded-full h-1.5 ${
-                    activeSlide === idx
-                      ? 'w-6 dark:bg-white bg-indigo-600 shadow-sm'
-                      : 'w-1.5 dark:bg-slate-700 bg-slate-300 hover:bg-indigo-400'
-                  }`}
-                />
-              ))}
-            </div>
-          )}
+        {/* Dynamic Hero Carousel: QotD + Admin Banners + Refer & Earn */}
+        <section className="order-2">
+          <HeroCarousel onOpenReferral={() => setInviteModalOpen(true)} />
         </section>
 
         {/* Quick Action 5-Tile Row */}
@@ -666,8 +578,8 @@ export default function StudentHome() {
                   className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-colors hover:border-indigo-500 group min-h-[120px]"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg border bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30">
-                      {exam.badge}
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center border bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 p-1.5">
+                      <ContentIcon icon={exam.icon} className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
                     </div>
                     <ChevronRight size={16} className="text-slate-400 dark:text-white/40 group-hover:text-slate-800 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
                   </div>
@@ -685,6 +597,22 @@ export default function StudentHome() {
           </section>
         )}
       </div>
+
+      {/* Referral Share Modal */}
+      {inviteModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md p-6 rounded-3xl dark:bg-[#0B1120] bg-white border dark:border-slate-700/60 border-slate-300 relative shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setInviteModalOpen(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-800 dark:hover:text-white dark:hover:bg-slate-800 hover:bg-slate-100 transition-colors z-10"
+            >
+              <X size={18} />
+            </button>
+            <ShareAndEarnCard />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

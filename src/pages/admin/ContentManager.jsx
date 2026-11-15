@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, Archive, ArrowDownToLine, ArrowLeft, Atom, BookMarked, BookOpen, Brain, Calculator, Check, ChevronRight, CircleDollarSign, Clock3, Copy, FileText, FlaskConical, Folder, FolderOpen, Globe2, GraduationCap, Landmark, Layers3, Pencil, Plus, ScrollText, Search, Trash2, X } from 'lucide-react';
+import { AlertTriangle, Archive, ArrowDownToLine, ArrowLeft, BookOpen, Check, ChevronRight, CircleDollarSign, Clock3, Copy, FileText, Folder, FolderOpen, GraduationCap, Layers3, Pencil, Plus, Search, Trash2, Upload, RefreshCw, X } from 'lucide-react';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getContentErrorMessage, getFolderPath, getFolderPricing, slugify } from '../../lib/content';
 import { supabase } from '../../lib/supabase';
+import SvgIconUploader from '../../components/common/SvgIconUploader';
+import ContentIcon from '../../components/common/ContentIcon';
+import UploadGuide from '../../components/common/UploadGuide';
+import { uploadAsset, formatBytes } from '../../lib/storage';
 
-const examIcons = { BookOpen, GraduationCap, Landmark, Atom, Calculator, Globe2, Brain, ScrollText, FlaskConical, BookMarked };
-const iconNames = Object.keys(examIcons);
-const initialForm = { title: '', slug: '', description: '', icon: 'BookOpen', display_order: 0, status: 'published', exam_id: '', parent_folder_id: '', allow_tests: true, allow_practice: true, allow_notes: true, pricing_mode: 'free', price: '', subject: '', estimated_study_time_minutes: 20, access_mode: 'inherit' };
+const initialForm = { title: '', slug: '', description: '', icon: 'BookOpen', icon_url: '', display_order: 0, status: 'published', exam_id: '', parent_folder_id: '', allow_tests: true, allow_practice: true, allow_notes: true, pricing_mode: 'free', price: '', subject: '', estimated_study_time_minutes: 20, access_mode: 'inherit' };
 
 const normalizeResourceType = (type) => {
   const clean = String(type || '').trim().toLowerCase();
@@ -85,7 +87,34 @@ function ResourceManagerModal({ chapter, onClose }) {
   const [values, setValues] = useState({ title: '', resource_type: 'pdf', file_url: '', file_size: '', page_count: '', is_downloadable: false, is_free_preview: false, status: 'published' });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [fileUploading, setFileUploading] = useState(false);
   const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
+
+  const handlePdfUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setError('');
+    setFileUploading(true);
+    try {
+      const result = await uploadAsset(file, {
+        folder: 'resources',
+        allowedExtensions: ['pdf', 'doc', 'docx', 'zip'],
+        maxSizeBytes: 25 * 1024 * 1024
+      });
+      setValues((current) => ({
+        ...current,
+        file_url: result.url,
+        file_size: formatBytes(result.size),
+        title: current.title || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
+      }));
+    } catch (uploadErr) {
+      setError(uploadErr.message || 'File upload failed.');
+    } finally {
+      setFileUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const refresh = async () => {
     const { data, error: loadError } = await supabase.from('chapter_resources').select('*').eq('chapter_id', chapter.id);
@@ -180,7 +209,35 @@ function ResourceManagerModal({ chapter, onClose }) {
     <form className="resource-admin-form" onSubmit={save} noValidate>
       <div className="resource-admin-form-heading"><h3>{editing ? 'Edit resource' : 'Add a resource'}</h3>{editing && <button className="text-button" type="button" onClick={reset}>Cancel edit</button>}</div>
       <div className="content-form-row"><label className="field-label">Title <input className="text-input" value={values.title} onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))} required minLength="2" maxLength="120" placeholder="e.g. Fundamental Rights — Quick Notes" /></label><label className="field-label">File type<select className="text-input" value={values.resource_type} onChange={(event) => setValues((current) => ({ ...current, resource_type: event.target.value }))}><option value="pdf">PDF</option><option value="formula_sheet">Formula Sheet</option><option value="revision_sheet">Revision Sheet</option><option value="notes">Notes</option></select></label></div>
-      <label className="field-label">Document URL or storage path <input className="text-input" value={values.file_url} onChange={(event) => setValues((current) => ({ ...current, file_url: event.target.value }))} required placeholder="https://… or storage/object/path.pdf" /></label>
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <label className="field-label" style={{ marginBottom: 0 }}>Document URL or storage path</label>
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept=".pdf,.doc,.docx"
+            onChange={handlePdfUpload}
+            style={{ display: 'none' }}
+          />
+          <button
+            type="button"
+            className="text-button"
+            disabled={fileUploading}
+            onClick={() => fileInputRef.current?.click()}
+            style={{ fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+          >
+            {fileUploading ? <RefreshCw size={12} className="animate-spin" /> : <Upload size={12} />}
+            <span>{fileUploading ? 'Uploading document…' : 'Upload Document'}</span>
+          </button>
+        </div>
+        <input className="text-input" value={values.file_url} onChange={(event) => setValues((current) => ({ ...current, file_url: event.target.value }))} required placeholder="https://… or storage/object/path.pdf" />
+        <UploadGuide
+          formats=".pdf (recommended), .docx"
+          dimensions="A4 / Standard Multi-page Document"
+          maxSize="Max 25 MB"
+          notes="Uploaded documents are stored in secure CDN storage for fast student reading."
+        />
+      </div>
       <div className="content-form-row"><label className="field-label">File size <input className="text-input" value={values.file_size} onChange={(event) => setValues((current) => ({ ...current, file_size: event.target.value }))} placeholder="e.g. 2.4 MB" /></label><label className="field-label">Page count <input className="text-input" type="number" min="1" step="1" value={values.page_count} onChange={(event) => setValues((current) => ({ ...current, page_count: event.target.value }))} placeholder="Optional" /></label></div>
       <div className="content-switches"><label className="content-switch"><input type="checkbox" checked={values.is_free_preview} onChange={(event) => setValues((current) => ({ ...current, is_free_preview: event.target.checked }))} /><span>Free preview</span></label><label className="content-switch"><input type="checkbox" checked={values.is_downloadable} onChange={(event) => setValues((current) => ({ ...current, is_downloadable: event.target.checked }))} /><span>Allow downloads</span></label></div>
       <label className="field-label">Status<select className="text-input" value={values.status} onChange={(event) => setValues((current) => ({ ...current, status: event.target.value }))}><option value="published">Published</option><option value="draft">Draft</option></select></label>
@@ -316,7 +373,8 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
       if (kind === 'exam') {
         const isPaid = values.access_mode === 'paid_own';
         Object.assign(payload, {
-          icon: values.icon || 'BookOpen',
+          icon: values.icon || values.icon_url || 'BookOpen',
+          icon_url: values.icon_url || values.icon || null,
           access_mode: isPaid ? 'paid_own' : 'free',
           price: isPaid ? Math.max(0, Number(values.price) || 0) : null
         });
@@ -324,6 +382,8 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
       if (kind === 'folder') {
         const pricingMode = normalizePricingMode(values.pricing_mode);
         Object.assign(payload, {
+          icon: values.icon || values.icon_url || null,
+          icon_url: values.icon_url || values.icon || null,
           exam_id: values.exam_id,
           parent_folder_id: values.parent_folder_id || null,
           parent_id: values.parent_folder_id || null,
@@ -390,7 +450,15 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
     <p className="dialog-intro">Fields marked required keep the learning hierarchy clear and searchable.</p>
     <label className="field-label">Title <span className="required-mark">*</span><input className="text-input" value={values.title} onChange={autoSlug} minLength="2" maxLength="100" required placeholder={kind === 'exam' ? 'e.g. Bihar Public Service Commission' : kind === 'chapter' ? 'e.g. Fundamental Rights' : 'e.g. NCERT Foundation'} /></label>
     <label className="field-label">Slug <span className="required-mark">*</span><input className="text-input" value={values.slug} onChange={(event) => setField('slug', event.target.value)} onBlur={() => setField('slug', slugify(values.slug))} required maxLength="100" pattern="[a-zA-Z0-9]+(?:-[a-zA-Z0-9]+)*" placeholder="lowercase-words-with-hyphens" /><small>Unique in its hierarchy level. Used in links.</small></label>
-    {kind === 'exam' && <><label className="field-label">Lucide icon<select className="text-input compact-select" value={values.icon} onChange={(event) => setField('icon', event.target.value)}>{iconNames.map((name) => <option key={name}>{name}</option>)}</select></label><p className="icon-preview"><span>{values.icon}</span>{(() => { const Icon = examIcons[values.icon] || BookOpen; return <Icon size={20} />; })()}</p>
+    {kind === 'exam' && <>
+      <SvgIconUploader
+        value={values.icon_url || values.icon}
+        onChange={(val) => {
+          setField('icon_url', val);
+          setField('icon', val);
+        }}
+        label="Exam / Course Custom SVG Icon"
+      />
       <label className="field-label">Exam access mode
         <select className="text-input" value={values.access_mode || 'free'} onChange={(event) => setField('access_mode', event.target.value)}>
           <option value="free">Free — entire exam syllabus is free to explore</option>
@@ -405,6 +473,14 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
       <p className="field-hint">Purchasing an exam automatically unlocks all folders and chapters inside it.</p>
     </>}
     {kind === 'folder' && <>
+      <SvgIconUploader
+        value={values.icon_url || values.icon}
+        onChange={(val) => {
+          setField('icon_url', val);
+          setField('icon', val);
+        }}
+        label="Folder Custom SVG Icon (Optional)"
+      />
       <label className="field-label">Exam <span className="required-mark">*</span><select className="text-input" value={values.exam_id} onChange={(event) => setValues((current) => ({ ...current, exam_id: event.target.value, parent_folder_id: '' }))} required><option value="">Select an exam</option>{exams.filter((exam) => exam.status !== 'archived').map((exam) => <option value={exam.id} key={exam.id}>{exam.title}</option>)}</select></label>
       <label className="field-label">Parent folder<select className="text-input" value={values.parent_folder_id} onChange={(event) => setField('parent_folder_id', event.target.value)}><option value="">None — top-level folder</option>{childFolders.map((folder) => <option value={folder.id} key={folder.id}>{getFolderPath(folder, folders).map((part) => part.title).join(' / ')}</option>)}</select><small>No parent price is applied unless you explicitly choose Inherit Parent.</small></label>
       <div className="field-label">Available learning options</div><div className="content-switches">{[['allow_tests', 'Tests'], ['allow_practice', 'Question practice'], ['allow_notes', 'Notes & PDFs']].map(([key, label]) => <label className="content-switch" key={key}><input type="checkbox" checked={Boolean(values[key])} onChange={(event) => setField(key, event.target.checked)} /><span>{label}</span></label>)}</div>
@@ -854,8 +930,7 @@ export default function ContentManager() {
     setSuccessMessage(`“${name}” was successfully ${action}.`);
   };
   const examIcon = (exam) => {
-    const Icon = examIcons[exam.icon] || GraduationCap;
-    return <Icon size={19} />;
+    return <ContentIcon icon={exam?.icon_url || exam?.icon} className="w-5 h-5 text-indigo-400" fallback={GraduationCap} />;
   };
   const hierarchyCounts = (examId) => {
     const examFolders = folders.filter((folder) => folder.exam_id === examId);
@@ -895,7 +970,7 @@ export default function ContentManager() {
               const count = chapters.filter((chapter) => chapter.folder_id === folder.id).length;
               const subCount = folders.filter((child) => child.parent_folder_id === folder.id).length;
               const pricing = getFolderPricing(folder, folders);
-              return <article className="content-entry" key={folder.id}><button className="content-entry-main" onClick={() => { setPathIds([...pathIds, folder.id]); setSearch(''); }}><span className="content-entry-icon folder-entry-icon"><Folder size={18} /></span><span className="content-entry-copy"><strong>{folder.title}</strong><small>{folder.description || 'No description'} · {subCount} subfolders · {count} chapters</small></span><span className="entry-price">{pricing.label}</span><ChevronRight size={17} /></button><div className="content-entry-actions"><CopyIdButton id={folder.id} label="folder_id" /><span className={`content-status status-${String(folder.status || 'draft').toLowerCase()}`}>{folder.status || 'draft'}</span><button title="Edit folder" aria-label={`Edit ${folder.title}`} onClick={() => setDialog({ kind: 'folder', item: folder })}><Pencil size={14} /></button><button type="button" title="Delete folder and its contents" aria-label={`Delete ${folder.title}`} disabled={deletingContent} onClick={() => handleDeleteFolder(folder)}><Trash2 size={14} /></button><button title="Archive folder" aria-label={`Archive ${folder.title}`} disabled={savingArchive === folder.id} onClick={() => archive('folder', folder)}><Archive size={14} /></button></div></article>;
+              return <article className="content-entry" key={folder.id}><button className="content-entry-main" onClick={() => { setPathIds([...pathIds, folder.id]); setSearch(''); }}><span className="content-entry-icon folder-entry-icon"><ContentIcon icon={folder.icon_url || folder.icon} className="w-5 h-5 text-indigo-400" fallback={Folder} /></span><span className="content-entry-copy"><strong>{folder.title}</strong><small>{folder.description || 'No description'} · {subCount} subfolders · {count} chapters</small></span><span className="entry-price">{pricing.label}</span><ChevronRight size={17} /></button><div className="content-entry-actions"><CopyIdButton id={folder.id} label="folder_id" /><span className={`content-status status-${String(folder.status || 'draft').toLowerCase()}`}>{folder.status || 'draft'}</span><button title="Edit folder" aria-label={`Edit ${folder.title}`} onClick={() => setDialog({ kind: 'folder', item: folder })}><Pencil size={14} /></button><button type="button" title="Delete folder and its contents" aria-label={`Delete ${folder.title}`} disabled={deletingContent} onClick={() => handleDeleteFolder(folder)}><Trash2 size={14} /></button><button title="Archive folder" aria-label={`Archive ${folder.title}`} disabled={savingArchive === folder.id} onClick={() => archive('folder', folder)}><Archive size={14} /></button></div></article>;
             })}
             {filteredChapters.map((chapter) => <article className="content-entry chapter-entry" key={chapter.id}><div className="content-entry-main"><span className="content-entry-icon chapter-entry-icon"><BookOpen size={18} /></span><span className="content-entry-copy"><strong>{chapter.title}</strong><small>{chapter.description || 'No description'}</small></span><span className="entry-price"><Clock3 size={13} /> {chapter.estimated_study_time_minutes || '—'} min</span></div><div className="content-entry-actions"><CopyIdButton id={chapter.id} label="chapter_id" /><span className="subject-pill">{chapter.subject || 'No subject'}</span><span className={`content-status status-${String(chapter.status || 'draft').toLowerCase()}`}>{chapter.status || 'draft'}</span><button title="Add / Manage Resources" aria-label={`Manage resources for ${chapter.title}`} onClick={() => setResourceChapter(chapter)}><FileText size={14} /></button><button title="Edit chapter" aria-label={`Edit ${chapter.title}`} onClick={() => setDialog({ kind: 'chapter', item: chapter })}><Pencil size={14} /></button><button type="button" title="Delete chapter and its contents" aria-label={`Delete ${chapter.title}`} disabled={deletingContent} onClick={() => handleDeleteChapter(chapter)}><Trash2 size={14} /></button><button title="Archive chapter" aria-label={`Archive ${chapter.title}`} disabled={savingArchive === chapter.id} onClick={() => archive('chapter', chapter)}><Archive size={14} /></button></div></article>)}
             {!filteredFolders.length && !filteredChapters.length && <div className="empty-content workspace-empty"><Folder size={23} /><strong>{currentFolder ? 'This folder is empty' : 'No main folders yet'}</strong><span>Add a folder or chapter to continue building this exam.</span></div>}

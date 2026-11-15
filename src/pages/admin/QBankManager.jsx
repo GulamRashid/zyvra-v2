@@ -7,6 +7,7 @@ import useContentCatalog from '../../hooks/useContentCatalog';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import QuestionFormatter from '../../components/common/QuestionFormatter';
+import UploadGuide from '../../components/common/UploadGuide';
 
 export function getChapterHierarchyPath(chapterId, chaptersMap, foldersMap, examsMap) {
   if (!chapterId) {
@@ -213,6 +214,7 @@ function QuestionDialog({ question, chapters, onClose, onSaved, onDelete }) {
 function ImportDialog({ chapters, onClose, onImported }) {
   const { user } = useAuth();
   const [json, setJson] = useState('');
+  const [uploadedFileName, setUploadedFileName] = useState('');
   const [preview, setPreview] = useState(null);
   const [importStatus, setImportStatus] = useState('published');
   const [importUsageScope, setImportUsageScope] = useState('both');
@@ -220,6 +222,34 @@ function ImportDialog({ chapters, onClose, onImported }) {
   const [isValidating, setIsValidating] = useState(false);
   const [importProgress, setImportProgress] = useState(null);
   const [error, setError] = useState('');
+
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File exceeds the 5 MB limit. Please split into smaller batches.');
+      return;
+    }
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['csv', 'json'].includes(ext)) {
+      setError('Only .csv and .json files are supported.');
+      return;
+    }
+    setError('');
+    setUploadedFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result;
+      if (typeof content === 'string') {
+        setJson(content);
+        setPreview(null);
+      }
+    };
+    reader.onerror = () => {
+      setError('Failed to read the file.');
+    };
+    reader.readAsText(file);
+  };
 
   const validate = async () => {
     setError('');
@@ -415,6 +445,35 @@ function ImportDialog({ chapters, onClose, onImported }) {
           <option value="test_only">Test Only</option>
         </select>
       </label>
+    </div>
+    <div className="file-upload-section" style={{ margin: '10px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+        <label className="button button-outline" style={{ cursor: 'pointer', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+          <Upload size={14} />
+          <span>{uploadedFileName ? `Loaded: ${uploadedFileName}` : 'Upload CSV / JSON File'}</span>
+          <input
+            type="file"
+            accept=".csv, .json, text/csv, application/json"
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
+          />
+        </label>
+        {uploadedFileName && (
+          <button
+            type="button"
+            className="text-button"
+            style={{ color: '#F87171', fontSize: '11px' }}
+            onClick={() => { setUploadedFileName(''); setJson(''); setPreview(null); }}
+          >
+            Clear file
+          </button>
+        )}
+      </div>
+      <UploadGuide
+        formats=".csv, .json"
+        dimensions="Template formatted columns or JSON array"
+        maxSize="Max 5 MB per batch"
+      />
     </div>
     <textarea className="text-input import-json-input" value={json} onChange={(event) => { setJson(event.target.value); setPreview(null); }} rows="10" spellCheck="false" placeholder="Paste CSV (with headers) or a JSON array of question objects…" />
     <button className="button button-outline" onClick={validate} disabled={isValidating || isImporting}><Filter size={15} /> {isValidating ? 'Validating…' : 'Validate & preview'}</button>
