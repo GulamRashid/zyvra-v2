@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowLeft, BarChart3, Bell, Bookmark, CheckCircle2, ChevronRight,
-  Clock, Download, Edit3, FileText, Flame, HelpCircle, Layers,
-  LogOut, Mail, Phone, Settings, Target, Users
+  ArrowLeft, BarChart3, Bell, Bookmark, Check, CheckCircle2, ChevronRight,
+  Clock, Copy, Download, Edit3, FileText, Flame, HelpCircle, Layers,
+  LogOut, Mail, MessageCircle, Phone, Send, Settings, Share2, Target, Users
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import MountainSunsetAura from '../../components/common/MountainSunsetAura';
 import { useAuth } from '../../context/AuthContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
+import { ensureReferralCode } from '../../lib/referrals';
 
 export default function StudentProfile() {
   const { user, profile, guest, coinBalance, supabase, signOut, refreshAccount } = useAuth();
@@ -33,6 +34,9 @@ export default function StudentProfile() {
 
   // Referral copy feedback
   const [copiedCode, setCopiedCode] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState('');
+  const [currentReferralCode, setCurrentReferralCode] = useState(profile?.referral_code || '');
 
   // User Stats & Access State
   const [attempts, setAttempts] = useState([]);
@@ -50,8 +54,25 @@ export default function StudentProfile() {
       setFullName(profile.full_name || profile.name || '');
       setTargets(Array.isArray(profile.target_exams) ? profile.target_exams : []);
       setDailyTarget(Number(profile.daily_goal_target || 50));
+      if (profile.referral_code) {
+        setCurrentReferralCode(profile.referral_code);
+      }
     }
   }, [profile]);
+
+  // Ensure referral code exists when invite modal is opened
+  useEffect(() => {
+    if (inviteModalOpen && !currentReferralCode && user && supabase) {
+      ensureReferralCode(supabase, user.id)
+        .then((code) => {
+          if (code) {
+            setCurrentReferralCode(code);
+            if (refreshAccount) refreshAccount();
+          }
+        })
+        .catch((err) => console.warn('Could not generate referral code:', err));
+    }
+  }, [inviteModalOpen, currentReferralCode, user, supabase, refreshAccount]);
 
   // Load real bookmarks / notes counts from storage or DB
   useEffect(() => {
@@ -152,7 +173,9 @@ export default function StudentProfile() {
   const displayName = fullName || profile?.full_name || profile?.name || user?.user_metadata?.full_name || (guest ? 'Guest Student' : 'Student');
   const displayEmail = user?.email || (guest ? 'guest@zyvra.in' : '');
   const displayPhone = profile?.mobile || 'Not provided';
-  const referralCode = profile?.referral_code || '';
+  const referralCode = currentReferralCode || profile?.referral_code || '';
+  const inviteUrl = referralCode ? `${window.location.origin}/auth?ref=${referralCode}` : `${window.location.origin}/auth`;
+  const inviteMessage = `Zyvra par mere saath exams ki taiyari karein! 🚀\nUse my referral code ${referralCode} to get free bonus coins on signup:\n${inviteUrl}`;
 
   // Save profile updates to Supabase
   const handleSaveProfile = async (e) => {
@@ -212,11 +235,55 @@ export default function StudentProfile() {
   };
 
   // Copy referral code
-  const handleCopyReferral = () => {
+  const handleCopyReferral = async () => {
     if (!referralCode) return;
-    navigator.clipboard.writeText(referralCode);
-    setCopiedCode(true);
-    setTimeout(() => setCopiedCode(false), 2000);
+    try {
+      await navigator.clipboard.writeText(referralCode);
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2000);
+    } catch {
+      setShareFeedback('Referral code copy nahi ho paya.');
+      setTimeout(() => setShareFeedback(''), 2500);
+    }
+  };
+
+  // Copy full invite link
+  const handleCopyLink = async () => {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      setShareFeedback('Invite link copy nahi ho paya.');
+      setTimeout(() => setShareFeedback(''), 2500);
+    }
+  };
+
+  // Mobile Native Share with fallback
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join Zyvra & Earn Coins',
+          text: inviteMessage,
+          url: inviteUrl
+        });
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.warn('Native share error:', err);
+        }
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(inviteMessage);
+      setShareFeedback('Invite message clipboard me copy ho gaya!');
+      setTimeout(() => setShareFeedback(''), 2500);
+    } catch {
+      setShareFeedback('Share message copy nahi ho paya.');
+      setTimeout(() => setShareFeedback(''), 2500);
+    }
   };
 
   // Sign out
@@ -747,32 +814,105 @@ export default function StudentProfile() {
       {/* Invite Modal */}
       {inviteModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-sm p-6 rounded-3xl dark:bg-[#04140e] bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 space-y-4 text-center shadow-xl">
+          <div className="w-full max-w-md p-6 rounded-3xl dark:bg-[#04140e] bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-white text-slate-900 space-y-4 shadow-xl">
             <div className="w-12 h-12 rounded-2xl dark:bg-amber-400/20 bg-amber-100 border dark:border-amber-400/30 border-amber-300 flex items-center justify-center mx-auto text-2xl">
               🎁
             </div>
-            <div>
+            <div className="text-center">
               <h3 className="text-base font-black">Invite Friends & Earn Coins</h3>
               <p className="text-xs dark:text-emerald-300/80 text-slate-600 mt-1">
-                Share your referral code. When your friend joins, both of you get bonus Zyvra Coins!
+                Share your referral link. When your friend joins Zyvra, both of you earn bonus coins!
               </p>
             </div>
 
-            <div className="p-3 rounded-2xl dark:bg-black/60 bg-slate-100 border dark:border-emerald-500/30 border-slate-300 flex items-center justify-between">
-              <span className="font-mono text-sm font-black dark:text-amber-300 text-amber-700">{referralCode}</span>
-              <button
-                type="button"
-                onClick={handleCopyReferral}
-                className="px-3 py-1 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black"
-              >
-                {copiedCode ? 'Copied!' : 'Copy Code'}
-              </button>
+            {/* Referral Code Box */}
+            <div className="space-y-1.5 text-left">
+              <label className="text-[11px] font-bold uppercase tracking-wider dark:text-emerald-400/80 text-slate-500">
+                Referral Code
+              </label>
+              <div className="p-3 rounded-2xl dark:bg-black/60 bg-slate-100 border dark:border-emerald-500/30 border-slate-300 flex items-center justify-between gap-2">
+                <span className="font-mono text-sm font-black dark:text-amber-300 text-amber-700 tracking-wider">
+                  {referralCode || 'Generating code...'}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyReferral}
+                  disabled={!referralCode}
+                  className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                >
+                  {copiedCode ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy Code</>}
+                </button>
+              </div>
+            </div>
+
+            {/* Direct Invite Link Box */}
+            <div className="space-y-1.5 text-left">
+              <label className="text-[11px] font-bold uppercase tracking-wider dark:text-emerald-400/80 text-slate-500">
+                Direct Invite Link
+              </label>
+              <div className="p-3 rounded-2xl dark:bg-black/60 bg-slate-100 border dark:border-emerald-500/30 border-slate-300 flex items-center justify-between gap-2">
+                <span className="font-mono text-xs dark:text-emerald-200/90 text-slate-700 truncate max-w-[200px] sm:max-w-[250px]">
+                  {inviteUrl}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyLink}
+                  disabled={!referralCode}
+                  className="px-3 py-1.5 rounded-xl dark:bg-emerald-950 bg-slate-200 hover:bg-slate-300 dark:hover:bg-emerald-900 border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-800 text-xs font-bold inline-flex items-center gap-1.5 transition-colors shrink-0 disabled:opacity-50"
+                >
+                  {copiedLink ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy Link</>}
+                </button>
+              </div>
+            </div>
+
+            {/* Direct Share Shortcuts */}
+            <div className="space-y-2 pt-1">
+              <div className="text-[11px] font-bold uppercase tracking-wider dark:text-emerald-400/80 text-slate-500 text-left">
+                Direct Share
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={handleNativeShare}
+                  disabled={!referralCode}
+                  className="py-2.5 px-2 rounded-2xl dark:bg-emerald-950/70 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 hover:border-emerald-400 dark:text-emerald-200 text-slate-700 flex flex-col items-center justify-center gap-1 text-[11px] font-bold transition-all disabled:opacity-50"
+                  aria-label="Native Share"
+                >
+                  <Share2 size={18} className="text-emerald-500" />
+                  <span>Share</span>
+                </button>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(inviteMessage)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2.5 px-2 rounded-2xl bg-[#25D366]/10 border border-[#25D366]/30 hover:border-[#25D366] text-[#25D366] flex flex-col items-center justify-center gap-1 text-[11px] font-bold transition-all"
+                  aria-label="Share on WhatsApp"
+                >
+                  <MessageCircle size={18} />
+                  <span>WhatsApp</span>
+                </a>
+                <a
+                  href={`https://t.me/share/url?url=${encodeURIComponent(inviteUrl)}&text=${encodeURIComponent(`Zyvra par exam preparation ke liye judein! Use referral code: ${referralCode}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2.5 px-2 rounded-2xl bg-[#229ED9]/10 border border-[#229ED9]/30 hover:border-[#229ED9] text-[#229ED9] flex flex-col items-center justify-center gap-1 text-[11px] font-bold transition-all"
+                  aria-label="Share on Telegram"
+                >
+                  <Send size={18} />
+                  <span>Telegram</span>
+                </a>
+              </div>
+              {shareFeedback && (
+                <p className="text-xs text-amber-400 text-center font-semibold pt-1">
+                  {shareFeedback}
+                </p>
+              )}
             </div>
 
             <button
               type="button"
               onClick={() => setInviteModalOpen(false)}
-              className="w-full py-2 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[44px]"
+              className="w-full py-2.5 rounded-xl dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 text-xs font-bold dark:text-neutral-300 text-slate-700 min-h-[44px] transition-colors"
             >
               Close
             </button>

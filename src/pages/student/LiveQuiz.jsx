@@ -616,24 +616,40 @@ export default function LiveQuiz() {
         setTotalQuestionCount(totalCount);
       }
 
-      // 3. Check for existing incomplete or paused attempt
-      let existingAttempts = [];
+      // 3. Check for existing attempt
+      let latestAttempt = null;
       try {
         const attemptResult = await supabase
           .from('test_attempts')
           .select('id, test_id, user_id, status, started_at, completed_at, remaining_seconds, current_question_index, state_json, paused_at, created_at, updated_at')
           .eq('user_id', user.id)
           .eq('test_id', testId)
-          .is('completed_at', null)
           .order('created_at', { ascending: false })
           .limit(1);
         if (attemptResult.error) throw attemptResult.error;
-        existingAttempts = attemptResult.data || [];
+        if (attemptResult.data?.length > 0) {
+          latestAttempt = attemptResult.data[0];
+        }
       } catch (attemptError) {
         console.warn('Unable to check cloud attempt state; using local quiz state:', attemptError);
       }
 
-      const dbIncomplete = existingAttempts?.[0] || null;
+      // If the most recent attempt is already completed or submitted, redirect immediately to result
+      const isAttemptCompleted = Boolean(
+        latestAttempt && (
+          latestAttempt.completed_at ||
+          ['completed', 'submitted'].includes(String(latestAttempt.status || '').toLowerCase())
+        )
+      );
+
+      if (isAttemptCompleted && !location.state?.reattempt) {
+        if (active) {
+          navigate(`/quiz/result/${latestAttempt.id}`, { replace: true, state: { returnTo } });
+          return;
+        }
+      }
+
+      const dbIncomplete = (latestAttempt && !isAttemptCompleted) ? latestAttempt : null;
 
       // Check localStorage snapshot
       let localSnapshot = null;
@@ -778,7 +794,7 @@ export default function LiveQuiz() {
     return () => {
       active = false;
     };
-  }, [testId, user, supabase]);
+  }, [testId, user, supabase, location.state?.reattempt, location.state?.autoResume, navigate, returnTo]);
 
   // Start fresh test attempt after declaration
   const handleStartTest = async () => {

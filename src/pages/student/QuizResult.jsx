@@ -4,7 +4,7 @@ import {
   Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
   CircleX, Filter, Lightbulb, MinusCircle, RotateCcw, Share2, Target, Trophy
 } from 'lucide-react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import QuestionFormatter from '../../components/common/QuestionFormatter';
 import { useAuth } from '../../context/AuthContext';
@@ -37,8 +37,12 @@ function getLocalizedEnglish(value) {
 export default function QuizResult() {
   const { attemptId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { supabase, refreshAccount } = useAuth();
   const { language: appLanguage } = useThemeLanguage();
+
+  const rawReturn = location.state?.returnTo || sessionStorage.getItem('last_quiz_return_url');
+  const returnTo = (rawReturn && !rawReturn.startsWith('/quiz/')) ? rawReturn : '/tests';
 
   const [result, setResult] = useState(null);
   const [solutions, setSolutions] = useState([]);
@@ -251,7 +255,7 @@ export default function QuizResult() {
           <AlertCircle size={28} className="mx-auto text-red-500 mb-2" />
           <h2 className="text-lg font-bold">Result Unavailable</h2>
           <p className="text-xs dark:text-emerald-300/80 text-slate-600 mt-1 mb-4">{error}</p>
-          <Link to="/tests" className="px-4 py-2 rounded-xl bg-emerald-500 text-black font-bold text-xs inline-flex items-center gap-1.5">
+          <Link to={returnTo} replace className="px-4 py-2 rounded-xl bg-emerald-500 text-black font-bold text-xs inline-flex items-center gap-1.5">
             <ArrowLeft size={14} /> Back to Tests
           </Link>
         </div>
@@ -267,7 +271,7 @@ export default function QuizResult() {
           <div className="flex items-center gap-2.5 sm:gap-3">
             <button
               type="button"
-              onClick={() => navigate('/tests')}
+              onClick={() => navigate(returnTo, { replace: true })}
               className="w-8 h-8 sm:w-9 sm:h-9 rounded-full dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 flex items-center justify-center dark:text-white text-slate-700 hover:bg-slate-200 dark:hover:bg-emerald-900 transition-colors"
               aria-label="Back to tests"
             >
@@ -525,6 +529,7 @@ export default function QuizResult() {
             <div className="pt-2 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
               <Link
                 to={`/quiz/${result?.test_id || ''}`}
+                state={{ reattempt: true, returnTo }}
                 className="w-full sm:flex-1 py-3 rounded-full dark:bg-emerald-950/90 bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-800 hover:text-black dark:hover:text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors min-h-[44px] shadow-sm"
               >
                 <RotateCcw size={15} />

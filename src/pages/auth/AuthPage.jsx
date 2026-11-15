@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, Gift, KeyRound, Mail, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
@@ -20,16 +20,28 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [searchParams] = useSearchParams();
   const [refCode, setRefCode] = useState(() => {
     try {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get('ref') || sessionStorage.getItem('zyvra_ref_code') || '';
+      const code = searchParams.get('ref') || sessionStorage.getItem('zyvra_ref_code') || '';
       if (code) sessionStorage.setItem('zyvra_ref_code', code);
       return code;
     } catch {
       return '';
     }
   });
+
+  useEffect(() => {
+    const urlRef = searchParams.get('ref');
+    if (urlRef) {
+      setRefCode(urlRef);
+      try {
+        sessionStorage.setItem('zyvra_ref_code', urlRef);
+      } catch {
+        // ignore
+      }
+    }
+  }, [searchParams]);
   const inputRefs = useRef([]);
   const { user, loading, supabase, enterGuestMode, guestDemoEnabled, configurationError } = useAuth();
   const { theme, setTheme } = useThemeLanguage();
@@ -193,7 +205,12 @@ export default function AuthPage() {
           <div className="auth-tabs"><button className={method === 'otp' ? 'selected' : ''} onClick={() => { setMethod('otp'); setError(''); }}>Quick OTP / New Account</button><button className={method === 'password' ? 'selected' : ''} onClick={() => { setMethod('password'); setError(''); }}>Sign In with Password</button></div>
           <form onSubmit={method === 'otp' ? sendOtp : passwordAuth}>
             {method === 'otp' && <label className="auth-new-account"><input type="checkbox" checked={isNewAccount} onChange={(event) => setIsNewAccount(event.target.checked)} /> I'm new to Zyvra — create an account</label>}
-            {method === 'otp' && isNewAccount && <label className="field-label">Full name<input className="text-input" value={name} onChange={(event) => setName(event.target.value)} required placeholder="e.g. Ananya Kumar" autoComplete="name" /></label>}
+            {method === 'otp' && isNewAccount && (
+              <>
+                <label className="field-label">Full name<input className="text-input" value={name} onChange={(event) => setName(event.target.value)} required placeholder="e.g. Ananya Kumar" autoComplete="name" /></label>
+                <label className="field-label">Referral code (Optional)<div className="input-with-icon"><Gift size={17} /><input className="text-input uppercase" value={refCode} onChange={(event) => setRefCode(event.target.value.trim().toUpperCase())} placeholder="e.g. ZYVRA100" autoComplete="off" /></div></label>
+              </>
+            )}
             <label className="field-label">Email address<div className="input-with-icon"><Mail size={17} /><input className="text-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="you@example.com" autoComplete="email" /></div></label>
             {method === 'password' && <label className="field-label">Password<div className="input-with-icon"><KeyRound size={17} /><input className="text-input" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={6} placeholder="Your password" autoComplete="current-password" /><button className="password-eye" type="button" onClick={() => setShowPassword(!showPassword)} aria-label="Show or hide password">{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></label>}
             {method === 'otp' && <p className="field-hint">We'll send a 6-digit code via email to verify your identity. No password required.</p>}
