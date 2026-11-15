@@ -23,6 +23,12 @@
 ALTER TABLE IF EXISTS public.test_attempts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.test_responses ENABLE ROW LEVEL SECURITY;
 
+-- Ensure schema columns match submit_test_attempt requirements
+ALTER TABLE IF EXISTS public.test_responses
+  ADD COLUMN IF NOT EXISTS selected_option text,
+  ADD COLUMN IF NOT EXISTS marked_for_review boolean DEFAULT false,
+  ADD COLUMN IF NOT EXISTS is_marked_for_review boolean DEFAULT false;
+
 -- Revoke direct mutation permissions on test_attempts from anon and authenticated
 REVOKE INSERT, UPDATE, DELETE ON public.test_attempts FROM anon, authenticated;
 GRANT SELECT ON public.test_attempts TO authenticated;
@@ -868,6 +874,7 @@ BEGIN
       selected_option,
       selected_answers,
       marked_for_review,
+      is_marked_for_review,
       is_correct,
       marks_obtained
     ) VALUES (
@@ -878,6 +885,7 @@ BEGIN
         WHEN v_selected IS NOT NULL THEN ARRAY[v_selected]
         ELSE ARRAY[]::text[]
       END,
+      v_row.marked_for_review,
       v_row.marked_for_review,
       v_is_correct,
       v_marks_obtained
