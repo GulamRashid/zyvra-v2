@@ -500,10 +500,10 @@ export default function StudentHome() {
                 </div>
                 <Link
                   to={recommendation.path}
-                  className={`inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-black transition-all ${
+                  className={`inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm transition-all ${
                     recommendation.kind === 'resume'
-                      ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.25)]'
-                      : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(79,70,229,0.25)]'
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-950/30'
+                      : 'bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-[0_0_20px_rgba(79,70,229,0.25)]'
                   }`}
                 >
                   {recommendation.kind === 'resume' ? 'Resume' : 'Start'}
