@@ -271,7 +271,7 @@ function PaletteLegend({ compact = false }) {
 
 export default function LiveQuiz() {
   const { testId } = useParams();
-  const { user, supabase } = useAuth();
+  const { user, supabase, refreshAccount } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -1116,6 +1116,13 @@ export default function LiveQuiz() {
       sessionStorage.removeItem(`zyvra-responses-${attemptId}`);
       localStorage.removeItem(`zyvra-active-state-${attemptId}`);
 
+      if (refreshAccount) {
+        refreshAccount();
+      }
+      if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
+        window.dispatchEvent(new window.CustomEvent('zyvra:coins-updated'));
+      }
+
       navigate(`/quiz/result/${attemptId}`, { replace: true, state: { returnTo } });
     } catch (submitError) {
       submitLock.current = false;
@@ -1125,7 +1132,7 @@ export default function LiveQuiz() {
         technical: submitError?.message || (typeof submitError === 'object' ? JSON.stringify(submitError) : String(submitError))
       });
     }
-  }, [attemptId, supabase, questions, responses, user, testId, navigate, returnTo]);
+  }, [attemptId, supabase, questions, responses, user, testId, navigate, returnTo, refreshAccount]);
 
   // Countdown timer effect
   useEffect(() => {

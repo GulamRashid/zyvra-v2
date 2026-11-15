@@ -158,6 +158,20 @@ export function AuthProvider({ children }) {
     return () => { active = false; };
   }, []);
 
+  useEffect(() => {
+    const handleRefresh = () => {
+      if (session) {
+        loadAccount(session);
+      }
+    };
+    window.addEventListener('zyvra:refresh-account', handleRefresh);
+    window.addEventListener('zyvra:coins-updated', handleRefresh);
+    return () => {
+      window.removeEventListener('zyvra:refresh-account', handleRefresh);
+      window.removeEventListener('zyvra:coins-updated', handleRefresh);
+    };
+  }, [loadAccount, session]);
+
   const enterGuestMode = useCallback(() => {
     if (!guestDemoEnabled) throw new Error('Guest demo access is currently disabled.');
     sessionStorage.setItem('zyvra-guest', 'true');

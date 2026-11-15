@@ -123,7 +123,12 @@ export async function processReferralAward(supabase, newUserId, refCode) {
         p_ref_code: cleanCode
       });
       if (!rpcError && rpcResult) {
-        if (rpcResult.success) return rpcResult;
+        if (rpcResult.success) {
+          if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
+            window.dispatchEvent(new window.CustomEvent('zyvra:coins-updated'));
+          }
+          return rpcResult;
+        }
         if (rpcResult.already_referred) return null;
       }
     } catch {
@@ -185,6 +190,10 @@ export async function processReferralAward(supabase, newUserId, refCode) {
       await creditCoinsToWallet(supabase, newUserId, settings.referredCoins, 'Referral bonus: joined with invite code');
     } catch (e) {
       console.warn('Error crediting referred user:', e);
+    }
+
+    if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
+      window.dispatchEvent(new window.CustomEvent('zyvra:coins-updated'));
     }
 
     return referralRecord || { success: true };

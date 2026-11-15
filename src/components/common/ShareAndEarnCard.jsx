@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Coins, Copy, Gift, MessageCircle, RefreshCw, Sparkles, Users } from 'lucide-react';
+import { Check, Coins, Copy, Gift, MessageCircle, RefreshCw, Send, Share2, Sparkles, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ensureReferralCode, getReferralSettings } from '../../lib/referrals';
 
@@ -93,10 +93,43 @@ export default function ShareAndEarnCard({ className = '' }) {
     }
   };
 
+  const [shareFeedback, setShareFeedback] = useState('');
+
+  const inviteMessage = `Zyvra par mere saath exams ki taiyari karein! 🚀\nUse my referral code ${activeCode} to get free bonus coins on signup:\n${shareUrl}`;
+
   const shareViaWhatsApp = () => {
-    const message = `Join Zyvra for exam preparation and get free coins for test series! Use my code ${activeCode}: ${shareUrl}`;
-    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(message)}`;
+    const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(inviteMessage)}`;
     window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const shareViaTelegram = () => {
+    const url = `https://t.me/share/url?url=${encodeURIComponent(shareUrl)}&text=${encodeURIComponent(`Zyvra par exam preparation ke liye judein! Use referral code: ${activeCode}`)}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleNativeShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Join Zyvra & Earn Coins',
+          text: inviteMessage,
+          url: shareUrl
+        });
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.warn('Native share error:', err);
+        }
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(inviteMessage);
+      setShareFeedback('Invite message clipboard me copy ho gaya!');
+      setTimeout(() => setShareFeedback(''), 2500);
+    } catch {
+      setShareFeedback('Share message copy nahi ho paya.');
+      setTimeout(() => setShareFeedback(''), 2500);
+    }
   };
 
   if (!settings || settings.enabled === false) return null;
@@ -152,12 +185,13 @@ export default function ShareAndEarnCard({ className = '' }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 pt-1 sm:pt-0">
+          <div className="flex flex-wrap items-center gap-2 pt-1 sm:pt-0">
             <button
               type="button"
-              className="px-3.5 py-2 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-800 text-xs font-bold flex items-center gap-1.5 transition-colors min-h-[40px] shadow-xs"
+              className="px-3 py-2 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-800 text-xs font-bold flex items-center gap-1.5 transition-colors min-h-[38px] shadow-xs hover:border-indigo-500"
               onClick={copyLink}
               disabled={!shareUrl}
+              title="Copy invite URL"
             >
               {copied ? (
                 <>
@@ -172,13 +206,38 @@ export default function ShareAndEarnCard({ className = '' }) {
 
             <button
               type="button"
-              className="px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-black shadow-sm flex items-center gap-1.5 transition-colors min-h-[40px]"
-              onClick={shareViaWhatsApp}
+              className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors min-h-[38px]"
+              onClick={handleNativeShare}
+              title="Share via device"
             >
-              <MessageCircle size={15} /> <span>WhatsApp</span>
+              <Share2 size={14} /> <span>Share</span>
+            </button>
+
+            <button
+              type="button"
+              className="px-3 py-2 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors min-h-[38px]"
+              onClick={shareViaWhatsApp}
+              title="Share on WhatsApp"
+            >
+              <MessageCircle size={14} /> <span>WhatsApp</span>
+            </button>
+
+            <button
+              type="button"
+              className="px-3 py-2 rounded-xl bg-[#0088cc] hover:bg-[#0077b5] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors min-h-[38px]"
+              onClick={shareViaTelegram}
+              title="Share on Telegram"
+            >
+              <Send size={14} /> <span>Telegram</span>
             </button>
           </div>
         </div>
+
+        {shareFeedback && (
+          <div className="text-[11px] font-bold text-amber-500 dark:text-amber-400 bg-amber-500/10 dark:bg-amber-400/10 border border-amber-500/20 px-3 py-1.5 rounded-xl text-center">
+            {shareFeedback}
+          </div>
+        )}
       </div>
 
       {/* Milestone Counters */}

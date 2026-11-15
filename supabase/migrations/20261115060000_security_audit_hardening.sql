@@ -29,6 +29,14 @@ ALTER TABLE IF EXISTS public.test_responses
   ADD COLUMN IF NOT EXISTS marked_for_review boolean DEFAULT false,
   ADD COLUMN IF NOT EXISTS is_marked_for_review boolean DEFAULT false;
 
+-- Ensure public.tests has access_mode and stays synced with is_free
+ALTER TABLE IF EXISTS public.tests
+  ADD COLUMN IF NOT EXISTS access_mode text DEFAULT 'free';
+
+UPDATE public.tests
+  SET access_mode = CASE WHEN coalesce(is_free, true) = true THEN 'free' ELSE 'paid_own' END
+  WHERE access_mode IS NULL;
+
 -- Revoke direct mutation permissions on test_attempts from anon and authenticated
 REVOKE INSERT, UPDATE, DELETE ON public.test_attempts FROM anon, authenticated;
 GRANT SELECT ON public.test_attempts TO authenticated;
@@ -123,7 +131,7 @@ BEGIN
   -- Verify user access
   IF public.is_admin_user() THEN
     v_has_access := true;
-  ELSIF lower(coalesce(v_test.access_mode, 'free')) IN ('free', 'public') THEN
+  ELSIF coalesce(v_test.is_free, false) = true OR lower(coalesce(v_test.access_mode, 'free')) IN ('free', 'public') THEN
     v_has_access := true;
   ELSE
     -- Check direct and hierarchical access
@@ -235,7 +243,7 @@ BEGIN
   IF v_is_admin THEN
     v_has_access := true;
     v_include_solutions := true;
-  ELSIF lower(coalesce(v_test.access_mode, 'free')) IN ('free', 'public') THEN
+  ELSIF coalesce(v_test.is_free, false) = true OR lower(coalesce(v_test.access_mode, 'free')) IN ('free', 'public') THEN
     v_has_access := true;
   ELSE
     v_has_access := public.check_user_access(v_user_id, 'test', p_test_id::text);
