@@ -346,10 +346,10 @@ export default function ChapterDetail() {
   }, [chapter?.id, hasTests, user, isLocked]);
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
       <div className="max-w-3xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Breadcrumb Navigation */}
-        <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-emerald-400/80 overflow-x-auto no-scrollbar py-1">
+        <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-indigo-400/80 overflow-x-auto no-scrollbar py-1">
           <Link to="/explore" className="hover:text-emerald-700 dark:hover:text-white whitespace-nowrap">
             {t('exploreExams')}
           </Link>
@@ -384,16 +384,16 @@ export default function ChapterDetail() {
         {loading && <LoadingSkeleton rows={4} />}
 
         {!loading && !error && (!chapter || !folder || !exam || !hierarchyPublished) && (
-          <div className="p-8 rounded-3xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 text-center space-y-3">
-            <BookOpen size={30} className="mx-auto text-emerald-500 opacity-60" />
+          <div className="p-8 rounded-3xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-3">
+            <BookOpen size={30} className="mx-auto text-indigo-500 opacity-60" />
             <strong className="text-base font-black dark:text-white text-slate-900 block">
               This chapter isn’t available.
             </strong>
-            <span className="text-xs text-slate-500 dark:text-emerald-300/80 block">
+            <span className="text-xs text-slate-500 dark:text-slate-400 block">
               It may be unpublished or its folder has changed.
             </span>
             <Link
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white text-sm font-black"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white text-sm font-black"
               to="/explore"
             >
               <ArrowLeft size={15} /> <span>Explore exams</span>
@@ -403,14 +403,14 @@ export default function ChapterDetail() {
 
         {!loading && !error && chapter && folder && exam && hierarchyPublished && (
           <>
-            {/* Chapter Hero Section */}
-            <section className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#07261b] dark:to-[#04140e] bg-gradient-to-br from-emerald-100/90 via-teal-50 to-white border dark:border-emerald-500/25 border-emerald-200 p-4 sm:p-6 shadow-sm space-y-3">
+            {/* Chapter Hero Section with Focus Tech Theme */}
+            <section className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50/90 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-4 sm:p-6 shadow-sm space-y-3">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-xl dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/30 border-emerald-200 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-xs">
+                  <div className="w-9 h-9 rounded-xl dark:bg-indigo-950/80 bg-white border dark:border-indigo-500/30 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-xs">
                     <BookOpen size={18} />
                   </div>
-                  <span className="text-xs font-bold dark:text-emerald-300/80 text-emerald-800">
+                  <span className="text-xs font-bold dark:text-indigo-300 text-indigo-800">
                     {exam.title} • {folder.title}
                   </span>
                 </div>
@@ -601,8 +601,10 @@ export default function ChapterDetail() {
                         <Link
                           className={`w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 min-h-[44px] transition-all ${
                             exhausted
-                              ? 'dark:bg-emerald-950 bg-slate-100 text-slate-400 border border-slate-300 pointer-events-none'
-                              : 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
+                              ? 'dark:bg-slate-800 bg-slate-100 text-slate-400 border border-slate-300 pointer-events-none'
+                              : hasIncomplete
+                                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                                : 'bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold shadow-sm'
                           }`}
                           onClick={(event) => {
                             if (exhausted || !user) {

@@ -1661,7 +1661,7 @@ export default function LiveQuiz() {
             <div className="resume-actions">
               <button
                 type="button"
-                className="button button-primary resume-btn-large"
+                className="button resume-btn-large bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all"
                 onClick={handleResumeTest}
               >
                 <Play size={18} /> Resume Test Now
@@ -1856,7 +1856,7 @@ export default function LiveQuiz() {
             {/* Submit Test Button (Desktop Header) */}
             <button
               type="button"
-              className="button button-primary quiz-submit-button hidden md:inline-flex"
+              className="button quiz-submit-button hidden md:inline-flex bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold shadow-[0_0_15px_rgba(79,70,229,0.3)] transition-all"
               disabled={submitting}
               onClick={confirm}
             >
@@ -2126,16 +2126,16 @@ export default function LiveQuiz() {
                     disabled={isLocked || isEvaluating}
                     className={`quiz-option py-3.5 px-4 min-h-[56px] transition-all rounded-2xl ${
                       selected
-                        ? 'selected border-2 border-emerald-500 dark:bg-[#12231C] bg-emerald-50'
-                        : 'border dark:border-emerald-500/15 border-slate-200 dark:bg-[#12231C] bg-white hover:border-emerald-500/40'
+                        ? 'selected border-2 border-indigo-500 dark:border-indigo-400 dark:bg-[#312E81] bg-indigo-50 shadow-md'
+                        : 'border dark:border-slate-700/60 border-slate-200 dark:bg-[#1E293B] bg-white hover:border-indigo-500/40'
                     } ${key === 'E' ? 'option-e' : ''} ${isCorrectAnswer ? 'correct-answer' : ''} ${isWrongSelected ? 'wrong-answer' : ''} ${isLocked ? 'cursor-default' : ''}`}
                     onClick={() => !isLocked && !isEvaluating && answer(key)}
                     aria-pressed={selected}
                   >
                     <span className={`quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-black rounded-full flex items-center justify-center ${
                       selected
-                        ? 'bg-emerald-500 text-white'
-                        : 'dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-700'
+                        ? 'bg-indigo-600 text-white shadow-sm'
+                        : 'dark:bg-slate-800 bg-slate-100 border dark:border-slate-600 border-slate-300 dark:text-slate-300 text-slate-700'
                     }`}>
                       {key}
                     </span>
@@ -2328,7 +2328,7 @@ export default function LiveQuiz() {
             {currentIndex === questions.length - 1 ? (
               <button
                 type="button"
-                className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-black text-sm transition-colors min-h-[40px]"
+                className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm transition-colors min-h-[40px] shadow-[0_0_15px_rgba(79,70,229,0.3)]"
                 disabled={submitting}
                 onClick={confirm}
               >
@@ -2361,11 +2361,11 @@ export default function LiveQuiz() {
               disabled={bookmarkSaving}
               className={`flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl transition-colors min-h-[44px] ${
                 responses[question.id]?.marked_for_review
-                  ? 'text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-950/40'
-                  : 'dark:text-emerald-300 text-slate-600 hover:bg-slate-100 dark:hover:bg-emerald-950/60'
+                  ? 'text-amber-500 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 border border-amber-500/30'
+                  : 'dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800'
               }`}
             >
-              {bookmarkSaving ? <LoaderCircle size={16} className="animate-spin" /> : <Bookmark size={16} className={responses[question.id]?.marked_for_review ? 'fill-purple-600 dark:fill-purple-400' : ''} />}
+              {bookmarkSaving ? <LoaderCircle size={16} className="animate-spin" /> : <Bookmark size={16} className={responses[question.id]?.marked_for_review ? 'fill-amber-400 text-amber-500' : ''} />}
               <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">
                 {responses[question.id]?.marked_for_review ? 'Marked' : 'Review'}
               </span>

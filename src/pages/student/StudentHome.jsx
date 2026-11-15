@@ -355,22 +355,22 @@ export default function StudentHome() {
   );
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1713] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 transition-colors duration-200 overflow-x-hidden">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 transition-colors duration-200 overflow-x-hidden">
       {shouldShowOnboarding && <OnboardingModal />}
 
-      {/* Top Ambient Mountain Aura */}
+      {/* Top Ambient Tech/Data Grid Aura */}
       <div className="relative">
-        <MountainSunsetAura height={110} showSun={true} />
+        <MountainSunsetAura height={120} showSun={true} />
 
-        {/* Greeting Header overlaid on Mountain Banner */}
+        {/* Greeting Header overlaid on Tech Banner */}
         <div className="px-3.5 sm:px-6 pt-4 pb-2 relative z-10 max-w-5xl mx-auto">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight dark:text-white text-slate-900 flex items-center gap-2">
                 <span>{greetingPhrase}, {firstName}</span>
-                <span className="text-emerald-500 select-none">👋</span>
+                <span className="text-amber-500 select-none">⚡</span>
               </h1>
-              <p className="dark:text-emerald-300/80 text-emerald-800 text-xs sm:text-sm mt-1 font-medium">
+              <p className="dark:text-slate-400 text-slate-600 text-xs sm:text-sm mt-1 font-medium">
                 {language === 'hi'
                   ? 'अपनी तैयारी जारी रखें और लक्ष्य के करीब पहुँचें।'
                   : 'Keep the streak, stay ahead in your preparation.'}
@@ -393,43 +393,43 @@ export default function StudentHome() {
             </button>
           </div>
         )}
-        {/* Streak & Today's Goal Glassmorphic Panel */}
-        <section className="order-0 dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 rounded-3xl p-6 sm:p-8 transition-colors duration-200">
-          <div className="grid grid-cols-2 divide-x dark:divide-emerald-800/40 divide-emerald-200">
-            {/* Left: Study Streak */}
+        {/* Streak & Today's Goal Glassmorphic Panel (Dopamine Trigger Card) */}
+        <section className="order-0 dark:bg-[#1E293B]/90 bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-6 sm:p-8 transition-colors duration-200 shadow-md">
+          <div className="grid grid-cols-2 divide-x dark:divide-slate-700/50 divide-slate-200">
+            {/* Left: Study Streak - Vibrant Orange Trigger */}
             <div className="flex items-center gap-2.5 sm:gap-3 pr-2 sm:pr-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                <Flame className={`w-5 h-5 sm:w-6 sm:h-6 ${streak > 0 ? 'text-amber-400 fill-amber-400' : 'text-neutral-500'}`} />
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(249,115,22,0.25)]">
+                <Flame className={`w-5 h-5 sm:w-6 sm:h-6 ${streak > 0 ? 'text-orange-500 fill-orange-500 animate-pulse' : 'text-neutral-500'}`} />
               </div>
               <div className="min-w-0">
-                <div className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight flex items-baseline gap-1">
-                  {profileError ? '—' : streak} <span className="text-xs sm:text-sm font-semibold dark:text-emerald-200/90 text-emerald-700">{language === 'hi' ? 'दिन' : 'Days'}</span>
+                <div className="text-lg sm:text-2xl font-black dark:text-orange-400 text-orange-600 tracking-tight flex items-baseline gap-1">
+                  {profileError ? '—' : streak} <span className="text-xs sm:text-sm font-bold dark:text-amber-300 text-amber-700">{language === 'hi' ? 'दिन' : 'Days'}</span>
                 </div>
-                <div className="text-xs font-medium dark:text-emerald-400/80 text-emerald-700 truncate">
+                <div className="text-xs font-bold dark:text-slate-400 text-slate-500 uppercase tracking-wider truncate">
                   {language === 'hi' ? 'अध्ययन स्ट्रीक' : 'Study Streak'}
                 </div>
               </div>
             </div>
 
-            {/* Right: Today's Goal */}
+            {/* Right: Today's Goal - Bright Amber Trigger */}
             <div className="flex items-center justify-between pl-2.5 sm:pl-4">
               <div className="min-w-0 pr-1">
                 <div className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
-                  {profileError ? '—' : todayQuestionsSolved} <span className="text-xs dark:text-neutral-400 text-slate-500 font-normal">{profileError ? '' : `/ ${dailyTarget}`}</span>
+                  {profileError ? '—' : todayQuestionsSolved} <span className="text-xs dark:text-slate-400 text-slate-500 font-normal">{profileError ? '' : `/ ${dailyTarget}`}</span>
                 </div>
-                <div className="text-xs font-medium dark:text-emerald-400/80 text-emerald-700 truncate">
+                <div className="text-xs font-bold dark:text-slate-400 text-slate-500 uppercase tracking-wider truncate">
                   {language === 'hi' ? 'आज का लक्ष्य' : "Today's Target"}
                 </div>
               </div>
 
-              {/* Circular SVG Progress Ring */}
+              {/* Circular SVG Progress Ring with Bright Amber Accent */}
               <div className="relative w-11 h-11 sm:w-14 sm:h-14 flex items-center justify-center shrink-0">
                 <svg className="w-11 h-11 sm:w-14 sm:h-14 -rotate-90 transform" viewBox="0 0 56 56">
                   <circle
                     cx="28"
                     cy="28"
                     r={ringRadius}
-                    className="dark:stroke-emerald-950/80 stroke-emerald-100"
+                    className="dark:stroke-slate-800 stroke-slate-200"
                     strokeWidth="4"
                     fill="transparent"
                   />
@@ -437,7 +437,7 @@ export default function StudentHome() {
                     cx="28"
                     cy="28"
                     r={ringRadius}
-                    className="dark:stroke-emerald-400 stroke-emerald-600 transition-all duration-700 ease-out"
+                    className="dark:stroke-amber-400 stroke-amber-500 transition-all duration-700 ease-out"
                     strokeWidth="4"
                     strokeDasharray={ringCircumference}
                     strokeDashoffset={ringOffset}
@@ -445,7 +445,7 @@ export default function StudentHome() {
                     fill="transparent"
                   />
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-xs font-black dark:text-white text-slate-900">
+                <div className="absolute inset-0 flex items-center justify-center text-xs font-black dark:text-amber-400 text-amber-600">
                   {profileError ? '—' : `${goalPercent}%`}
                 </div>
               </div>
@@ -466,22 +466,22 @@ export default function StudentHome() {
         </section>
 
         {/* Hero Banner Carousel (Built from Real Exams in DB) */}
-        <section className="order-2 relative overflow-hidden rounded-3xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-300/40 p-6 sm:p-8 transition-colors duration-200">
+        <section className="order-2 relative overflow-hidden rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-indigo-500/25 border-slate-200 p-6 sm:p-8 transition-colors duration-200 shadow-md">
           <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="space-y-2 max-w-lg">
-              <span className="inline-block text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-400/30">
+              <span className="inline-block text-xs font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-400/30">
                 {dynamicBanners[activeSlide]?.tag}
               </span>
               <h2 className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
                 {dynamicBanners[activeSlide]?.title}
               </h2>
-              <p className="text-sm dark:text-emerald-200/80 text-slate-600 font-medium line-clamp-2">
+              <p className="text-sm dark:text-slate-300 text-slate-600 font-medium line-clamp-2">
                 {dynamicBanners[activeSlide]?.subtitle}
               </p>
               <div className="pt-2">
                 <Link
                   to={dynamicBanners[activeSlide]?.path}
-                  className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white font-extrabold text-sm transition-colors min-h-[44px]"
+                  className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-extrabold text-sm transition-colors min-h-[44px] shadow-[0_0_20px_rgba(79,70,229,0.3)]"
                 >
                   <span>{dynamicBanners[activeSlide]?.buttonText}</span>
                   <ArrowRight size={15} strokeWidth={2.5} />
@@ -491,14 +491,14 @@ export default function StudentHome() {
 
             {/* Right Side Exam Pill Card */}
             <div className="hidden sm:flex items-center justify-center relative w-40 h-32 shrink-0">
-              <div className="w-28 h-24 dark:bg-[#183126] bg-slate-50 border dark:border-emerald-500/15 border-emerald-300/50 rounded-2xl p-3 flex flex-col justify-between">
+              <div className="w-28 h-24 dark:bg-[#0F172A] bg-slate-50 border dark:border-indigo-500/20 border-slate-200 rounded-2xl p-3 flex flex-col justify-between shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-emerald-700 dark:text-emerald-300">
+                  <span className="text-xs font-black text-indigo-600 dark:text-indigo-400">
                     {dynamicBanners[activeSlide]?.badgeText}
                   </span>
                   <CheckCircle2 size={16} className="text-emerald-500 dark:text-emerald-400" />
                 </div>
-                <div className="text-xs dark:text-emerald-300/80 text-slate-700 font-bold truncate">
+                <div className="text-xs dark:text-slate-300 text-slate-700 font-bold truncate">
                   {dynamicBanners[activeSlide]?.exam}
                 </div>
               </div>
@@ -568,33 +568,37 @@ export default function StudentHome() {
           </div>
 
           {dashboardLoading ? (
-            <div className="dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 rounded-3xl p-6 sm:p-8 min-h-[148px] animate-pulse">
-              <div className="h-5 w-2/3 rounded bg-emerald-500/10" />
-              <div className="mt-4 h-4 w-1/2 rounded bg-emerald-500/10" />
-              <div className="mt-5 h-10 w-32 rounded-xl bg-emerald-500/10" />
+            <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-6 sm:p-8 min-h-[148px] animate-pulse">
+              <div className="h-5 w-2/3 rounded bg-indigo-500/10" />
+              <div className="mt-4 h-4 w-1/2 rounded bg-indigo-500/10" />
+              <div className="mt-5 h-10 w-32 rounded-xl bg-indigo-500/10" />
             </div>
           ) : recommendation ? (
-            <div className="dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 rounded-3xl p-6 sm:p-8 transition-colors">
+            <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-6 sm:p-8 transition-colors shadow-sm">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                 <div className="min-w-0">
-                  <div className="text-xs font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                  <div className="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                     {language === 'hi' ? 'आज का recommended' : 'Today’s recommended'}
                   </div>
                   <h4 className="mt-2 text-base sm:text-lg font-bold dark:text-white text-slate-900 truncate">
                     {recommendation.title}
                   </h4>
-                  <p className="mt-1 text-sm dark:text-emerald-200/80 text-slate-600 font-medium truncate">
+                  <p className="mt-1 text-sm dark:text-slate-300 text-slate-600 font-medium truncate">
                     {recommendation.chapterTitle} · {recommendation.durationMinutes} min
                   </p>
                   {recommendation.test.coin_reward_enabled && (
-                    <p className="mt-2 text-sm text-amber-700 dark:text-amber-300">
-                      Rewards enabled for qualifying attempts.
+                    <p className="mt-2 text-sm text-amber-500 dark:text-amber-400 font-semibold">
+                      🪙 Rewards enabled for qualifying attempts.
                     </p>
                   )}
                 </div>
                 <Link
                   to={recommendation.path}
-                  className="inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-700 px-5 py-2.5 text-sm font-extrabold text-white transition-colors hover:bg-emerald-600"
+                  className={`inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-black transition-all ${
+                    recommendation.kind === 'resume'
+                      ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.25)]'
+                      : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-[0_0_20px_rgba(79,70,229,0.25)]'
+                  }`}
                 >
                   {recommendation.kind === 'resume' ? 'Resume' : 'Start'}
                   <ArrowRight size={15} strokeWidth={2.5} />
@@ -602,33 +606,33 @@ export default function StudentHome() {
               </div>
             </div>
           ) : (
-            <div className="dark:bg-[#12231C] bg-white border dark:border-emerald-500/15 border-emerald-600/15 rounded-3xl p-6 sm:p-8 flex items-center justify-between gap-3 sm:gap-4 transition-colors">
+            <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-6 sm:p-8 flex items-center justify-between gap-3 sm:gap-4 transition-colors shadow-sm">
               <div className="flex items-center gap-3 sm:gap-3.5 flex-1 min-w-0">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                  <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400" />
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                  <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div className="flex-1 min-w-0 space-y-1">
                   <h4 className="text-xs sm:text-base font-bold dark:text-white text-slate-900 truncate">
                     {continueItem.title}
                   </h4>
-                  <div className="text-xs dark:text-emerald-400/80 text-slate-600 font-medium truncate">
+                  <div className="text-xs dark:text-slate-400 text-slate-600 font-medium truncate">
                     {continueItem.subtitle}
                   </div>
-                  <div className="w-full max-w-xs h-1.5 dark:bg-emerald-950 bg-slate-200 rounded-full overflow-hidden">
+                  <div className="w-full max-w-xs h-1.5 dark:bg-slate-800 bg-slate-200 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                      className="h-full bg-indigo-500 rounded-full transition-all duration-500"
                       style={{ width: `${continueItem.progress}%` }}
                     />
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                <span className="text-xs font-extrabold dark:text-emerald-300 text-emerald-700">
+                <span className="text-xs font-black dark:text-amber-400 text-amber-600">
                   {continueItem.progress}%
                 </span>
                 <Link
                   to={continueItem.path}
-                  className="min-h-[44px] min-w-[44px] rounded-xl border border-emerald-400/30 bg-emerald-700 hover:bg-emerald-600 text-white flex items-center justify-center transition-colors"
+                  className="min-h-[44px] min-w-[44px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition-colors shadow-sm"
                   aria-label="Continue learning"
                 >
                   <Play size={16} fill="currentColor" className="ml-0.5 text-white" />

@@ -242,7 +242,7 @@ export default function QuizResult() {
 
   if (loading) {
     return (
-      <main className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] flex items-center justify-center p-6 dark:text-white text-slate-800">
+      <main className="min-h-screen dark:bg-[#0B1120] bg-slate-50 flex items-center justify-center p-6 dark:text-white text-slate-800">
         <LoadingSkeleton rows={6} />
       </main>
     );
@@ -250,12 +250,12 @@ export default function QuizResult() {
 
   if (error && !result) {
     return (
-      <main className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] flex items-center justify-center p-6 dark:text-white text-slate-800">
-        <div className="dark:bg-[#072117] bg-white border dark:border-red-500/30 border-red-300 rounded-3xl p-6 max-w-md text-center shadow-sm">
+      <main className="min-h-screen dark:bg-[#0B1120] bg-slate-50 flex items-center justify-center p-6 dark:text-white text-slate-800">
+        <div className="dark:bg-[#1E293B] bg-white border dark:border-red-500/30 border-red-300 rounded-3xl p-6 max-w-md text-center shadow-sm">
           <AlertCircle size={28} className="mx-auto text-red-500 mb-2" />
           <h2 className="text-lg font-bold">Result Unavailable</h2>
-          <p className="text-xs dark:text-emerald-300/80 text-slate-600 mt-1 mb-4">{error}</p>
-          <Link to={returnTo} replace className="px-4 py-2 rounded-xl bg-emerald-500 text-black font-bold text-xs inline-flex items-center gap-1.5">
+          <p className="text-xs dark:text-slate-400 text-slate-600 mt-1 mb-4">{error}</p>
+          <Link to={returnTo} replace className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs inline-flex items-center gap-1.5">
             <ArrowLeft size={14} /> Back to Tests
           </Link>
         </div>
@@ -264,15 +264,15 @@ export default function QuizResult() {
   }
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-800 transition-colors duration-200 overflow-x-hidden">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-slate-50 dark:text-slate-100 text-slate-800 transition-colors duration-200 overflow-x-hidden">
       {/* Top Header Bar */}
-      <header className="sticky top-0 z-30 dark:bg-[#04140e]/95 bg-white/95 backdrop-blur-md border-b dark:border-emerald-500/15 border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3 shadow-xs">
+      <header className="sticky top-0 z-30 dark:bg-[#0B1120]/95 bg-white/95 backdrop-blur-md border-b dark:border-slate-800 border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3 shadow-xs">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2.5 sm:gap-3">
             <button
               type="button"
               onClick={() => navigate(returnTo, { replace: true })}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 flex items-center justify-center dark:text-white text-slate-700 hover:bg-slate-200 dark:hover:bg-emerald-900 transition-colors"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-white text-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
               aria-label="Back to tests"
             >
               <ArrowLeft size={17} />
@@ -281,7 +281,7 @@ export default function QuizResult() {
               <span className="text-amber-400 font-extrabold text-xl leading-none">⚡</span>
               <div>
                 <span className="dark:text-white text-slate-900 font-black tracking-wider text-xs sm:text-sm block">Zyvra</span>
-                <span className="dark:text-emerald-400/80 text-slate-600 text-[10px] font-bold block truncate max-w-[170px] sm:max-w-xs">
+                <span className="dark:text-slate-400 text-slate-600 text-[10px] font-bold block truncate max-w-[170px] sm:max-w-xs">
                   {testTitle}
                 </span>
               </div>
@@ -292,7 +292,7 @@ export default function QuizResult() {
             <button
               type="button"
               onClick={toggleBookmark}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 flex items-center justify-center dark:text-emerald-300 text-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors"
               aria-label={bookmarked ? 'Remove bookmark' : 'Bookmark result'}
             >
               <Bookmark size={15} className={bookmarked ? 'fill-amber-400 text-amber-500' : ''} />
@@ -307,7 +307,7 @@ export default function QuizResult() {
                   alert('Link copied to clipboard!');
                 }
               }}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/20 border-slate-300 flex items-center justify-center dark:text-emerald-300 text-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors"
               aria-label="Share"
             >
               <Share2 size={15} />
@@ -318,14 +318,14 @@ export default function QuizResult() {
 
       <div className="px-3.5 sm:px-6 max-w-4xl mx-auto space-y-4 pt-4">
         {/* Navigation Tabs (Review Questions | Solutions | Topic Analysis | Compare) */}
-        <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl dark:bg-[#072117]/90 bg-white border dark:border-emerald-500/20 border-emerald-600/15 backdrop-blur-md overflow-x-auto select-none shadow-sm">
+        <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/90 bg-white border dark:border-slate-700/60 border-slate-200 backdrop-blur-md overflow-x-auto select-none shadow-sm">
           <button
             type="button"
             onClick={() => setActiveTab('review')}
             className={`flex-1 min-w-[75px] sm:min-w-[110px] py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'review'
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md'
-                : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
             }`}
           >
             <CheckCircle2 size={14} />
@@ -337,8 +337,8 @@ export default function QuizResult() {
             onClick={() => setActiveTab('solutions')}
             className={`flex-1 min-w-[75px] sm:min-w-[110px] py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'solutions'
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md'
-                : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
             }`}
           >
             <Lightbulb size={14} />
@@ -350,8 +350,8 @@ export default function QuizResult() {
             onClick={() => setActiveTab('analysis')}
             className={`flex-1 min-w-[85px] sm:min-w-[120px] py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'analysis'
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md'
-                : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
             }`}
           >
             <BarChart3 size={14} />
@@ -363,8 +363,8 @@ export default function QuizResult() {
             onClick={() => setActiveTab('compare')}
             className={`flex-1 min-w-[75px] sm:min-w-[100px] py-2 px-2 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'compare'
-                ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-md'
-                : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
+                ? 'bg-indigo-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
             }`}
           >
             <Trophy size={14} />
@@ -378,55 +378,55 @@ export default function QuizResult() {
         {activeTab === 'review' && (
           <div className="space-y-4">
             {/* Celebration Card */}
-            <div className="dark:bg-gradient-to-r dark:from-[#072d1f] dark:via-[#083324] dark:to-[#051e15] bg-gradient-to-r from-emerald-100/90 via-teal-50 to-emerald-50 border dark:border-emerald-500/30 border-emerald-300/40 rounded-3xl p-4 sm:p-6 shadow-sm dark:shadow-xl flex items-center gap-3 sm:gap-4 transition-colors">
+            <div className="dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#1e1b4b] dark:to-[#0B1120] bg-gradient-to-r from-indigo-50 via-slate-50 to-indigo-50/50 border dark:border-indigo-500/30 border-indigo-200 rounded-3xl p-4 sm:p-6 shadow-sm dark:shadow-xl flex items-center gap-3 sm:gap-4 transition-colors">
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-amber-400/20 border border-amber-400/35 flex items-center justify-center shrink-0 text-2xl sm:text-3xl shadow-inner">
                 🏆
               </div>
               <div className="space-y-1">
                 <h2 className="text-base sm:text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-2">
                   <span>Test Submitted Successfully</span>
-                  <CheckCircle2 size={18} className="text-[#22c55e]" />
+                  <CheckCircle2 size={18} className="text-emerald-400" />
                 </h2>
-                <p className="text-xs sm:text-sm dark:text-emerald-200/80 text-slate-600 font-medium">
+                <p className="text-xs sm:text-sm dark:text-slate-300 text-slate-600 font-medium">
                   You've completed the test. Review your performance and check detailed solutions.
                 </p>
               </div>
             </div>
 
-            {/* Scorecard Grid (Matching Mockup 1794580723895.png) */}
-            <div className="grid grid-cols-4 gap-1.5 sm:gap-3 dark:bg-[#072117]/85 bg-white backdrop-blur-md border dark:border-emerald-500/20 border-emerald-600/15 rounded-2xl p-3 sm:p-4 shadow-sm">
+            {/* Scorecard Grid */}
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-3 dark:bg-[#1E293B]/85 bg-white backdrop-blur-md border dark:border-slate-700/60 border-slate-200 rounded-2xl p-3 sm:p-4 shadow-sm">
               <div className="text-center">
-                <div className="text-[9px] sm:text-[10px] font-bold dark:text-emerald-400/70 text-slate-500 uppercase">Your Score</div>
+                <div className="text-[9px] sm:text-[10px] font-bold dark:text-slate-400 text-slate-500 uppercase">Your Score</div>
                 <div className="text-base sm:text-2xl font-black dark:text-white text-slate-900 mt-0.5">
-                  {score} <span className="text-xs font-semibold dark:text-emerald-300/80 text-slate-500">/ {totalQuestions}</span>
+                  {score} <span className="text-xs font-semibold dark:text-slate-400 text-slate-500">/ {totalQuestions}</span>
                 </div>
-                <span className="inline-block mt-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30">
+                <span className="inline-block mt-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   {percentage}%
                 </span>
               </div>
 
-              <div className="text-center border-l dark:border-emerald-800/40 border-slate-200">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-500/20 text-[#22c55e] flex items-center justify-center mx-auto mb-1">
+              <div className="text-center border-l dark:border-slate-700/60 border-slate-200">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto mb-1">
                   <CheckCircle2 size={13} />
                 </div>
                 <div className="text-base sm:text-xl font-black dark:text-white text-slate-900">{stats.correctCount}</div>
-                <div className="text-[9px] sm:text-[10px] font-semibold dark:text-emerald-400/70 text-slate-500">Correct</div>
+                <div className="text-[9px] sm:text-[10px] font-semibold dark:text-slate-400 text-slate-500">Correct</div>
               </div>
 
-              <div className="text-center border-l dark:border-emerald-800/40 border-slate-200">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center mx-auto mb-1">
+              <div className="text-center border-l dark:border-slate-700/60 border-slate-200">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-1">
                   <CircleX size={13} />
                 </div>
                 <div className="text-base sm:text-xl font-black dark:text-white text-slate-900">{stats.incorrectCount}</div>
-                <div className="text-[9px] sm:text-[10px] font-semibold dark:text-emerald-400/70 text-slate-500">Incorrect</div>
+                <div className="text-[9px] sm:text-[10px] font-semibold dark:text-slate-400 text-slate-500">Incorrect</div>
               </div>
 
-              <div className="text-center border-l dark:border-emerald-800/40 border-slate-200">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-neutral-500/20 text-neutral-500 flex items-center justify-center mx-auto mb-1">
+              <div className="text-center border-l dark:border-slate-700/60 border-slate-200">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-neutral-500/20 text-neutral-400 flex items-center justify-center mx-auto mb-1">
                   <MinusCircle size={13} />
                 </div>
                 <div className="text-base sm:text-xl font-black dark:text-white text-slate-900">{stats.unattemptedCount}</div>
-                <div className="text-[9px] sm:text-[10px] font-semibold dark:text-emerald-400/70 text-slate-500">Skipped</div>
+                <div className="text-[9px] sm:text-[10px] font-semibold dark:text-slate-400 text-slate-500">Skipped</div>
               </div>
             </div>
 
@@ -435,11 +435,11 @@ export default function QuizResult() {
               <h3 className="text-sm sm:text-base font-extrabold dark:text-white text-slate-900">Question Review</h3>
 
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <Filter size={13} className="dark:text-emerald-400/80 text-slate-500" />
+                <Filter size={13} className="dark:text-slate-400 text-slate-500" />
                 <select
                   value={reviewFilter}
                   onChange={(e) => setReviewFilter(e.target.value)}
-                  className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-800 text-xs font-bold focus:outline-none min-h-[44px]"
+                  className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 dark:text-slate-200 text-slate-800 text-xs font-bold focus:outline-none min-h-[44px]"
                 >
                   <option value="all">All ({solutions.length})</option>
                   <option value="correct">Correct ({stats.correctCount})</option>
@@ -470,15 +470,15 @@ export default function QuizResult() {
                       setCurrentSolutionIndex(origIndex);
                       setActiveTab('solutions');
                     }}
-                    className="p-3 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white border dark:border-emerald-500/20 border-emerald-600/15 hover:border-emerald-500/40 transition-all cursor-pointer flex items-center justify-between gap-2.5 sm:gap-3 group shadow-xs"
+                    className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/40 transition-all cursor-pointer flex items-center justify-between gap-2.5 sm:gap-3 group shadow-xs"
                   >
                     <div className="flex items-start gap-2.5 sm:gap-3 flex-1 min-w-0">
                       <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
                         isCorrect
-                          ? 'bg-[#22c55e]/20 text-[#22c55e] border border-[#22c55e]/30'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                           : hasSelection
-                          ? 'bg-red-500/20 text-red-500 border border-red-500/30'
-                          : 'dark:bg-neutral-800 bg-slate-100 text-slate-500 border dark:border-neutral-700 border-slate-300'
+                          ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                          : 'dark:bg-slate-800 bg-slate-100 text-slate-400 border dark:border-slate-700 border-slate-300'
                       }`}>
                         Q{origIndex + 1}
                       </span>
@@ -489,15 +489,15 @@ export default function QuizResult() {
                         </p>
                         <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-bold">
                           {hasSelection ? (
-                            <span className="px-2 py-0.5 rounded-md dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/20 border-slate-200 dark:text-emerald-300 text-slate-700">
+                            <span className="px-2 py-0.5 rounded-md dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 dark:text-slate-300 text-slate-700">
                               Your: {chosenKey}
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-md dark:bg-neutral-900 bg-slate-100 border dark:border-neutral-700 border-slate-200 text-slate-500">
+                            <span className="px-2 py-0.5 rounded-md dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 text-slate-400">
                               Skipped
                             </span>
                           )}
-                          <span className="px-2 py-0.5 rounded-md dark:bg-emerald-950 bg-emerald-50 border dark:border-emerald-500/30 border-emerald-200 text-[#15803d] dark:text-[#22c55e]">
+                          <span className="px-2 py-0.5 rounded-md dark:bg-emerald-950/60 bg-emerald-50 border dark:border-emerald-500/30 border-emerald-200 text-emerald-600 dark:text-emerald-400">
                             Ans: {correctKey || 'B'} ✓
                           </span>
                         </div>
@@ -506,19 +506,19 @@ export default function QuizResult() {
 
                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                       {isCorrect ? (
-                        <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-black bg-[#22c55e]/20 text-[#15803d] dark:text-[#22c55e] border border-[#22c55e]/30 flex items-center gap-1">
+                        <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                           <Check size={12} strokeWidth={3} /> Correct
                         </span>
                       ) : hasSelection ? (
-                        <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-black bg-red-500/20 text-red-500 border border-red-500/30 flex items-center gap-1">
+                        <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-black bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1">
                           <CircleX size={12} /> Incorrect
                         </span>
                       ) : (
-                        <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold dark:bg-neutral-800 bg-slate-100 text-slate-500 border dark:border-neutral-700 border-slate-200">
+                        <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold dark:bg-slate-800 bg-slate-100 text-slate-400 border dark:border-slate-700 border-slate-200">
                           Skipped
                         </span>
                       )}
-                      <ChevronRight size={16} className="text-slate-400 dark:text-emerald-400/60 group-hover:text-slate-800 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                      <ChevronRight size={16} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-800 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
                     </div>
                   </div>
                 );
@@ -530,7 +530,7 @@ export default function QuizResult() {
               <Link
                 to={`/quiz/${result?.test_id || ''}`}
                 state={{ reattempt: true, returnTo }}
-                className="w-full sm:flex-1 py-3 rounded-full dark:bg-emerald-950/90 bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-800 hover:text-black dark:hover:text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors min-h-[44px] shadow-sm"
+                className="w-full sm:flex-1 py-3 rounded-full dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 dark:text-slate-200 text-slate-800 hover:text-black dark:hover:text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors min-h-[44px] shadow-sm"
               >
                 <RotateCcw size={15} />
                 <span>Re-attempt Test</span>
@@ -542,7 +542,7 @@ export default function QuizResult() {
                   setCurrentSolutionIndex(0);
                   setActiveTab('solutions');
                 }}
-                className="w-full sm:flex-1 py-3 rounded-full bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs sm:text-sm shadow-glowGold transition-transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 min-h-[44px]"
+                className="w-full sm:flex-1 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm shadow-glowIndigo transition-transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 min-h-[44px]"
               >
                 <span>View Detailed Solutions</span>
                 <ArrowRight size={16} />
@@ -557,13 +557,13 @@ export default function QuizResult() {
         {activeTab === 'solutions' && currentSolution && (
           <div className="space-y-4">
             {/* Top Question Palette with Arrows & Language Switcher */}
-            <div className="p-2.5 dark:bg-[#072117]/90 bg-white shadow-sm backdrop-blur-md rounded-2xl border dark:border-emerald-500/20 border-slate-200 flex items-center justify-between gap-2">
+            <div className="p-2.5 dark:bg-[#1E293B]/90 bg-white shadow-sm backdrop-blur-md rounded-2xl border dark:border-slate-700/60 border-slate-200 flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 flex-1 min-w-0">
                 <button
                   type="button"
                   onClick={() => setCurrentSolutionIndex((prev) => Math.max(0, prev - 1))}
                   disabled={currentSolutionIndex === 0}
-                  className="w-8 h-8 rounded-xl dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 flex items-center justify-center dark:text-emerald-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-emerald-900 transition-colors shrink-0"
+                  className="w-8 h-8 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
                 >
                   <ChevronLeft size={16} />
                 </button>
@@ -578,11 +578,11 @@ export default function QuizResult() {
                     const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
                     const isCurrent = currentSolutionIndex === idx;
 
-                    let badgeClasses = 'dark:bg-neutral-800 bg-slate-200 dark:text-neutral-400 text-slate-600 dark:border-neutral-700 border-slate-300';
+                    let badgeClasses = 'dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 dark:border-slate-700 border-slate-300';
                     if (isCurrent) {
-                      badgeClasses = 'border-2 border-amber-500 bg-amber-400/25 text-amber-600 dark:text-amber-300 ring-2 ring-amber-400/40 font-black scale-105';
+                      badgeClasses = 'border-2 border-indigo-500 bg-indigo-500/25 text-indigo-400 ring-2 ring-indigo-400/40 font-black scale-105';
                     } else if (isCorrect) {
-                      badgeClasses = 'bg-[#22c55e] text-black font-black';
+                      badgeClasses = 'bg-emerald-500 text-slate-950 font-black';
                     } else if (hasSelection) {
                       badgeClasses = 'bg-red-500/80 text-white font-bold';
                     }
@@ -604,19 +604,19 @@ export default function QuizResult() {
                   type="button"
                   onClick={() => setCurrentSolutionIndex((prev) => Math.min(solutions.length - 1, prev + 1))}
                   disabled={currentSolutionIndex === solutions.length - 1}
-                  className="w-8 h-8 rounded-xl dark:bg-emerald-950/80 bg-slate-100 border dark:border-emerald-500/25 border-slate-300 flex items-center justify-center dark:text-emerald-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-emerald-900 transition-colors shrink-0"
+                  className="w-8 h-8 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
                 >
                   <ChevronRight size={16} />
                 </button>
               </div>
 
               {/* Language Switcher */}
-              <div className="flex items-center gap-1 p-0.5 rounded-lg dark:bg-emerald-950 bg-slate-100 border dark:border-emerald-500/30 border-slate-300 shrink-0">
+              <div className="flex items-center gap-1 p-0.5 rounded-lg dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 shrink-0">
                 <button
                   type="button"
                   onClick={() => setLanguage('en')}
                   className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                    language === 'en' ? 'bg-[#22c55e] text-black' : 'dark:text-emerald-400/80 text-slate-600'
+                    language === 'en' ? 'bg-indigo-600 text-white' : 'dark:text-slate-400 text-slate-600'
                   }`}
                 >
                   EN
@@ -625,7 +625,7 @@ export default function QuizResult() {
                   type="button"
                   onClick={() => setLanguage('hi')}
                   className={`px-2 py-0.5 rounded text-[11px] font-bold ${
-                    language === 'hi' ? 'bg-[#22c55e] text-black' : 'dark:text-emerald-400/80 text-slate-600'
+                    language === 'hi' ? 'bg-indigo-600 text-white' : 'dark:text-slate-400 text-slate-600'
                   }`}
                 >
                   HI
@@ -649,13 +649,13 @@ export default function QuizResult() {
 
               return (
                 <div className="space-y-3.5">
-                  <div className="dark:bg-[#072117]/85 bg-white shadow-sm backdrop-blur-md border dark:border-emerald-500/20 border-slate-200 rounded-3xl p-4 sm:p-6 space-y-4">
+                  <div className="dark:bg-[#1E293B]/85 bg-white shadow-sm backdrop-blur-md border dark:border-slate-700/60 border-slate-200 rounded-3xl p-4 sm:p-6 space-y-4">
                     {/* Meta tag */}
                     <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-0.5 rounded-full text-xs font-black dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-800 border dark:border-emerald-500/30 border-emerald-300">
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-black dark:bg-indigo-500/20 bg-indigo-100 dark:text-indigo-300 text-indigo-800 border dark:border-indigo-500/30 border-indigo-300">
                         Q{currentSolutionIndex + 1}
                       </span>
-                      <span className="text-xs font-bold dark:text-emerald-400/80 text-slate-600 flex items-center gap-1">
+                      <span className="text-xs font-bold dark:text-slate-400 text-slate-600 flex items-center gap-1">
                         <BookOpen size={13} />
                         <span>{question.subject || 'Human Physiology'}</span>
                       </span>
@@ -669,7 +669,7 @@ export default function QuizResult() {
                         </h3>
                       )}
                       {qEn && (
-                        <p className="text-xs sm:text-sm dark:text-emerald-200/80 text-slate-600 leading-relaxed font-medium">
+                        <p className="text-xs sm:text-sm dark:text-slate-300 text-slate-600 leading-relaxed font-medium">
                           <QuestionFormatter text={qEn} />
                         </p>
                       )}
@@ -683,12 +683,12 @@ export default function QuizResult() {
                         const isThisCorrect = key === correctKey;
                         const isThisSelected = chosenKey === key;
 
-                        let optionClasses = 'border dark:border-emerald-500/20 border-slate-200 dark:bg-[#072117]/60 bg-slate-50 dark:text-emerald-100 text-slate-800';
-                        let badgeClasses = 'dark:bg-emerald-950 bg-slate-200 border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-700';
+                        let optionClasses = 'border dark:border-slate-700/60 border-slate-200 dark:bg-slate-900/60 bg-slate-50 dark:text-slate-200 text-slate-800';
+                        let badgeClasses = 'dark:bg-slate-800 bg-slate-200 border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-700';
 
                         if (isThisCorrect) {
-                          optionClasses = 'border-2 border-[#22c55e] dark:bg-[#07281b] bg-emerald-50/90 dark:text-white text-slate-900 shadow-[0_0_20px_rgba(34,197,94,0.18)]';
-                          badgeClasses = 'bg-[#22c55e] text-black font-black border-[#22c55e]';
+                          optionClasses = 'border-2 border-emerald-500 dark:bg-emerald-950/30 bg-emerald-50/90 dark:text-white text-slate-900 shadow-[0_0_20px_rgba(16,185,129,0.18)]';
+                          badgeClasses = 'bg-emerald-500 text-slate-950 font-black border-emerald-500';
                         } else if (isThisSelected && !isThisCorrect) {
                           optionClasses = 'border-2 border-red-500/80 dark:bg-red-950/40 bg-red-50 dark:text-red-100 text-red-900';
                           badgeClasses = 'bg-red-500 text-white font-black border-red-500';
@@ -705,12 +705,12 @@ export default function QuizResult() {
                               </span>
                               <div className="text-xs sm:text-sm font-semibold leading-relaxed flex-1">
                                 {optHi && <span>{optHi} </span>}
-                                {optEn && <span className="dark:text-emerald-300/80 text-emerald-700">({optEn})</span>}
+                                {optEn && <span className="dark:text-slate-400 text-slate-600">({optEn})</span>}
                               </div>
                             </div>
 
                             {isThisCorrect && (
-                              <CheckCircle2 size={20} className="text-[#22c55e] shrink-0" />
+                              <CheckCircle2 size={20} className="text-emerald-400 shrink-0" />
                             )}
                             {isThisSelected && !isThisCorrect && (
                               <CircleX size={20} className="text-red-500 shrink-0" />
@@ -722,15 +722,15 @@ export default function QuizResult() {
                   </div>
 
                   {/* Correct Answer Confirmation Bar (Matching Mockup 1794580723887.png) */}
-                  <div className="p-3.5 rounded-2xl dark:bg-[#072117]/90 bg-white shadow-sm border dark:border-emerald-500/25 border-slate-200 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#22c55e]">
+                  <div className="p-3.5 rounded-2xl dark:bg-[#1E293B]/90 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-emerald-400">
                       <CheckCircle2 size={18} />
                       <span>
                         {language === 'hi' ? `सही उत्तर: ${correctKey}` : `Correct Answer: Option ${correctKey}`}
                       </span>
                     </div>
 
-                    <div className="text-xs font-semibold dark:text-emerald-300 text-slate-700">
+                    <div className="text-xs font-semibold dark:text-slate-300 text-slate-700">
                       {hasSelection ? (
                         <span>
                           {language === 'hi' ? 'आपका उत्तर: ' : 'Your answer: '}
@@ -743,7 +743,7 @@ export default function QuizResult() {
                   </div>
 
                   {/* Structured Explanation Box (Matching Mockup 1794580723887.png) */}
-                  <div className="dark:bg-[#072117]/85 bg-white shadow-sm backdrop-blur-md border dark:border-emerald-500/25 border-slate-200 rounded-3xl p-4 sm:p-5 space-y-4">
+                  <div className="dark:bg-[#1E293B]/85 bg-white shadow-sm backdrop-blur-md border dark:border-slate-700/60 border-slate-200 rounded-3xl p-4 sm:p-5 space-y-4">
                     {/* Header */}
                     <div
                       onClick={() => setExplanationExpanded(!explanationExpanded)}
@@ -753,19 +753,19 @@ export default function QuizResult() {
                         <Lightbulb size={18} className="text-amber-500" />
                         <span>{language === 'hi' ? 'व्याख्या (Explanation)' : 'Detailed Explanation'}</span>
                       </div>
-                      {explanationExpanded ? <ChevronUp size={18} className="dark:text-emerald-300 text-slate-600" /> : <ChevronDown size={18} className="dark:text-emerald-300 text-slate-600" />}
+                      {explanationExpanded ? <ChevronUp size={18} className="dark:text-slate-400 text-slate-600" /> : <ChevronDown size={18} className="dark:text-slate-400 text-slate-600" />}
                     </div>
 
                     {explanationExpanded && currentParsed && (
-                      <div className="space-y-4 pt-1 text-xs sm:text-sm leading-relaxed dark:text-emerald-100/90 text-slate-700 font-medium">
+                      <div className="space-y-4 pt-1 text-xs sm:text-sm leading-relaxed dark:text-slate-300 text-slate-700 font-medium">
                         {/* Main explanation body */}
-                        <div className="p-3.5 dark:bg-emerald-950/40 bg-slate-50 rounded-2xl border dark:border-emerald-500/15 border-slate-200">
+                        <div className="p-3.5 dark:bg-slate-900/60 bg-slate-50 rounded-2xl border dark:border-slate-700/50 border-slate-200">
                           <QuestionFormatter text={currentParsed.mainExplanation || 'Explanation details for this question.'} />
                         </div>
 
                         {/* Why other options are wrong section (Matching Mockup 1794580723887.png) */}
                         {Object.keys(currentParsed.distractorNotes).length > 0 && (
-                          <div className="p-4 rounded-2xl dark:bg-[#061d15] bg-amber-50/60 border dark:border-emerald-500/20 border-amber-200 space-y-2.5">
+                          <div className="p-4 rounded-2xl dark:bg-slate-900/80 bg-amber-50/60 border dark:border-slate-700/60 border-amber-200 space-y-2.5">
                             <h4 className="text-xs font-black dark:text-amber-400 text-amber-800 flex items-center gap-1.5 uppercase tracking-wide">
                               <Target size={14} />
                               <span>{language === 'hi' ? 'अन्य विकल्प क्यों गलत हैं?' : 'Why other options are wrong'}</span>
@@ -776,7 +776,7 @@ export default function QuizResult() {
                                   <span className="w-4 h-4 rounded-full bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/30 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">
                                     {optKey}
                                   </span>
-                                  <span className="dark:text-emerald-200/90 text-slate-700 font-medium">
+                                  <span className="dark:text-slate-300 text-slate-700 font-medium">
                                     <strong className="dark:text-white text-slate-900">Option {optKey}:</strong> {reason}
                                   </span>
                                 </div>
@@ -787,7 +787,7 @@ export default function QuizResult() {
 
                         {/* Reference / Source Box (Matching Mockup 1794580723887.png) */}
                         {currentParsed.reference && (
-                          <div className="p-3 rounded-2xl dark:bg-emerald-950/60 bg-emerald-50 border dark:border-emerald-500/20 border-emerald-200 flex items-center justify-between gap-3">
+                          <div className="p-3 rounded-2xl dark:bg-slate-900/60 bg-indigo-50/50 border dark:border-slate-700/60 border-indigo-100 flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2.5">
                               <BookOpen size={16} className="text-amber-500 shrink-0" />
                               <div>
@@ -799,7 +799,7 @@ export default function QuizResult() {
                                 </span>
                               </div>
                             </div>
-                            <ChevronRight size={16} className="dark:text-emerald-400/60 text-slate-400 shrink-0" />
+                            <ChevronRight size={16} className="dark:text-slate-500 text-slate-400 shrink-0" />
                           </div>
                         )}
                       </div>
@@ -812,14 +812,14 @@ export default function QuizResult() {
                       type="button"
                       onClick={() => setCurrentSolutionIndex((prev) => Math.max(0, prev - 1))}
                       disabled={currentSolutionIndex === 0}
-                      className="px-3 sm:px-4 py-2.5 rounded-full dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-700 hover:text-black dark:hover:text-white font-bold text-xs disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 min-h-[44px]"
+                      className="px-3 sm:px-4 py-2.5 rounded-full dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-700 hover:text-black dark:hover:text-white font-bold text-xs disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 min-h-[44px]"
                     >
                       <ChevronLeft size={16} /> <span className="hidden xs:inline">Previous</span>
                     </button>
 
                     <Link
                       to="/tests"
-                      className="px-3 sm:px-4 py-2.5 rounded-full dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/30 border-slate-300 dark:text-emerald-300 text-slate-700 hover:text-black dark:hover:text-white font-bold text-xs flex items-center gap-1.5 min-h-[44px]"
+                      className="px-3 sm:px-4 py-2.5 rounded-full dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-700 hover:text-black dark:hover:text-white font-bold text-xs flex items-center gap-1.5 min-h-[44px]"
                     >
                       <Target size={14} /> <span>Practice Hub</span>
                     </Link>
@@ -828,7 +828,7 @@ export default function QuizResult() {
                       type="button"
                       onClick={() => setCurrentSolutionIndex((prev) => Math.min(solutions.length - 1, prev + 1))}
                       disabled={currentSolutionIndex === solutions.length - 1}
-                      className="px-4 sm:px-5 py-2.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-extrabold text-xs shadow-glowGold transition-transform hover:scale-105 active:scale-95 flex items-center gap-1 min-h-[44px]"
+                      className="px-4 sm:px-5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs shadow-glowIndigo transition-transform hover:scale-105 active:scale-95 flex items-center gap-1 min-h-[44px]"
                     >
                       <span>Next</span> <ChevronRight size={16} />
                     </button>
@@ -844,12 +844,12 @@ export default function QuizResult() {
         {/* ======================================================== */}
         {activeTab === 'analysis' && (
           <div className="space-y-4">
-            <div className="p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 backdrop-blur-md">
+            <div className="p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 backdrop-blur-md">
               <h3 className="text-base font-extrabold dark:text-white text-slate-900 flex items-center gap-2">
-                <BarChart3 size={18} className="text-[#22c55e]" />
+                <BarChart3 size={18} className="text-indigo-400" />
                 <span>Topic-wise Performance Breakdown</span>
               </h3>
-              <p className="text-xs dark:text-emerald-300/80 text-slate-600 mt-1">
+              <p className="text-xs dark:text-slate-400 text-slate-600 mt-1">
                 Pinpoint strengths and areas that need revision from this test attempt.
               </p>
             </div>
@@ -858,21 +858,21 @@ export default function QuizResult() {
               {topicAnalysis.map((item, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 space-y-2.5"
+                  className="p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 space-y-2.5"
                 >
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-bold dark:text-white text-slate-900 tracking-tight">{item.topic}</h4>
-                    <span className={`text-xs font-black ${item.accuracy >= 70 ? 'text-[#22c55e]' : item.accuracy >= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-red-500'}`}>
+                    <span className={`text-xs font-black ${item.accuracy >= 70 ? 'text-emerald-400' : item.accuracy >= 50 ? 'text-amber-500 dark:text-amber-400' : 'text-red-500'}`}>
                       {item.accuracy}% Accuracy
                     </span>
                   </div>
 
                   {/* Progress bar */}
-                  <div className="w-full h-2 dark:bg-emerald-950 bg-slate-200 rounded-full overflow-hidden border dark:border-emerald-800/40 border-slate-300">
+                  <div className="w-full h-2 dark:bg-slate-900 bg-slate-200 rounded-full overflow-hidden border dark:border-slate-700 border-slate-300">
                     <div
                       className={`h-full rounded-full transition-all duration-700 ${
                         item.accuracy >= 70
-                          ? 'bg-gradient-to-r from-emerald-400 to-[#22c55e]'
+                          ? 'bg-gradient-to-r from-emerald-500 to-emerald-400'
                           : item.accuracy >= 50
                           ? 'bg-gradient-to-r from-amber-400 to-yellow-500'
                           : 'bg-gradient-to-r from-red-500 to-rose-400'
@@ -881,7 +881,7 @@ export default function QuizResult() {
                     />
                   </div>
 
-                  <div className="flex items-center justify-between text-[11px] dark:text-emerald-400/80 text-slate-600 font-medium">
+                  <div className="flex items-center justify-between text-[11px] dark:text-slate-400 text-slate-600 font-medium">
                     <span>{item.correct} of {item.total} Solved Correctly</span>
                     <span>{item.incorrect} Incorrect • {item.unattempted} Skipped</span>
                   </div>
@@ -896,33 +896,33 @@ export default function QuizResult() {
         {/* ======================================================== */}
         {activeTab === 'compare' && (
           <div className="space-y-4">
-            <div className="p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 backdrop-blur-md">
+            <div className="p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 backdrop-blur-md">
               <h3 className="text-base font-extrabold dark:text-white text-slate-900 flex items-center gap-2">
                 <Trophy size={18} className="text-amber-500" />
                 <span>Peer Benchmarking & Rank Analysis</span>
               </h3>
-              <p className="text-xs dark:text-emerald-300/80 text-slate-600 mt-1">
+              <p className="text-xs dark:text-slate-400 text-slate-600 mt-1">
                 See how your speed, accuracy, and score compare with other aspirants.
               </p>
             </div>
 
             <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
-              <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 text-center">
-                <div className="text-[10px] uppercase font-bold dark:text-emerald-400/70 text-slate-500">Your Percentile</div>
-                <div className="text-lg sm:text-xl font-black dark:text-amber-300 text-amber-600 mt-1">84.6%</div>
-                <span className="text-[10px] dark:text-emerald-400/80 text-emerald-700">Top 15%</span>
+              <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center">
+                <div className="text-[10px] uppercase font-bold dark:text-slate-400 text-slate-500">Your Percentile</div>
+                <div className="text-lg sm:text-xl font-black dark:text-amber-400 text-amber-600 mt-1">84.6%</div>
+                <span className="text-[10px] dark:text-indigo-400 text-indigo-600">Top 15%</span>
               </div>
 
-              <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 text-center">
-                <div className="text-[10px] uppercase font-bold dark:text-emerald-400/70 text-slate-500">Average Score</div>
+              <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center">
+                <div className="text-[10px] uppercase font-bold dark:text-slate-400 text-slate-500">Average Score</div>
                 <div className="text-lg sm:text-xl font-black dark:text-white text-slate-900 mt-1">26.4</div>
-                <span className="text-[10px] text-[#22c55e]">+7.6 vs Avg</span>
+                <span className="text-[10px] text-emerald-400">+7.6 vs Avg</span>
               </div>
 
-              <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 text-center">
-                <div className="text-[10px] uppercase font-bold dark:text-emerald-400/70 text-slate-500">Avg Time / Q</div>
+              <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center">
+                <div className="text-[10px] uppercase font-bold dark:text-slate-400 text-slate-500">Avg Time / Q</div>
                 <div className="text-lg sm:text-xl font-black dark:text-white text-slate-900 mt-1">46s</div>
-                <span className="text-[10px] text-[#22c55e]">Fast & Steady</span>
+                <span className="text-[10px] text-emerald-400">Fast & Steady</span>
               </div>
             </div>
           </div>

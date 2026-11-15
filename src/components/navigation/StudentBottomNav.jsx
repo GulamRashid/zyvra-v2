@@ -47,7 +47,7 @@ export default function StudentBottomNav() {
 
   return (
     <nav
-      className="student-bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden dark:bg-[#0B1713]/95 bg-white/95 backdrop-blur-xl border-t dark:border-emerald-500/15 border-emerald-900/10 transition-all duration-300"
+      className="student-bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden dark:bg-[#0B1120]/95 bg-white/95 backdrop-blur-xl border-t dark:border-slate-800 border-slate-200 transition-all duration-300"
       aria-label="Student Mobile Navigation"
     >
       <div className="max-w-md mx-auto px-2 sm:px-3 py-1.5 sm:py-2 flex items-center justify-around gap-0.5 sm:gap-1">
@@ -56,8 +56,8 @@ export default function StudentBottomNav() {
           const Icon = item.Icon;
           const label = getLabel(item);
           const itemClass = active
-            ? 'flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-2.5 py-1.5 text-sm font-semibold text-white transition-colors active:bg-emerald-700'
-            : 'group flex min-h-[44px] flex-col items-center justify-center rounded-xl px-2 py-1 text-slate-500 transition-colors hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-400 dark:hover:bg-emerald-950/50 dark:hover:text-emerald-300';
+            ? 'flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-indigo-600 px-2.5 py-1.5 text-sm font-semibold text-white transition-colors active:bg-indigo-700 shadow-sm'
+            : 'group flex min-h-[44px] flex-col items-center justify-center rounded-xl px-2 py-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-indigo-300';
 
           if (item.key === 'more') {
             return (
@@ -93,11 +93,11 @@ export default function StudentBottomNav() {
           />
           <div
             id="student-more-menu"
-            className="absolute bottom-full left-2 right-2 z-50 mb-2 rounded-2xl dark:bg-[#12231C] bg-white border dark:border-emerald-500/25 border-emerald-200 shadow-lg p-2"
+            className="absolute bottom-full left-2 right-2 z-50 mb-2 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 shadow-xl p-2"
           >
             <div className="flex items-center justify-between px-3 py-2">
               <span className="text-xs font-black dark:text-white text-slate-900">More learning spaces</span>
-              <button type="button" onClick={() => setMoreOpen(false)} aria-label="Close more menu" className="min-h-[44px] min-w-[44px] p-1 rounded-lg dark:text-emerald-300 text-slate-500">
+              <button type="button" onClick={() => setMoreOpen(false)} aria-label="Close more menu" className="min-h-[44px] min-w-[44px] p-1 rounded-lg dark:text-slate-400 text-slate-500">
                 <X size={15} />
               </button>
             </div>
@@ -107,9 +107,9 @@ export default function StudentBottomNav() {
                   key={to}
                   to={to}
                   onClick={() => setMoreOpen(false)}
-                  className="flex min-h-[44px] items-center gap-2 rounded-xl px-3 text-sm font-medium dark:text-emerald-200 text-slate-700 dark:hover:bg-emerald-950/70 hover:bg-emerald-50"
+                  className="flex min-h-[44px] items-center gap-2 rounded-xl px-3 text-sm font-medium dark:text-slate-300 text-slate-700 dark:hover:bg-slate-800/80 hover:bg-slate-100"
                 >
-                  <Icon size={15} className="text-emerald-500" />
+                  <Icon size={15} className="text-indigo-400" />
                   <span>{itemLabel}</span>
                 </NavLink>
               ))}

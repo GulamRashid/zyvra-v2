@@ -73,10 +73,10 @@ export default function FolderView() {
   const isCurrentFolderUnlocked = hasPurchasedExam || pricing.amount <= 0 || isFolderUnlocked(folder?.id, folders, purchasedFolderIds) || accessByKey[`folder:${folder?.id}`] === true;
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
       <div className="max-w-3xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Breadcrumbs */}
-        <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-emerald-400/80 overflow-x-auto no-scrollbar py-1">
+        <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-indigo-400/80 overflow-x-auto no-scrollbar py-1">
           <Link to="/explore" className="hover:text-emerald-700 dark:hover:text-white whitespace-nowrap">
             Explore
           </Link>
@@ -112,16 +112,16 @@ export default function FolderView() {
         {loading && <LoadingSkeleton rows={4} />}
 
         {!loading && !error && (!folder || !exam || !hierarchyPublished) && (
-          <div className="p-8 rounded-3xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 text-center space-y-3">
-            <Folder size={28} className="mx-auto text-emerald-500 opacity-60" />
+          <div className="p-8 rounded-3xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-3">
+            <Folder size={28} className="mx-auto text-indigo-500 opacity-60" />
             <strong className="text-base font-black dark:text-white text-slate-900 block">
               This folder isn’t available.
             </strong>
-            <span className="text-xs text-slate-500 dark:text-emerald-300/80 block">
+            <span className="text-xs text-slate-500 dark:text-slate-400 block">
               It may be unpublished or its exam has changed.
             </span>
             <Link
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white text-sm font-black"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white text-sm font-black"
               to="/explore"
             >
               Back to explore
@@ -131,14 +131,14 @@ export default function FolderView() {
 
         {!loading && !error && folder && exam && hierarchyPublished && (
           <>
-            {/* Folder Hero Banner */}
-            <section className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#07261b] dark:to-[#04140e] bg-gradient-to-br from-emerald-100/90 via-teal-50 to-white border dark:border-emerald-500/25 border-emerald-200 p-4 sm:p-6 shadow-sm space-y-3">
+            {/* Folder Hero Banner with Tech/Data Focus Theme */}
+            <section className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50/90 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-4 sm:p-6 shadow-sm space-y-3">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/30 border-emerald-200 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shadow-xs shrink-0">
+                <div className="w-10 h-10 rounded-xl dark:bg-indigo-950/80 bg-white border dark:border-indigo-500/30 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-xs shrink-0">
                   <FolderOpen size={20} />
                 </div>
                 <div>
-                  <div className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">
+                  <div className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 tracking-wider">
                     {exam.title} / Syllabus
                   </div>
                   <h1 className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
@@ -147,7 +147,7 @@ export default function FolderView() {
                 </div>
               </div>
 
-              <p className="text-sm dark:text-emerald-200/80 text-slate-600 font-medium">
+              <p className="text-sm dark:text-slate-300 text-slate-600 font-medium">
                 {folder.description || 'Explore the topics and chapters in this learning section.'}
               </p>
 

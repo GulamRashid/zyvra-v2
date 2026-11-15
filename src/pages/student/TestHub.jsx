@@ -201,8 +201,8 @@ export default function TestHub() {
   }, [tests, searchQuery, testFilter]);
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1713] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 transition-colors duration-200 overflow-x-hidden">
-      {/* Top Ambient Mountain Aura */}
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 transition-colors duration-200 overflow-x-hidden">
+      {/* Top Ambient Tech Data Grid Aura */}
       <div className="relative">
         <MountainSunsetAura height={190} showSun={true} />
 
@@ -213,7 +213,7 @@ export default function TestHub() {
               <h1 className="text-xl sm:text-3xl font-black tracking-tight dark:text-white text-slate-900 flex items-center gap-2">
                 <span>{language === 'hi' ? 'अभ्यास' : 'Practice Hub'}</span>
               </h1>
-              <p className="dark:text-emerald-300/80 text-emerald-800 text-xs sm:text-sm mt-0.5 font-medium">
+              <p className="dark:text-slate-400 text-slate-600 text-xs sm:text-sm mt-0.5 font-medium">
                 {language === 'hi'
                   ? 'अध्याय-वार अभ्यास, विषय परीक्षण और कस्टम टेस्ट।'
                   : 'Chapter-wise practice, topic tests and full syllabus assessments.'}
@@ -238,14 +238,14 @@ export default function TestHub() {
           </div>
         )}
         {/* Navigation Tabs (Subjects | Chapters | Tests | Custom) */}
-        <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl dark:bg-[#072117]/90 bg-white border dark:border-emerald-500/20 border-emerald-600/15 backdrop-blur-md overflow-x-auto shadow-sm">
+        <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/90 bg-white border dark:border-slate-700/60 border-slate-200 backdrop-blur-md overflow-x-auto shadow-sm">
           <button
             type="button"
             onClick={() => setActiveTab('subjects')}
             className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'subjects'
-                ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
-                : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
+                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Layers size={14} />
@@ -257,8 +257,8 @@ export default function TestHub() {
             onClick={() => setActiveTab('chapters')}
             className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'chapters'
-                ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
-                : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
+                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <BookOpen size={14} />
@@ -270,8 +270,8 @@ export default function TestHub() {
             onClick={() => setActiveTab('tests')}
             className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'tests'
-                ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
-                : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
+                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Target size={14} />
@@ -283,8 +283,8 @@ export default function TestHub() {
             onClick={() => setActiveTab('custom')}
             className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'custom'
-                ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
-                : 'text-emerald-700 dark:text-emerald-300 hover:text-slate-900 dark:hover:text-white hover:bg-emerald-50 dark:hover:bg-emerald-950/60'
+                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <SlidersHorizontal size={14} />
@@ -554,7 +554,13 @@ export default function TestHub() {
                             : completedAttempt
                               ? `/quiz/result/${completedAttempt.id}`
                               : `/quiz/${test.id}`}
-                          className="px-4 py-2 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white text-sm font-black transition-colors flex items-center gap-1.5 min-h-[44px]"
+                          className={`px-4 py-2 rounded-xl text-sm font-black transition-colors flex items-center gap-1.5 min-h-[44px] ${
+                            resumableAttempt
+                              ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                              : completedAttempt
+                                ? 'dark:bg-slate-800 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600'
+                                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+                          }`}
                           onMouseEnter={warmQuiz}
                           onTouchStart={warmQuiz}
                         >

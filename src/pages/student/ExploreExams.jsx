@@ -37,23 +37,23 @@ export default function ExploreExams() {
   }), [exams, selectedCategory, search]);
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#f4faf7] dark:text-slate-100 text-slate-900 transition-colors">
       <div className="max-w-4xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Page Heading Banner */}
-        <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#07261b] dark:to-[#04140e] bg-gradient-to-br from-emerald-100/90 via-teal-50 to-white border dark:border-emerald-500/25 border-emerald-200 p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <div className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">
+            <div className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 tracking-wider">
               Your Next Goal Starts Here
             </div>
             <h1 className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
               Explore Exams
             </h1>
-            <p className="text-xs sm:text-sm dark:text-emerald-200/80 text-slate-600 font-medium mt-0.5">
+            <p className="text-xs sm:text-sm dark:text-slate-300 text-slate-600 font-medium mt-0.5">
               Choose your exam. We’ll help you take it one step at a time.
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full dark:bg-emerald-950/80 bg-white border dark:border-emerald-500/30 border-slate-200 text-xs font-bold dark:text-emerald-300 text-emerald-800 shadow-xs shrink-0">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 text-xs font-bold dark:text-indigo-300 text-indigo-800 shadow-xs shrink-0">
             <GraduationCap size={16} />
             <span>
               {visibleExams.length} {visibleExams.length === 1 ? 'Exam' : 'Exams'}
@@ -63,13 +63,13 @@ export default function ExploreExams() {
 
         {/* Search Bar */}
         <div className="relative">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-emerald-400/60" />
+          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search exams, subjects or syllabus…"
             aria-label="Search exams"
-            className="w-full pl-10 pr-4 py-2.5 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 dark:text-white text-slate-900 text-xs sm:text-sm font-medium focus:outline-none focus:border-emerald-500 min-h-[44px]"
+            className="w-full pl-10 pr-4 py-2.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 dark:text-white text-slate-900 text-xs sm:text-sm font-medium focus:outline-none focus:border-indigo-500 min-h-[44px]"
           />
         </div>
 
@@ -84,8 +84,8 @@ export default function ExploreExams() {
                   onClick={() => setSelectedCategory(item)}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all min-h-[44px] ${
                     isSelected
-                      ? 'bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white'
-                      : 'dark:bg-[#072117]/85 bg-white border dark:border-emerald-500/20 border-slate-200 dark:text-emerald-200 text-slate-700 hover:border-emerald-400'
+                      ? 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white'
+                      : 'dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-300 text-slate-700 hover:border-indigo-400'
                   }`}
                 >
                   {item}
@@ -104,10 +104,10 @@ export default function ExploreExams() {
         {loading && <LoadingSkeleton rows={4} />}
 
         {!loading && !error && !visibleExams.length && (
-          <div className="p-8 rounded-3xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 text-center space-y-2">
-            <BookOpen size={28} className="mx-auto text-emerald-500 opacity-60" />
+          <div className="p-8 rounded-3xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-2">
+            <BookOpen size={28} className="mx-auto text-indigo-500 opacity-60" />
             <strong className="block text-sm dark:text-white text-slate-900">No exams available matching your search.</strong>
-            <span className="text-xs text-slate-500 dark:text-emerald-300/80">Try a different keyword or view all exams.</span>
+            <span className="text-xs text-slate-500 dark:text-slate-400">Try a different keyword or view all exams.</span>
           </div>
         )}
 
@@ -121,15 +121,15 @@ export default function ExploreExams() {
 
             return (
               <article
-                className="p-4 sm:p-5 rounded-3xl dark:bg-[#072117]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-slate-200 hover:border-emerald-400/60 transition-all flex flex-col justify-between space-y-3"
+                className="p-4 sm:p-5 rounded-3xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/50 transition-all flex flex-col justify-between space-y-3"
                 key={exam.id}
               >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-2">
-                    <div className="w-10 h-10 rounded-2xl dark:bg-emerald-950/80 bg-emerald-50 border dark:border-emerald-500/25 border-emerald-200 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                    <div className="w-10 h-10 rounded-2xl dark:bg-slate-800 bg-indigo-50 border dark:border-slate-700 border-indigo-200 flex items-center justify-center text-indigo-400 shrink-0">
                       <Icon size={20} />
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                       {exam.category || 'Exam'}
                     </span>
                   </div>
@@ -138,14 +138,14 @@ export default function ExploreExams() {
                     <h2 className="text-base sm:text-lg font-black dark:text-white text-slate-900 tracking-tight">
                       {exam.title}
                     </h2>
-                    <p className="text-sm dark:text-emerald-200/80 text-slate-600 font-medium line-clamp-2 mt-0.5">
+                    <p className="text-sm dark:text-slate-300 text-slate-600 font-medium line-clamp-2 mt-0.5">
                       {exam.description || 'A structured learning path with topics, practice and tests to help you prepare.'}
                     </p>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t dark:border-emerald-800/30 border-slate-100 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-3 text-sm font-semibold text-slate-500 dark:text-emerald-400/70">
+                <div className="pt-2 border-t dark:border-slate-700/60 border-slate-100 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 text-sm font-semibold text-slate-500 dark:text-slate-400">
                     <span className="flex items-center gap-1">
                       <BookOpen size={13} /> {examFolders.length} {examFolders.length === 1 ? 'folder' : 'folders'}
                     </span>
@@ -155,7 +155,7 @@ export default function ExploreExams() {
                   </div>
 
                   <Link
-                    className="px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 border border-emerald-400/30 text-white font-black text-sm inline-flex items-center gap-1 min-h-[44px]"
+                    className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm inline-flex items-center gap-1 min-h-[44px]"
                     to={`/explore/${encodeURIComponent(exam.slug || exam.id)}`}
                   >
                     <span>Syllabus</span>

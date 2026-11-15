@@ -299,8 +299,8 @@ export default function StudentProfile() {
   };
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
-      {/* Top App Bar & Mountain Sunset Panorama */}
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
+      {/* Top App Bar & Tech Data Banner */}
       <div className="relative">
         <MountainSunsetAura height={220} showSun={true} />
 
@@ -472,67 +472,67 @@ export default function StudentProfile() {
           </div>
 
           {/* Card 2: Questions Solved */}
-          <div className="dark:bg-[#072117]/85 bg-white shadow-sm backdrop-blur-md border dark:border-emerald-500/20 border-slate-200 rounded-2xl p-2 sm:p-3 text-center flex flex-col items-center justify-center">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-800 flex items-center justify-center mb-1">
+          <div className="dark:bg-[#1E293B] bg-white shadow-sm backdrop-blur-md border dark:border-slate-700/60 border-slate-200 rounded-2xl p-2 sm:p-3 text-center flex flex-col items-center justify-center">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg dark:bg-indigo-500/20 bg-indigo-100 dark:text-indigo-300 text-indigo-800 flex items-center justify-center mb-1">
               <BarChart3 size={14} />
             </div>
             <div className="text-sm sm:text-lg font-black dark:text-white text-slate-900 tracking-tight">
               {questionsSolvedCount.toLocaleString()}
             </div>
-            <div className="text-[8px] sm:text-[10px] dark:text-emerald-400/70 text-slate-500 font-semibold leading-tight mt-0.5">
+            <div className="text-[8px] sm:text-[10px] dark:text-slate-400 text-slate-500 font-semibold leading-tight mt-0.5">
               Questions
             </div>
           </div>
 
           {/* Card 3: Accuracy */}
-          <div className="dark:bg-[#072117]/85 bg-white shadow-sm backdrop-blur-md border dark:border-emerald-500/20 border-slate-200 rounded-2xl p-2 sm:p-3 text-center flex flex-col items-center justify-center">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg dark:bg-cyan-500/20 bg-cyan-100 dark:text-cyan-300 text-cyan-800 flex items-center justify-center mb-1">
+          <div className="dark:bg-[#1E293B] bg-white shadow-sm backdrop-blur-md border dark:border-slate-700/60 border-slate-200 rounded-2xl p-2 sm:p-3 text-center flex flex-col items-center justify-center">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-800 flex items-center justify-center mb-1">
               <CheckCircle2 size={14} />
             </div>
             <div className="text-sm sm:text-lg font-black dark:text-white text-slate-900 tracking-tight">
               {accuracyPercent}%
             </div>
-            <div className="text-[8px] sm:text-[10px] dark:text-emerald-400/70 text-slate-500 font-semibold leading-tight mt-0.5">
+            <div className="text-[8px] sm:text-[10px] dark:text-slate-400 text-slate-500 font-semibold leading-tight mt-0.5">
               Accuracy
             </div>
           </div>
 
-          {/* Card 4: Study Streak */}
-          <div className="dark:bg-[#072117]/85 bg-white shadow-sm backdrop-blur-md border dark:border-emerald-500/20 border-slate-200 rounded-2xl p-2 sm:p-3 text-center flex flex-col items-center justify-center">
-            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg dark:bg-amber-500/20 bg-amber-100 text-amber-500 flex items-center justify-center mb-1">
-              <Flame size={14} className={streakDays > 0 ? 'fill-amber-400' : 'text-neutral-400'} />
+          {/* Card 4: Study Streak - Vibrant Orange Dopamine Trigger */}
+          <div className="dark:bg-[#1E293B] bg-white shadow-sm backdrop-blur-md border dark:border-orange-500/35 border-orange-200 rounded-2xl p-2 sm:p-3 text-center flex flex-col items-center justify-center">
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-orange-500/20 text-orange-500 flex items-center justify-center mb-1 shadow-[0_0_10px_rgba(249,115,22,0.25)]">
+              <Flame size={14} className={streakDays > 0 ? 'fill-orange-500 text-orange-500 animate-pulse' : 'text-neutral-400'} />
             </div>
-            <div className="text-sm sm:text-lg font-black dark:text-white text-slate-900 tracking-tight">
+            <div className="text-sm sm:text-lg font-black dark:text-orange-400 text-orange-600 tracking-tight">
               {streakDays}d
             </div>
-            <div className="text-[8px] sm:text-[10px] dark:text-emerald-400/70 text-slate-500 font-semibold leading-tight mt-0.5">
+            <div className="text-[8px] sm:text-[10px] text-orange-500 dark:text-orange-400 font-bold leading-tight mt-0.5 uppercase tracking-wider">
               Streak
             </div>
           </div>
         </section>
 
-        {/* Zyvra Coins Banner (Real Balance) */}
+        {/* Zyvra Coins Banner (Real Balance) - Bright Amber Dopamine Trigger */}
         <section>
           <Link
             to="/wallet"
-            className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl dark:bg-[#072117]/85 bg-white shadow-sm backdrop-blur-md border dark:border-emerald-500/20 border-slate-200 hover:border-amber-400/40 transition-all group min-h-[52px]"
+            className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B] bg-white shadow-sm backdrop-blur-md border dark:border-amber-500/35 border-amber-200 hover:border-amber-400/60 transition-all group min-h-[52px]"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl dark:bg-amber-500/20 bg-amber-100 border dark:border-amber-400/30 border-amber-300 flex items-center justify-center text-amber-500 text-lg shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-500 text-lg shrink-0 shadow-[0_0_15px_rgba(245,158,11,0.25)]">
                 🪙
               </div>
               <div>
                 <h4 className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 tracking-tight flex items-center gap-1.5">
                   <span>Zyvra Coins</span>
-                  <span className="text-[10px] dark:text-emerald-400/80 text-emerald-700">ⓘ</span>
+                  <span className="text-[10px] text-amber-500">ⓘ</span>
                 </h4>
-                <p className="text-[11px] sm:text-xs dark:text-emerald-400/70 text-slate-500 font-medium">
+                <p className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-500 font-medium">
                   Earn & redeem for tests
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full dark:bg-gradient-to-r dark:from-amber-500/25 dark:to-yellow-600/30 bg-amber-100/80 border dark:border-amber-400/50 border-amber-300 text-amber-700 dark:text-amber-300 font-black text-xs shadow-sm group-hover:scale-105 transition-transform">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-700 dark:text-amber-300 font-black text-xs shadow-[0_0_15px_rgba(245,158,11,0.2)] group-hover:scale-105 transition-transform">
               <span>🪙</span>
               <span>{Number(coinBalance || 0).toLocaleString()}</span>
               <ChevronRight size={14} className="text-amber-500" />

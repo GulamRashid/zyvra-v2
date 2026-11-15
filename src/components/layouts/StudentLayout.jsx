@@ -78,13 +78,13 @@ export default function StudentLayout() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="focus-card border border-emerald-500/20 bg-emerald-950/40 rounded-xl p-3">
-            <span className="focus-mark text-emerald-300">✦</span>
-            <strong className="text-[var(--text)] text-sm block mt-1">Small steps, strong results.</strong>
+          <div className="focus-card border border-indigo-500/20 bg-slate-800/80 rounded-xl p-3">
+            <span className="focus-mark text-indigo-400">✦</span>
+            <strong className="text-[var(--text)] text-sm block mt-1">Focus, deliberate practice, results.</strong>
             <span className="text-[var(--muted)] text-sm">Your next session is one tap away.</span>
           </div>
-          <div className="sidebar-account flex items-center gap-2.5 pt-3 border-t border-emerald-500/15 mt-3">
-            <div className="avatar w-8 h-8 rounded-full bg-gradient-to-br from-emerald-600 to-teal-400 flex items-center justify-center font-bold text-white text-xs">
+          <div className="sidebar-account flex items-center gap-2.5 pt-3 border-t border-slate-700/60 mt-3">
+            <div className="avatar w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-800 flex items-center justify-center font-bold text-white text-xs shadow-sm">
               {name.slice(0, 1).toUpperCase()}
             </div>
             <div className="account-copy flex-1 min-w-0">
@@ -111,13 +111,13 @@ export default function StudentLayout() {
           </div>
 
           <div className="topbar-actions flex items-center gap-2">
-            {/* Study Streak Badge (matching mockups e.g. 🔥 12) */}
+            {/* Study Streak Badge - Vibrant Orange Dopamine Trigger */}
             <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-bold"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/15 border border-orange-500/35 text-orange-400 text-xs font-black shadow-[0_0_15px_rgba(249,115,22,0.25)]"
               title={`${streak} day study streak`}
             >
-              <Flame size={14} className="fill-amber-400 text-amber-400" />
-              <span>{profileError ? '—' : streak}</span>
+              <Flame size={14} className="fill-orange-500 text-orange-500 animate-pulse" />
+              <span className="font-extrabold text-orange-400">{profileError ? '—' : streak}</span>
             </div>
 
             {/* Coin Badge */}

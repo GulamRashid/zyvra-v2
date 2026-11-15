@@ -85,17 +85,17 @@ export default function StudentWallet() {
   }, [transactions, coinBalance]);
 
   return (
-    <div className="min-h-screen dark:bg-[#04140e] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
       <div className="max-w-4xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Page Heading Banner */}
-        <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#07261b] dark:to-[#04140e] bg-gradient-to-br from-emerald-100/90 via-teal-50 to-white border dark:border-emerald-500/25 border-emerald-200 p-4 sm:p-6 shadow-sm">
-          <div className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">
-            Your Rewards
+        <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50/90 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-4 sm:p-6 shadow-sm">
+          <div className="text-[10px] uppercase font-bold text-amber-500 tracking-wider">
+            Your Rewards & Currency
           </div>
           <h1 className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
             Zyvra Coin Wallet
           </h1>
-          <p className="text-xs sm:text-sm dark:text-emerald-200/80 text-slate-600 font-medium mt-0.5">
+          <p className="text-xs sm:text-sm dark:text-slate-300 text-slate-600 font-medium mt-0.5">
             Track the coins you earn through learning and spend on your next study path.
           </p>
         </div>
@@ -106,36 +106,36 @@ export default function StudentWallet() {
           </div>
         )}
 
-        {/* Hero Card: Available Balance & Totals */}
-        <section className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-r dark:from-[#1b1708] dark:via-[#0c271b] dark:to-[#051a12] bg-gradient-to-r from-amber-100 via-emerald-50 to-white border dark:border-amber-500/35 border-amber-300/80 p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* Hero Card: Available Balance & Totals - Bright Amber Dopamine Trigger */}
+        <section className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#0F172A] dark:to-[#0B1120] bg-gradient-to-r from-amber-100 via-slate-50 to-white border dark:border-amber-500/40 border-amber-300 p-5 sm:p-6 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-600 flex items-center justify-center text-black font-black text-2xl shadow-glowGold shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-black text-2xl shadow-[0_0_20px_rgba(245,158,11,0.4)] shrink-0">
               🪙
             </div>
             <div>
               <div className="text-[10px] uppercase font-bold dark:text-amber-400 text-amber-800 tracking-wider">
                 Available Balance
               </div>
-              <h2 className="text-2xl sm:text-3xl font-black dark:text-white text-slate-900 tracking-tight">
+              <h2 className="text-2xl sm:text-4xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
                 {Number(coinBalance || 0).toLocaleString()}{' '}
                 <span className="text-xs font-bold text-amber-600 dark:text-amber-300">coins</span>
               </h2>
-              <p className="text-xs dark:text-emerald-300/80 text-slate-600 font-medium mt-0.5">
+              <p className="text-xs dark:text-slate-300 text-slate-600 font-medium mt-0.5">
                 Ready to redeem on eligible Zyvra purchases (10 Coins = ₹1).
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 dark:border-emerald-800/30 border-slate-200">
-            <div className="p-2.5 rounded-xl dark:bg-emerald-950/70 bg-white shadow-xs border dark:border-emerald-500/20 border-slate-200 text-left flex-1 sm:flex-initial">
-              <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-emerald-400/60 block">Total Earned</span>
-              <strong className="text-sm font-extrabold text-[#22c55e] flex items-center gap-1">
+          <div className="flex items-center gap-3 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 dark:border-slate-700/60 border-slate-200">
+            <div className="p-2.5 rounded-xl dark:bg-slate-800/80 bg-white shadow-xs border dark:border-slate-700/60 border-slate-200 text-left flex-1 sm:flex-initial">
+              <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-400 block">Total Earned</span>
+              <strong className="text-sm font-extrabold text-[#10B981] flex items-center gap-1">
                 <ArrowDownLeft size={13} /> {summary.earned.toLocaleString()}
               </strong>
             </div>
 
-            <div className="p-2.5 rounded-xl dark:bg-emerald-950/70 bg-white shadow-xs border dark:border-emerald-500/20 border-slate-200 text-left flex-1 sm:flex-initial">
-              <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-emerald-400/60 block">Total Spent</span>
+            <div className="p-2.5 rounded-xl dark:bg-slate-800/80 bg-white shadow-xs border dark:border-slate-700/60 border-slate-200 text-left flex-1 sm:flex-initial">
+              <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-400 block">Total Spent</span>
               <strong className="text-sm font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1">
                 <ArrowUpRight size={13} /> {summary.spent.toLocaleString()}
               </strong>
