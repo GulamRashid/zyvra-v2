@@ -52,9 +52,9 @@ export default function ExamDetail() {
     {loading && <LoadingSkeleton rows={4} />}
     {!loading && !error && !exam && <div className="empty-content"><GraduationCap size={25} /><strong>We couldn’t find this exam.</strong><span>It may be unpublished or no longer available.</span><Link className="button button-outline" to="/explore"><ArrowLeft size={15} /> Browse exams</Link></div>}
     {!loading && !error && exam && <>
-      <section className="exam-hero"><div className="exam-hero-icon"><Icon size={31} /></div><div className="eyebrow">YOUR SYLLABUS, CLEARLY ORGANISED</div><h1>{exam.title}</h1><p>{exam.description || 'Explore the syllabus and start building a steady study rhythm.'}</p><div className="exam-hero-stats"><span><Folder size={15} /> {rootFolders.length} main sections</span><span><BookOpen size={15} /> {chapters.filter((chapter) => examFolderIds.has(chapter.folder_id) && isPublished(chapter)).length} learning chapters</span></div>{examIsPaid && !hasExamAccess && <button className="button button-gold exam-buy-button" disabled={!user || accessLoading} onClick={() => setCheckoutItem({ itemType: 'exam', itemId: exam.id, itemTitle: exam.title, tier: 'Complete Exam Bundle', basePrice: examPrice })}><LockKeyhole size={15} /> Unlock Complete {exam.title} · ₹{examPrice.toLocaleString('en-IN')} <ArrowRight size={14} /></button>}</section>
+      <section className="exam-hero"><div className="exam-hero-icon"><Icon size={31} /></div><div className="eyebrow">YOUR SYLLABUS, CLEARLY ORGANISED</div><h1>{exam.title}</h1><p>{exam.description || 'Explore the syllabus and start building a steady study rhythm.'}</p><div className="exam-hero-stats"><span><Folder size={15} /> {rootFolders.length} main sections</span><span><BookOpen size={15} /> {chapters.filter((chapter) => examFolderIds.has(chapter.folder_id) && isPublished(chapter)).length} learning chapters</span></div>{examIsPaid && accessLoading && <span className="text-xs text-slate-500 dark:text-slate-300">Checking your access…</span>}{examIsPaid && !accessLoading && !accessError && !hasExamAccess && <button className="button button-gold exam-buy-button" disabled={!user} onClick={() => setCheckoutItem({ itemType: 'exam', itemId: exam.id, itemTitle: exam.title, tier: 'Complete Exam Bundle', basePrice: examPrice })}><LockKeyhole size={15} /> Unlock Complete {exam.title} · ₹{examPrice.toLocaleString('en-IN')} <ArrowRight size={14} /></button>}</section>
       {accessError && <div className="feedback error-feedback">{accessError}</div>}
-      {examIsPaid && !hasExamAccess && (
+      {examIsPaid && !accessLoading && !accessError && !hasExamAccess && (
         <section className="paywall-banner exam-paywall-banner">
           <span className="paywall-icon"><LockKeyhole size={19} /></span>
           <div>
@@ -107,7 +107,9 @@ export default function ExamDetail() {
           </Link>
           <div className="syllabus-card-footer">
             <div className="syllabus-card-footer-left">
-              {price.amount > 0 ? (
+              {price.amount > 0 && accessLoading ? (
+                <span className="access-badge">Checking…</span>
+              ) : price.amount > 0 ? (
                 <span className={`access-badge ${isRootUnlocked ? 'access-free' : 'access-paid'}`}>
                   {isRootUnlocked ? 'Purchased' : price.label}
                 </span>
@@ -115,7 +117,7 @@ export default function ExamDetail() {
                 <span className="access-badge access-free">Free</span>
               )}
             </div>
-            {price.amount > 0 && !isRootUnlocked && (
+            {price.amount > 0 && !accessLoading && !accessError && !isRootUnlocked && (
               <button
                 type="button"
                 className="button button-gold buy-inline-button"

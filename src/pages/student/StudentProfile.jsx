@@ -13,7 +13,7 @@ import { getFriendlyErrorMessage } from '../../lib/errors';
 import { ensureReferralCode } from '../../lib/referrals';
 
 export default function StudentProfile() {
-  const { user, profile, guest, coinBalance, supabase, signOut, refreshAccount } = useAuth();
+  const { user, profile, guest, coinBalance, accountAccess, supabase, signOut, refreshAccount } = useAuth();
   const navigate = useNavigate();
 
   // Modals state
@@ -119,9 +119,12 @@ export default function StudentProfile() {
 
   // User Stats & Access State
   const [attempts, setAttempts] = useState([]);
-  const [isPro, setIsPro] = useState(false);
-  const [unlockedCount, setUnlockedCount] = useState(0);
-  const [validTill, setValidTill] = useState('Free plan');
+  const accessStatus = accountAccess?.userId === user?.id
+    ? accountAccess.ready ? 'ready' : accountAccess.loading ? 'loading' : 'error'
+    : 'loading';
+  const isPro = accessStatus === 'ready' && accountAccess.isPremium;
+  const unlockedCount = accessStatus === 'ready' ? accountAccess.unlockedCount : 0;
+  const validTill = accessStatus === 'ready' ? accountAccess.validTill : 'Checking…';
 
   // Local storage counts
   const [bookmarksCount, setBookmarksCount] = useState(0);
@@ -194,38 +197,6 @@ export default function StudentProfile() {
         const validAttempts = attemptRows || [];
         setAttempts(validAttempts);
 
-        // Fetch User Access / Subscription
-        const { data: accessRows } = await supabase
-          .from('user_access')
-          .select('*')
-          .eq('user_id', user.id);
-
-        if (!active) return;
-        const activeGrants = (accessRows || []).filter((g) => {
-          if (g.is_active === false || g.active === false) return false;
-          if (g.expires_at && new Date(g.expires_at).getTime() <= Date.now()) return false;
-          return true;
-        });
-
-        const hasActiveGrant = activeGrants.length > 0 || ['admin', 'super_admin'].includes(profile?.role);
-        setIsPro(hasActiveGrant);
-        setUnlockedCount(activeGrants.length);
-
-        if (hasActiveGrant) {
-          const latestExpiry = activeGrants.find((g) => g.expires_at);
-          if (latestExpiry?.expires_at) {
-            const formatted = new Date(latestExpiry.expires_at).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric'
-            });
-            setValidTill(formatted);
-          } else {
-            setValidTill('Lifetime Access');
-          }
-        } else {
-          setValidTill('Free plan');
-        }
       } catch (err) {
         console.warn('Unable to load user profile stats:', err);
       }
@@ -482,7 +453,11 @@ export default function StudentProfile() {
                   <h2 className="text-base sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight truncate">
                     {displayName}
                   </h2>
-                  {isPro ? (
+                  {accessStatus !== 'ready' ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold dark:bg-slate-700/70 bg-slate-200 text-slate-500 animate-pulse">
+                      Checking access…
+                    </span>
+                  ) : isPro ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-sm">
                       <span>👑</span>
                       <span>Premium</span>
@@ -532,10 +507,12 @@ export default function StudentProfile() {
             </div>
             <div className="min-w-0">
               <h3 className="text-sm sm:text-lg font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-2 truncate">
-                <span>{isPro ? 'Premium access active' : 'Free plan'}</span>
+                <span>{accessStatus === 'ready' ? (isPro ? 'Premium access active' : 'Free plan') : 'Checking your access'}</span>
               </h3>
               <p className="text-[11px] sm:text-xs dark:text-amber-200/80 text-amber-900/90 font-medium truncate">
-                {isPro
+                {accessStatus !== 'ready'
+                  ? 'Your account benefits are loading'
+                  : isPro
                   ? `${unlockedCount} ${unlockedCount === 1 ? 'item' : 'items'} unlocked`
                   : 'Unlock full mock tests, notes & tools'}
               </p>
@@ -543,7 +520,9 @@ export default function StudentProfile() {
           </div>
 
           <div className="text-right shrink-0">
-            {isPro ? (
+            {accessStatus !== 'ready' ? (
+              <span className="inline-block w-16 h-10 rounded-full dark:bg-slate-700/70 bg-slate-200 animate-pulse" aria-label="Loading plan status" />
+            ) : isPro ? (
               <>
                 <div className="text-[9px] sm:text-[10px] uppercase font-bold dark:text-amber-400/80 text-amber-800">Status</div>
                 <div className="text-xs sm:text-sm font-extrabold dark:text-white text-slate-900 flex items-center gap-1">

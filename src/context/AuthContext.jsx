@@ -11,6 +11,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [profileError, setProfileError] = useState('');
   const [coinBalance, setCoinBalance] = useState(0);
+  const [accountAccess, setAccountAccess] = useState({ userId: null, loading: Boolean(supabase), ready: false, isPremium: false, unlockedCount: 0, validTill: 'Free plan' });
   const [loading, setLoading] = useState(Boolean(supabase));
   const [guest, setGuest] = useState(false);
   const [guestDemoEnabled, setGuestDemoEnabled] = useState(false);
@@ -22,14 +23,20 @@ export function AuthProvider({ children }) {
     if (!activeSession?.user || !supabase) {
       setProfile(null);
       setCoinBalance(0);
+      setAccountAccess({ userId: null, loading: false, ready: true, isPremium: false, unlockedCount: 0, validTill: 'Free plan' });
       return;
     }
     const userId = activeSession.user.id;
     setProfileError('');
-    const [profileResult, walletResult] = await Promise.all([
+    setAccountAccess((current) => current.userId === userId && current.ready
+      ? { ...current, loading: true }
+      : { userId, loading: true, ready: false, isPremium: false, unlockedCount: 0, validTill: 'Free plan' });
+    const [profileResult, walletResult, accessResult] = await Promise.all([
       supabase.from('profiles').select('account_status,avatar_url,created_at,current_streak,daily_goal_progress,daily_goal_target,daily_goal_type,email,email_verified,full_name,id,last_active_date,mobile,mobile_verified,onboarding_completed,preferred_language,referral_code,role,target_exams,theme,updated_at').eq('id', userId).maybeSingle(),
-      supabase.from('coin_wallets').select('balance').eq('user_id', userId).maybeSingle()
+      supabase.from('coin_wallets').select('balance').eq('user_id', userId).maybeSingle(),
+      supabase.from('user_access').select('is_active,active,status,expires_at').eq('user_id', userId)
     ]);
+    if (userRef.current !== userId) return;
     if (profileResult.error) {
       console.error('Unable to load profile data:', profileResult.error);
       setProfile(null);
@@ -42,6 +49,26 @@ export function AuthProvider({ children }) {
       setCoinBalance(0);
     } else {
       setCoinBalance(Number(walletResult.data?.balance || 0));
+    }
+
+    if (accessResult.error) {
+      console.warn('Unable to load account access:', accessResult.error);
+      setAccountAccess((current) => current.userId === userId
+        ? { ...current, loading: false, ready: false }
+        : current);
+    } else {
+      const now = Date.now();
+      const activeGrants = (accessResult.data || []).filter((grant) => {
+        if (grant.is_active === false || grant.active === false) return false;
+        if (grant.status && !['active', 'granted', 'lifetime'].includes(String(grant.status).toLowerCase())) return false;
+        return !grant.expires_at || new Date(grant.expires_at).getTime() > now;
+      });
+      const isPremium = activeGrants.length > 0 || ['admin', 'super_admin'].includes(profileResult.data?.role);
+      const latestExpiry = activeGrants.find((grant) => grant.expires_at)?.expires_at;
+      const validTill = latestExpiry
+        ? new Date(latestExpiry).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+        : isPremium ? 'Lifetime Access' : 'Free plan';
+      setAccountAccess({ userId, loading: false, ready: true, isPremium, unlockedCount: activeGrants.length, validTill });
     }
 
     if (profileResult.data && !profileResult.data.referral_code) {
@@ -196,10 +223,10 @@ export function AuthProvider({ children }) {
   const refreshAccount = useCallback(() => loadAccount(session), [loadAccount, session]);
   const role = profile?.role || (guest ? 'guest' : 'student');
   const value = useMemo(() => ({
-    supabase, session, user: session?.user || null, profile, profileError, coinBalance, loading, guest,
+    supabase, session, user: session?.user || null, profile, profileError, coinBalance, accountAccess, loading, guest,
     guestDemoEnabled, role, isAdmin: ['admin', 'super_admin'].includes(role),
     enterGuestMode, signOut, refreshAccount, configurationError: supabaseConfigurationError
-  }), [session, profile, profileError, coinBalance, loading, guest, guestDemoEnabled, role, enterGuestMode, signOut, refreshAccount]);
+  }), [session, profile, profileError, coinBalance, accountAccess, loading, guest, guestDemoEnabled, role, enterGuestMode, signOut, refreshAccount]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

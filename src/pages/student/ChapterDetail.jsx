@@ -427,7 +427,7 @@ export default function ChapterDetail() {
                       : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30'
                   }`}
                 >
-                  {isLocked ? t('paidAccess') : t('freeToExplore')}
+                  {accessLoading ? t('checkingAccess') : isLocked ? t('paidAccess') : t('freeToExplore')}
                 </span>
               </div>
 
@@ -499,7 +499,7 @@ export default function ChapterDetail() {
             )}
 
             {/* Paywall Banner if Locked */}
-            {isLocked && (
+            {isLocked && !accessLoading && !accessError && (
               <section className="p-4 sm:p-5 rounded-2xl dark:bg-gradient-to-r dark:from-amber-950/40 dark:to-slate-800/60 bg-amber-50/90 border dark:border-amber-500/30 border-amber-300/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-500 shrink-0">
@@ -557,6 +557,10 @@ export default function ChapterDetail() {
                     <strong className="block text-sm dark:text-white text-slate-900">{t('testsUnavailable')}</strong>
                     <span className="text-xs text-slate-500 dark:text-slate-400">{t('chooseAnotherTab')}</span>
                   </div>
+                ) : accessLoading ? (
+                  <p className="text-xs dark:text-slate-300 text-slate-600 font-medium">{t('checkingAccess')}</p>
+                ) : accessError ? (
+                  <div className="p-3 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border border-rose-300 text-rose-700 text-xs font-bold">{accessError}</div>
                 ) : isLocked ? (
                   <div className="p-8 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-2">
                     <LockKeyhole size={24} className="mx-auto text-amber-500 opacity-60" />

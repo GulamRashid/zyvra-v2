@@ -152,7 +152,7 @@ export default function FolderView() {
               </p>
 
               <div className="flex items-center gap-2 flex-wrap pt-1 text-sm">
-                <AccessBadge label={pricing.amount ? (isCurrentFolderUnlocked ? 'Purchased' : pricing.label) : 'Free'} />
+                <AccessBadge label={pricing.amount ? (accessLoading ? 'Checking…' : isCurrentFolderUnlocked ? 'Purchased' : pricing.label) : 'Free'} />
                 {pricing.amount > 0 && (
                   <span className="text-amber-600 dark:text-amber-400 font-bold">
                     Explicit pricing rule · {pricing.label}
@@ -174,7 +174,7 @@ export default function FolderView() {
             )}
 
             {/* Paywall Banner if Locked */}
-            {pricing.amount > 0 && !isCurrentFolderUnlocked && (
+            {pricing.amount > 0 && !accessLoading && !accessError && !isCurrentFolderUnlocked && (
               <section className="p-4 sm:p-5 rounded-2xl dark:bg-gradient-to-r dark:from-amber-950/40 dark:to-slate-800/60 bg-amber-50/90 border dark:border-amber-500/30 border-amber-300/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-500 shrink-0">
@@ -261,12 +261,12 @@ export default function FolderView() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <AccessBadge label={childStatus ? 'Coming Soon' : childPricing.amount ? (isChildUnlocked ? 'Purchased' : 'Paid') : 'Free'} />
+                        <AccessBadge label={childStatus ? 'Coming Soon' : childPricing.amount ? (accessLoading ? 'Checking…' : isChildUnlocked ? 'Purchased' : 'Paid') : 'Free'} />
                         <ChevronRight size={17} className="text-slate-400 dark:text-slate-500" />
                       </div>
                     </Link>
 
-                    {childPricing.amount > 0 && !isChildUnlocked && (
+                    {childPricing.amount > 0 && !accessLoading && !accessError && !isChildUnlocked && (
                       <div className="pt-2 border-t dark:border-slate-700/40 border-slate-100 flex justify-end">
                         <button
                           type="button"
@@ -309,7 +309,7 @@ export default function FolderView() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <AccessBadge label={access.amount > 0 ? (isChapterUnlocked ? 'Purchased' : access.label) : access.label} />
+                        <AccessBadge label={access.amount > 0 ? (accessLoading ? 'Checking…' : isChapterUnlocked ? 'Purchased' : access.label) : access.label} />
                         <ArrowRight size={16} className="text-slate-400 dark:text-slate-500" />
                       </div>
                     </Link>

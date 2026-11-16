@@ -4,12 +4,16 @@ import { normalizeAccessResult } from '../lib/commerce';
 export default function useContentAccess(items, user, supabase, refreshKey = 0) {
   const [accessByKey, setAccessByKey] = useState({});
   const [loading, setLoading] = useState(false);
+  const [resolvedRequestKey, setResolvedRequestKey] = useState('');
   const [error, setError] = useState('');
   const itemKey = items.map((item) => `${item.type}:${item.id}:${item.paid ? 1 : 0}`).join('|');
+  const requestKey = `${itemKey}::${user?.id || ''}::${refreshKey}`;
+  const hasPaidItems = items.some((item) => item.paid);
 
   useEffect(() => {
     let active = true;
     const load = async () => {
+      const userId = user?.id;
       setLoading(items.some((item) => item.paid));
       setError('');
       const results = {};
@@ -17,12 +21,14 @@ export default function useContentAccess(items, user, supabase, refreshKey = 0) 
       paidItems.forEach((item) => { results[`${item.type}:${item.id}`] = false; });
       if (!paidItems.length) {
         setAccessByKey(results);
+        setResolvedRequestKey(requestKey);
         setLoading(false);
         return;
       }
-      if (!user || !supabase) {
+      if (!userId || !supabase) {
         if (active) {
           setAccessByKey(results);
+          setResolvedRequestKey(requestKey);
           setLoading(false);
         }
         return;
@@ -51,6 +57,7 @@ export default function useContentAccess(items, user, supabase, refreshKey = 0) 
         if (!activeGrants.length) {
           if (active) {
             setAccessByKey(results);
+            setResolvedRequestKey(requestKey);
             setLoading(false);
           }
           return;
@@ -74,7 +81,7 @@ export default function useContentAccess(items, user, supabase, refreshKey = 0) 
         if (unresolved.length > 0) {
           const checks = await Promise.all(unresolved.map(async (item) => {
             const { data, error: accessError } = await supabase.rpc('check_user_access', {
-              p_user_id: user.id,
+              p_user_id: userId,
               p_item_type: item.type,
               p_item_id: item.id
             });
@@ -86,9 +93,11 @@ export default function useContentAccess(items, user, supabase, refreshKey = 0) 
 
         if (!active) return;
         setAccessByKey(results);
+        setResolvedRequestKey(requestKey);
       } catch (accessError) {
         if (active) {
           setAccessByKey(results);
+          setResolvedRequestKey(requestKey);
           setError(accessError.message || 'Unable to verify your content access.');
         }
       } finally {
@@ -97,7 +106,12 @@ export default function useContentAccess(items, user, supabase, refreshKey = 0) 
     };
     load();
     return () => { active = false; };
-  }, [itemKey, user?.id, supabase, refreshKey]);
+  }, [items, requestKey, supabase, user?.id]);
 
-  return { accessByKey, loading, error };
+  const requestResolved = !hasPaidItems || resolvedRequestKey === requestKey;
+  return {
+    accessByKey: requestResolved ? accessByKey : {},
+    loading: loading || (hasPaidItems && !requestResolved),
+    error
+  };
 }
