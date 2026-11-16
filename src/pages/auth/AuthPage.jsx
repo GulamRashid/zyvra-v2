@@ -68,26 +68,29 @@ export default function AuthPage() {
     return () => window.clearInterval(timer);
   }, [cooldown]);
 
-  const sendOtp = async (event) => {
-    event.preventDefault();
+  const sendOtp = async (event, authMode = method) => {
+    event?.preventDefault();
     setError('');
     setMessage('');
     if (!supabase) { setError(configurationError); return; }
-    if (method === 'otp' && password && password.length < 8) { setError('Password must be at least 8 characters.'); return; }
-    if (method === 'otp' && password && password !== passwordConfirm) { setError('Passwords do not match.'); return; }
+    if (!email.trim()) { setError('Enter your email address first.'); return; }
+    if (authMode === 'otp' && password && password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (authMode === 'otp' && password && password !== passwordConfirm) { setError('Passwords do not match.'); return; }
     setBusy(true);
     try {
       const { error: authError } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          shouldCreateUser: method === 'otp'
+          shouldCreateUser: authMode === 'otp'
         }
       });
       if (authError) throw authError;
       setStep('verify');
       setOtp(Array(6).fill(''));
       setCooldown(RESEND_SECONDS);
-      setMessage(`A six-digit verification code was sent to ${email.trim()}.`);
+      setMessage(authMode === 'recovery'
+        ? `A sign-in code was requested for ${email.trim()}. Check your inbox and spam folder.`
+        : `A six-digit verification code was sent to ${email.trim()}.`);
     } catch (authError) {
       setError(authError.message || 'We could not send the code. Check your connection and try again.');
     } finally {
@@ -234,7 +237,7 @@ export default function AuthPage() {
             {method === 'recovery' && <p className="field-hint">We’ll email a sign-in code to your existing account. New accounts cannot be created in this flow.</p>}
             <button type="submit" className="button button-gold button-full" disabled={busy}>{busy ? 'Please wait…' : method === 'otp' ? <>Send 6-Digit OTP <ArrowRight size={16} /></> : method === 'recovery' ? <>Send sign-in code <ArrowRight size={16} /></> : <>Sign in <ArrowRight size={16} /></>}</button>
           </form>
-          {method === 'password' && <button type="button" className="text-button auth-switch" onClick={() => { setMethod('recovery'); setPassword(''); setPasswordConfirm(''); setError(''); setMessage(''); setStep('email'); }}>Forgot password? Sign in with OTP, then reset it from Profile.</button>}
+          {method === 'password' && <button type="button" className="text-button auth-switch" onClick={() => { setMethod('recovery'); setPassword(''); setPasswordConfirm(''); setError(''); setMessage(''); setStep('email'); if (email.trim()) sendOtp(undefined, 'recovery'); }}>Forgot password? Get a sign-in code to reset it from Profile.</button>}
         </>}
         {message && <div className="feedback success-feedback"><CheckCircle2 size={16} />{message}</div>}
         {error && <div className="feedback error-feedback">{error}</div>}
