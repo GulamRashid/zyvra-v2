@@ -59,16 +59,13 @@ export default function StudentProfile() {
     }
     setPasswordBusy(true);
     try {
-      const { error: otpError } = await supabase.auth.signInWithOtp({
-        email: user.email,
-        options: { shouldCreateUser: false }
-      });
-      if (otpError) throw otpError;
+      const { error: recoveryError } = await supabase.auth.resetPasswordForEmail(user.email);
+      if (recoveryError) throw recoveryError;
       setPasswordOtp('');
       setPasswordStep('verify');
-      setPasswordFeedback(`A verification code was sent to ${user.email}.`);
-    } catch (otpError) {
-      setPasswordError(otpError.message || 'Could not send the verification code. Please try again.');
+      setPasswordFeedback(`Password recovery email requested for ${user.email}. Check your inbox and spam folder for the code.`);
+    } catch (recoveryError) {
+      setPasswordError(recoveryError.message || 'Could not send the password recovery email. Please try again later.');
     } finally {
       setPasswordBusy(false);
     }
@@ -83,7 +80,7 @@ export default function StudentProfile() {
     if (newPassword !== confirmNewPassword) { setPasswordError('The passwords do not match.'); return; }
     setPasswordBusy(true);
     try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({ email: user.email, token: passwordOtp, type: 'email' });
+      const { error: verifyError } = await supabase.auth.verifyOtp({ email: user.email, token: passwordOtp, type: 'recovery' });
       if (verifyError) throw verifyError;
       const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
       if (updateError) throw updateError;
