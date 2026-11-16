@@ -78,18 +78,18 @@ export default function AuthPage() {
     if (authMode === 'otp' && password && password !== passwordConfirm) { setError('Passwords do not match.'); return; }
     setBusy(true);
     try {
-      const { error: authError } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          shouldCreateUser: authMode === 'otp'
-        }
-      });
+      const { error: authError } = authMode === 'recovery'
+        ? await supabase.auth.resetPasswordForEmail(email.trim())
+        : await supabase.auth.signInWithOtp({
+          email: email.trim(),
+          options: { shouldCreateUser: true }
+        });
       if (authError) throw authError;
       setStep('verify');
       setOtp(Array(6).fill(''));
       setCooldown(RESEND_SECONDS);
       setMessage(authMode === 'recovery'
-        ? `A sign-in code was requested for ${email.trim()}. Check your inbox and spam folder.`
+        ? `A password reset code was requested for ${email.trim()}. Check your inbox and spam folder.`
         : `A six-digit verification code was sent to ${email.trim()}.`);
     } catch (authError) {
       setError(authError.message || 'We could not send the code. Check your connection and try again.');
@@ -104,11 +104,23 @@ export default function AuthPage() {
     if (!supabase) { setError(configurationError); return; }
     const token = otp.join('');
     if (!/^\d{6}$/.test(token)) { setError('Enter all six digits to continue.'); return; }
+    if (method === 'recovery' && password.length < 8) { setError('Choose a password with at least 8 characters.'); return; }
+    if (method === 'recovery' && password !== passwordConfirm) { setError('Passwords do not match.'); return; }
     setBusy(true);
     try {
-      const { data: authData, error: authError } = await supabase.auth.verifyOtp({ email: email.trim(), token, type: 'email' });
+      const { data: authData, error: authError } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token,
+        type: method === 'recovery' ? 'recovery' : 'email'
+      });
       if (authError) throw authError;
       if (authData?.user) {
+        if (method === 'recovery') {
+          const { error: passwordError } = await supabase.auth.updateUser({ password });
+          if (passwordError) throw passwordError;
+          setMessage('Your password has been reset. You are now signed in.');
+          return;
+        }
         if (method === 'otp' && password) {
           const { error: passwordError } = await supabase.auth.updateUser({ password });
           if (passwordError) throw new Error(`Your email is verified, but the password could not be saved. Sign in with OTP and set it from Profile. ${passwordError.message}`);
@@ -200,7 +212,7 @@ export default function AuthPage() {
     <div className="auth-layout">
       <section className="auth-story"><div className="eyebrow"><Sparkles size={14} /> YOUR NEXT CHAPTER STARTS HERE</div><h1>Make every<br /><em>study hour</em> count.</h1><p>A calmer, more focused way to prepare for BPSC, SSC, CTET and beyond.</p><div className="auth-points"><span><CheckCircle2 size={16} /> One place for your learning journey</span><span><CheckCircle2 size={16} /> Progress that feels rewarding</span><span><CheckCircle2 size={16} /> Built for focused exam prep</span></div><div className="auth-quote"><div className="quote-stars">✦ ✦ ✦ ✦ ✦</div><p>“A little progress each day adds up to big results.”</p><span>YOUR ZYVRA STUDY SPACE</span></div></section>
       <section className="auth-card">
-        <div className="auth-card-heading"><div className="auth-icon"><ShieldCheck size={20} /></div><div><h2>{step === 'verify' ? 'Check your email' : method === 'password' || method === 'recovery' ? 'Welcome back' : 'Create your free account'}</h2><p>{step === 'verify' ? 'Enter the six-digit code to verify your email.' : method === 'password' ? 'Sign in to continue your learning.' : method === 'recovery' ? 'Sign in with a code, then reset your password from Profile.' : 'Verify your email to get started. No payment needed.'}</p></div></div>
+        <div className="auth-card-heading"><div className="auth-icon"><ShieldCheck size={20} /></div><div><h2>{step === 'verify' ? (method === 'recovery' ? 'Reset your password' : 'Check your email') : method === 'password' || method === 'recovery' ? 'Welcome back' : 'Create your free account'}</h2><p>{step === 'verify' ? (method === 'recovery' ? 'Enter the reset code from your email and choose a new password.' : 'Enter the six-digit code to verify your email.') : method === 'password' ? 'Sign in to continue your learning.' : method === 'recovery' ? 'Reset your password securely with an email code.' : 'Verify your email to get started. No payment needed.'}</p></div></div>
         {method === 'otp' && refCode && (
           <div className="referral-auth-banner">
             <Gift size={16} className="text-amber-400" />
@@ -214,7 +226,11 @@ export default function AuthPage() {
           <button className="back-link" onClick={() => { setStep('email'); setError(''); setMessage(''); }}><ArrowLeft size={15} /> Change email</button>
           <form onSubmit={verifyOtp}>
             <div className="otp-inputs" aria-label="Six-digit verification code">{otp.map((digit, index) => <input key={index} ref={(element) => { inputRefs.current[index] = element; }} aria-label={`Digit ${index + 1}`} inputMode="numeric" autoComplete={index === 0 ? 'one-time-code' : 'off'} maxLength={1} value={digit} onChange={(event) => updateOtpDigit(index, event.target.value)} onKeyDown={(event) => handleOtpKey(index, event)} />)}</div>
-            <button type="submit" className="button button-gold button-full" disabled={busy}>{busy ? 'Verifying…' : <>Verify email <ArrowRight size={16} /></>}</button>
+            {method === 'recovery' && <>
+              <label className="field-label">New password<div className="input-with-icon"><KeyRound size={17} /><input className="text-input" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} autoComplete="new-password" placeholder="At least 8 characters" /></div></label>
+              <label className="field-label">Confirm new password<div className="input-with-icon"><KeyRound size={17} /><input className="text-input" type="password" value={passwordConfirm} onChange={(event) => setPasswordConfirm(event.target.value)} required minLength={8} autoComplete="new-password" placeholder="Enter it again" /></div></label>
+            </>}
+            <button type="submit" className="button button-gold button-full" disabled={busy}>{busy ? (method === 'recovery' ? 'Resetting password…' : 'Verifying…') : method === 'recovery' ? <>Verify code & reset password <ArrowRight size={16} /></> : <>Verify email <ArrowRight size={16} /></>}</button>
           </form>
           <div className="resend-row">{cooldown ? <span>Resend code in <strong>00:{String(cooldown).padStart(2, '0')}</strong></span> : <button className="text-button" disabled={busy} onClick={sendOtp}>Resend code</button>}</div>
         </> : <>
@@ -234,10 +250,10 @@ export default function AuthPage() {
               <p className="field-hint">Set it now to sign in with your email and password later. You can also add one from Profile after OTP sign-in.</p>
             </>}
             {method === 'otp' && <p className="field-hint">We’ll email you a 6-digit code. You can set a password now, or create one later from your profile.</p>}
-            {method === 'recovery' && <p className="field-hint">We’ll email a sign-in code to your existing account. New accounts cannot be created in this flow.</p>}
-            <button type="submit" className="button button-gold button-full" disabled={busy}>{busy ? 'Please wait…' : method === 'otp' ? <>Send 6-Digit OTP <ArrowRight size={16} /></> : method === 'recovery' ? <>Send sign-in code <ArrowRight size={16} /></> : <>Sign in <ArrowRight size={16} /></>}</button>
+            {method === 'recovery' && <p className="field-hint">We’ll email a password reset code to your existing account. New accounts cannot be created in this flow.</p>}
+            <button type="submit" className="button button-gold button-full" disabled={busy}>{busy ? 'Please wait…' : method === 'otp' ? <>Send 6-Digit OTP <ArrowRight size={16} /></> : method === 'recovery' ? <>Send password reset code <ArrowRight size={16} /></> : <>Sign in <ArrowRight size={16} /></>}</button>
           </form>
-          {method === 'password' && <button type="button" className="text-button auth-switch" onClick={() => { setMethod('recovery'); setPassword(''); setPasswordConfirm(''); setError(''); setMessage(''); setStep('email'); if (email.trim()) sendOtp(undefined, 'recovery'); }}>Forgot password? Get a sign-in code to reset it from Profile.</button>}
+          {method === 'password' && <button type="button" className="text-button auth-switch" onClick={() => { setMethod('recovery'); setPassword(''); setPasswordConfirm(''); setError(''); setMessage(''); setStep('email'); if (email.trim()) sendOtp(undefined, 'recovery'); }}>Forgot password? Get a reset code by email.</button>}
         </>}
         {message && <div className="feedback success-feedback"><CheckCircle2 size={16} />{message}</div>}
         {error && <div className="feedback error-feedback">{error}</div>}
