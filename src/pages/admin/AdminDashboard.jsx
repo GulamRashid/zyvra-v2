@@ -126,6 +126,14 @@ export default function AdminDashboard() {
   const needsAttention = metrics
     .filter(({ key }) => !metricState[key].loading && metricState[key].error)
     .map(({ label }) => label);
+  const serviceStatus = (keys) => {
+    const states = keys.map((key) => metricState[key]);
+    if (states.some((state) => state.loading)) return 'CHECKING';
+    if (states.some((state) => state.error)) return 'ATTENTION';
+    return 'READY';
+  };
+  const platformHealth = serviceStatus(['users', 'content', 'questions', 'revenue']);
+  const platformHealthLabel = platformHealth === 'CHECKING' ? 'Checking' : platformHealth === 'ATTENTION' ? 'Needs attention' : 'Operational';
 
   return (
     <div className="admin-dashboard">
@@ -187,31 +195,31 @@ export default function AdminDashboard() {
               <div className="eyebrow">PLATFORM STATUS</div>
               <h2>System health</h2>
             </div>
-            <span className="health-pill"><span className="health-dot" /> Operational</span>
+            <span className={`health-pill ${platformHealth === 'ATTENTION' ? 'warning' : ''}`}><span className="health-dot" /> {platformHealthLabel}</span>
           </div>
           <div className="system-row">
             <div className="system-symbol"><ShieldCheck size={17} /></div>
             <div>
               <strong>Authentication</strong>
-              <span>Supabase Auth connection configured</span>
+              <span>{supabase ? 'Supabase Auth client initialized' : 'Supabase Auth is not configured'}</span>
             </div>
-            <span className="system-status">HEALTHY</span>
+            <span className={`system-status ${supabase ? '' : 'warning'}`}>{supabase ? 'READY' : 'SETUP NEEDED'}</span>
           </div>
           <div className="system-row">
             <div className="system-symbol"><Activity size={17} /></div>
             <div>
               <strong>Data services</strong>
-              <span>Database and profile service</span>
+              <span>Profile, content and question bank queries</span>
             </div>
-            <span className={`system-status ${supabase ? '' : 'warning'}`}>{supabase ? 'CONNECTED' : 'SETUP NEEDED'}</span>
+            <span className={`system-status ${serviceStatus(['users', 'content', 'questions']) === 'READY' ? '' : 'warning'}`}>{serviceStatus(['users', 'content', 'questions'])}</span>
           </div>
           <div className="system-row">
             <div className="system-symbol"><Coins size={17} /></div>
             <div>
-              <strong>Reward engine</strong>
-              <span>Configurable coin reward slabs</span>
+              <strong>Payment records</strong>
+              <span>Payment order data query</span>
             </div>
-            <span className="system-status">READY</span>
+            <span className={`system-status ${serviceStatus(['revenue']) === 'READY' ? '' : 'warning'}`}>{serviceStatus(['revenue'])}</span>
           </div>
         </section>
 
