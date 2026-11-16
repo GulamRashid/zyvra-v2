@@ -7,9 +7,16 @@ import {
   getQuestionText,
   extractLocalizedExplanation,
   extractLocalizedDistractorNote,
+  getAnsweredQuestionCount,
   hasDevanagari,
   hasLatin
 } from '../src/lib/tests.js';
+
+test('getAnsweredQuestionCount uses response data and never treats score/total as answered questions', () => {
+  assert.equal(getAnsweredQuestionCount({ score: 18, total_questions: 20 }), 0);
+  assert.equal(getAnsweredQuestionCount({ state_json: { answers: { q1: 'A', q2: '' }, responses: { q3: { selected_option: 'C' } } } }), 2);
+  assert.equal(getAnsweredQuestionCount({ answered_count: 4, total_questions: 20 }), 4);
+});
 
 test('normalizeCorrectAnswer: correctly resolves various answer formats', () => {
   // Direct letter

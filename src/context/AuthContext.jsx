@@ -52,8 +52,8 @@ export function AuthProvider({ children }) {
 
     const savedRef = sessionStorage.getItem('zyvra_ref_code');
     if (savedRef) {
-      processReferralAward(supabase, userId, savedRef).then(() => {
-        sessionStorage.removeItem('zyvra_ref_code');
+      processReferralAward(supabase, userId, savedRef).then((result) => {
+        if (result && !result.retryable) sessionStorage.removeItem('zyvra_ref_code');
       });
     }
     if (profileResult.data?.theme) {

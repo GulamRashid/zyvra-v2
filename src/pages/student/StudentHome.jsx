@@ -20,6 +20,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getRecommendedPractice } from '../../lib/recommendations';
+import { getAnsweredQuestionCount } from '../../lib/tests';
 
 function isComplete(attempt) {
   const status = String(attempt?.status || '').toLowerCase();
@@ -222,8 +223,7 @@ export default function StudentHome() {
       return ts ? localDateKey(ts) === todayKey : false;
     });
     return todayAttempts.reduce((sum, att) => {
-      const answered = Number(att.answered_count || att.total_questions || att.total_answered || 0);
-      return sum + answered;
+      return sum + getAnsweredQuestionCount(att);
     }, 0);
   }, [attempts, todayKey]);
 

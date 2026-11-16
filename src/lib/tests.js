@@ -740,4 +740,29 @@ export function mergeLockedAnswers(existingAnswers = {}, incomingAnswers = {}) {
   return merged;
 }
 
+export function getAnsweredQuestionCount(attempt = {}) {
+  const explicit = Number(attempt.answered_count ?? attempt.total_answered);
+  if (Number.isFinite(explicit) && explicit >= 0) return explicit;
+
+  let state = attempt.state_json || {};
+  if (typeof state === 'string') {
+    try { state = JSON.parse(state); } catch { state = {}; }
+  }
+
+  const answers = state.answers || attempt.answers || {};
+  const responses = state.responses || attempt.responses || {};
+  const questionIds = new Set([...Object.keys(answers), ...Object.keys(responses)]);
+  let count = 0;
+  questionIds.forEach((id) => {
+    const answer = answers[id];
+    const response = responses[id];
+    const selected = response?.selected_option ?? response?.selected_answer ?? response?.answer
+      ?? (typeof response === 'string' ? response : null)
+      ?? answer?.selected_option ?? answer?.selected_answer ?? answer?.answer
+      ?? (typeof answer === 'string' ? answer : null);
+    if (selected !== null && selected !== undefined && String(selected).trim() !== '') count += 1;
+  });
+  return count;
+}
+
 

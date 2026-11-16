@@ -170,11 +170,11 @@ export default function QuizResult() {
   const scorecard = useMemo(() => {
     return result ? (result.scorecard || result.summary || result) : {};
   }, [result]);
-  const score = Number(valueOf(scorecard, 'score', 'total_score', 'final_score')) || 34; // mockup baseline
+  const score = Number(valueOf(scorecard, 'score', 'total_score', 'final_score')) || 0;
   const rawPercentage = Number(valueOf(scorecard, 'percentage', 'score_percentage'));
   const percentage = rawPercentage > 0 && rawPercentage <= 1
     ? Math.round(rawPercentage * 100)
-    : (rawPercentage || 68); // mockup baseline 68%
+    : (rawPercentage || 0);
 
   // Load Peer Benchmark Data if not provided by result
   useEffect(() => {
@@ -236,7 +236,7 @@ export default function QuizResult() {
   }, [result?.peer_stats, result?.test_id, attemptId, supabase, scorecard]);
 
   const currentSolution = solutions[currentSolutionIndex] || null;
-  const totalQuestions = solutions.length || 50;
+  const totalQuestions = Number(valueOf(scorecard, 'total_questions', 'question_count')) || solutions.length;
 
   // Calculated stats across questions
   const stats = useMemo(() => {
@@ -258,13 +258,16 @@ export default function QuizResult() {
       else unattemptedCount += 1;
     });
 
-    // Fallbacks for mockup baseline: 34 Correct, 14 Incorrect, 2 Not Attempted
     if (solutions.length === 0) {
-      return { correctCount: 34, incorrectCount: 14, unattemptedCount: 2 };
+      return {
+        correctCount: Number(valueOf(scorecard, 'correct_count', 'correct')) || 0,
+        incorrectCount: Number(valueOf(scorecard, 'incorrect_count', 'incorrect')) || 0,
+        unattemptedCount: Number(valueOf(scorecard, 'unattempted_count', 'skipped_count', 'unanswered_count')) || 0
+      };
     }
 
     return { correctCount, incorrectCount, unattemptedCount };
-  }, [solutions]);
+  }, [solutions, scorecard]);
 
   // Topic Analysis Aggregate: Real Question Grouping by Tags/Subject/Topic
   const topicAnalysis = useMemo(() => {

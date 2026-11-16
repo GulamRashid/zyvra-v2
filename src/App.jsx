@@ -6,12 +6,14 @@ import ProtectedRoute from './components/layouts/ProtectedRoute';
 import LoadingSkeleton from './components/common/LoadingSkeleton';
 import QuizErrorBoundary from './components/common/QuizErrorBoundary';
 import PwaInstallBanner from './components/common/PwaInstallBanner';
+import PwaUpdatePrompt from './components/common/PwaUpdatePrompt';
 import { FileQuestion, ShoppingBag, Bookmark, Bell, Wrench } from 'lucide-react';
 
 const AuthPage = lazy(() => import('./pages/auth/AuthPage'));
 const StudentHome = lazy(() => import('./pages/student/StudentHome'));
 const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
 const StudentWallet = lazy(() => import('./pages/student/StudentWallet'));
+const StudentActivityPages = lazy(() => import('./pages/student/StudentActivityPages'));
 const StudentAnalytics = lazy(() => import('./pages/student/StudentAnalytics'));
 const ContentManager = lazy(() => import('./pages/admin/ContentManager'));
 const QBankManager = lazy(() => import('./pages/admin/QBankManager'));
@@ -117,7 +119,10 @@ function AppRoutes() {
       <Route path="notes" element={<Navigate to="/toolbox" replace />} />
       <Route path="saved" element={<Navigate to="/bookmarks" replace />} />
       <Route path="subscriptions" element={<Navigate to="/purchases" replace />} />
-      {Object.entries(studentPages).filter(([path]) => !['/toolbox', '/tests'].includes(path)).map(([path, page]) => <Route key={path} path={path.slice(1)} element={<StudentPlaceholder page={page} />} />)}
+      <Route path="purchases" element={<StudentActivityPages type="purchases" />} />
+      <Route path="bookmarks" element={<StudentActivityPages type="bookmarks" />} />
+      <Route path="notifications" element={<StudentActivityPages type="notifications" />} />
+      {Object.entries(studentPages).filter(([path]) => !['/toolbox', '/tests', '/purchases', '/bookmarks', '/notifications'].includes(path)).map(([path, page]) => <Route key={path} path={path.slice(1)} element={<StudentPlaceholder page={page} />} />)}
       <Route path="profile" element={<StudentProfile />} />
       <Route path="settings" element={<Navigate to="/profile" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -165,6 +170,7 @@ export default function App() {
     <>
       <RouteStatePreserver />
       <AppRoutes />
+      <PwaUpdatePrompt />
       <PwaInstallBanner />
     </>
   );

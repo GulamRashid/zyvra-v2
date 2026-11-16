@@ -117,127 +117,37 @@ export async function processReferralAward(supabase, newUserId, refCode) {
     const cleanCode = String(refCode).trim().toUpperCase();
     if (!cleanCode) return null;
 
-    // 1. Try atomic server-side RPC first (prevents race conditions)
+    // Referral awards must be performed atomically by the database RPC. A client-side
+    // fallback can split the referral, wallet and ledger writes or award coins twice.
+    let response;
     try {
-      const { data: rpcResult, error: rpcError } = await supabase.rpc('claim_referral_code', {
-        p_ref_code: cleanCode
-      });
-      if (!rpcError && rpcResult) {
-        if (rpcResult.success) {
-          if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
-            window.dispatchEvent(new window.CustomEvent('zyvra:coins-updated'));
-          }
-          return rpcResult;
-        }
-        if (rpcResult.already_referred) return null;
+      response = await supabase.rpc('claim_referral_code', { p_ref_code: cleanCode });
+    } catch (error) {
+      console.warn('Referral claim could not reach the server:', error);
+      return { success: false, retryable: true };
+    }
+
+    if (response.error) {
+      console.warn('Referral claim RPC failed:', response.error.message);
+      return { success: false, retryable: true };
+    }
+
+    const rpcResult = response.data;
+    if (!rpcResult || typeof rpcResult !== 'object') {
+      return { success: false, retryable: true };
+    }
+    if (rpcResult.success) {
+      if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
+        window.dispatchEvent(new window.CustomEvent('zyvra:coins-updated'));
       }
-    } catch {
-      // Fall through to client-side award if RPC is not yet migrated
+      return { ...rpcResult, retryable: false };
     }
 
-    // 2. Check settings
-    const settings = await getReferralSettings(supabase);
-    if (!settings.enabled) return null;
-
-    // 3. Find referrer
-    const { data: referrer, error: referrerError } = await supabase
-      .from('profiles')
-      .select('id, full_name, email, referral_code')
-      .ilike('referral_code', cleanCode)
-      .maybeSingle();
-
-    if (referrerError || !referrer || referrer.id === newUserId) {
-      return null;
-    }
-
-    // 4. Check if referral already recorded
-    const { data: existingReferral } = await supabase
-      .from('referrals')
-      .select('id')
-      .eq('referred_id', newUserId)
-      .maybeSingle();
-
-    if (existingReferral) {
-      return null; // Already credited
-    }
-
-    // 5. Log referral record
-    const { data: referralRecord, error: insertError } = await supabase
-      .from('referrals')
-      .insert({
-        referrer_id: referrer.id,
-        referred_id: newUserId,
-        referrer_coins_awarded: settings.referrerCoins,
-        referred_coins_awarded: settings.referredCoins
-      })
-      .select()
-      .maybeSingle();
-
-    if (insertError) {
-      console.warn('Could not insert referral row:', insertError.message);
-    }
-
-    // 6. Credit coins to both wallets
-    // Referrer
-    try {
-      await creditCoinsToWallet(supabase, referrer.id, settings.referrerCoins, 'Referral reward: invited a student');
-    } catch (e) {
-      console.warn('Error crediting referrer:', e);
-    }
-
-    // New student
-    try {
-      await creditCoinsToWallet(supabase, newUserId, settings.referredCoins, 'Referral bonus: joined with invite code');
-    } catch (e) {
-      console.warn('Error crediting referred user:', e);
-    }
-
-    if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
-      window.dispatchEvent(new window.CustomEvent('zyvra:coins-updated'));
-    }
-
-    return referralRecord || { success: true };
+    // A business rejection (invalid/self/already claimed/paused) is final. An RPC
+    // error above is retryable and callers should keep the referral code for later.
+    return { ...rpcResult, retryable: false };
   } catch (err) {
     console.error('processReferralAward error:', err);
-    return null;
-  }
-}
-
-async function creditCoinsToWallet(supabase, userId, amount, reason) {
-  if (!supabase || !userId || !amount) return;
-
-  // Try RPC if available
-  const { error: rpcError } = await supabase.rpc('admin_adjust_user_coins', {
-    p_user_id: userId,
-    p_amount: Number(amount),
-    p_reason: reason
-  });
-
-  if (!rpcError) return;
-
-  // Fallback: direct ledger + wallet update
-  try {
-    const { data: wallet } = await supabase
-      .from('coin_wallets')
-      .select('balance')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    const currentBalance = Number(wallet?.balance || 0);
-    const newBalance = currentBalance + Number(amount);
-
-    await supabase.from('coin_wallets').upsert({
-      user_id: userId,
-      balance: newBalance
-    }, { onConflict: 'user_id' });
-
-    await supabase.from('coin_ledger').insert({
-      user_id: userId,
-      amount: Number(amount),
-      transaction_type: 'credit',
-      reason
-    });
-  } catch (fallbackError) {
-    console.warn('Direct coin award fallback error:', fallbackError);
+    return { success: false, retryable: true };
   }
 }
