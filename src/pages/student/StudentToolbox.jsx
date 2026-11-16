@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Binary, Bookmark, BookOpen, Brain, Calculator, ChevronRight,
+  ArrowLeft, Binary, Bookmark, BookOpen, Brain, Calculator, CalendarDays, ChevronRight,
   Clock3, Compass, Dices, Landmark, ListChecks, LockKeyhole, Percent,
   Scale, Shapes, Sigma, StickyNote, Superscript, TrendingUp, Wrench
 } from 'lucide-react';
@@ -21,6 +21,7 @@ import ConstitutionArticles from '../../components/toolbox/gs/ConstitutionArticl
 import StickyNotes from '../../components/toolbox/productivity/StickyNotes';
 import PomodoroTimer from '../../components/toolbox/productivity/PomodoroTimer';
 import DailyTargets from '../../components/toolbox/productivity/DailyTargets';
+import ExamCountdown from '../../components/toolbox/productivity/ExamCountdown';
 import ToolUnlockModal from '../../components/toolbox/ToolUnlockModal';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
@@ -56,6 +57,7 @@ const CATEGORY_TOOLS = {
     { id: 'pomodoro', titleKey: 'tbPomodoro', subtitleKey: 'tbPomodoroDesc', Icon: Clock3, accessKey: 'pomodoro' },
     { id: 'sticky-notes', titleKey: 'tbStickyNotes', subtitleKey: 'tbStickyNotesDesc', Icon: StickyNote, accessKey: 'pomodoro' },
     { id: 'daily-targets', titleKey: 'tbDailyTargets', subtitleKey: 'tbDailyTargetsDesc', Icon: ListChecks, accessKey: 'pomodoro' }
+    ,{ id: 'exam-countdown', titleKey: 'tbExamCountdown', subtitleKey: 'tbExamCountdownDesc', Icon: CalendarDays, accessKey: 'pomodoro' }
   ],
   'general-studies': [
     { id: 'constitution-articles', titleKey: 'tbConstitution', subtitleKey: 'tbConstitutionDesc', Icon: Landmark, accessKey: 'polity-articles' },
@@ -447,6 +449,7 @@ export default function StudentToolbox() {
     if (activeTool === 'unit-converter') return <UnitConverter />;
     if (activeTool === 'sticky-notes') return <StickyNotes />;
     if (activeTool === 'daily-targets') return <DailyTargets />;
+    if (activeTool === 'exam-countdown') return <ExamCountdown />;
     if (activeTool === 'reasoning-formulas') return renderReasoningHub();
     if (activeTool === 'saved-bookmarks') return renderBookmarks();
     if (activeTool === 'pomodoro') return <PomodoroTimer

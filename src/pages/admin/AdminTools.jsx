@@ -88,6 +88,10 @@ export default function AdminTools() {
   const [editAccessType, setEditAccessType] = useState('free');
   const [editPurchaseType, setEditPurchaseType] = useState('Always Free');
   const [editPrice, setEditPrice] = useState(0);
+  const [editValidityDays, setEditValidityDays] = useState(30);
+  const [bundlePrice, setBundlePrice] = useState(0);
+  const [bundleValidityDays, setBundleValidityDays] = useState(30);
+  const [toolboxPricing, setToolboxPricing] = useState({ tools: {}, combo: { price: 0, validity_days: 30 } });
   const [editLimitDaily, setEditLimitDaily] = useState(false);
   const [editDailyCount, setEditDailyCount] = useState(5);
 
@@ -121,11 +125,14 @@ export default function AdminTools() {
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('platform_settings')
-        .select('*')
-        .eq('setting_key', 'study_toolbox_config')
-        .maybeSingle();
+      const [{ data, error }, { data: pricingRow }] = await Promise.all([
+        supabase.from('platform_settings').select('*').eq('setting_key', 'study_toolbox_config').maybeSingle(),
+        supabase.from('platform_settings').select('setting_value').eq('setting_key', 'toolbox_pricing').maybeSingle()
+      ]);
+      const pricing = pricingRow?.setting_value || {};
+      setToolboxPricing({ tools: pricing.tools || {}, combo: pricing.combo || { price: 0, validity_days: 30 } });
+      setBundlePrice(Math.max(0, Number(pricing.combo?.price) || 0));
+      setBundleValidityDays(Math.min(3650, Math.max(1, Number(pricing.combo?.validity_days) || 30)));
 
       if (!error && data?.setting_value && Array.isArray(data.setting_value) && data.setting_value.length > 0) {
         // Map database setting to UI model
@@ -138,6 +145,7 @@ export default function AdminTools() {
           accessType: item.access_type || item.accessType || (item.price > 0 ? 'paid' : 'free'),
           purchaseType: item.purchaseType || (item.price > 0 ? 'Single Purchase' : 'Always Free'),
           price: Number(item.price) || 0,
+          validityDays: Math.min(3650, Math.max(1, Number(item.validity_days) || 30)),
           active: item.enabled !== false && item.active !== false,
           popular: item.popular ?? (index < 3),
           order: index + 1
@@ -172,6 +180,7 @@ export default function AdminTools() {
       setEditAccessType(selectedTool.accessType || 'free');
       setEditPurchaseType(selectedTool.purchaseType || 'Always Free');
       setEditPrice(selectedTool.price ?? 0);
+      setEditValidityDays(selectedTool.validityDays ?? 30);
       setEditLimitDaily(String(selectedTool.purchaseType || '').includes('Limited'));
     }
   }, [selectedTool]);
@@ -197,18 +206,24 @@ export default function AdminTools() {
       price: t.price,
       enabled: t.active,
       popular: t.popular,
-      validity_days: 30
+      validity_days: Number(t.validityDays) || 30
     }));
 
     if (supabase) {
       try {
-        const { error } = await supabase.from('platform_settings').upsert({
+        const nextPricing = { ...toolboxPricing, tools: { ...(toolboxPricing.tools || {}) } };
+        dbPayload.forEach((item) => {
+          nextPricing.tools[item.id] = { ...(nextPricing.tools[item.id] || {}), access_type: item.access_type === 'paid' ? 'premium' : 'free', price: item.price, validity_days: item.validity_days };
+        });
+        const [{ error }, pricingResult] = await Promise.all([supabase.from('platform_settings').upsert({
           setting_key: 'study_toolbox_config',
           key: 'study_toolbox_config',
           setting_value: dbPayload
-        }, { onConflict: 'setting_key' });
+        }, { onConflict: 'setting_key' }), supabase.from('platform_settings').upsert({ setting_key: 'toolbox_pricing', key: 'toolbox_pricing', setting_value: nextPricing }, { onConflict: 'setting_key' })]);
 
         if (error) throw error;
+        if (pricingResult.error) throw pricingResult.error;
+        setToolboxPricing(nextPricing);
         setStatusMessage({ text: 'Toolbox settings saved to database!', type: 'success' });
       } catch (err) {
         console.error('Save to cloud failed:', err);
@@ -237,12 +252,32 @@ export default function AdminTools() {
           ...t,
           accessType: editAccessType,
           purchaseType: editLimitDaily ? `Limited (${editDailyCount}/day)` : editPurchaseType,
-          price: editAccessType === 'free' ? 0 : Number(editPrice) || 49
+          price: editAccessType === 'free' ? 0 : Math.max(1, Number(editPrice) || 49),
+          validityDays: Math.min(3650, Math.max(1, Number(editValidityDays) || 30))
         };
       }
       return t;
     });
     persistToolsToDatabase(updated);
+  };
+
+  const saveBundlePricing = async () => {
+    if (!supabase) return;
+    setSaving(true);
+    try {
+      const next = {
+        ...toolboxPricing,
+        combo: { price: Math.max(0, Number(bundlePrice) || 0), validity_days: Math.min(3650, Math.max(1, Number(bundleValidityDays) || 30)) }
+      };
+      const { error } = await supabase.from('platform_settings').upsert({ setting_key: 'toolbox_pricing', key: 'toolbox_pricing', setting_value: next }, { onConflict: 'setting_key' });
+      if (error) throw error;
+      setToolboxPricing(next);
+      setStatusMessage({ text: 'Toolbox bundle pricing saved.', type: 'success' });
+    } catch (err) {
+      setStatusMessage({ text: err.message || 'Unable to save bundle pricing.', type: 'error' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Drag and Drop handlers
@@ -595,11 +630,20 @@ export default function AdminTools() {
                   onChange={(e) => setEditPrice(Number(e.target.value))}
                   className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-black focus:outline-none focus:border-amber-400"
                 />
+                <label className="text-[11px] font-bold text-slate-300 block mt-2">Validity (days)
+                  <input type="number" min="1" max="3650" value={editValidityDays} onChange={(e) => setEditValidityDays(Number(e.target.value))} className="mt-1 w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-black focus:outline-none focus:border-amber-400" />
+                </label>
               </div>
             )}
 
             {/* Global Access Rules Toggles */}
             <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-700/60 space-y-2 mt-2">
+              <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-300">Unlock All Tools Bundle</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-[10px] font-bold text-slate-300">Price (₹)<input type="number" min="0" value={bundlePrice} onChange={(e) => setBundlePrice(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>
+                <label className="text-[10px] font-bold text-slate-300">Validity (days)<input type="number" min="1" max="3650" value={bundleValidityDays} onChange={(e) => setBundleValidityDays(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>
+              </div>
+              <button type="button" disabled={saving} onClick={saveBundlePricing} className="w-full py-2 rounded-lg bg-amber-400 text-slate-950 text-xs font-black disabled:opacity-50">Save bundle price</button>
               <h4 className="text-[10px] font-black uppercase tracking-wider text-indigo-300">
                 Global Display Rules
               </h4>
