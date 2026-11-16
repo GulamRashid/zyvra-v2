@@ -541,41 +541,6 @@ export default function StudentProfile() {
           </div>
         </section>
 
-        {!guest && <section className="password-setting-card">
-          <div className="password-setting-heading">
-            <div className="password-setting-icon"><KeyRound size={18} /></div>
-            <div><h3>Password sign-in</h3><p>Add a password, or reset it after verifying your email.</p></div>
-            {!passwordPanelOpen && <button type="button" className="button button-outline password-toggle-button" onClick={() => { setPasswordPanelOpen(true); setPasswordStep('start'); setPasswordError(''); setPasswordFeedback(''); }}>Set or reset</button>}
-          </div>
-          {passwordPanelOpen && <div className="password-setting-form">
-            {passwordStep === 'start' && <>
-              <p className="password-setting-help">We will send a one-time code to <strong>{user?.email}</strong>. Verify it to create or replace your password.</p>
-              <div className="password-setting-actions"><button type="button" className="button button-gold" onClick={requestPasswordOtp} disabled={passwordBusy}>{passwordBusy ? 'Sending code…' : 'Send verification code'}</button><button type="button" className="text-button" onClick={() => setPasswordPanelOpen(false)}>Cancel</button></div>
-            </>}
-            {passwordStep === 'verify' && <form onSubmit={saveNewPassword}>
-              <label className="field-label">Email verification code<div className="input-with-icon"><Mail size={16} /><input className="text-input" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={passwordOtp} onChange={(event) => setPasswordOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required placeholder="6-digit code" /></div></label>
-              <label className="field-label">New password<div className="input-with-icon"><KeyRound size={16} /><input className="text-input" type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required placeholder="At least 8 characters" /></div></label>
-              <label className="field-label">Confirm new password<div className="input-with-icon"><KeyRound size={16} /><input className="text-input" type="password" autoComplete="new-password" minLength={8} value={confirmNewPassword} onChange={(event) => setConfirmNewPassword(event.target.value)} required placeholder="Enter it again" /></div></label>
-              <div className="password-setting-actions"><button type="submit" className="button button-gold" disabled={passwordBusy}>{passwordBusy ? 'Saving…' : 'Verify code and save password'}</button><button type="button" className="text-button" onClick={requestPasswordOtp} disabled={passwordBusy}>Resend code</button></div>
-            </form>}
-            {passwordStep === 'done' && <button type="button" className="button button-outline" onClick={() => { setPasswordPanelOpen(false); setPasswordStep('closed'); }}>Done</button>}
-            {passwordFeedback && <div className="feedback success-feedback">{passwordFeedback}</div>}
-            {passwordError && <div className="feedback error-feedback">{passwordError}</div>}
-          </div>}
-        </section>}
-
-        {!guest && <section className="password-setting-card">
-          <div className="password-setting-heading">
-            <div className="password-setting-icon"><ShieldCheck size={18} /></div>
-            <div><h3>Signed-in devices</h3><p>Use your account on up to two devices at a time.</p></div>
-            <button type="button" className="button button-outline password-toggle-button" onClick={signOutOtherDevices} disabled={deviceActionBusy}>
-              {deviceActionBusy ? 'Signing out…' : 'Sign out other devices'}
-            </button>
-          </div>
-          {deviceFeedback && <div className="feedback success-feedback">{deviceFeedback}</div>}
-          {deviceError && <div className="feedback error-feedback">{deviceError}</div>}
-        </section>}
-
         {/* 4 Stats Cards Grid (Real Aggregates - 360px optimized) */}
         <section className="grid grid-cols-4 gap-1.5 sm:gap-3">
           {/* Card 1: Tests Attempted */}
@@ -781,6 +746,50 @@ export default function StudentProfile() {
             <ChevronRight size={16} className="dark:text-slate-500 text-slate-400 group-hover:dark:text-white group-hover:text-black group-hover:translate-x-0.5 transition-all" />
           </button>
         </section>
+
+        {!guest && <section className="profile-security-section">
+          <div className="profile-section-heading">
+            <div><span>ACCOUNT SECURITY</span><h3>Sign-in & devices</h3></div>
+            <ShieldCheck size={19} aria-hidden="true" />
+          </div>
+
+          <div className="profile-security-list">
+            <article className="password-setting-card profile-security-card">
+              <div className="profile-security-row">
+                <div className="password-setting-icon"><KeyRound size={18} /></div>
+                <div className="profile-security-copy"><h4>Password sign-in</h4><p>Set or reset after verifying your email.</p></div>
+                {!passwordPanelOpen && <button type="button" className="button button-outline profile-security-action" onClick={() => { setPasswordPanelOpen(true); setPasswordStep('start'); setPasswordError(''); setPasswordFeedback(''); }}>Set / reset</button>}
+              </div>
+              {passwordPanelOpen && <div className="password-setting-form">
+                {passwordStep === 'start' && <>
+                  <p className="password-setting-help">We will send a one-time code to <strong>{user?.email}</strong>. Verify it to create or replace your password.</p>
+                  <div className="password-setting-actions"><button type="button" className="button button-gold" onClick={requestPasswordOtp} disabled={passwordBusy}>{passwordBusy ? 'Sending code…' : 'Send verification code'}</button><button type="button" className="text-button" onClick={() => setPasswordPanelOpen(false)}>Cancel</button></div>
+                </>}
+                {passwordStep === 'verify' && <form onSubmit={saveNewPassword}>
+                  <label className="field-label">Email verification code<div className="input-with-icon"><Mail size={16} /><input className="text-input" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={passwordOtp} onChange={(event) => setPasswordOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required placeholder="6-digit code" /></div></label>
+                  <label className="field-label">New password<div className="input-with-icon"><KeyRound size={16} /><input className="text-input" type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required placeholder="At least 8 characters" /></div></label>
+                  <label className="field-label">Confirm new password<div className="input-with-icon"><KeyRound size={16} /><input className="text-input" type="password" autoComplete="new-password" minLength={8} value={confirmNewPassword} onChange={(event) => setConfirmNewPassword(event.target.value)} required placeholder="Enter it again" /></div></label>
+                  <div className="password-setting-actions"><button type="submit" className="button button-gold" disabled={passwordBusy}>{passwordBusy ? 'Saving…' : 'Verify code and save password'}</button><button type="button" className="text-button" onClick={requestPasswordOtp} disabled={passwordBusy}>Resend code</button></div>
+                </form>}
+                {passwordStep === 'done' && <button type="button" className="button button-outline" onClick={() => { setPasswordPanelOpen(false); setPasswordStep('closed'); }}>Done</button>}
+                {passwordFeedback && <div className="feedback success-feedback">{passwordFeedback}</div>}
+                {passwordError && <div className="feedback error-feedback">{passwordError}</div>}
+              </div>}
+            </article>
+
+            <article className="password-setting-card profile-security-card">
+              <div className="profile-security-row">
+                <div className="password-setting-icon"><ShieldCheck size={18} /></div>
+                <div className="profile-security-copy"><h4>Signed-in devices</h4><p>Use your account on up to two devices.</p></div>
+                <button type="button" className="button button-outline profile-security-action" onClick={signOutOtherDevices} disabled={deviceActionBusy}>
+                  {deviceActionBusy ? 'Signing out…' : 'Sign out others'}
+                </button>
+              </div>
+              {deviceFeedback && <div className="feedback success-feedback">{deviceFeedback}</div>}
+              {deviceError && <div className="feedback error-feedback">{deviceError}</div>}
+            </article>
+          </div>
+        </section>}
 
         {/* Sign Out Button */}
         <div className="pt-2 space-y-2">
