@@ -272,8 +272,8 @@ CREATE OR REPLACE FUNCTION public.fulfill_checkout_order_atomic(
   p_internal_order_id TEXT,
   p_gateway_order_id TEXT,
   p_payment_id TEXT,
-  p_amount_paise BIGINT,
-  p_currency TEXT
+  p_amount_paise BIGINT DEFAULT NULL,
+  p_currency TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -421,7 +421,8 @@ BEGIN
     SELECT * INTO v_referral
     FROM public.referrals
     WHERE referred_id = v_order.user_id
-    LIMIT 1;
+    LIMIT 1
+    FOR UPDATE;
 
     IF FOUND AND v_referral.referrer_id IS NOT NULL THEN
       -- Idempotency Check: verify reward has not already been credited for this order

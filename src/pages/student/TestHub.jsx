@@ -12,6 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { prefetchLiveQuiz } from '../../lib/prefetchLiveQuiz';
+import { getAnsweredQuestionCount } from '../../lib/tests';
 
 function isComplete(attempt) {
   const status = String(attempt?.status || '').toLowerCase();
@@ -82,17 +83,21 @@ export default function TestHub() {
 
       setTests(testRows || []);
 
-      const { data: qRows, error: questionError } = await supabase
-        .from('test_questions')
-        .select('test_id');
-      if (questionError) throw questionError;
-
-      if (qRows) {
+      // Students cannot read test_questions directly (it contains protected
+      // question links). Ask the count-only RPC instead so a permission error
+      // cannot take down the entire Test Hub.
+      if (testRows?.length) {
+        const { data: countRows, error: countError } = await supabase.rpc('get_published_test_question_counts', {
+          p_test_ids: testRows.map((test) => test.id)
+        });
         const counts = {};
-        qRows.forEach((row) => {
-          counts[row.test_id] = (counts[row.test_id] || 0) + 1;
+        if (countError) console.warn('Test question counts are unavailable:', countError.message);
+        else (countRows || []).forEach((row) => {
+          counts[row.test_id] = Number(row.question_count) || 0;
         });
         setQuestionCounts(counts);
+      } else {
+        setQuestionCounts({});
       }
 
       if (user) {
@@ -140,13 +145,13 @@ export default function TestHub() {
       const subjectTests = tests.filter((t) => subjectChapters.some((ch) => ch.id === t.chapter_id) || t.folder_id === sf.id);
 
       // Total questions in this subject folder
-      const qCount = subjectTests.reduce((sum, t) => sum + (questionCounts[t.id] || 20), 0)
-        || subjectChapters.reduce((sum, c) => sum + (Number(c.question_count) || 15), 0);
+      const qCount = subjectTests.reduce((sum, t) => sum + (questionCounts[t.id] ?? (Number(t.question_count) || 0)), 0)
+        || subjectChapters.reduce((sum, c) => sum + (Number(c.question_count) || 0), 0);
 
       // Solved questions by user in this subject
       const solvedInSubject = userAttempts
         .filter((att) => subjectTests.some((t) => t.id === att.test_id))
-        .reduce((sum, att) => sum + Number(att.score || att.answered_count || 0), 0);
+        .reduce((sum, att) => sum + getAnsweredQuestionCount(att), 0);
 
       const progress = qCount > 0 ? Math.min(100, Math.round((solvedInSubject / qCount) * 100)) : 0;
 
@@ -167,14 +172,14 @@ export default function TestHub() {
 
   // Total Solved vs Total Questions Real Ratio
   const totalQuestionsSum = useMemo(() => {
-    return tests.reduce((sum, t) => sum + (questionCounts[t.id] || 20), 0)
-      || chapters.reduce((sum, c) => sum + (Number(c.question_count) || 15), 0);
+    return tests.reduce((sum, t) => sum + (questionCounts[t.id] ?? (Number(t.question_count) || 0)), 0)
+      || chapters.reduce((sum, c) => sum + (Number(c.question_count) || 0), 0);
   }, [tests, questionCounts, chapters]);
 
   const totalQuestionsSolved = useMemo(() => {
     return userAttempts
       .filter(isComplete)
-      .reduce((sum, a) => sum + (Number(a.score || a.answered_count || 0)), 0);
+      .reduce((sum, a) => sum + getAnsweredQuestionCount(a), 0);
   }, [userAttempts]);
 
   const aggregateProgressPct = totalQuestionsSum > 0
@@ -332,7 +337,9 @@ export default function TestHub() {
                   <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
                     <span className="dark:text-slate-300 text-slate-700">Overall Track Completion</span>
                     <span className="text-amber-500 dark:text-amber-400 font-bold">
-                      {totalQuestionsSolved} / {totalQuestionsSum} Solved ({aggregateProgressPct}%)
+                      {totalQuestionsSum > 0
+                        ? `${totalQuestionsSolved} / ${totalQuestionsSum} Solved (${aggregateProgressPct}%)`
+                        : `${totalQuestionsSolved} Solved`}
                     </span>
                   </div>
                   <div className="w-full h-2 dark:bg-slate-700/60 bg-slate-200 rounded-full overflow-hidden">
@@ -497,7 +504,7 @@ export default function TestHub() {
                     && (attempt.state_json || attempt.answers || attempt.responses)
                   ));
                   const completedAttempt = attempts.find(isComplete);
-                  const qCount = questionCounts[test.id] || 20;
+                  const qCount = questionCounts[test.id] ?? (Number(test.question_count) || 0);
 
                   return (
                     <div
@@ -520,7 +527,7 @@ export default function TestHub() {
                         <div className="flex items-center gap-2.5 text-sm dark:text-slate-400 text-slate-600">
                           <span>⏱️ {test.duration_minutes || 60} mins</span>
                           <span>•</span>
-                          <span>❓ {qCount} Questions</span>
+                          <span>❓ {qCount > 0 ? `${qCount} Questions` : 'Question count unavailable'}</span>
                           {completedAttempt && (
                             <>
                               <span>•</span>

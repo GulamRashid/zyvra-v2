@@ -97,8 +97,8 @@ export default function AuthPage() {
       if (authData?.user) {
         await ensureReferralCode(supabase, authData.user.id);
         if (refCode) {
-          await processReferralAward(supabase, authData.user.id, refCode);
-          sessionStorage.removeItem('zyvra_ref_code');
+          const referralResult = await processReferralAward(supabase, authData.user.id, refCode);
+          if (referralResult && !referralResult.retryable) sessionStorage.removeItem('zyvra_ref_code');
         }
       }
       navigate(destination, { replace: true });
@@ -142,8 +142,8 @@ export default function AuthPage() {
       if (authData?.user) {
         await ensureReferralCode(supabase, authData.user.id);
         if (refCode) {
-          await processReferralAward(supabase, authData.user.id, refCode);
-          sessionStorage.removeItem('zyvra_ref_code');
+          const referralResult = await processReferralAward(supabase, authData.user.id, refCode);
+          if (referralResult && !referralResult.retryable) sessionStorage.removeItem('zyvra_ref_code');
         }
       }
       navigate(destination, { replace: true });
