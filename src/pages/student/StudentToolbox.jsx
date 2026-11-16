@@ -493,8 +493,8 @@ export default function StudentToolbox() {
   };
 
   return (
-    <div className="toolbox-page min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
-      <div className="max-w-2xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
+    <div className="toolbox-page min-h-screen min-w-0 dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
+      <div className="max-w-2xl min-w-0 mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Top Header / Breadcrumb */}
         {currentView !== 'main-menu' ? (
           <div className="flex items-center justify-between gap-3 p-2.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200">
@@ -629,7 +629,7 @@ export default function StudentToolbox() {
                 <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">Quick Access</span>
               </div>
 
-              <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-5 min-w-0 gap-1.5 sm:gap-2">
                 {[
                   { id: 'calculator', cat: 'math', label: 'Calculator', icon: Calculator, color: 'text-indigo-500' },
                   { id: 'fraction-converter', cat: 'math', label: 'Percentage', icon: Percent, color: 'text-cyan-500' },
