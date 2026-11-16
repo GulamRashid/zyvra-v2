@@ -7,7 +7,10 @@ export default function ProtectedRoute({ children, admin = false }) {
   const location = useLocation();
   if (loading) return <main className="page-loading"><LoadingSkeleton rows={5} /></main>;
   if (admin) {
-    if (!user || role === 'student' || role === 'guest') return <Navigate to="/auth" replace state={{ from: location }} />;
+    if (!user || guest) return <Navigate to="/auth" replace state={{ from: location }} />;
+    // Keep authenticated non-admin users out of admin routes without sending
+    // them back to /auth, which would redirect them to /admin again.
+    if (role === 'student' || role === 'guest') return <Navigate to="/" replace />;
     return children;
   }
   if (!user && !guest) return <Navigate to="/auth" replace state={{ from: location }} />;

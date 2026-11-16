@@ -108,7 +108,6 @@ export default function AuthPage() {
           if (referralResult && !referralResult.retryable) sessionStorage.removeItem('zyvra_ref_code');
         }
       }
-      navigate(destination, { replace: true });
     } catch (authError) {
       const detail = authError.message || '';
       setError(/expired/i.test(detail) ? 'This code has expired. Request a new code and try again.' : /invalid|token/i.test(detail) ? 'That code is not valid. Check the digits or request a new code.' : detail || 'Verification failed. Check your connection and try again.');
@@ -153,7 +152,6 @@ export default function AuthPage() {
           if (referralResult && !referralResult.retryable) sessionStorage.removeItem('zyvra_ref_code');
         }
       }
-      navigate(destination, { replace: true });
     } catch (authError) {
       setError(authError.message || 'Authentication failed. Check your connection and try again.');
     } finally {
@@ -191,7 +189,7 @@ export default function AuthPage() {
     <div className="auth-layout">
       <section className="auth-story"><div className="eyebrow"><Sparkles size={14} /> YOUR NEXT CHAPTER STARTS HERE</div><h1>Make every<br /><em>study hour</em> count.</h1><p>A calmer, more focused way to prepare for BPSC, SSC, CTET and beyond.</p><div className="auth-points"><span><CheckCircle2 size={16} /> One place for your learning journey</span><span><CheckCircle2 size={16} /> Progress that feels rewarding</span><span><CheckCircle2 size={16} /> Built for focused exam prep</span></div><div className="auth-quote"><div className="quote-stars">✦ ✦ ✦ ✦ ✦</div><p>“A little progress each day adds up to big results.”</p><span>YOUR ZYVRA STUDY SPACE</span></div></section>
       <section className="auth-card">
-        <div className="auth-card-heading"><div className="auth-icon"><ShieldCheck size={20} /></div><div><h2>{step === 'verify' ? 'Check your email' : 'Welcome to Zyvra'}</h2><p>{step === 'verify' ? 'Enter the six-digit code to verify your email.' : 'Sign in or create your free account.'}</p></div></div>
+        <div className="auth-card-heading"><div className="auth-icon"><ShieldCheck size={20} /></div><div><h2>{step === 'verify' ? 'Check your email' : method === 'password' ? 'Welcome back' : 'Create your free account'}</h2><p>{step === 'verify' ? 'Enter the six-digit code to verify your email.' : method === 'password' ? 'Sign in to continue your learning.' : 'Verify your email to get started. No payment needed.'}</p></div></div>
         {refCode && (
           <div className="referral-auth-banner">
             <Gift size={16} className="text-amber-400" />
@@ -210,8 +208,8 @@ export default function AuthPage() {
           <div className="resend-row">{cooldown ? <span>Resend code in <strong>00:{String(cooldown).padStart(2, '0')}</strong></span> : <button className="text-button" disabled={busy} onClick={sendOtp}>Resend code</button>}</div>
         </> : <>
           <div className="auth-tabs">
-            <button type="button" className={method === 'otp' ? 'selected' : ''} onClick={() => { setMethod('otp'); setPassword(''); setPasswordConfirm(''); setError(''); }}>OTP / Create account</button>
-            <button type="button" className={method === 'password' ? 'selected' : ''} onClick={() => { setMethod('password'); setPassword(''); setPasswordConfirm(''); setError(''); }}>Sign In with Password</button>
+            <button type="button" aria-pressed={method === 'password'} className={method === 'password' ? 'selected' : ''} onClick={() => { setMethod('password'); setPassword(''); setPasswordConfirm(''); setError(''); setMessage(''); }}>Sign in</button>
+            <button type="button" aria-pressed={method === 'otp'} className={method === 'otp' ? 'selected' : ''} onClick={() => { setMethod('otp'); setPassword(''); setPasswordConfirm(''); setError(''); setMessage(''); }}>Create account</button>
           </div>
           <form onSubmit={method === 'otp' ? sendOtp : passwordAuth}>
             <label className="field-label">Email address<div className="input-with-icon"><Mail size={17} /><input className="text-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="you@example.com" autoComplete="email" /></div></label>
@@ -224,7 +222,7 @@ export default function AuthPage() {
               {password && <label className="field-label">Confirm password<div className="input-with-icon"><KeyRound size={17} /><input className="text-input" type="password" value={passwordConfirm} onChange={(event) => setPasswordConfirm(event.target.value)} minLength={8} placeholder="Enter it again" autoComplete="new-password" /></div></label>}
               <p className="field-hint">Set it now to sign in with your email and password later. You can also add one from Profile after OTP sign-in.</p>
             </>}
-            {method === 'otp' && <p className="field-hint">We'll send a 6-digit code via email to verify your identity. Works for both new signups and existing accounts without a password.</p>}
+            {method === 'otp' && <p className="field-hint">We’ll email you a 6-digit code. You can set a password now, or create one later from your profile.</p>}
             <button type="submit" className="button button-gold button-full" disabled={busy}>{busy ? 'Please wait…' : method === 'otp' ? <>Send 6-Digit OTP <ArrowRight size={16} /></> : <>Sign in <ArrowRight size={16} /></>}</button>
           </form>
           {method === 'password' && <button type="button" className="text-button auth-switch" onClick={() => { setMethod('otp'); setPassword(''); setPasswordConfirm(''); setError(''); setMessage(''); setStep('email'); }}>Forgot password? Sign in with OTP, then reset it from Profile.</button>}
