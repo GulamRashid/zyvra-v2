@@ -91,6 +91,8 @@ export default function AdminTools() {
   const [editValidityDays, setEditValidityDays] = useState(30);
   const [bundlePrice, setBundlePrice] = useState(0);
   const [bundleValidityDays, setBundleValidityDays] = useState(30);
+  const [fullPassPrice, setFullPassPrice] = useState(0);
+  const [fullPassDays, setFullPassDays] = useState(365);
   const [toolboxPricing, setToolboxPricing] = useState({ tools: {}, combo: { price: 0, validity_days: 30 } });
   const [editLimitDaily, setEditLimitDaily] = useState(false);
   const [editDailyCount, setEditDailyCount] = useState(5);
@@ -125,10 +127,14 @@ export default function AdminTools() {
     }
     setLoading(true);
     try {
-      const [{ data, error }, { data: pricingRow }] = await Promise.all([
+      const [{ data, error }, { data: pricingRow }, { data: passRow }] = await Promise.all([
         supabase.from('platform_settings').select('*').eq('setting_key', 'study_toolbox_config').maybeSingle(),
-        supabase.from('platform_settings').select('setting_value').eq('setting_key', 'toolbox_pricing').maybeSingle()
+        supabase.from('platform_settings').select('setting_value').eq('setting_key', 'toolbox_pricing').maybeSingle(),
+        supabase.from('platform_settings').select('*').eq('setting_key', 'full_pass_config').maybeSingle()
       ]);
+      const fullPass = passRow?.setting_value ?? passRow?.value ?? {};
+      setFullPassPrice(Math.max(0, Number(fullPass.price) || 0));
+      setFullPassDays(Math.min(3650, Math.max(1, Number(fullPass.validity_days) || 365)));
       const pricing = pricingRow?.setting_value || {};
       setToolboxPricing({ tools: pricing.tools || {}, combo: pricing.combo || { price: 0, validity_days: 30 } });
       setBundlePrice(Math.max(0, Number(pricing.combo?.price) || 0));
@@ -278,6 +284,19 @@ export default function AdminTools() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const saveFullPassPricing = async () => {
+    if (!supabase) return;
+    setSaving(true);
+    try {
+      const value = { price: Math.max(0, Number(fullPassPrice) || 0), validity_days: Math.min(3650, Math.max(1, Number(fullPassDays) || 365)) };
+      const { error } = await supabase.from('platform_settings').upsert({ setting_key: 'full_pass_config', key: 'full_pass_config', setting_value: value }, { onConflict: 'setting_key' });
+      if (error) throw error;
+      setStatusMessage({ text: 'Full Pass price and validity saved.', type: 'success' });
+    } catch (err) {
+      setStatusMessage({ text: err.message || 'Unable to save Full Pass settings.', type: 'error' });
+    } finally { setSaving(false); }
   };
 
   // Drag and Drop handlers
@@ -638,6 +657,12 @@ export default function AdminTools() {
 
             {/* Global Access Rules Toggles */}
             <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-700/60 space-y-2 mt-2">
+              <h4 className="text-[10px] font-black uppercase tracking-wider text-emerald-300">Platform Full Pass</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="text-[10px] font-bold text-slate-300">Price (₹)<input type="number" min="0" value={fullPassPrice} onChange={(e) => setFullPassPrice(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>
+                <label className="text-[10px] font-bold text-slate-300">Validity (days)<input type="number" min="1" max="3650" value={fullPassDays} onChange={(e) => setFullPassDays(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>
+              </div>
+              <button type="button" disabled={saving} onClick={saveFullPassPricing} className="w-full py-2 rounded-lg bg-emerald-400 text-slate-950 text-xs font-black disabled:opacity-50">Save Full Pass</button>
               <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-300">Unlock All Tools Bundle</h4>
               <div className="grid grid-cols-2 gap-2">
                 <label className="text-[10px] font-bold text-slate-300">Price (₹)<input type="number" min="0" value={bundlePrice} onChange={(e) => setBundlePrice(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>

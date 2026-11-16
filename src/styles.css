@@ -1222,6 +1222,15 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
 .toolbox-tool-card:disabled { opacity: .7; cursor: wait; transform: none; }
 .toolbox-tool-lock { position: absolute; top: 14px; right: 14px; color: var(--gold); }
 .toolbox-tool-price { position: absolute; right: 12px; bottom: 11px; color: var(--gold); font-size: 11px; font-weight: 750; }
+@media (max-width: 640px) {
+  .toolbox-page { display: block; width: 100%; min-width: 0; overflow-x: clip; padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px)); }
+  .toolbox-page > div { width: 100%; max-width: 100%; padding-left: 12px; padding-right: 12px; }
+  .toolbox-page .toolbox-app-card { min-height: 76px; padding: 12px; border-radius: 16px; }
+  .toolbox-page .toolbox-section { min-width: 0; padding: 13px; }
+  .toolbox-page .calculator-keypad { gap: 6px; }
+  .toolbox-page .calculator-key { min-height: 48px; }
+  .toolbox-page input, .toolbox-page select, .toolbox-page textarea { max-width: 100%; font-size: 16px; }
+}
 .mini-tool { min-width: 0; }
 .mini-tool .field-label { min-width: 0; }
 .calculator-display { display: flex; min-height: 92px; flex-direction: column; align-items: stretch; justify-content: center; gap: 2px; padding: 12px 15px; overflow: hidden; border: 1px solid var(--line); border-radius: 15px; background: var(--bg); color: var(--text); font-family: Manrope, sans-serif; }

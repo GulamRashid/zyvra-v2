@@ -8,8 +8,9 @@ import {
   sendJson
 } from './_payment.js';
 
-const SUPPORTED_ITEM_TYPES = new Set(['folder', 'chapter', 'exam']);
+const SUPPORTED_ITEM_TYPES = new Set(['folder', 'chapter', 'exam', 'tool', 'toolbox_combo', 'full_pass']);
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const TOOL_ID_REGEX = /^[a-z0-9][a-z0-9-]{0,79}$/;
 
 function methodNotAllowedResponse() {
   return new Response(JSON.stringify({ error: 'Method not allowed.' }), {
@@ -110,6 +111,9 @@ export default async function handler(req, res) {
     if (
       !SUPPORTED_ITEM_TYPES.has(itemType) ||
       !itemId ||
+      (itemType === 'full_pass' && itemId !== 'global') ||
+      (itemType === 'toolbox_combo' && itemId !== 'all-tools') ||
+      (itemType === 'tool' && !TOOL_ID_REGEX.test(itemId)) ||
       itemId.length > 128 ||
       !Number.isSafeInteger(coinsToRedeem) ||
       coinsToRedeem < 0 ||

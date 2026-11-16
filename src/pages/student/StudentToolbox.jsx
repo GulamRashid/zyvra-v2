@@ -112,6 +112,7 @@ export default function StudentToolbox() {
   });
   const [toolPricing, setToolPricing] = useState({});
   const [comboPricing, setComboPricing] = useState({ price: 0, validity_days: 30 });
+  const [fullPassPricing, setFullPassPricing] = useState({ price: 0, validity_days: 365 });
   const [toolAccess, setToolAccess] = useState({});
   const [toolboxLoaded, setToolboxLoaded] = useState(false);
   const [accessError, setAccessError] = useState('');
@@ -156,12 +157,12 @@ export default function StudentToolbox() {
     const premiumToolIds = Object.entries(pricing)
       .filter(([, value]) => value?.access_type === 'premium')
       .map(([id]) => id);
-    if (!premiumToolIds.length) {
-      setToolAccess({});
-      setToolboxLoaded(true);
-      return;
-    }
     const requests = [
+      ['__full_pass', supabase.rpc('check_user_access', {
+        p_user_id: user.id,
+        p_item_type: 'full_pass',
+        p_item_id: 'global'
+      })],
       ...premiumToolIds.map((id) => [id, supabase.rpc('check_user_access', {
           p_user_id: user.id,
           p_item_type: 'tool',
@@ -247,8 +248,16 @@ export default function StudentToolbox() {
         price: Math.max(0, Number(parsedPricing?.combo?.price) || 0),
         validity_days: Math.max(1, Number(parsedPricing?.combo?.validity_days) || 30)
       };
+      const passSetting = (settingsResult.data || []).find((item) => item?.setting_key === 'full_pass_config' || item?.key === 'full_pass_config');
+      const rawPass = passSetting?.setting_value ?? passSetting?.value;
+      const parsedPass = typeof rawPass === 'string' ? JSON.parse(rawPass) : rawPass;
+      const safePass = {
+        price: Math.max(0, Number(parsedPass?.price) || 0),
+        validity_days: Math.min(3650, Math.max(1, Number(parsedPass?.validity_days) || 365))
+      };
       setToolPricing(safePricing);
       setComboPricing(safeCombo);
+      setFullPassPricing(safePass);
       setSettingsUnavailable(false);
       await refreshToolAccess(safePricing, safeCombo.price > 0);
       setLoading(false);
@@ -343,6 +352,17 @@ export default function StudentToolbox() {
         itemTitle: `${t('toolboxTitle')}: ${t('tbUnlockAllTools')}`,
         tier: `${comboPricing.validity_days} ${t('tbDays')}`,
         basePrice: comboPricing.price
+      });
+    }
+  };
+  const openFullPassCheckout = () => {
+    if (fullPassPricing.price > 0 && !toolAccess.__full_pass) {
+      setCheckout({
+        itemType: 'full_pass',
+        itemId: 'global',
+        itemTitle: 'Zyvra Full Pass',
+        tier: `${fullPassPricing.validity_days} ${t('tbDays')}`,
+        basePrice: fullPassPricing.price
       });
     }
   };
@@ -493,7 +513,7 @@ export default function StudentToolbox() {
         ) : (
           /* Main Hero Banner (Matching Mockup 1794580797580_48eb471c.jpg) */
           <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-r dark:from-slate-900 dark:via-[#1E293B] dark:to-slate-900 bg-gradient-to-r from-indigo-50 via-slate-50 to-white border dark:border-indigo-500/30 border-indigo-200/60 p-4 sm:p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-base">
@@ -511,15 +531,27 @@ export default function StudentToolbox() {
                 </p>
               </div>
 
-              {comboPricing.price > 0 && !toolAccess.__combo && (
-                <button
-                  type="button"
-                  onClick={openComboCheckout}
-                  className="shrink-0 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs shadow-glowGold transition-transform hover:scale-105 active:scale-95"
-                >
-                  ⚡ Unlock All (₹{comboPricing.price})
-                </button>
-              )}
+              <div className="flex flex-row flex-wrap sm:flex-col sm:items-end gap-1.5">
+                {fullPassPricing.price > 0 && !toolAccess.__full_pass && (
+                  <button
+                    type="button"
+                    onClick={openFullPassCheckout}
+                    className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-[11px] shadow-glowGold transition-transform active:scale-95"
+                  >
+                    🌟 Full Pass · ₹{fullPassPricing.price}
+                  </button>
+                )}
+                {toolAccess.__full_pass && <span className="px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 text-[10px] font-black">Full Pass active</span>}
+                {comboPricing.price > 0 && !toolAccess.__combo && !toolAccess.__full_pass && (
+                  <button
+                    type="button"
+                    onClick={openComboCheckout}
+                    className="px-3 py-1.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-black text-[10px] transition-transform active:scale-95"
+                  >
+                    ⚡ Toolbox only · ₹{comboPricing.price}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Quick capability badges */}
