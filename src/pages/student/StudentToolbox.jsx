@@ -234,7 +234,10 @@ export default function StudentToolbox() {
         : {};
       const pricingTools = { ...legacyToolPricing, ...savedToolPricing };
       const safePricing = Object.fromEntries(Object.entries(pricingTools).map(([id, value]) => [id, {
-        access_type: value?.access_type === 'premium' ? 'premium' : 'free',
+        // AdminTools stores access as "paid" while the student checkout uses
+        // "premium". Normalize both forms so admin pricing actually locks
+        // and unlocks the matching student tools.
+        access_type: ['premium', 'paid'].includes(String(value?.access_type || value?.accessType || '').toLowerCase()) ? 'premium' : 'free',
         price: Math.max(0, Number(value?.price) || 0),
         validity_days: Math.max(1, Number(value?.validity_days) || 30)
       }]));
