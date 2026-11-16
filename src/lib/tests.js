@@ -560,7 +560,8 @@ export function extractLocalizedExplanation(rawExplanation, language = 'en', que
       const stripped = text.replace(enRegex, '').trim();
       return cleanLanguagePrefix(stripped, 'hi');
     }
-    return cleanLanguagePrefix(text, 'hi');
+    // Never silently show English while the student has selected Hindi.
+    return '';
   } else {
     // English
     if (enMatch && enMatch[1].trim()) {
@@ -582,8 +583,8 @@ export function extractLocalizedDistractorNote(note, language = 'en') {
   if (!note) return '';
   if (typeof note === 'object') {
     return language === 'hi'
-      ? cleanLanguagePrefix(note.hi || note.text_hi || note.en || '', 'hi')
-      : cleanLanguagePrefix(note.en || note.text || note.hi || '', 'en');
+      ? cleanLanguagePrefix(note.hi || note.text_hi || '', 'hi')
+      : cleanLanguagePrefix(note.en || note.text || '', 'en');
   }
   const str = String(note).trim();
 
@@ -608,6 +609,8 @@ export function extractLocalizedDistractorNote(note, language = 'en') {
   if (language === 'hi' && hiMatch) return cleanLanguagePrefix(hiMatch[1], 'hi');
   if (language === 'en' && enMatch) return cleanLanguagePrefix(enMatch[1], 'en');
   if (language === 'en' && hiMatch) return cleanLanguagePrefix(str.replace(hiMatch[0], ''), 'en');
+
+  if ((language === 'hi' && !hasDevanagari(str)) || (language !== 'hi' && hasDevanagari(str) && !hasLatin(str))) return '';
 
   return cleanLanguagePrefix(str, language);
 }

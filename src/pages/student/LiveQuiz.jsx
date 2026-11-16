@@ -2396,13 +2396,18 @@ export default function LiveQuiz() {
                 {/* Localized Explanation */}
                 {(() => {
                   const expl = extractLocalizedExplanation(question.explanation, language, question);
-                  if (!expl) return null;
                   return (
                     <div className="immediate-explanation mt-3 pt-3 border-t border-neutral-200/60 dark:border-neutral-700/60 text-sm leading-relaxed">
                       <strong className="block text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 mb-1">
                         {language === 'hi' ? 'व्याख्या' : 'Explanation'}
                       </strong>
-                      <QuestionFormatter text={expl} />
+                      {expl ? (
+                        <QuestionFormatter text={expl} language={language} />
+                      ) : (
+                        <p className="text-neutral-500 dark:text-neutral-400">
+                          {language === 'hi' ? 'इस प्रश्न की व्याख्या हिंदी में उपलब्ध नहीं है।' : 'No explanation is available for this question yet.'}
+                        </p>
+                      )}
                     </div>
                   );
                 })()}

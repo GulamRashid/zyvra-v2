@@ -5,8 +5,17 @@ import {
   normalizeOptionKey,
   isQuestionLocked,
   resolveOptionEvaluationState,
-  mergeLockedAnswers
+  mergeLockedAnswers,
+  extractLocalizedExplanation,
+  extractLocalizedDistractorNote
 } from '../src/lib/tests.js';
+
+test('Hindi explanation selection never silently falls back to English', () => {
+  assert.equal(extractLocalizedExplanation('This explanation is only in English.', 'hi'), '');
+  assert.equal(extractLocalizedExplanation('English: English text\n\nHindi: हिंदी में व्याख्या।', 'hi'), 'हिंदी में व्याख्या।');
+  assert.equal(extractLocalizedExplanation('', 'hi', { explanation_hi: 'हिंदी में व्याख्या।' }), 'हिंदी में व्याख्या।');
+  assert.equal(extractLocalizedDistractorNote({ en: 'English note' }, 'hi'), '');
+});
 
 test('Quiz Locking: normalizeOptionKey standardizes option inputs', () => {
   assert.equal(normalizeOptionKey('a'), 'A');
