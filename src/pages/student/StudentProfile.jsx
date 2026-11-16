@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, BarChart3, Bell, Bookmark, Check, CheckCircle2, ChevronRight,
   Clock, Copy, Download, Edit3, FileText, Flame, HelpCircle, KeyRound, Layers,
-  LogOut, Mail, MessageCircle, Phone, Send, Settings, Share2, Target, Upload, Users
+  LogOut, Mail, MessageCircle, Phone, Send, Settings, Share2, ShieldCheck, Target, Upload, Users
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import MountainSunsetAura from '../../components/common/MountainSunsetAura';
@@ -43,6 +43,9 @@ export default function StudentProfile() {
   const [passwordBusy, setPasswordBusy] = useState(false);
   const [passwordFeedback, setPasswordFeedback] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [deviceActionBusy, setDeviceActionBusy] = useState(false);
+  const [deviceFeedback, setDeviceFeedback] = useState('');
+  const [deviceError, setDeviceError] = useState('');
 
   // Referral copy feedback
   const [copiedCode, setCopiedCode] = useState(false);
@@ -93,6 +96,24 @@ export default function StudentProfile() {
       setPasswordError(/expired/i.test(saveError.message || '') ? 'That code has expired. Request a new one.' : saveError.message || 'Could not update your password. Please try again.');
     } finally {
       setPasswordBusy(false);
+    }
+  };
+
+  const signOutOtherDevices = async () => {
+    if (!supabase || deviceActionBusy) return;
+    const confirmed = window.confirm('This will sign out this account on every other device. This device will stay signed in. Continue?');
+    if (!confirmed) return;
+    setDeviceActionBusy(true);
+    setDeviceFeedback('');
+    setDeviceError('');
+    try {
+      const { error } = await supabase.auth.signOut({ scope: 'others' });
+      if (error) throw error;
+      setDeviceFeedback('You have been signed out on other devices. You can use this account on up to two devices.');
+    } catch (error) {
+      setDeviceError(error.message || 'Could not sign out the other devices. Please try again.');
+    } finally {
+      setDeviceActionBusy(false);
     }
   };
 
@@ -562,6 +583,18 @@ export default function StudentProfile() {
             {passwordFeedback && <div className="feedback success-feedback">{passwordFeedback}</div>}
             {passwordError && <div className="feedback error-feedback">{passwordError}</div>}
           </div>}
+        </section>}
+
+        {!guest && <section className="password-setting-card">
+          <div className="password-setting-heading">
+            <div className="password-setting-icon"><ShieldCheck size={18} /></div>
+            <div><h3>Signed-in devices</h3><p>Use your account on up to two devices at a time.</p></div>
+            <button type="button" className="button button-outline password-toggle-button" onClick={signOutOtherDevices} disabled={deviceActionBusy}>
+              {deviceActionBusy ? 'Signing out…' : 'Sign out other devices'}
+            </button>
+          </div>
+          {deviceFeedback && <div className="feedback success-feedback">{deviceFeedback}</div>}
+          {deviceError && <div className="feedback error-feedback">{deviceError}</div>}
         </section>}
 
         {/* 4 Stats Cards Grid (Real Aggregates - 360px optimized) */}

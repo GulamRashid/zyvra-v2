@@ -7,6 +7,14 @@ import { ensureReferralCode, processReferralAward } from '../../lib/referrals';
 
 const RESEND_SECONDS = 45;
 
+function authErrorMessage(authError, fallback) {
+  const detail = authError?.message || '';
+  if (/two devices/i.test(detail)) {
+    return 'This account is already signed in on two devices. Sign out from another device, then try again.';
+  }
+  return detail || fallback;
+}
+
 export default function AuthPage() {
   const [method, setMethod] = useState('otp');
   const [step, setStep] = useState('email');
@@ -110,6 +118,10 @@ export default function AuthPage() {
       }
     } catch (authError) {
       const detail = authError.message || '';
+      if (/two devices/i.test(detail)) {
+        setError('This account is already signed in on two devices. Sign out from another device, then try again.');
+        return;
+      }
       setError(/expired/i.test(detail) ? 'This code has expired. Request a new code and try again.' : /invalid|token/i.test(detail) ? 'That code is not valid. Check the digits or request a new code.' : detail || 'Verification failed. Check your connection and try again.');
     } finally {
       setBusy(false);
@@ -153,7 +165,7 @@ export default function AuthPage() {
         }
       }
     } catch (authError) {
-      setError(authError.message || 'Authentication failed. Check your connection and try again.');
+      setError(authErrorMessage(authError, 'Authentication failed. Check your connection and try again.'));
     } finally {
       setBusy(false);
     }
@@ -170,7 +182,7 @@ export default function AuthPage() {
       });
       if (authError) throw authError;
     } catch (authError) {
-      setError(authError.message || 'Google sign-in failed. Check your connection and try again.');
+      setError(authErrorMessage(authError, 'Google sign-in failed. Check your connection and try again.'));
       setBusy(false);
     }
   };
