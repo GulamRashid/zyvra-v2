@@ -5,6 +5,17 @@ import { ensureReferralCode, processReferralAward } from '../lib/referrals';
 import { getFriendlyErrorMessage } from '../lib/errors';
 
 const AuthContext = createContext(null);
+const ACCOUNT_QUERY_TIMEOUT_MS = 7000;
+
+function withTimeout(request, label) {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(`${label} timed out`)), ACCOUNT_QUERY_TIMEOUT_MS);
+    Promise.resolve(request).then(
+      (value) => { window.clearTimeout(timer); resolve(value); },
+      (error) => { window.clearTimeout(timer); reject(error); }
+    );
+  });
+}
 
 export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
@@ -31,28 +42,32 @@ export function AuthProvider({ children }) {
     setAccountAccess((current) => current.userId === userId && current.ready
       ? { ...current, loading: true }
       : { userId, loading: true, ready: false, isPremium: false, unlockedCount: 0, validTill: 'Free plan' });
-    const [profileResult, walletResult, accessResult] = await Promise.all([
-      supabase.from('profiles').select('account_status,avatar_url,created_at,current_streak,daily_goal_progress,daily_goal_target,daily_goal_type,email,email_verified,full_name,id,last_active_date,mobile,mobile_verified,onboarding_completed,preferred_language,referral_code,role,target_exams,theme,updated_at').eq('id', userId).maybeSingle(),
-      supabase.from('coin_wallets').select('balance').eq('user_id', userId).maybeSingle(),
-      supabase.from('user_access').select('is_active,active,status,expires_at').eq('user_id', userId)
+    const results = await Promise.allSettled([
+      withTimeout(supabase.from('profiles').select('account_status,avatar_url,created_at,current_streak,daily_goal_progress,daily_goal_target,daily_goal_type,email,email_verified,full_name,id,last_active_date,mobile,mobile_verified,onboarding_completed,preferred_language,referral_code,role,target_exams,theme,updated_at').eq('id', userId).maybeSingle(), 'Profile lookup'),
+      withTimeout(supabase.from('coin_wallets').select('balance').eq('user_id', userId).maybeSingle(), 'Coin balance lookup'),
+      withTimeout(supabase.from('user_access').select('is_active,active,status,expires_at').eq('user_id', userId), 'Account access lookup')
     ]);
     if (userRef.current !== userId) return;
-    if (profileResult.error) {
-      console.error('Unable to load profile data:', profileResult.error);
+    const profileResult = results[0].status === 'fulfilled' ? results[0].value : null;
+    const walletResult = results[1].status === 'fulfilled' ? results[1].value : null;
+    const accessResult = results[2].status === 'fulfilled' ? results[2].value : null;
+    if (!profileResult || profileResult.error) {
+      const error = profileResult?.error || results[0].reason;
+      console.error('Unable to load profile data:', error);
       setProfile(null);
-      setProfileError(getFriendlyErrorMessage(profileResult.error, 'Profile data abhi load nahi ho paya.'));
+      setProfileError(getFriendlyErrorMessage(error, 'Profile data abhi load nahi ho paya.'));
     } else {
       setProfile(profileResult.data);
     }
-    if (walletResult.error && walletResult.error.code !== 'PGRST116') {
-      console.warn('Unable to load wallet balance:', walletResult.error);
+    if (!walletResult || (walletResult.error && walletResult.error.code !== 'PGRST116')) {
+      console.warn('Unable to load wallet balance:', walletResult?.error || results[1].reason);
       setCoinBalance(0);
     } else {
       setCoinBalance(Number(walletResult.data?.balance || 0));
     }
 
-    if (accessResult.error) {
-      console.warn('Unable to load account access:', accessResult.error);
+    if (!accessResult || accessResult.error) {
+      console.warn('Unable to load account access:', accessResult?.error || results[2].reason);
       setAccountAccess((current) => current.userId === userId
         ? { ...current, loading: false, ready: false }
         : current);
@@ -63,7 +78,7 @@ export function AuthProvider({ children }) {
         if (grant.status && !['active', 'granted', 'lifetime'].includes(String(grant.status).toLowerCase())) return false;
         return !grant.expires_at || new Date(grant.expires_at).getTime() > now;
       });
-      const isPremium = activeGrants.length > 0 || ['admin', 'super_admin'].includes(profileResult.data?.role);
+      const isPremium = activeGrants.length > 0 || ['admin', 'super_admin'].includes(profileResult?.data?.role);
       const latestExpiry = activeGrants.find((grant) => grant.expires_at)?.expires_at;
       const validTill = latestExpiry
         ? new Date(latestExpiry).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -71,7 +86,7 @@ export function AuthProvider({ children }) {
       setAccountAccess({ userId, loading: false, ready: true, isPremium, unlockedCount: activeGrants.length, validTill });
     }
 
-    if (profileResult.data && !profileResult.data.referral_code) {
+    if (profileResult?.data && !profileResult.data.referral_code) {
       ensureReferralCode(supabase, userId).then((code) => {
         if (code) setProfile((current) => current ? ({ ...current, referral_code: code }) : current);
       });
@@ -83,11 +98,11 @@ export function AuthProvider({ children }) {
         if (result && !result.retryable) sessionStorage.removeItem('zyvra_ref_code');
       });
     }
-    if (profileResult.data?.theme) {
+    if (profileResult?.data?.theme) {
       localStorage.setItem('zyvra-theme', profileResult.data.theme);
       await setTheme(profileResult.data.theme);
     }
-    if (['en', 'hi'].includes(profileResult.data?.preferred_language)) {
+    if (['en', 'hi'].includes(profileResult?.data?.preferred_language)) {
       setLanguage(profileResult.data.preferred_language, { syncProfile: false });
     }
   }, [setTheme, setLanguage]);

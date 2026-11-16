@@ -13,6 +13,7 @@ export default function PomodoroTimer({
   completed,
   focusMinutes,
   breakMinutes,
+  syncState,
   onToggle,
   onReset,
   onSelectMode,
@@ -58,6 +59,6 @@ export default function PomodoroTimer({
       <label className="field-label">{t('tbBreakLength')}<input className="text-input" type="number" min="1" max="60" value={breakDraft} onChange={(event) => setBreakDraft(event.target.value)} /></label>
       <button type="submit" className="button button-outline">{t('tbApplyTimes')}</button>
     </form>
-    <div className="pomodoro-completed">{completed} {t('tbCompletedSessions')}</div>
+    <div className="pomodoro-completed">{completed} {t('tbCompletedSessions')} · {t(syncState === 'syncing' ? 'tbSyncing' : syncState === 'synced' ? 'tbSynced' : syncState === 'offline' ? 'tbOfflineLocalSave' : 'tbNotesLocalOnly')}</div>
   </section>;
 }

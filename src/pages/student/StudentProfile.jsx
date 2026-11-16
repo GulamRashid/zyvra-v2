@@ -379,7 +379,7 @@ export default function StudentProfile() {
     <div className="min-h-screen dark:bg-[#0B1120] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
       {/* Top App Bar & Tech Data Banner */}
       <div className="relative">
-        <MountainSunsetAura height={220} mobileHeight={112} showSun={true} />
+        <MountainSunsetAura height={196} mobileHeight={72} showSun={true} />
 
         {/* Top Navbar */}
         <div className="absolute top-0 inset-x-0 z-20 px-3 sm:px-6 pt-3 flex items-center justify-between max-w-2xl mx-auto">
@@ -423,7 +423,7 @@ export default function StudentProfile() {
         </div>
 
         {/* User Identity Header Card */}
-        <div className="relative z-10 px-3 sm:px-6 pt-16 pb-3 max-w-2xl mx-auto">
+        <div className="relative z-10 px-3 sm:px-6 pt-8 sm:pt-16 pb-2 sm:pb-3 max-w-2xl mx-auto">
           <div className="flex items-center justify-between gap-3 sm:gap-4">
             <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
               {/* Profile Avatar with Edit Badge */}
@@ -453,9 +453,13 @@ export default function StudentProfile() {
                   <h2 className="text-base sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight truncate">
                     {displayName}
                   </h2>
-                  {accessStatus !== 'ready' ? (
+                  {accessStatus === 'loading' ? (
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold dark:bg-slate-700/70 bg-slate-200 text-slate-500 animate-pulse">
                       Checking access…
+                    </span>
+                  ) : accessStatus === 'error' ? (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold dark:bg-rose-500/15 bg-rose-50 text-rose-600 dark:text-rose-300">
+                      Access status unavailable
                     </span>
                   ) : isPro ? (
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-400 to-yellow-500 text-black shadow-sm">
@@ -507,11 +511,13 @@ export default function StudentProfile() {
             </div>
             <div className="min-w-0">
               <h3 className="text-sm sm:text-lg font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-2 truncate">
-                <span>{accessStatus === 'ready' ? (isPro ? 'Premium access active' : 'Free plan') : 'Checking your access'}</span>
+                <span>{accessStatus === 'ready' ? (isPro ? 'Premium access active' : 'Free plan') : accessStatus === 'loading' ? 'Checking your access' : 'Could not check access'}</span>
               </h3>
               <p className="text-[11px] sm:text-xs dark:text-amber-200/80 text-amber-900/90 font-medium truncate">
-                {accessStatus !== 'ready'
+                {accessStatus === 'loading'
                   ? 'Your account benefits are loading'
+                  : accessStatus === 'error'
+                  ? 'Your courses and account are safe. Check your connection and retry.'
                   : isPro
                   ? `${unlockedCount} ${unlockedCount === 1 ? 'item' : 'items'} unlocked`
                   : 'Unlock full mock tests, notes & tools'}
@@ -520,8 +526,10 @@ export default function StudentProfile() {
           </div>
 
           <div className="text-right shrink-0">
-            {accessStatus !== 'ready' ? (
+            {accessStatus === 'loading' ? (
               <span className="inline-block w-16 h-10 rounded-full dark:bg-slate-700/70 bg-slate-200 animate-pulse" aria-label="Loading plan status" />
+            ) : accessStatus === 'error' ? (
+              <button type="button" onClick={() => refreshAccount?.().catch(() => {})} className="min-h-11 rounded-xl border border-rose-300 px-3 text-xs font-bold text-rose-600 dark:border-rose-500/40 dark:text-rose-300">Retry</button>
             ) : isPro ? (
               <>
                 <div className="text-[9px] sm:text-[10px] uppercase font-bold dark:text-amber-400/80 text-amber-800">Status</div>

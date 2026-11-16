@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Eye,
   Flame,
   GripVertical,
   Layers,
   Lock,
-  Plus,
   RefreshCw,
   Save,
   Search,
-  Trash2,
   Unlock,
   Wrench
 } from 'lucide-react';
@@ -74,13 +74,15 @@ const DEFAULT_SYSTEM_TOOLS = [
   }
 ];
 
+// These IDs are wired to real student-side tool groups and backend access keys.
+const LIVE_STUDENT_TOOL_GROUPS = new Set(DEFAULT_SYSTEM_TOOLS.map((tool) => tool.id));
+
 export default function AdminTools() {
   const { supabase } = useAuth();
 
   const [tools, setTools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
   const [accessFilter, setAccessFilter] = useState('all');
   const [selectedToolId, setSelectedToolId] = useState(null);
 
@@ -97,16 +99,6 @@ export default function AdminTools() {
   const [fullPassToolIds, setFullPassToolIds] = useState([]);
   const [fullPassExams, setFullPassExams] = useState([]);
   const [toolboxPricing, setToolboxPricing] = useState({ tools: {}, combo: { price: 0, validity_days: 30 } });
-  const [editLimitDaily, setEditLimitDaily] = useState(false);
-  const [editDailyCount, setEditDailyCount] = useState(5);
-
-  // Global Access Rules state
-  const [rules, setRules] = useState({
-    showFreeToGuest: true,
-    showPaidLocked: true,
-    allowBundlePurchase: true
-  });
-
   // Drag and drop tracking
   const [draggedIdx, setDraggedIdx] = useState(null);
 
@@ -114,15 +106,9 @@ export default function AdminTools() {
   const [saving, setSaving] = useState(false);
   const [statusMessage, setStatusMessage] = useState({ text: '', type: '' });
 
-  // Add Tool Modal state
-  const [addModalOpen, setAddModalOpen] = useState(false);
-  const [newToolName, setNewToolName] = useState('');
-  const [newToolCategory, setNewToolCategory] = useState('Quantitative Aptitude');
-  const [newToolAccessType, setNewToolAccessType] = useState('free');
-  const [newToolPrice, setNewToolPrice] = useState(0);
 
   // Fetch real tools from Supabase platform_settings
-  const fetchToolsConfig = async () => {
+  const fetchToolsConfig = useCallback(async () => {
     if (!supabase) {
       setTools(DEFAULT_SYSTEM_TOOLS);
       setLoading(false);
@@ -145,7 +131,7 @@ export default function AdminTools() {
       const publishedExams = (examsData || []).filter((exam) => ['published', 'active', 'live', 'coming-soon', 'coming_soon'].includes(String(exam.status || '').toLowerCase()));
       setFullPassExams(publishedExams);
       setFullPassExamIds(Array.isArray(fullPass.included_exam_ids) ? fullPass.included_exam_ids : publishedExams.filter((exam) => Number(exam.price) > 0 || ['paid', 'paid-own', 'paid_own'].includes(String(exam.access_mode || exam.pricing_mode || '').toLowerCase())).map((exam) => exam.id));
-      setFullPassToolIds(Array.isArray(fullPass.included_tool_ids) ? fullPass.included_tool_ids : premiumToolIds);
+      setFullPassToolIds((Array.isArray(fullPass.included_tool_ids) ? fullPass.included_tool_ids : premiumToolIds).filter((id) => LIVE_STUDENT_TOOL_GROUPS.has(id)));
       const pricing = pricingRow?.setting_value || {};
       setToolboxPricing({ tools: pricing.tools || {}, combo: pricing.combo || { price: 0, validity_days: 30 } });
       setBundlePrice(Math.max(0, Number(pricing.combo?.price) || 0));
@@ -153,7 +139,7 @@ export default function AdminTools() {
 
       if (!error && data?.setting_value && Array.isArray(data.setting_value) && data.setting_value.length > 0) {
         // Map database setting to UI model
-        const mapped = data.setting_value.map((item, index) => ({
+        const mapped = data.setting_value.filter((item) => LIVE_STUDENT_TOOL_GROUPS.has(item?.id)).map((item, index) => ({
           id: item.id || `tool-${index}`,
           name: item.name || item.title || 'Untitled Tool',
           category: item.category || 'General',
@@ -167,13 +153,16 @@ export default function AdminTools() {
           popular: item.popular ?? (index < 3),
           order: index + 1
         }));
-        setTools(mapped);
-        if (mapped.length > 0 && !selectedToolId) {
-          setSelectedToolId(mapped[0].id);
+        if (mapped.length > 0) {
+          setTools(mapped);
+          setSelectedToolId((current) => mapped.some((tool) => tool.id === current) ? current : mapped[0].id);
+        } else {
+          setTools(DEFAULT_SYSTEM_TOOLS);
+          setSelectedToolId((current) => DEFAULT_SYSTEM_TOOLS.some((tool) => tool.id === current) ? current : DEFAULT_SYSTEM_TOOLS[0].id);
         }
       } else {
         setTools(DEFAULT_SYSTEM_TOOLS);
-        if (!selectedToolId) setSelectedToolId(DEFAULT_SYSTEM_TOOLS[0].id);
+        setSelectedToolId((current) => current || DEFAULT_SYSTEM_TOOLS[0].id);
       }
     } catch (err) {
       console.warn('Unable to fetch toolbox config:', err);
@@ -181,11 +170,11 @@ export default function AdminTools() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
   useEffect(() => {
     fetchToolsConfig();
-  }, [supabase]);
+  }, [fetchToolsConfig]);
 
   // Sync edit form when selectedTool changes
   const selectedTool = useMemo(() => {
@@ -198,19 +187,16 @@ export default function AdminTools() {
       setEditPurchaseType(selectedTool.purchaseType || 'Always Free');
       setEditPrice(selectedTool.price ?? 0);
       setEditValidityDays(selectedTool.validityDays ?? 30);
-      setEditLimitDaily(String(selectedTool.purchaseType || '').includes('Limited'));
     }
   }, [selectedTool]);
 
   // Persist Tools Array to Supabase & localStorage
   const persistToolsToDatabase = async (updatedTools) => {
+    const previousTools = tools;
+    const previousPricing = toolboxPricing;
     setSaving(true);
     setStatusMessage({ text: '', type: '' });
     setTools(updatedTools);
-
-    try {
-      localStorage.setItem('zyvra_admin_toolbox_tools', JSON.stringify(updatedTools));
-    } catch (_) {}
 
     // Transform back to schema expected by platform_settings
     const dbPayload = updatedTools.map((t) => ({
@@ -244,10 +230,13 @@ export default function AdminTools() {
         setStatusMessage({ text: 'Toolbox settings saved to database!', type: 'success' });
       } catch (err) {
         console.error('Save to cloud failed:', err);
-        setStatusMessage({ text: err.message || 'Saved locally (cloud sync error).', type: 'error' });
+        setTools(previousTools);
+        setToolboxPricing(previousPricing);
+        setStatusMessage({ text: err.message || 'Cloud save failed. Changes were not saved.', type: 'error' });
       }
     } else {
-      setStatusMessage({ text: 'Saved locally.', type: 'success' });
+      setTools(previousTools);
+      setStatusMessage({ text: 'Database is unavailable. Changes were not saved.', type: 'error' });
     }
 
     setSaving(false);
@@ -256,6 +245,10 @@ export default function AdminTools() {
 
   // Toggle tool active status
   const toggleToolActive = (toolId) => {
+    if (!LIVE_STUDENT_TOOL_GROUPS.has(toolId)) {
+      setStatusMessage({ text: 'This item is not connected to a live student tool. It cannot be sold or changed here.', type: 'error' });
+      return;
+    }
     const updated = tools.map((t) => (t.id === toolId ? { ...t, active: !t.active } : t));
     persistToolsToDatabase(updated);
   };
@@ -263,12 +256,16 @@ export default function AdminTools() {
   // Update selected tool access
   const handleUpdateAccess = () => {
     if (!selectedTool) return;
+    if (!LIVE_STUDENT_TOOL_GROUPS.has(selectedTool.id)) {
+      setStatusMessage({ text: 'This item is not connected to a live student tool. It cannot be sold or changed here.', type: 'error' });
+      return;
+    }
     const updated = tools.map((t) => {
       if (t.id === selectedTool.id) {
         return {
           ...t,
           accessType: editAccessType,
-          purchaseType: editLimitDaily ? `Limited (${editDailyCount}/day)` : editPurchaseType,
+          purchaseType: editPurchaseType,
           price: editAccessType === 'free' ? 0 : Math.max(1, Number(editPrice) || 49),
           validityDays: Math.min(3650, Math.max(1, Number(editValidityDays) || 30))
         };
@@ -305,7 +302,7 @@ export default function AdminTools() {
         price: Math.max(0, Number(fullPassPrice) || 0),
         validity_days: Math.min(3650, Math.max(1, Number(fullPassDays) || 365)),
         included_exam_ids: fullPassExamIds,
-        included_tool_ids: fullPassToolIds
+        included_tool_ids: fullPassToolIds.filter((id) => LIVE_STUDENT_TOOL_GROUPS.has(id))
       };
       const { error } = await supabase.from('platform_settings').upsert({ setting_key: 'full_pass_config', key: 'full_pass_config', setting_value: value }, { onConflict: 'setting_key' });
       if (error) throw error;
@@ -335,44 +332,14 @@ export default function AdminTools() {
     persistToolsToDatabase(tools);
   };
 
-  // Add Tool action
-  const handleAddTool = (e) => {
-    e.preventDefault();
-    if (!newToolName.trim()) return;
-
-    const id = newToolName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-    const newTool = {
-      id,
-      name: newToolName.trim(),
-      category: newToolCategory,
-      iconName: 'Wrench',
-      iconChar: '🔧',
-      accessType: newToolAccessType,
-      purchaseType: newToolAccessType === 'free' ? 'Always Free' : 'Single Purchase',
-      price: newToolAccessType === 'free' ? 0 : Number(newToolPrice) || 49,
-      active: true,
-      popular: false,
-      order: tools.length + 1
-    };
-
-    const next = [...tools, newTool];
-    persistToolsToDatabase(next);
-    setSelectedToolId(id);
-    setAddModalOpen(false);
-    setNewToolName('');
-  };
-
-  // Delete Tool action
-  const handleDeleteTool = (toolId) => {
-    const tool = tools.find((t) => t.id === toolId);
-    if (!tool) return;
-    if (!confirm(`Are you sure you want to delete "${tool.name}"?`)) return;
-
-    const next = tools.filter((t) => t.id !== toolId);
-    persistToolsToDatabase(next);
-    if (selectedToolId === toolId) {
-      setSelectedToolId(next[0]?.id || null);
-    }
+  const moveTool = (toolId, direction) => {
+    const from = tools.findIndex((tool) => tool.id === toolId);
+    const to = Math.min(tools.length - 1, Math.max(0, from + direction));
+    if (from < 0 || from === to) return;
+    const reordered = [...tools];
+    const [item] = reordered.splice(from, 1);
+    reordered.splice(to, 0, item);
+    persistToolsToDatabase(reordered);
   };
 
   // Filtered tools for table
@@ -384,11 +351,10 @@ export default function AdminTools() {
           return false;
         }
       }
-      if (categoryFilter !== 'all' && tool.category !== categoryFilter) return false;
       if (accessFilter !== 'all' && tool.accessType !== accessFilter) return false;
       return true;
     });
-  }, [tools, searchQuery, categoryFilter, accessFilter]);
+  }, [tools, searchQuery, accessFilter]);
 
   // Real derived metrics
   const totalCount = tools.length;
@@ -411,7 +377,7 @@ export default function AdminTools() {
             <span>Student Toolbox Manager</span>
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Organize study tools, drag to reorder, configure access, and test live mobile behavior.
+            Manage live student tool groups, pricing, visibility, and Full Pass contents. The phone panel is a visual preview.
           </p>
         </div>
 
@@ -424,15 +390,11 @@ export default function AdminTools() {
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             <span>Refresh</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setAddModalOpen(true)}
-            className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black flex items-center gap-1.5 shadow-sm transition-transform active:scale-95"
-          >
-            <Plus size={14} />
-            <span>+ Add Tool</span>
-          </button>
         </div>
+      </div>
+
+      <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/30 px-3 py-2 text-xs leading-relaxed text-indigo-100">
+        Only live groups are configurable here: Math, Reasoning, Productivity, and General Studies. New custom tools must first be implemented in the student app before they can be sold or included in Full Pass.
       </div>
 
       {/* Status Notice */}
@@ -532,14 +494,15 @@ export default function AdminTools() {
                 No tools matching search filter.
               </div>
             ) : (
-              filteredTools.map((tool, index) => {
+              filteredTools.map((tool) => {
                 const isSelected = selectedTool?.id === tool.id;
+                const toolIndex = tools.findIndex((item) => item.id === tool.id);
                 return (
                   <div
                     key={tool.id}
                     draggable
-                    onDragStart={() => onDragStart(index)}
-                    onDragOver={(e) => onDragOver(e, index)}
+                    onDragStart={() => onDragStart(toolIndex)}
+                    onDragOver={(e) => onDragOver(e, toolIndex)}
                     onDragEnd={onDragEnd}
                     onClick={() => setSelectedToolId(tool.id)}
                     className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all cursor-pointer ${
@@ -577,6 +540,9 @@ export default function AdminTools() {
                         {tool.accessType === 'free' ? 'Free' : `₹${tool.price}`}
                       </span>
 
+                      <button type="button" onClick={(event) => { event.stopPropagation(); moveTool(tool.id, -1); }} disabled={toolIndex <= 0 || saving} aria-label={`Move ${tool.name} up`} className="grid min-h-9 min-w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-800 disabled:opacity-30"><ChevronUp size={15} /></button>
+                      <button type="button" onClick={(event) => { event.stopPropagation(); moveTool(tool.id, 1); }} disabled={toolIndex >= tools.length - 1 || saving} aria-label={`Move ${tool.name} down`} className="grid min-h-9 min-w-9 place-items-center rounded-lg text-slate-400 hover:bg-slate-800 disabled:opacity-30"><ChevronDown size={15} /></button>
+
                       {/* Active Toggle Switch */}
                       <button
                         type="button"
@@ -596,17 +562,6 @@ export default function AdminTools() {
                         />
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteTool(tool.id);
-                        }}
-                        className="p-1 rounded text-neutral-500 hover:text-rose-400 transition-colors"
-                        title="Delete tool"
-                      >
-                        <Trash2 size={13} />
-                      </button>
                     </div>
                   </div>
                 );
@@ -692,9 +647,9 @@ export default function AdminTools() {
                 )) : <p className="text-[10px] text-slate-400">No published exams are available.</p>}
                 <div className="flex items-center justify-between gap-2 pt-1">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">Included tool groups</span>
-                  <div className="flex gap-2"><button type="button" onClick={() => setFullPassToolIds(tools.filter((tool) => tool.active && tool.accessType === 'paid').map((tool) => tool.id))} className="text-[10px] font-bold text-indigo-300">Select all</button><button type="button" onClick={() => setFullPassToolIds([])} className="text-[10px] font-bold text-slate-400">Clear</button></div>
+                  <div className="flex gap-2"><button type="button" onClick={() => setFullPassToolIds(tools.filter((tool) => LIVE_STUDENT_TOOL_GROUPS.has(tool.id) && tool.active && tool.accessType === 'paid').map((tool) => tool.id))} className="text-[10px] font-bold text-indigo-300">Select all</button><button type="button" onClick={() => setFullPassToolIds([])} className="text-[10px] font-bold text-slate-400">Clear</button></div>
                 </div>
-                {tools.filter((tool) => tool.active && tool.accessType === 'paid').length ? tools.filter((tool) => tool.active && tool.accessType === 'paid').map((tool) => (
+                {tools.filter((tool) => LIVE_STUDENT_TOOL_GROUPS.has(tool.id) && tool.active && tool.accessType === 'paid').length ? tools.filter((tool) => LIVE_STUDENT_TOOL_GROUPS.has(tool.id) && tool.active && tool.accessType === 'paid').map((tool) => (
                   <label key={tool.id} className="flex items-center gap-2 rounded-lg bg-slate-800/70 px-2.5 py-2 text-xs text-slate-200">
                     <input type="checkbox" checked={fullPassToolIds.includes(tool.id)} onChange={(e) => setFullPassToolIds((ids) => e.target.checked ? [...new Set([...ids, tool.id])] : ids.filter((id) => id !== tool.id))} className="accent-emerald-400" />
                     <span className="min-w-0 flex-1">{tool.name}</span>
@@ -710,29 +665,6 @@ export default function AdminTools() {
                 <label className="text-[10px] font-bold text-slate-300">Validity (days)<input type="number" min="1" max="3650" value={bundleValidityDays} onChange={(e) => setBundleValidityDays(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>
               </div>
               <button type="button" disabled={saving} onClick={saveBundlePricing} className="w-full py-2 rounded-lg bg-amber-400 text-slate-950 text-xs font-black disabled:opacity-50">Save bundle price</button>
-              <h4 className="text-[10px] font-black uppercase tracking-wider text-indigo-300">
-                Global Display Rules
-              </h4>
-              <div className="space-y-1.5 text-xs font-semibold">
-                <label className="flex items-center justify-between cursor-pointer select-none">
-                  <span className="text-[11px]">Show Free Tools to Guest</span>
-                  <input
-                    type="checkbox"
-                    checked={rules.showFreeToGuest}
-                    onChange={(e) => setRules((r) => ({ ...r, showFreeToGuest: e.target.checked }))}
-                    className="accent-amber-400 w-3.5 h-3.5 cursor-pointer"
-                  />
-                </label>
-                <label className="flex items-center justify-between cursor-pointer select-none">
-                  <span className="text-[11px]">Show Lock Icon on Paid</span>
-                  <input
-                    type="checkbox"
-                    checked={rules.showPaidLocked}
-                    onChange={(e) => setRules((r) => ({ ...r, showPaidLocked: e.target.checked }))}
-                    className="accent-amber-400 w-3.5 h-3.5 cursor-pointer"
-                  />
-                </label>
-              </div>
             </div>
           </div>
 
@@ -811,7 +743,7 @@ export default function AdminTools() {
                   <div className="grid grid-cols-2 gap-1.5">
                     {tools.slice(0, 4).map((tool) => {
                       const isPaid = tool.accessType === 'paid';
-                      const isLocked = isPaid && rules.showPaidLocked;
+                      const isLocked = isPaid;
 
                       return (
                         <div
@@ -853,7 +785,7 @@ export default function AdminTools() {
                           <div className="truncate">
                             <div className="text-[9px] font-bold text-white truncate flex items-center gap-1">
                               <span>{t.name}</span>
-                              {t.accessType === 'paid' && rules.showPaidLocked && (
+                              {t.accessType === 'paid' && (
                                 <Lock size={8} className="text-amber-400" />
                               )}
                             </div>
@@ -881,97 +813,6 @@ export default function AdminTools() {
         </div>
       </div>
 
-      {/* Modal: Add Tool */}
-      {addModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-[#0B1120] border border-slate-700/60 text-white space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-base font-black flex items-center gap-2">
-                <Plus size={18} className="text-amber-400" />
-                <span>Add Study Tool</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setAddModalOpen(false)}
-                className="text-neutral-400 hover:text-white"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleAddTool} className="space-y-3">
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Tool Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Formula Library or Unit Converter"
-                  value={newToolName}
-                  onChange={(e) => setNewToolName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none focus:border-amber-400"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Category</label>
-                <select
-                  value={newToolCategory}
-                  onChange={(e) => setNewToolCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none"
-                >
-                  <option value="Quantitative Aptitude">Quantitative Aptitude</option>
-                  <option value="Reasoning">Reasoning</option>
-                  <option value="General Studies">General Studies</option>
-                  <option value="Productivity">Productivity</option>
-                  <option value="Other Tools">Other Tools</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-slate-300 block mb-1">Access Type</label>
-                <select
-                  value={newToolAccessType}
-                  onChange={(e) => setNewToolAccessType(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none"
-                >
-                  <option value="free">Free</option>
-                  <option value="paid">Paid</option>
-                </select>
-              </div>
-
-              {newToolAccessType === 'paid' && (
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Price (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={newToolPrice}
-                    onChange={(e) => setNewToolPrice(Number(e.target.value))}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none"
-                  />
-                </div>
-              )}
-
-              <div className="pt-2 flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAddModalOpen(false)}
-                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-neutral-300"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={!newToolName.trim()}
-                  className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold"
-                >
-                  Add Tool
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

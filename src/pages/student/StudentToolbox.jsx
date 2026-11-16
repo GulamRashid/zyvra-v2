@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Binary, Bookmark, BookOpen, Brain, Calculator, CalendarDays, ChevronRight,
-  Clock3, Compass, Dices, Landmark, ListChecks, LockKeyhole, Percent,
+  Clock3, Compass, Dices, Heart, Landmark, ListChecks, LockKeyhole, Percent, Search,
   Scale, Shapes, Sigma, StickyNote, Superscript, TrendingUp, Wrench
 } from 'lucide-react';
 import CheckoutModal from '../../components/common/CheckoutModal';
@@ -22,18 +22,22 @@ import StickyNotes from '../../components/toolbox/productivity/StickyNotes';
 import PomodoroTimer from '../../components/toolbox/productivity/PomodoroTimer';
 import DailyTargets from '../../components/toolbox/productivity/DailyTargets';
 import ExamCountdown from '../../components/toolbox/productivity/ExamCountdown';
+import Flashcards from '../../components/toolbox/productivity/Flashcards';
+import MistakeNotebook from '../../components/toolbox/productivity/MistakeNotebook';
 import ToolUnlockModal from '../../components/toolbox/ToolUnlockModal';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 import { normalizeAccessResult } from '../../lib/commerce';
 import { getFriendlyErrorMessage } from '../../lib/errors';
+import useStudentToolboxData from '../../hooks/useStudentToolboxData';
 
 const CATEGORY_CONFIG = [
   { id: 'math', titleKey: 'tbCategoryMath', subtitleKey: 'tbCategoryMathDesc', Icon: Calculator, color: 'gold' },
   { id: 'reasoning', titleKey: 'tbCategoryReasoning', subtitleKey: 'tbCategoryReasoningDesc', Icon: Brain, color: 'violet' },
   { id: 'productivity', titleKey: 'tbCategoryProductivity', subtitleKey: 'tbCategoryProductivityDesc', Icon: Clock3, color: 'green' },
-  { id: 'general-studies', titleKey: 'tbCategoryGs', subtitleKey: 'tbCategoryGsDesc', Icon: BookOpen, color: 'blue' }
+  { id: 'general-studies', titleKey: 'tbCategoryGs', subtitleKey: 'tbCategoryGsDesc', Icon: BookOpen, color: 'blue' },
+  { id: 'revision', titleKey: 'tbRevision', subtitleKey: 'tbRevisionDesc', Icon: Brain, color: 'violet' }
 ];
 
 const CATEGORY_TOOLS = {
@@ -56,46 +60,26 @@ const CATEGORY_TOOLS = {
   productivity: [
     { id: 'pomodoro', titleKey: 'tbPomodoro', subtitleKey: 'tbPomodoroDesc', Icon: Clock3, accessKey: 'pomodoro' },
     { id: 'sticky-notes', titleKey: 'tbStickyNotes', subtitleKey: 'tbStickyNotesDesc', Icon: StickyNote, accessKey: 'pomodoro' },
-    { id: 'daily-targets', titleKey: 'tbDailyTargets', subtitleKey: 'tbDailyTargetsDesc', Icon: ListChecks, accessKey: 'pomodoro' }
-    ,{ id: 'exam-countdown', titleKey: 'tbExamCountdown', subtitleKey: 'tbExamCountdownDesc', Icon: CalendarDays, accessKey: 'pomodoro' }
+    { id: 'daily-targets', titleKey: 'tbDailyTargets', subtitleKey: 'tbDailyTargetsDesc', Icon: ListChecks, accessKey: 'pomodoro' },
+    { id: 'exam-countdown', titleKey: 'tbExamCountdown', subtitleKey: 'tbExamCountdownDesc', Icon: CalendarDays, accessKey: 'pomodoro' }
   ],
   'general-studies': [
     { id: 'constitution-articles', titleKey: 'tbConstitution', subtitleKey: 'tbConstitutionDesc', Icon: Landmark, accessKey: 'polity-articles' },
     { id: 'saved-bookmarks', titleKey: 'tbBookmarks', subtitleKey: 'tbBookmarksDesc', Icon: Bookmark, accessKey: null }
+  ],
+  revision: [
+    { id: 'flashcards', titleKey: 'tbFlashcards', subtitleKey: 'tbFlashcardsDesc', Icon: BookOpen, accessKey: 'formula-sheet' },
+    { id: 'mistake-notebook', titleKey: 'tbMistakeNotebook', subtitleKey: 'tbMistakeNotebookDesc', Icon: ListChecks, accessKey: 'formula-sheet' }
   ]
 };
 
-const POMODORO_STORAGE_KEY = 'zyvra-toolbox-pomodoro';
-
-function readPomodoro() {
-  const fallback = { mode: 'focus', remaining: 25 * 60, running: false, completed: 0, focusMinutes: 25, breakMinutes: 5 };
+const POMODORO_DEFAULT = { mode: 'focus', remaining: 25 * 60, running: false, completed: 0, focusMinutes: 25, breakMinutes: 5 };
+const readToolList = (key, userId) => {
   try {
-    const stored = JSON.parse(window.localStorage.getItem(POMODORO_STORAGE_KEY) || 'null');
-    if (!stored || !['focus', 'break'].includes(stored.mode)) return fallback;
-    const state = {
-      mode: stored.mode,
-      remaining: Math.max(0, Math.floor(Number(stored.remaining) || 0)),
-      running: stored.running === true,
-      completed: Math.max(0, Math.floor(Number(stored.completed) || 0)),
-      focusMinutes: Math.min(180, Math.max(1, Math.floor(Number(stored.focusMinutes) || 25))),
-      breakMinutes: Math.min(60, Math.max(1, Math.floor(Number(stored.breakMinutes) || 5)))
-    };
-    if (!state.running) return state;
-    let elapsed = Math.max(0, Math.floor((Date.now() - Number(stored.updatedAt || Date.now())) / 1000));
-    state.remaining = Math.max(1, state.remaining);
-    while (elapsed >= state.remaining) {
-      elapsed -= state.remaining;
-      if (state.mode === 'focus') state.completed += 1;
-      state.mode = state.mode === 'focus' ? 'break' : 'focus';
-      state.remaining = (state.mode === 'focus' ? state.focusMinutes : state.breakMinutes) * 60;
-    }
-    state.remaining = Math.max(0, state.remaining - elapsed);
-    return state;
-  } catch (error) {
-    console.error('Unable to restore the Toolbox timer:', error);
-    return fallback;
-  }
-}
+    const value = JSON.parse(window.localStorage.getItem(`${key}:${userId || 'guest'}`) || '[]');
+    return Array.isArray(value) ? value.filter((id) => typeof id === 'string') : [];
+  } catch { return []; }
+};
 
 export default function StudentToolbox() {
   const { user } = useAuth();
@@ -122,8 +106,28 @@ export default function StudentToolbox() {
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeTool, setActiveTool] = useState(null);
   const [unlockTool, setUnlockTool] = useState(null);
-  const [pomodoro, setPomodoro] = useState(readPomodoro);
-  const [timerPersistenceError, setTimerPersistenceError] = useState('');
+  const [pomodoro, setPomodoro, pomodoroSyncState] = useStudentToolboxData('pomodoro', POMODORO_DEFAULT);
+  const [toolSearch, setToolSearch] = useState('');
+  const [favorites, setFavorites] = useState(() => readToolList('zyvra-toolbox-favorites', user?.id));
+  const [recentTools, setRecentTools] = useState(() => readToolList('zyvra-toolbox-recents', user?.id));
+  const [preferenceOwner, setPreferenceOwner] = useState(user?.id || 'guest');
+  const searchText = toolSearch.trim().toLocaleLowerCase(language === 'hi' ? 'hi-IN' : 'en-IN');
+  const allTools = Object.values(CATEGORY_TOOLS).flat();
+  const matchesToolSearch = (tool) => !searchText || `${t(tool.titleKey)} ${t(tool.subtitleKey)} ${tool.id}`.toLocaleLowerCase(language === 'hi' ? 'hi-IN' : 'en-IN').includes(searchText);
+  const toggleFavorite = (id) => setFavorites((current) => current.includes(id) ? current.filter((item) => item !== id) : [id, ...current]);
+  const categoryForTool = (toolId) => Object.entries(CATEGORY_TOOLS).find(([, items]) => items.some((item) => item.id === toolId))?.[0] || null;
+  useEffect(() => {
+    setFavorites(readToolList('zyvra-toolbox-favorites', user?.id));
+    setRecentTools(readToolList('zyvra-toolbox-recents', user?.id));
+    setPreferenceOwner(user?.id || 'guest');
+  }, [user?.id]);
+  useEffect(() => {
+    if (preferenceOwner !== (user?.id || 'guest')) return;
+    try {
+      window.localStorage.setItem(`zyvra-toolbox-favorites:${user?.id || 'guest'}`, JSON.stringify(favorites));
+      window.localStorage.setItem(`zyvra-toolbox-recents:${user?.id || 'guest'}`, JSON.stringify(recentTools));
+    } catch { /* Keep the current session usable when storage is unavailable. */ }
+  }, [favorites, recentTools, user?.id, preferenceOwner]);
   useEffect(() => {
     if (!pomodoro.running) return undefined;
     const timer = window.setInterval(() => setPomodoro((current) => {
@@ -137,17 +141,8 @@ export default function StudentToolbox() {
       };
     }), 1000);
     return () => window.clearInterval(timer);
-  }, [pomodoro.running]);
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(POMODORO_STORAGE_KEY, JSON.stringify({ ...pomodoro, updatedAt: Date.now() }));
-      setTimerPersistenceError('');
-    } catch (storageError) {
-      console.error('Unable to save the Toolbox timer:', storageError);
-      setTimerPersistenceError('tbTimerSaveError');
-    }
-  }, [pomodoro, t]);
-  const refreshToolAccess = async (pricing = toolPricing, comboEnabled = comboPricing.price > 0) => {
+  }, [pomodoro.running, setPomodoro]);
+  const refreshToolAccess = useCallback(async (pricing, comboEnabled) => {
     setAccessError('');
     if (!user?.id || !supabase) {
       setToolAccess({});
@@ -187,7 +182,7 @@ export default function StudentToolbox() {
     setToolboxLoaded(true);
     const failed = results.find((result) => result.error);
     if (failed) setAccessError(getFriendlyErrorMessage(failed.error, t('tbAccessError')));
-  };
+  }, [user?.id, t]);
 
   useEffect(() => {
     let active = true;
@@ -277,7 +272,7 @@ export default function StudentToolbox() {
       }
     });
     return () => { active = false; };
-  }, [user, t]);
+  }, [user, t, refreshToolAccess]);
 
   useEffect(() => {
     const hasPremiumTools = Object.values(toolPricing).some((config) => config?.access_type === 'premium');
@@ -288,7 +283,7 @@ export default function StudentToolbox() {
       });
     }, 60_000);
     return () => window.clearInterval(interval);
-  }, [user?.id, toolboxLoaded, toolPricing, comboPricing.price, t]);
+  }, [user?.id, toolboxLoaded, toolPricing, comboPricing.price, t, refreshToolAccess]);
 
   const savedBookmarks = bookmarks;
 
@@ -307,6 +302,9 @@ export default function StudentToolbox() {
     setCurrentView('category-menu');
   };
   const openTool = (tool) => {
+    const categoryId = categoryForTool(tool.id);
+    if (categoryId) setActiveCategory(categoryId);
+    setRecentTools((current) => [tool.id, ...current.filter((id) => id !== tool.id)].slice(0, 6));
     if (!toolboxLoaded && tool.accessKey) {
       setActiveTool(tool.id);
       setCurrentView('active-tool');
@@ -378,6 +376,9 @@ export default function StudentToolbox() {
   const currentCategoryTitle = currentCategory ? t(currentCategory.titleKey) : '';
   const currentToolTitle = currentTool ? t(currentTool.titleKey) : '';
   const visibleCategories = CATEGORY_CONFIG.filter((category) => (CATEGORY_TOOLS[category.id] || []).some(isToolVisible));
+  const searchResultCount = visibleCategories
+    .filter((category) => !activeCategory || category.id === activeCategory)
+    .reduce((count, category) => count + (CATEGORY_TOOLS[category.id] || []).filter((tool) => isToolVisible(tool) && matchesToolSearch(tool)).length, 0);
 
   const renderReasoningHub = () => (
     <section className="space-y-4">
@@ -476,6 +477,8 @@ export default function StudentToolbox() {
     if (activeTool === 'sticky-notes') return <StickyNotes />;
     if (activeTool === 'daily-targets') return <DailyTargets />;
     if (activeTool === 'exam-countdown') return <ExamCountdown />;
+    if (activeTool === 'flashcards') return <Flashcards />;
+    if (activeTool === 'mistake-notebook') return <MistakeNotebook />;
     if (activeTool === 'reasoning-formulas') return renderReasoningHub();
     if (activeTool === 'saved-bookmarks') return renderBookmarks();
     if (activeTool === 'pomodoro') return <PomodoroTimer
@@ -485,6 +488,7 @@ export default function StudentToolbox() {
       completed={pomodoro.completed}
       focusMinutes={pomodoro.focusMinutes}
       breakMinutes={pomodoro.breakMinutes}
+      syncState={pomodoroSyncState}
       onToggle={() => setPomodoro((current) => ({ ...current, running: !current.running }))}
       onReset={() => setPomodoro((current) => ({ ...current, running: false, remaining: (current.mode === 'focus' ? current.focusMinutes : current.breakMinutes) * 60 }))}
       onSelectMode={(mode) => setPomodoro((current) => ({ ...current, mode, running: false, remaining: (mode === 'focus' ? current.focusMinutes : current.breakMinutes) * 60 }))}
@@ -595,6 +599,17 @@ export default function StudentToolbox() {
         {/* ======================================================== */}
         {currentView === 'main-menu' && (
           <div className="space-y-4">
+            <label className="flex min-h-12 items-center gap-2 rounded-2xl border dark:border-slate-700/60 border-slate-200 dark:bg-[#1E293B]/85 bg-white px-3.5 shadow-sm">
+              <Search size={18} className="shrink-0 text-slate-500" />
+              <input type="search" value={toolSearch} onChange={(event) => setToolSearch(event.target.value)} placeholder={t('tbSearchTools')} aria-label={t('tbSearchTools')} className="min-w-0 flex-1 bg-transparent py-3 text-base font-semibold outline-none placeholder:text-slate-500" />
+              {toolSearch && <button type="button" onClick={() => setToolSearch('')} className="min-h-10 px-2 text-xs font-bold text-indigo-500">{t('tbClearSearch')}</button>}
+            </label>
+            {(favorites.length > 0 || recentTools.length > 0) && !searchText && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {favorites.length > 0 && <section className="rounded-2xl border dark:border-slate-700/60 border-slate-200 dark:bg-[#1E293B]/85 bg-white p-3"><h3 className="mb-2 flex items-center gap-2 text-xs font-black"><Heart size={14} className="text-rose-500" />{t('tbFavorites')}</h3><div className="flex flex-wrap gap-2">{favorites.map((id) => { const tool = allTools.find((item) => item.id === id); if (!tool) return null; return <button key={id} type="button" onClick={() => openTool(tool)} className="min-h-10 rounded-xl bg-indigo-500/10 px-3 text-left text-xs font-bold text-indigo-700 dark:text-indigo-200">{t(tool.titleKey)}</button>; })}</div></section>}
+                {recentTools.length > 0 && <section className="rounded-2xl border dark:border-slate-700/60 border-slate-200 dark:bg-[#1E293B]/85 bg-white p-3"><h3 className="mb-2 flex items-center gap-2 text-xs font-black"><Clock3 size={14} className="text-indigo-500" />{t('tbRecentlyUsed')}</h3><div className="flex flex-wrap gap-2">{recentTools.map((id) => { const tool = allTools.find((item) => item.id === id); if (!tool) return null; return <button key={id} type="button" onClick={() => openTool(tool)} className="min-h-10 rounded-xl dark:bg-slate-800 bg-slate-100 px-3 text-left text-xs font-bold">{t(tool.titleKey)}</button>; })}</div></section>}
+              </div>
+            )}
             {/* Category Filter Pills (Matching Mockup 1794580797580_48eb471c.jpg) */}
             <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
               <button
@@ -629,7 +644,7 @@ export default function StudentToolbox() {
             </div>
 
             {/* Popular Quick Tools Row (Matching Mockup 1794580797580_48eb471c.jpg) */}
-            <div className="space-y-2">
+            {!searchText && <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
                 <h3 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 flex items-center gap-1.5">
                   <span className="text-amber-500">🔥</span>
@@ -675,7 +690,7 @@ export default function StudentToolbox() {
                   );
                 })}
               </div>
-            </div>
+            </div>}
 
             {/* Tools by Subject Accordions / Groups */}
             <div className="space-y-3 pt-1">
@@ -693,7 +708,8 @@ export default function StudentToolbox() {
                 .filter((cat) => !activeCategory || cat.id === activeCategory)
                 .map((category) => {
                   const Icon = category.Icon;
-                  const tools = (CATEGORY_TOOLS[category.id] || []).filter(isToolVisible);
+                  const tools = (CATEGORY_TOOLS[category.id] || []).filter((tool) => isToolVisible(tool) && matchesToolSearch(tool));
+                  if (searchText && tools.length === 0) return null;
 
                   return (
                     <div
@@ -764,6 +780,7 @@ export default function StudentToolbox() {
                     </div>
                   );
                 })}
+              {searchText && searchResultCount === 0 && <div className="rounded-2xl border border-dashed dark:border-slate-700 border-slate-300 p-6 text-center text-sm text-slate-500">{t('tbNoSearchResults')}</div>}
             </div>
           </div>
         )}
@@ -785,17 +802,13 @@ export default function StudentToolbox() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {(CATEGORY_TOOLS[activeCategory] || []).filter(isToolVisible).map((tool) => {
+              {(CATEGORY_TOOLS[activeCategory] || []).filter((tool) => isToolVisible(tool) && matchesToolSearch(tool)).map((tool) => {
                 const locked = isToolLocked(tool);
                 const Icon = tool.Icon;
 
                 return (
-                  <button
-                    key={tool.id}
-                    type="button"
-                    onClick={() => openTool(tool)}
-                    className="toolbox-tool-card p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 flex items-center justify-between gap-3 text-left transition-all hover:scale-[1.01] active:scale-[0.99] min-h-[56px]"
-                  >
+                  <div key={tool.id} className="flex min-w-0 items-stretch gap-2">
+                    <button type="button" onClick={() => openTool(tool)} className="toolbox-tool-card min-w-0 flex-1 p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 flex items-center justify-between gap-3 text-left transition-all hover:scale-[1.01] active:scale-[0.99] min-h-[56px]">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                         <Icon size={20} />
@@ -820,9 +833,12 @@ export default function StudentToolbox() {
                         <ChevronRight size={18} className="text-slate-400 dark:text-slate-500" />
                       )}
                     </div>
-                  </button>
+                    </button>
+                    <button type="button" onClick={() => toggleFavorite(tool.id)} aria-label={favorites.includes(tool.id) ? t('tbRemoveFavorite') : t('tbAddFavorite')} aria-pressed={favorites.includes(tool.id)} className="min-h-12 min-w-12 self-center rounded-xl border dark:border-slate-700 border-slate-200 dark:bg-slate-800 bg-white"><Heart size={17} className={`mx-auto ${favorites.includes(tool.id) ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} /></button>
+                  </div>
                 );
               })}
+              {(CATEGORY_TOOLS[activeCategory] || []).filter((tool) => isToolVisible(tool) && matchesToolSearch(tool)).length === 0 && <div className="col-span-full rounded-2xl border border-dashed dark:border-slate-700 border-slate-300 p-6 text-center text-sm text-slate-500">{t('tbNoSearchResults')}</div>}
             </div>
           </div>
         )}
@@ -860,7 +876,7 @@ export default function StudentToolbox() {
           <CheckoutModal
             {...checkout}
             onClose={() => setCheckout(null)}
-            onCompleted={() => refreshToolAccess().catch((accessError) => setError(accessError.message || t('tbPurchaseVerifyError')))}
+            onCompleted={() => refreshToolAccess(toolPricing, comboPricing.price > 0).catch((accessError) => setError(accessError.message || t('tbPurchaseVerifyError')))}
           />
         )}
 
