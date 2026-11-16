@@ -36,16 +36,13 @@ export default function ExploreExams() {
     <div className="min-h-screen dark:bg-[#0B1120] bg-[#f4faf7] dark:text-slate-100 text-slate-900 transition-colors">
       <div className="max-w-4xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Page Heading Banner */}
-        <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="page-heading relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <div className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 tracking-wider">
-              Your Next Goal Starts Here
-            </div>
             <h1 className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
               Explore Exams
             </h1>
             <p className="text-xs sm:text-sm dark:text-slate-300 text-slate-600 font-medium mt-0.5">
-              Choose your exam. We’ll help you take it one step at a time.
+              Choose an exam to view its syllabus and available study materials.
             </p>
           </div>
 

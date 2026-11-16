@@ -75,20 +75,20 @@ async function run() {
   await calcDisplay.waitFor({ state: 'visible', timeout: 20000 });
 
   // Arithmetic: 7 × 6 = 42
-  await page.getByRole('button', { name: 'AC' }).click();
-  await page.getByRole('button', { name: '7' }).click();
-  await page.getByRole('button', { name: '×' }).click();
-  await page.getByRole('button', { name: '6' }).click();
-  await page.getByRole('button', { name: '=' }).click();
+  await page.getByRole('button', { name: 'AC', exact: true }).click();
+  await page.getByRole('button', { name: '7', exact: true }).click();
+  await page.getByRole('button', { name: '×', exact: true }).click();
+  await page.getByRole('button', { name: '6', exact: true }).click();
+  await page.getByRole('button', { name: '=', exact: true }).click();
   const multResult = await calcDisplay.textContent();
   console.log('✓ Calculator Multiplication (7 × 6):', multResult);
 
   // Divide by zero: 8 ÷ 0 = Error
-  await page.getByRole('button', { name: 'AC' }).click();
-  await page.getByRole('button', { name: '8' }).click();
-  await page.getByRole('button', { name: '÷' }).click();
-  await page.getByRole('button', { name: '0' }).click();
-  await page.getByRole('button', { name: '=' }).click();
+  await page.getByRole('button', { name: 'AC', exact: true }).click();
+  await page.getByRole('button', { name: '8', exact: true }).click();
+  await page.getByRole('button', { name: '÷', exact: true }).click();
+  await page.getByRole('button', { name: '0', exact: true }).click();
+  await page.getByRole('button', { name: '=', exact: true }).click();
   const divZeroResult = await calcDisplay.textContent();
   console.log('✓ Calculator Division by Zero (8 ÷ 0):', divZeroResult);
 
@@ -118,7 +118,7 @@ async function run() {
   // 6. Sign Out
   console.log('\n[2.1] Testing Sign Out...');
   await page.goto(`${baseURL}/profile`, { waitUntil: 'commit' });
-  const signOutBtn = page.getByRole('button', { name: /Sign out|Log out/i });
+  const signOutBtn = page.getByRole('button', { name: /Sign out|Log out/i }).first();
   await signOutBtn.waitFor({ state: 'visible', timeout: 20000 });
   await signOutBtn.click();
   await page.waitForURL(url => url.pathname.includes('/auth'), { timeout: 25000 });

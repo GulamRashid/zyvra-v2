@@ -467,7 +467,7 @@ export default function StudentToolbox() {
   };
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
+    <div className="toolbox-page min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
       <div className="max-w-2xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Top Header / Breadcrumb */}
         {currentView !== 'main-menu' ? (
@@ -657,7 +657,7 @@ export default function StudentToolbox() {
                       <button
                         type="button"
                         onClick={() => openCategory(category.id)}
-                        className="w-full p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left"
+                        className={`toolbox-app-card ${category.color || ''} w-full p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left`}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
@@ -747,7 +747,7 @@ export default function StudentToolbox() {
                     key={tool.id}
                     type="button"
                     onClick={() => openTool(tool)}
-                    className="p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 flex items-center justify-between gap-3 text-left transition-all hover:scale-[1.01] active:scale-[0.99] min-h-[56px]"
+                    className="toolbox-tool-card p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 flex items-center justify-between gap-3 text-left transition-all hover:scale-[1.01] active:scale-[0.99] min-h-[56px]"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">

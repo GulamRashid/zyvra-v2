@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ArrowDown, ArrowUp, CheckSquare, ClipboardList, Clock3, Coins, FileQuestion, Plus, Search, Square, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import useContentCatalog from '../../hooks/useContentCatalog';
@@ -551,14 +552,17 @@ export default function TestManager() {
         </section>
       </>}</section>
     </div>
-    {editor && <TestEditor
-      test={editor.test}
-      chapters={chapters}
-      linkedOptionCounts={editor.test ? testQuestions.map((item) => getOptionEntries(questions.find((question) => question.id === item.question_id)?.options).length) : []}
-      onClose={() => setEditor(null)}
-      onSaved={saveTest}
-    />}
-    {testToDelete && (
+    {editor && createPortal(
+      <TestEditor
+        test={editor.test}
+        chapters={chapters}
+        linkedOptionCounts={editor.test ? testQuestions.map((item) => getOptionEntries(questions.find((question) => question.id === item.question_id)?.options).length) : []}
+        onClose={() => setEditor(null)}
+        onSaved={saveTest}
+      />,
+      document.body
+    )}
+    {testToDelete && createPortal(
       <div className="modal-backdrop" role="presentation">
         <div className="content-dialog confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirm-delete-test-title">
           <div className="eyebrow text-danger">DANGER ZONE</div>
@@ -587,7 +591,8 @@ export default function TestManager() {
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
   </div>;
 }

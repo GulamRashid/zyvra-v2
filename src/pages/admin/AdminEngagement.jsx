@@ -667,7 +667,7 @@ export default function AdminEngagement() {
                   </div>
 
                   <div className="text-xs font-semibold dark:text-slate-200 text-slate-800 leading-relaxed">
-                    <MathRenderer text={selectedQuestion.question_text} />
+                    <MathRenderer content={selectedQuestion.question_text} />
                   </div>
 
                   {/* Options snippet */}
@@ -773,7 +773,7 @@ export default function AdminEngagement() {
                         <span className="font-mono text-slate-400">Key: {q.correct_answer}</span>
                       </div>
                       <div className="line-clamp-2">
-                        <MathRenderer text={q.question_text} />
+                        <MathRenderer content={q.question_text} />
                       </div>
                     </div>
                   ))

@@ -291,13 +291,11 @@ export default function ChapterDetail() {
       setChapterTests(availableTests);
       if (user && availableTests.length) {
         const testIds = availableTests.map((test) => test.id);
-        const [counts, pausedAttemptsResult] = await Promise.all([
-          Promise.all(availableTests.map(async (test) => {
-            const { count, error: countError } = await supabase.from('test_attempts').select('id', { count: 'exact', head: true })
-              .eq('test_id', test.id).eq('user_id', user.id);
-            if (countError) throw countError;
-            return [test.id, count || 0];
-          })),
+        const [attemptsCountResult, pausedAttemptsResult] = await Promise.all([
+          supabase.from('test_attempts')
+            .select('test_id')
+            .eq('user_id', user.id)
+            .in('test_id', testIds),
           supabase.from('test_attempts')
             .select('id, test_id, status, remaining_seconds, current_question_index, state_json, updated_at')
             .eq('user_id', user.id)
@@ -306,7 +304,14 @@ export default function ChapterDetail() {
             .is('completed_at', null)
             .order('updated_at', { ascending: false })
         ]);
-        if (active) setTestAttempts(Object.fromEntries(counts));
+        if (attemptsCountResult.error) throw attemptsCountResult.error;
+
+        const countMap = {};
+        testIds.forEach((id) => { countMap[id] = 0; });
+        (attemptsCountResult.data || []).forEach((row) => {
+          countMap[row.test_id] = (countMap[row.test_id] || 0) + 1;
+        });
+        if (active) setTestAttempts(countMap);
 
         const pausedRows = pausedAttemptsResult?.data || [];
         const resumeMap = {};

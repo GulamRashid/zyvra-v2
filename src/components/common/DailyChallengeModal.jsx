@@ -256,7 +256,7 @@ export default function DailyChallengeModal({
                         {letter}
                       </div>
                       <div className="text-xs font-medium dark:text-slate-200 text-slate-800 flex-1">
-                        <MathRenderer text={optText} />
+                        <MathRenderer content={optText} />
                       </div>
                     </div>
                   );
@@ -299,7 +299,7 @@ export default function DailyChallengeModal({
                         Detailed Explanation:
                       </div>
                       <div className="leading-relaxed">
-                        <MathRenderer text={submissionResult.explanation} />
+                        <MathRenderer content={submissionResult.explanation} />
                       </div>
                     </div>
                   )}

@@ -38,7 +38,7 @@ export default function QuizResult() {
   const { attemptId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { supabase, refreshAccount } = useAuth();
+  const { user, supabase, refreshAccount } = useAuth();
   const { language: appLanguage } = useThemeLanguage();
 
   const rawReturn = location.state?.returnTo || sessionStorage.getItem('last_quiz_return_url');
@@ -78,7 +78,7 @@ export default function QuizResult() {
         next = list.filter((b) => b.attemptId !== attemptId && b.id !== attemptId);
         setBookmarked(false);
       } else {
-        next = [...list, { id: attemptId, attemptId, title: result?.title || result?.test_title || 'Quiz Result', type: 'test_result', savedAt: new Date().toISOString() }];
+        next = [...list, { id: attemptId, attemptId, user_id: user?.id || null, title: result?.title || result?.test_title || 'Quiz Result', type: 'test_result', savedAt: new Date().toISOString() }];
         setBookmarked(true);
       }
       localStorage.setItem('zyvra_bookmarks', JSON.stringify(next));

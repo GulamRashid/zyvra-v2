@@ -3,7 +3,7 @@ import {
   ArrowRight, BookOpen, CheckCircle2, Layers, Play, Search,
   SlidersHorizontal, Target
 } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import MountainSunsetAura from '../../components/common/MountainSunsetAura';
 
@@ -25,6 +25,7 @@ export default function TestHub() {
   const { t, language } = useThemeLanguage();
   const { chapters, folders, exams, loading: catalogLoading } = useContentCatalog();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Tab State: 'subjects' | 'chapters' | 'tests' | 'custom'
   const [activeTab, setActiveTab] = useState(() => {
@@ -32,6 +33,12 @@ export default function TestHub() {
     if (params.get('tab') === 'mock' || params.get('tab') === 'tests') return 'tests';
     return 'subjects';
   });
+
+  useEffect(() => {
+    const requestedTab = new URLSearchParams(location.search).get('tab');
+    const nextTab = requestedTab === 'mock' ? 'tests' : requestedTab;
+    setActiveTab(['subjects', 'chapters', 'tests', 'custom'].includes(nextTab) ? nextTab : 'subjects');
+  }, [location.search]);
 
   const [tests, setTests] = useState([]);
   const [questionCounts, setQuestionCounts] = useState({});
@@ -209,7 +216,7 @@ export default function TestHub() {
     <div className="min-h-screen dark:bg-[#0B1120] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 transition-colors duration-200 overflow-x-hidden">
       {/* Top Ambient Tech Data Grid Aura */}
       <div className="relative">
-        <MountainSunsetAura height={190} showSun={true} />
+        <MountainSunsetAura height={190} mobileHeight={88} showSun={true} />
 
         {/* Practice Hub Header */}
         <div className="px-3.5 sm:px-6 pt-4 pb-2 relative z-10 max-w-5xl mx-auto">
@@ -246,7 +253,7 @@ export default function TestHub() {
         <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/90 bg-white border dark:border-slate-700/60 border-slate-200 backdrop-blur-md overflow-x-auto shadow-sm">
           <button
             type="button"
-            onClick={() => setActiveTab('subjects')}
+            onClick={() => navigate('/tests?tab=subjects', { replace: true })}
             className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'subjects'
                 ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
@@ -259,7 +266,7 @@ export default function TestHub() {
 
           <button
             type="button"
-            onClick={() => setActiveTab('chapters')}
+            onClick={() => navigate('/tests?tab=chapters', { replace: true })}
             className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'chapters'
                 ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
@@ -272,7 +279,7 @@ export default function TestHub() {
 
           <button
             type="button"
-            onClick={() => setActiveTab('tests')}
+            onClick={() => navigate('/tests?tab=tests', { replace: true })}
             className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'tests'
                 ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
@@ -285,7 +292,7 @@ export default function TestHub() {
 
           <button
             type="button"
-            onClick={() => setActiveTab('custom')}
+            onClick={() => navigate('/tests?tab=custom', { replace: true })}
             className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'custom'
                 ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'

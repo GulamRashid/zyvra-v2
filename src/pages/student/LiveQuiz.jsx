@@ -22,6 +22,9 @@ import {
   Play,
   RotateCcw,
   Target,
+  Maximize2,
+  Minimize2,
+  WifiOff,
   X
 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -307,6 +310,36 @@ export default function LiveQuiz() {
   const [antiCheatWarning, setAntiCheatWarning] = useState('');
   const [feedbackAction, setFeedbackAction] = useState('');
   const [bookmarkSaving, setBookmarkSaving] = useState(false);
+  const [fontSizeLevel, setFontSizeLevel] = useState('md'); // 'sm' | 'md' | 'lg'
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [paletteFilter, setPaletteFilter] = useState('all'); // 'all' | 'answered' | 'unanswered' | 'marked'
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    const handleFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = () => {
+    try {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        document.exitFullscreen().catch(() => {});
+      }
+    } catch (_) {}
+  };
 
   const submitLock = useRef(false);
   const lastViolationAt = useRef(0);
@@ -1435,6 +1468,7 @@ export default function LiveQuiz() {
 
   const toggleReview = () => {
     if (bookmarkSaving) return;
+    const isSavingBookmark = !responses[question.id]?.marked_for_review;
     setBookmarkSaving(true);
     const nextResponses = {
       ...responses,
@@ -1445,6 +1479,34 @@ export default function LiveQuiz() {
     };
     setResponses(nextResponses);
     saveProgressSnapshot({ responses: nextResponses }, false);
+    try {
+      const stored = JSON.parse(localStorage.getItem('zyvra_saved_question_bookmarks') || '[]');
+      const bookmarks = Array.isArray(stored) ? stored : [];
+      const bookmarkId = `question:${testId}:${question.id}`;
+      const nextBookmarks = isSavingBookmark
+        ? [
+            ...bookmarks.filter((item) => item.id !== bookmarkId),
+            {
+              id: bookmarkId,
+              user_id: user?.id || null,
+              type: 'question',
+              test_id: testId,
+              test_title: test?.title || 'Practice Test',
+              question_text: language === 'hi' ? (questionHindi || questionEnglish) : (questionEnglish || questionHindi),
+              options: optionEntries.map(([key, option]) => ({
+                key,
+                text: typeof option === 'string'
+                  ? option
+                  : (language === 'hi' ? (option?.hi || option?.en || '') : (option?.en || option?.hi || ''))
+              })),
+              savedAt: new Date().toISOString()
+            }
+          ]
+        : bookmarks.filter((item) => item.id !== bookmarkId);
+      localStorage.setItem('zyvra_saved_question_bookmarks', JSON.stringify(nextBookmarks));
+    } catch (storageError) {
+      console.warn('Unable to persist question bookmark:', storageError);
+    }
     setToast(nextResponses[question.id].marked_for_review ? 'Question bookmarked for review.' : 'Bookmark removed.');
     window.setTimeout(() => setBookmarkSaving(false), 250);
   };
@@ -1509,13 +1571,20 @@ export default function LiveQuiz() {
       <main className="quiz-instructions-screen">
         <header className="instructions-header">
           <Link to={returnTo} className="quiz-brand">
-            <img src="/logo.png" alt="Zyvra" className="w-8 h-8 rounded-xl object-contain shadow-sm" />
+            <img src="/logo-192.png" alt="Zyvra" className="w-8 h-8 rounded-xl object-contain shadow-sm" />
             <span>ZYVRA<span>EXAM INSTRUCTIONS</span></span>
           </Link>
           <Link to={returnTo} className="button button-outline text-xs min-h-[36px]">
             <ArrowLeft size={14} /> Exit to Tests
           </Link>
         </header>
+
+      {!isOnline && (
+        <div className="bg-amber-500 text-black px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-sm">
+          <WifiOff size={15} />
+          <span>Offline mode: Your selections are saved on this device. Keep this tab open; cloud sync will retry when the connection returns.</span>
+        </div>
+      )}
 
         <div className="instructions-container">
           <div className="instructions-hero">
@@ -1659,13 +1728,20 @@ export default function LiveQuiz() {
       <main className="quiz-instructions-screen resume-prompt-screen">
         <header className="instructions-header">
           <Link to={returnTo} className="quiz-brand">
-            <img src="/logo.png" alt="Zyvra" className="w-8 h-8 rounded-xl object-contain shadow-sm" />
+            <img src="/logo-192.png" alt="Zyvra" className="w-8 h-8 rounded-xl object-contain shadow-sm" />
             <span>ZYVRA<span>RESUME TEST</span></span>
           </Link>
           <Link to={returnTo} className="button button-outline text-xs min-h-[36px]">
             <ArrowLeft size={14} /> Exit to Tests
           </Link>
         </header>
+
+      {!isOnline && (
+        <div className="bg-amber-500 text-black px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-sm">
+          <WifiOff size={15} />
+          <span>Offline mode: Your selections are saved on this device. Keep this tab open; cloud sync will retry when the connection returns.</span>
+        </div>
+      )}
 
         <div className="instructions-container resume-container">
           <div className="resume-hero-card">
@@ -1841,7 +1917,7 @@ export default function LiveQuiz() {
         <div className="quiz-header-top-row">
           <div className="quiz-header-brand-wrap">
             <Link to={returnTo || "/tests"} className="quiz-brand-compact" title="Exit to tests">
-              <img src="/logo.png" alt="Zyvra" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-contain shadow-xs flex-shrink-0" />
+              <img src="/logo-192.png" alt="Zyvra" className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg object-contain shadow-xs flex-shrink-0" />
             </Link>
             <div className="quiz-title-truncated">
               <strong title={test?.title}>{test?.title || 'Test Mode'}</strong>
@@ -1849,6 +1925,45 @@ export default function LiveQuiz() {
           </div>
 
           <div className="quiz-header-actions-compact">
+            {/* Font Size Adjuster for Mobile Accessibility */}
+            <div className="hidden sm:flex items-center rounded-lg border dark:border-slate-700/60 border-slate-200 bg-slate-50 dark:bg-slate-800/80 p-0.5 text-[11px] font-extrabold" title="Adjust text size">
+              <button
+                type="button"
+                onClick={() => setFontSizeLevel('sm')}
+                className={`px-1.5 py-0.5 rounded ${fontSizeLevel === 'sm' ? 'bg-indigo-600 text-white font-black' : 'text-slate-400 hover:text-slate-200'}`}
+                aria-label="Small text"
+              >
+                A-
+              </button>
+              <button
+                type="button"
+                onClick={() => setFontSizeLevel('md')}
+                className={`px-1.5 py-0.5 rounded ${fontSizeLevel === 'md' ? 'bg-indigo-600 text-white font-black' : 'text-slate-400 hover:text-slate-200'}`}
+                aria-label="Normal text"
+              >
+                A
+              </button>
+              <button
+                type="button"
+                onClick={() => setFontSizeLevel('lg')}
+                className={`px-1.5 py-0.5 rounded ${fontSizeLevel === 'lg' ? 'bg-indigo-600 text-white font-black' : 'text-slate-400 hover:text-slate-200'}`}
+                aria-label="Large text"
+              >
+                A+
+              </button>
+            </div>
+
+            {/* Fullscreen Toggle */}
+            <button
+              type="button"
+              className="icon-button hidden sm:inline-flex"
+              onClick={toggleFullscreen}
+              title={isFullscreen ? "Exit Fullscreen" : "Distraction-free Fullscreen"}
+              aria-label={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
+            >
+              {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+            </button>
+
             {/* Info Button: View Instructions */}
             <button
               type="button"
@@ -2000,6 +2115,13 @@ export default function LiveQuiz() {
         </div>
       </header>
 
+      {!isOnline && (
+        <div className="bg-amber-500 text-black px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-sm">
+          <WifiOff size={15} />
+          <span>Offline mode: Your selections are saved on this device. Keep this tab open; cloud sync will retry when the connection returns.</span>
+        </div>
+      )}
+
       {/* Note: The inline raw markdown instructions block above Question 1 has been permanently removed */}
 
       {timeExpired && (
@@ -2079,7 +2201,7 @@ export default function LiveQuiz() {
           </div>
 
           <div
-            className="quiz-question-text text-lg sm:text-xl font-medium leading-relaxed"
+            className={`quiz-question-text ${fontSizeLevel === 'sm' ? 'text-base sm:text-lg' : fontSizeLevel === 'lg' ? 'text-xl sm:text-2xl' : 'text-lg sm:text-xl'} font-medium leading-relaxed select-text`}
             lang={language}
             aria-busy={translatingQuestionId === questionId}
           >
@@ -2162,7 +2284,7 @@ export default function LiveQuiz() {
                     key={key}
                     type="button"
                     disabled={isLocked || isEvaluating}
-                    className={`quiz-option py-3.5 px-4 min-h-[56px] transition-all rounded-2xl ${
+                    className={`quiz-option py-3.5 px-4 min-h-[56px] transition-all rounded-2xl touch-manipulation select-none ${
                       selected
                         ? 'selected border-2 border-indigo-500 dark:border-indigo-400 dark:bg-[#312E81] bg-indigo-50 shadow-md'
                         : 'border dark:border-slate-700/60 border-slate-200 dark:bg-[#1E293B] bg-white hover:border-indigo-500/40'
@@ -2170,14 +2292,14 @@ export default function LiveQuiz() {
                     onClick={() => !isLocked && !isEvaluating && answer(key)}
                     aria-pressed={selected}
                   >
-                    <span className={`quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-black rounded-full flex items-center justify-center ${
+                    <span className={`quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-black rounded-full flex items-center justify-center shrink-0 ${
                       selected
                         ? 'bg-indigo-600 text-white shadow-sm'
                         : 'dark:bg-slate-800 bg-slate-100 border dark:border-slate-600 border-slate-300 dark:text-slate-300 text-slate-700'
                     }`}>
                       {key}
                     </span>
-                    <span className="quiz-option-text text-base sm:text-lg leading-relaxed flex-1 dark:text-white text-slate-900">
+                    <span className={`quiz-option-text ${fontSizeLevel === 'sm' ? 'text-sm sm:text-base' : fontSizeLevel === 'lg' ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'} leading-relaxed flex-1 dark:text-white text-slate-900`}>
                       <span lang={language}>
                         <MathRenderer>{displayedOption}</MathRenderer>
                         {!isEn && !displayedOption && translatingQuestionId === questionId && (
@@ -2473,14 +2595,67 @@ export default function LiveQuiz() {
           {/* Standard 5-State Legend in Sidebar */}
           <PaletteLegend compact={true} />
 
+          {/* Quick Palette Filter Tabs */}
+          <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl my-2 text-[11px] font-bold">
+            <button
+              type="button"
+              onClick={() => setPaletteFilter('all')}
+              className={`flex-1 py-1 rounded-lg transition-colors text-center ${
+                paletteFilter === 'all'
+                  ? 'bg-indigo-600 text-white font-black'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              All ({questions.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaletteFilter('answered')}
+              className={`flex-1 py-1 rounded-lg transition-colors text-center ${
+                paletteFilter === 'answered'
+                  ? 'bg-emerald-600 text-white font-black'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              Ans ({attemptedCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaletteFilter('unanswered')}
+              className={`flex-1 py-1 rounded-lg transition-colors text-center ${
+                paletteFilter === 'unanswered'
+                  ? 'bg-rose-600 text-white font-black'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              Unans ({questions.length - attemptedCount})
+            </button>
+            <button
+              type="button"
+              onClick={() => setPaletteFilter('marked')}
+              className={`flex-1 py-1 rounded-lg transition-colors text-center ${
+                paletteFilter === 'marked'
+                  ? 'bg-purple-600 text-white font-black'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              Review ({markedCount})
+            </button>
+          </div>
+
           {/* Question Grid */}
           <div ref={paletteGridRef} className="palette-grid">
             {questions.map((item, index) => {
               const qId = item.id;
               const response = responses[qId];
-              const isOptionE = response?.selected_option === 'E';
               const hasAnswer = Boolean(response?.selected_option);
               const isMarked = Boolean(response?.marked_for_review);
+
+              if (paletteFilter === 'answered' && !hasAnswer) return null;
+              if (paletteFilter === 'unanswered' && hasAnswer) return null;
+              if (paletteFilter === 'marked' && !isMarked) return null;
+
+              const isOptionE = response?.selected_option === 'E';
               const isVisited = visitedQuestions.has(qId) || hasAnswer || isMarked || currentIndex === index;
 
               let stateClass = 'not-visited';
@@ -2635,10 +2810,28 @@ export default function LiveQuiz() {
             </button>
             <div className="locked-icon"><ListChecks size={22} /></div>
             <h2 id="submit-confirm-title">Submit your test?</h2>
-            <p>
-              You have answered {attemptedCount} of {questions.length} questions and marked {markedCount} for review.
-              Unanswered questions will be submitted blank.
+            <p className="text-sm dark:text-slate-300 text-slate-600 mb-3">
+              Review your attempt summary below before final submission. Unanswered questions will receive zero marks.
             </p>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 my-3 text-center">
+              <div className="p-2.5 rounded-2xl dark:bg-emerald-950/40 bg-emerald-50 border border-emerald-500/30">
+                <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Answered</span>
+                <strong className="text-lg font-black text-emerald-600 dark:text-emerald-400">{attemptedCount}</strong>
+              </div>
+              <div className="p-2.5 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border border-rose-500/30">
+                <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 block">Unanswered</span>
+                <strong className="text-lg font-black text-rose-600 dark:text-rose-400">{questions.length - attemptedCount}</strong>
+              </div>
+              <div className="p-2.5 rounded-2xl dark:bg-purple-950/40 bg-purple-50 border border-purple-500/30">
+                <span className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 block">Marked</span>
+                <strong className="text-lg font-black text-purple-600 dark:text-purple-400">{markedCount}</strong>
+              </div>
+              <div className="p-2.5 rounded-2xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300">
+                <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">Total</span>
+                <strong className="text-lg font-black dark:text-white text-slate-900">{questions.length}</strong>
+              </div>
+            </div>
             {error && <div className="feedback error-feedback">{typeof error === 'object' ? error.message : error}</div>}
             <div className="modal-actions">
               <button type="button" className="button button-outline" onClick={() => setConfirmSubmit(false)}>

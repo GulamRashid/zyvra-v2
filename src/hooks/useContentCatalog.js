@@ -96,19 +96,8 @@ export default function useContentCatalog() {
         setLoading(false);
       }
     });
-    if (!supabase) return () => { active = false; };
-    const channel = supabase.channel(`content-catalog-${Math.random().toString(36).slice(2)}`);
-    for (const table of contentTables) channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => {
-      if (active) refresh().catch((loadError) => setError(getContentErrorMessage(loadError, 'Unable to refresh content hierarchy.')));
-    });
-    channel.subscribe((status) => {
-      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-        console.error(`Content realtime subscription ${status.toLowerCase()}.`);
-      }
-    });
     return () => {
       active = false;
-      supabase.removeChannel(channel);
     };
   }, [refresh]);
 

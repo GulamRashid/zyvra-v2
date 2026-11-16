@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell, ChartNoAxesColumn, ChevronRight, ClipboardList,
   Compass, Home, Menu, Settings, Wrench, X,
-  Shield, LogOut, Flame
+  Shield, LogOut, Flame, ShoppingBag, Bookmark
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
@@ -16,6 +16,8 @@ const sections = [
   { to: '/', label: 'Home', key: 'home', Icon: Home },
   { to: '/explore', label: 'Explore Exams', key: 'explore', Icon: Compass },
   { to: '/tests', label: 'Practice & Tests', key: 'tests', Icon: ClipboardList },
+  { to: '/purchases', label: 'My Purchases', key: 'purchases', Icon: ShoppingBag },
+  { to: '/bookmarks', label: 'Saved Bookmarks', key: 'bookmarks', Icon: Bookmark },
   { to: '/analytics', label: 'Performance & Analytics', Icon: ChartNoAxesColumn },
   { to: '/toolbox', label: 'Study Toolbox', key: 'toolbox', Icon: Wrench },
   { to: '/profile', label: 'Profile & Settings', key: 'profile', Icon: Settings }
@@ -52,7 +54,7 @@ export default function StudentLayout() {
       {drawerOpen && <button className="drawer-scrim" aria-label="Close navigation" onClick={closeDrawer} />}
       <aside className={`student-sidebar ${drawerOpen ? 'drawer-open' : ''}`}>
         <div className="sidebar-brand">
-          <img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" />
+          <img src="/logo-192.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" />
           <div>
             <span className="text-[var(--text)] font-extrabold tracking-wider">ZYVRA</span>
             <span className="text-[var(--muted)] font-semibold tracking-widest text-[9px] block">LEARN WITH INTENT</span>
@@ -105,7 +107,7 @@ export default function StudentLayout() {
               <Menu size={20} />
             </button>
             <div className="mobile-brand flex items-center gap-2 font-bold text-[var(--text)] tracking-wide">
-              <img src="/logo.png" alt="Zyvra" className="w-7 h-7 rounded-lg object-contain shadow-sm" />
+              <img src="/logo-192.png" alt="Zyvra" className="w-7 h-7 rounded-lg object-contain shadow-sm" />
               <span>ZYVRA</span>
             </div>
           </div>

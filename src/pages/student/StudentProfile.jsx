@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, BarChart3, Bell, Bookmark, Check, CheckCircle2, ChevronRight,
-  Clock, Copy, Download, Edit3, FileText, Flame, HelpCircle, Layers,
+  Clock, Copy, Download, Edit3, FileText, Flame, HelpCircle, KeyRound, Layers,
   LogOut, Mail, MessageCircle, Phone, Send, Settings, Share2, Target, Upload, Users
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -35,12 +35,69 @@ export default function StudentProfile() {
   const [savingGoals, setSavingGoals] = useState(false);
   const [goalsFeedback, setGoalsFeedback] = useState('');
   const [signOutError, setSignOutError] = useState('');
+  const [passwordPanelOpen, setPasswordPanelOpen] = useState(false);
+  const [passwordStep, setPasswordStep] = useState('closed');
+  const [passwordOtp, setPasswordOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passwordFeedback, setPasswordFeedback] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   // Referral copy feedback
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [shareFeedback, setShareFeedback] = useState('');
   const [currentReferralCode, setCurrentReferralCode] = useState(profile?.referral_code || '');
+
+  const requestPasswordOtp = async () => {
+    setPasswordError('');
+    setPasswordFeedback('');
+    if (!supabase || !user?.email) {
+      setPasswordError('We could not find the email address for this account.');
+      return;
+    }
+    setPasswordBusy(true);
+    try {
+      const { error: otpError } = await supabase.auth.signInWithOtp({
+        email: user.email,
+        options: { shouldCreateUser: false }
+      });
+      if (otpError) throw otpError;
+      setPasswordOtp('');
+      setPasswordStep('verify');
+      setPasswordFeedback(`A verification code was sent to ${user.email}.`);
+    } catch (otpError) {
+      setPasswordError(otpError.message || 'Could not send the verification code. Please try again.');
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
+
+  const saveNewPassword = async (event) => {
+    event.preventDefault();
+    setPasswordError('');
+    setPasswordFeedback('');
+    if (passwordOtp.length !== 6 || !/^[0-9]{6}$/.test(passwordOtp)) { setPasswordError('Enter the six-digit code from your email.'); return; }
+    if (newPassword.length < 8) { setPasswordError('Use at least 8 characters for your password.'); return; }
+    if (newPassword !== confirmNewPassword) { setPasswordError('The passwords do not match.'); return; }
+    setPasswordBusy(true);
+    try {
+      const { error: verifyError } = await supabase.auth.verifyOtp({ email: user.email, token: passwordOtp, type: 'email' });
+      if (verifyError) throw verifyError;
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) throw updateError;
+      setPasswordFeedback('Password saved. You can now sign in with your email and password.');
+      setPasswordStep('done');
+      setPasswordOtp('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (saveError) {
+      setPasswordError(/expired/i.test(saveError.message || '') ? 'That code has expired. Request a new one.' : saveError.message || 'Could not update your password. Please try again.');
+    } finally {
+      setPasswordBusy(false);
+    }
+  };
 
   // User Stats & Access State
   const [attempts, setAttempts] = useState([]);
@@ -82,8 +139,12 @@ export default function StudentProfile() {
   // Load real bookmarks / notes counts from storage or DB
   useEffect(() => {
     try {
-      const bm = JSON.parse(localStorage.getItem('zyvra_bookmarks') || '[]');
-      setBookmarksCount(Array.isArray(bm) ? bm.length : 0);
+      const resultBookmarks = JSON.parse(localStorage.getItem('zyvra_bookmarks') || '[]');
+      const questionBookmarks = JSON.parse(localStorage.getItem('zyvra_saved_question_bookmarks') || '[]');
+      const belongsToUser = (bookmark) => !bookmark.user_id || bookmark.user_id === user?.id;
+      const resultCount = Array.isArray(resultBookmarks) ? resultBookmarks.filter(belongsToUser).length : 0;
+      const questionCount = Array.isArray(questionBookmarks) ? questionBookmarks.filter(belongsToUser).length : 0;
+      setBookmarksCount(resultCount + questionCount);
     } catch {
       setBookmarksCount(0);
     }
@@ -93,7 +154,7 @@ export default function StudentProfile() {
     } catch {
       setNotesCount(0);
     }
-  }, []);
+  }, [user?.id]);
 
   // Load User Stats & Access strictly from Supabase
   useEffect(() => {
@@ -329,7 +390,7 @@ export default function StudentProfile() {
     <div className="min-h-screen dark:bg-[#0B1120] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
       {/* Top App Bar & Tech Data Banner */}
       <div className="relative">
-        <MountainSunsetAura height={220} showSun={true} />
+        <MountainSunsetAura height={220} mobileHeight={112} showSun={true} />
 
         {/* Top Navbar */}
         <div className="absolute top-0 inset-x-0 z-20 px-3 sm:px-6 pt-3 flex items-center justify-between max-w-2xl mx-auto">
@@ -482,6 +543,29 @@ export default function StudentProfile() {
             )}
           </div>
         </section>
+
+        {!guest && <section className="password-setting-card">
+          <div className="password-setting-heading">
+            <div className="password-setting-icon"><KeyRound size={18} /></div>
+            <div><h3>Password sign-in</h3><p>Add a password, or reset it after verifying your email.</p></div>
+            {!passwordPanelOpen && <button type="button" className="button button-outline password-toggle-button" onClick={() => { setPasswordPanelOpen(true); setPasswordStep('start'); setPasswordError(''); setPasswordFeedback(''); }}>Set or reset</button>}
+          </div>
+          {passwordPanelOpen && <div className="password-setting-form">
+            {passwordStep === 'start' && <>
+              <p className="password-setting-help">We will send a one-time code to <strong>{user?.email}</strong>. Verify it to create or replace your password.</p>
+              <div className="password-setting-actions"><button type="button" className="button button-gold" onClick={requestPasswordOtp} disabled={passwordBusy}>{passwordBusy ? 'Sending code…' : 'Send verification code'}</button><button type="button" className="text-button" onClick={() => setPasswordPanelOpen(false)}>Cancel</button></div>
+            </>}
+            {passwordStep === 'verify' && <form onSubmit={saveNewPassword}>
+              <label className="field-label">Email verification code<div className="input-with-icon"><Mail size={16} /><input className="text-input" type="text" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={passwordOtp} onChange={(event) => setPasswordOtp(event.target.value.replace(/\D/g, '').slice(0, 6))} required placeholder="6-digit code" /></div></label>
+              <label className="field-label">New password<div className="input-with-icon"><KeyRound size={16} /><input className="text-input" type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required placeholder="At least 8 characters" /></div></label>
+              <label className="field-label">Confirm new password<div className="input-with-icon"><KeyRound size={16} /><input className="text-input" type="password" autoComplete="new-password" minLength={8} value={confirmNewPassword} onChange={(event) => setConfirmNewPassword(event.target.value)} required placeholder="Enter it again" /></div></label>
+              <div className="password-setting-actions"><button type="submit" className="button button-gold" disabled={passwordBusy}>{passwordBusy ? 'Saving…' : 'Verify code and save password'}</button><button type="button" className="text-button" onClick={requestPasswordOtp} disabled={passwordBusy}>Resend code</button></div>
+            </form>}
+            {passwordStep === 'done' && <button type="button" className="button button-outline" onClick={() => { setPasswordPanelOpen(false); setPasswordStep('closed'); }}>Done</button>}
+            {passwordFeedback && <div className="feedback success-feedback">{passwordFeedback}</div>}
+            {passwordError && <div className="feedback error-feedback">{passwordError}</div>}
+          </div>}
+        </section>}
 
         {/* 4 Stats Cards Grid (Real Aggregates - 360px optimized) */}
         <section className="grid grid-cols-4 gap-1.5 sm:gap-3">

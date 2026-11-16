@@ -590,7 +590,7 @@ export default function PricingManager() {
   return (
     <div className="min-h-screen bg-[#0B1120] text-slate-100 p-4 sm:p-6 space-y-5">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="page-heading flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-bold mb-1">
             <span>Pricing & Offers</span>

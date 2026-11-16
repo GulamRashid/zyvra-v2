@@ -979,8 +979,8 @@ export default function ContentManager() {
         </>}
       </section>
     </div>
-    {dialog && <ContentDialog kind={dialog.kind} item={dialog.item} exams={exams} folders={folders} chapters={chapters} defaultExamId={selectedExamId} defaultParentId={currentFolder?.id} onClose={() => setDialog(null)} onSaved={onSaved} />}
-    {resourceChapter && <ResourceManagerModal chapter={resourceChapter} onClose={() => setResourceChapter(null)} />}
+    {dialog && createPortal(<ContentDialog kind={dialog.kind} item={dialog.item} exams={exams} folders={folders} chapters={chapters} defaultExamId={selectedExamId} defaultParentId={currentFolder?.id} onClose={() => setDialog(null)} onSaved={onSaved} />, document.body)}
+    {resourceChapter && createPortal(<ResourceManagerModal chapter={resourceChapter} onClose={() => setResourceChapter(null)} />, document.body)}
     {contentToDelete && createPortal(<div className="modal-backdrop delete-confirm-backdrop" role="presentation" onMouseDown={(event) => { if (!deletingContent && event.target === event.currentTarget) setContentToDelete(null); }}><section className="content-dialog delete-confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-content-title" aria-describedby="delete-content-warning">
       <div className="delete-confirm-icon"><AlertTriangle size={22} /></div>
       <h2 id="delete-content-title">Delete {contentToDelete.item.title || (contentToDelete.kind === 'folder' ? 'this folder' : 'this chapter')}?</h2>

@@ -12,6 +12,7 @@ export default function AuthPage() {
   const [step, setStep] = useState('email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordConfirm, setPasswordConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [otp, setOtp] = useState(Array(6).fill(''));
   const [cooldown, setCooldown] = useState(0);
@@ -64,6 +65,8 @@ export default function AuthPage() {
     setError('');
     setMessage('');
     if (!supabase) { setError(configurationError); return; }
+    if (password && password.length < 8) { setError('Password must be at least 8 characters.'); return; }
+    if (password && password !== passwordConfirm) { setError('Passwords do not match.'); return; }
     setBusy(true);
     try {
       const { error: authError } = await supabase.auth.signInWithOtp({
@@ -95,6 +98,10 @@ export default function AuthPage() {
       const { data: authData, error: authError } = await supabase.auth.verifyOtp({ email: email.trim(), token, type: 'email' });
       if (authError) throw authError;
       if (authData?.user) {
+        if (password) {
+          const { error: passwordError } = await supabase.auth.updateUser({ password });
+          if (passwordError) throw new Error(`Your email is verified, but the password could not be saved. Sign in with OTP and set it from Profile. ${passwordError.message}`);
+        }
         await ensureReferralCode(supabase, authData.user.id);
         if (refCode) {
           const referralResult = await processReferralAward(supabase, authData.user.id, refCode);
@@ -180,7 +187,7 @@ export default function AuthPage() {
   };
 
   return <main className="auth-page">
-    <div className="auth-topbar"><a href="/" className="sidebar-brand auth-brand"><img src="/logo.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" /><div>ZYVRA<span>LEARN WITH INTENT</span></div></a><button className="auth-theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☼ Light mode' : '◐ Dark mode'}</button></div>
+    <div className="auth-topbar"><a href="/" className="sidebar-brand auth-brand"><img src="/logo-192.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" /><div>ZYVRA<span>LEARN WITH INTENT</span></div></a><button className="auth-theme" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☼ Light mode' : '◐ Dark mode'}</button></div>
     <div className="auth-layout">
       <section className="auth-story"><div className="eyebrow"><Sparkles size={14} /> YOUR NEXT CHAPTER STARTS HERE</div><h1>Make every<br /><em>study hour</em> count.</h1><p>A calmer, more focused way to prepare for BPSC, SSC, CTET and beyond.</p><div className="auth-points"><span><CheckCircle2 size={16} /> One place for your learning journey</span><span><CheckCircle2 size={16} /> Progress that feels rewarding</span><span><CheckCircle2 size={16} /> Built for focused exam prep</span></div><div className="auth-quote"><div className="quote-stars">✦ ✦ ✦ ✦ ✦</div><p>“A little progress each day adds up to big results.”</p><span>YOUR ZYVRA STUDY SPACE</span></div></section>
       <section className="auth-card">
@@ -203,8 +210,8 @@ export default function AuthPage() {
           <div className="resend-row">{cooldown ? <span>Resend code in <strong>00:{String(cooldown).padStart(2, '0')}</strong></span> : <button className="text-button" disabled={busy} onClick={sendOtp}>Resend code</button>}</div>
         </> : <>
           <div className="auth-tabs">
-            <button className={method === 'otp' ? 'selected' : ''} onClick={() => { setMethod('otp'); setError(''); }}>Quick OTP / New Account</button>
-            <button className={method === 'password' ? 'selected' : ''} onClick={() => { setMethod('password'); setError(''); }}>Sign In with Password</button>
+            <button type="button" className={method === 'otp' ? 'selected' : ''} onClick={() => { setMethod('otp'); setPassword(''); setPasswordConfirm(''); setError(''); }}>OTP / Create account</button>
+            <button type="button" className={method === 'password' ? 'selected' : ''} onClick={() => { setMethod('password'); setPassword(''); setPasswordConfirm(''); setError(''); }}>Sign In with Password</button>
           </div>
           <form onSubmit={method === 'otp' ? sendOtp : passwordAuth}>
             <label className="field-label">Email address<div className="input-with-icon"><Mail size={17} /><input className="text-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="you@example.com" autoComplete="email" /></div></label>
@@ -212,10 +219,15 @@ export default function AuthPage() {
             {method === 'otp' && !refCode && (
               <label className="field-label">Referral code (Optional)<div className="input-with-icon"><Gift size={17} /><input className="text-input uppercase" value={refCode} onChange={(event) => setRefCode(event.target.value.trim().toUpperCase())} placeholder="e.g. ZYVRA100" autoComplete="off" /></div></label>
             )}
+            {method === 'otp' && <>
+              <label className="field-label">Create a password <span className="optional-label">OPTIONAL</span><div className="input-with-icon"><KeyRound size={17} /><input className="text-input" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} minLength={8} placeholder="At least 8 characters" autoComplete="new-password" /></div></label>
+              {password && <label className="field-label">Confirm password<div className="input-with-icon"><KeyRound size={17} /><input className="text-input" type="password" value={passwordConfirm} onChange={(event) => setPasswordConfirm(event.target.value)} minLength={8} placeholder="Enter it again" autoComplete="new-password" /></div></label>}
+              <p className="field-hint">Set it now to sign in with your email and password later. You can also add one from Profile after OTP sign-in.</p>
+            </>}
             {method === 'otp' && <p className="field-hint">We'll send a 6-digit code via email to verify your identity. Works for both new signups and existing accounts without a password.</p>}
             <button type="submit" className="button button-gold button-full" disabled={busy}>{busy ? 'Please wait…' : method === 'otp' ? <>Send 6-Digit OTP <ArrowRight size={16} /></> : <>Sign in <ArrowRight size={16} /></>}</button>
           </form>
-          {method === 'password' && <button className="text-button auth-switch" onClick={() => { setMethod('otp'); setError(''); setMessage(''); setStep('email'); }}>Forgot password? Sign in with OTP instead</button>}
+          {method === 'password' && <button type="button" className="text-button auth-switch" onClick={() => { setMethod('otp'); setPassword(''); setPasswordConfirm(''); setError(''); setMessage(''); setStep('email'); }}>Forgot password? Sign in with OTP, then reset it from Profile.</button>}
         </>}
         {message && <div className="feedback success-feedback"><CheckCircle2 size={16} />{message}</div>}
         {error && <div className="feedback error-feedback">{error}</div>}

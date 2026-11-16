@@ -107,7 +107,7 @@ export default function StudentWallet() {
         )}
 
         {/* Hero Card: Available Balance & Totals - Bright Amber Dopamine Trigger */}
-        <section className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#0F172A] dark:to-[#0B1120] bg-gradient-to-r from-amber-100 via-slate-50 to-white border dark:border-amber-500/40 border-amber-300 p-5 sm:p-6 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <section className="wallet-hero relative overflow-hidden rounded-3xl dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#0F172A] dark:to-[#0B1120] bg-gradient-to-r from-amber-100 via-slate-50 to-white border dark:border-amber-500/40 border-amber-300 p-5 sm:p-6 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-black text-2xl shadow-[0_0_20px_rgba(245,158,11,0.4)] shrink-0">
               🪙
@@ -120,7 +120,7 @@ export default function StudentWallet() {
                 {Number(coinBalance || 0).toLocaleString()}{' '}
                 <span className="text-xs font-bold text-amber-600 dark:text-amber-300">coins</span>
               </h2>
-              <p className="text-xs dark:text-slate-300 text-slate-600 font-medium mt-0.5">
+              <p className="wallet-hero-copy text-xs dark:text-slate-300 text-slate-600 font-medium mt-0.5">
                 Ready to redeem on eligible Zyvra purchases (10 Coins = ₹1).
               </p>
             </div>

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, BookOpen, Check, ChevronDown, ChevronRight, Download, FileQuestion, Filter, HelpCircle, Layers, LayoutGrid, List, Plus, Search, Sparkles, Trash2, Upload, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { getOptionEntries, hasDevanagari, hasLatin, normalizeImportQuestionText, parseImportCsv, validateImportQuestion } from '../../lib/tests';
@@ -120,17 +121,23 @@ function QuestionDialog({ question, chapters, onClose, onSaved, onDelete }) {
   const save = async (event) => {
     event.preventDefault();
     setError('');
-    if (!values.question_text.trim()) { setError('Question text in English is required.'); return; }
-    if (values.options.some((option) => !option.en.trim())) { setError('Add English text for every answer option.'); return; }
+    if (!values.question_text.trim() && !values.question_text_hi.trim()) { setError('Question text is required (in English or Hindi).'); return; }
+    if (values.options.some((option) => !option.en.trim() && !option.hi.trim())) { setError('Every answer option must have text (in English or Hindi).'); return; }
     if (!values.options.some((_, index) => String.fromCharCode(65 + index) === values.correct_answer)) { setError('Choose a correct answer that exists in the options.'); return; }
     if (!values.subject.trim()) { setError('Subject is required.'); return; }
     if (!values.chapter_id || !chapters.some((chapter) => chapter.id === values.chapter_id)) { setError('Choose a valid chapter mapping.'); return; }
     if (!supabase) { setError('Supabase is not configured.'); return; }
     const optionKeys = values.options.map((_, index) => String.fromCharCode(65 + index));
+    const qEn = String(values.question_text || '').trim();
+    const qHi = String(values.question_text_hi || '').trim();
     const payload = {
-      question_text: String(values.question_text || '').trim(),
-      question_text_hi: String(values.question_text_hi || '').trim() || null,
-      options: values.options.map((option) => ({ en: String(option.en || '').trim(), hi: String(option.hi || '').trim() })),
+      question_text: qEn || qHi,
+      question_text_hi: qHi || null,
+      options: values.options.map((option) => {
+        const optEn = String(option.en || '').trim();
+        const optHi = String(option.hi || '').trim();
+        return { en: optEn || optHi, hi: optHi || optEn };
+      }),
       correct_answer: String(values.correct_answer || 'A').trim().toUpperCase(),
       explanation: String(values.explanation || '').trim() || null,
       distractor_notes: Object.fromEntries(optionKeys.filter((key) => key !== values.correct_answer && values.distractor_notes[key]?.trim()).map((key) => [key, values.distractor_notes[key].trim()])),
@@ -155,14 +162,14 @@ function QuestionDialog({ question, chapters, onClose, onSaved, onDelete }) {
     } finally { setSaving(false); }
   };
 
-  return <div className="modal-backdrop"><form className="content-dialog qbank-dialog" role="dialog" aria-modal="true" aria-labelledby="question-dialog-title" onSubmit={save}>
+  return <div className="modal-backdrop"><form className="content-dialog qbank-dialog" role="dialog" aria-modal="true" aria-labelledby="question-dialog-title" onSubmit={save} noValidate>
     <button className="modal-close" type="button" aria-label="Close dialog" onClick={onClose}><X size={18} /></button>
     <div className="eyebrow">{question ? 'QUESTION AUTHORING' : 'ADD TO QUESTION BANK'}</div><h2 id="question-dialog-title">{question ? 'Edit question' : 'Author a question'}</h2>
-    <div className="qbank-form-grid"><label className="field-label">Question (English) *<textarea className="text-input content-textarea" rows="2" value={values.question_text} onChange={(event) => setField('question_text', event.target.value)} required /></label><label className="field-label">Question (Hindi)<textarea className="text-input content-textarea" rows="2" value={values.question_text_hi} onChange={(event) => setField('question_text_hi', event.target.value)} /></label></div>
+    <div className="qbank-form-grid"><label className="field-label">Question (English)<textarea className="text-input content-textarea" rows="2" value={values.question_text} onChange={(event) => setField('question_text', event.target.value)} placeholder="Question text in English..." /></label><label className="field-label">Question (Hindi)<textarea className="text-input content-textarea" rows="2" value={values.question_text_hi} onChange={(event) => setField('question_text_hi', event.target.value)} placeholder="हिंदी में प्रश्न..." /></label></div>
     <div className="options-editor-heading"><strong>Answer options</strong><div><span>Option count</span><button type="button" className={values.options.length === 4 ? 'active' : ''} onClick={() => setOptionCount(4)}>4</button><button type="button" className={values.options.length === 5 ? 'active' : ''} onClick={() => setOptionCount(5)}>5</button></div></div>
     <div className="qbank-option-editor">{values.options.map((option, index) => {
       const key = String.fromCharCode(65 + index);
-      return <div className={`qbank-option-row ${values.correct_answer === key ? 'correct-option' : ''}`} key={key}><span className="option-key">{key}</span><div className="qbank-option-fields"><input className="text-input" value={option.en} onChange={(event) => setOption(index, 'en', event.target.value)} placeholder={`Option ${key} (English) *`} required /><input className="text-input" value={option.hi} onChange={(event) => setOption(index, 'hi', event.target.value)} placeholder={`Option ${key} (Hindi)`} /></div><label className="correct-radio" title={`Set ${key} as the answer`}><input type="radio" name="correct-answer" value={key} checked={values.correct_answer === key} onChange={() => setField('correct_answer', key)} /><Check size={14} /></label></div>;
+      return <div className={`qbank-option-row ${values.correct_answer === key ? 'correct-option' : ''}`} key={key}><span className="option-key">{key}</span><div className="qbank-option-fields"><input className="text-input" value={option.en} onChange={(event) => setOption(index, 'en', event.target.value)} placeholder={`Option ${key} (English)`} /><input className="text-input" value={option.hi} onChange={(event) => setOption(index, 'hi', event.target.value)} placeholder={`Option ${key} (Hindi)`} /></div><label className="correct-radio" title={`Set ${key} as the answer`}><input type="radio" name="correct-answer" value={key} checked={values.correct_answer === key} onChange={() => setField('correct_answer', key)} /><Check size={14} /></label></div>;
     })}</div>
     <div className="qbank-form-grid"><label className="field-label">Subject *<input className="text-input" value={values.subject} onChange={(event) => setField('subject', event.target.value)} required placeholder="e.g. Polity" /></label><label className="field-label">Difficulty<select className="text-input" value={values.difficulty} onChange={(event) => setField('difficulty', event.target.value)}><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></label><label className="field-label">Chapter mapping *<select className="text-input" value={values.chapter_id} onChange={(event) => setField('chapter_id', event.target.value)} required><option value="">Select a chapter</option>{chapters.map((chapter) => <option value={chapter.id} key={chapter.id}>{chapter.title}</option>)}</select></label><label className="field-label">Status<select className="text-input" value={values.status} onChange={(event) => setField('status', event.target.value)}><option value="draft">Draft</option><option value="review">Review</option><option value="published">Published</option><option value="unpublished">Unpublished</option></select></label><label className="field-label">Usage scope<select className="text-input" value={values.usage_scope} onChange={(event) => setField('usage_scope', event.target.value)}><option value="both">Both</option><option value="practice_only">Practice Only</option><option value="test_only">Test Only</option></select></label></div>
     <label className="field-label">Explanation<textarea className="text-input content-textarea" rows="3" value={values.explanation || ''} onChange={(event) => setField('explanation', event.target.value)} placeholder="Explain why the selected answer is correct." /></label>
@@ -1480,22 +1487,24 @@ export default function QBankManager() {
       </div>
     )}
 
-    {dialog && (
+    {dialog && createPortal(
       <QuestionDialog
         question={dialog.question}
         chapters={chapters}
         onClose={() => setDialog(null)}
         onSaved={refresh}
         onDelete={handleDeleteQuestions}
-      />
+      />,
+      document.body
     )}
 
-    {importOpen && (
+    {importOpen && createPortal(
       <ImportDialog
         chapters={chapters}
         onClose={() => setImportOpen(false)}
         onImported={refresh}
-      />
+      />,
+      document.body
     )}
 
     {selectedQuestionIds.length > 0 && (

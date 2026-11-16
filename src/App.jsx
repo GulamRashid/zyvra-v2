@@ -7,13 +7,11 @@ import LoadingSkeleton from './components/common/LoadingSkeleton';
 import QuizErrorBoundary from './components/common/QuizErrorBoundary';
 import PwaInstallBanner from './components/common/PwaInstallBanner';
 import PwaUpdatePrompt from './components/common/PwaUpdatePrompt';
-import { FileQuestion, ShoppingBag, Bookmark, Bell, Wrench } from 'lucide-react';
 
 const AuthPage = lazy(() => import('./pages/auth/AuthPage'));
 const StudentHome = lazy(() => import('./pages/student/StudentHome'));
 const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
 const StudentWallet = lazy(() => import('./pages/student/StudentWallet'));
-const StudentActivityPages = lazy(() => import('./pages/student/StudentActivityPages'));
 const StudentAnalytics = lazy(() => import('./pages/student/StudentAnalytics'));
 const ContentManager = lazy(() => import('./pages/admin/ContentManager'));
 const QBankManager = lazy(() => import('./pages/admin/QBankManager'));
@@ -26,6 +24,9 @@ const StudentToolbox = lazy(() => import('./pages/student/StudentToolbox'));
 const TestHub = lazy(() => import('./pages/student/TestHub'));
 const LiveQuiz = lazy(() => import('./pages/student/LiveQuiz'));
 const QuizResult = lazy(() => import('./pages/student/QuizResult'));
+const StudentPurchases = lazy(() => import('./pages/student/StudentPurchases'));
+const StudentBookmarks = lazy(() => import('./pages/student/StudentBookmarks'));
+const StudentNotifications = lazy(() => import('./pages/student/StudentNotifications'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const PricingManager = lazy(() => import('./pages/admin/PricingManager'));
 const UserManager = lazy(() => import('./pages/admin/UserManager'));
@@ -36,52 +37,6 @@ const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications')
 const AdminTools = lazy(() => import('./pages/admin/AdminTools'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
 const AdminEngagement = lazy(() => import('./pages/admin/AdminEngagement'));
-
-const studentPages = {
-  '/tests': { title: 'Practice & tests', subtitle: 'Build your confidence with focused practice.', icon: FileQuestion, items: ['Daily practice', 'Chapter tests', 'Mock exams'] },
-  '/purchases': { title: 'My purchases', subtitle: 'Your learning resources and access, all in one place.', icon: ShoppingBag, emptyTitle: 'No purchases yet', emptyDescription: 'Your unlocked chapters, tests, and learning access will appear here after your first purchase.', primaryLabel: 'Explore exams', primaryPath: '/explore' },
-  '/bookmarks': { title: 'Bookmarks', subtitle: 'Keep important questions and content close.', icon: Bookmark, emptyTitle: 'No bookmarks yet', emptyDescription: 'Save important questions and learning content during your study sessions to review them here.', primaryLabel: 'Start practicing', primaryPath: '/tests' },
-  '/notifications': { title: 'Notifications', subtitle: 'Your learning and platform updates.', icon: Bell, emptyTitle: 'You are all caught up', emptyDescription: 'Study reminders, test results, and account updates will appear here when there is something new.', primaryLabel: 'Continue learning', primaryPath: '/' },
-  '/toolbox': { title: 'Study toolbox', subtitle: 'Simple tools for a sharper study session.', icon: Wrench, items: ['Math tools', 'Polity quick review', 'Reasoning practice'] }
-};
-
-function StudentPlaceholder({ page }) {
-  const { title, subtitle, icon: Icon, emptyTitle, emptyDescription, primaryLabel, primaryPath } = page;
-  return (
-    <div className="placeholder-page max-w-4xl mx-auto p-4 sm:p-6 space-y-4">
-      <div className="page-heading">
-        <div>
-          <div className="eyebrow">YOUR LEARNING SPACE</div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white">{title}</h1>
-          <p className="text-xs sm:text-sm dark:text-slate-400 text-slate-600">{subtitle}</p>
-        </div>
-      </div>
-      <div className="placeholder-hero panel-card p-6 rounded-3xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="placeholder-icon w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-400">
-            <Icon size={24} />
-          </div>
-          <div>
-            <h2 className="text-base font-black text-white">{emptyTitle || 'This space is empty for now'}</h2>
-            <p className="text-xs dark:text-slate-400 text-slate-600">{emptyDescription || 'Your learning activity will appear here when it is available.'}</p>
-          </div>
-        </div>
-        <div className="pt-2 flex items-center gap-3">
-          <a href={primaryPath || '/tests'} className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-glowIndigo inline-flex items-center gap-1.5 transition-transform active:scale-95">
-            <span>{primaryLabel || 'Go to Practice Hub'}</span>
-            <span>→</span>
-          </a>
-          <a href="/explore" className="px-4 py-2 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-700 text-xs font-bold hover:text-black dark:hover:text-white transition-colors">
-            Explore Exams
-          </a>
-        </div>
-      </div>
-      <div className="placeholder-note text-xs dark:text-slate-400 text-slate-500 flex items-center gap-2">
-        <span className="health-dot" /> We will keep this space up to date as your learning journey grows.
-      </div>
-    </div>
-  );
-}
 
 function AppRoutes() {
   return <Suspense fallback={<main className="page-loading"><LoadingSkeleton rows={5} /></main>}><Routes>
@@ -119,10 +74,9 @@ function AppRoutes() {
       <Route path="notes" element={<Navigate to="/toolbox" replace />} />
       <Route path="saved" element={<Navigate to="/bookmarks" replace />} />
       <Route path="subscriptions" element={<Navigate to="/purchases" replace />} />
-      <Route path="purchases" element={<StudentActivityPages type="purchases" />} />
-      <Route path="bookmarks" element={<StudentActivityPages type="bookmarks" />} />
-      <Route path="notifications" element={<StudentActivityPages type="notifications" />} />
-      {Object.entries(studentPages).filter(([path]) => !['/toolbox', '/tests', '/purchases', '/bookmarks', '/notifications'].includes(path)).map(([path, page]) => <Route key={path} path={path.slice(1)} element={<StudentPlaceholder page={page} />} />)}
+      <Route path="purchases" element={<StudentPurchases />} />
+      <Route path="bookmarks" element={<StudentBookmarks />} />
+      <Route path="notifications" element={<StudentNotifications />} />
       <Route path="profile" element={<StudentProfile />} />
       <Route path="settings" element={<Navigate to="/profile" replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />

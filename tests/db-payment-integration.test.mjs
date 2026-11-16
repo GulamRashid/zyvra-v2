@@ -2,6 +2,20 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 
+let dockerAvailable = null;
+function isDockerPgAvailable() {
+  if (dockerAvailable !== null) return dockerAvailable;
+  try {
+    execFileSync('docker', ['exec', '-i', 'zyvra_test_pg', 'psql', '-U', 'postgres', '-c', 'SELECT 1;'], {
+      stdio: 'ignore'
+    });
+    dockerAvailable = true;
+  } catch {
+    dockerAvailable = false;
+  }
+  return dockerAvailable;
+}
+
 // Helper to execute SQL queries in local test postgres container and parse JSON result
 function queryPgJson(sql, sessionSetup = '') {
   const wrappedSql = `${sessionSetup ? sessionSetup + ';' : ''} SELECT json_build_object('result', (${sql}))::text;`;
@@ -19,7 +33,11 @@ function execPg(sql) {
   });
 }
 
-test('DB INTEGRATION: Real PostgreSQL Transactional Fulfillment and Idempotency', async () => {
+test('DB INTEGRATION: Real PostgreSQL Transactional Fulfillment and Idempotency', async (t) => {
+  if (!isDockerPgAvailable()) {
+    t.skip('Docker container zyvra_test_pg not running');
+    return;
+  }
   const userId = '11111111-1111-1111-1111-111111111111';
   const orderId = '22222222-2222-2222-2222-222222222222';
   const gatewayOrderId = 'order_real_db_1';
@@ -88,7 +106,11 @@ test('DB INTEGRATION: Real PostgreSQL Transactional Fulfillment and Idempotency'
   assert.equal(walletAfterDup.total_redeemed, 20);
 });
 
-test('DB INTEGRATION: Late UPI Capture and Coin Shortfall Accounting Invariant', async () => {
+test('DB INTEGRATION: Late UPI Capture and Coin Shortfall Accounting Invariant', async (t) => {
+  if (!isDockerPgAvailable()) {
+    t.skip('Docker container zyvra_test_pg not running');
+    return;
+  }
   const userId = '33333333-3333-3333-3333-333333333333';
   const orderId = '44444444-4444-4444-4444-444444444444';
   const gatewayOrderId = 'order_upi_shortfall_1';
@@ -161,7 +183,11 @@ test('DB INTEGRATION: Late UPI Capture and Coin Shortfall Accounting Invariant',
   assert.equal(access.is_active, true);
 });
 
-test('DB INTEGRATION: In-Flight Orders Retain Coin Reservation; Abandoned Unattempted Expire', async () => {
+test('DB INTEGRATION: In-Flight Orders Retain Coin Reservation; Abandoned Unattempted Expire', async (t) => {
+  if (!isDockerPgAvailable()) {
+    t.skip('Docker container zyvra_test_pg not running');
+    return;
+  }
   const userId = '55555555-5555-5555-5555-555555555555';
   const inFlightOrderId = '66666666-6666-6666-6666-666666666666';
   const abandonedOrderId = '77777777-7777-7777-7777-777777777777';
@@ -226,7 +252,11 @@ test('DB INTEGRATION: In-Flight Orders Retain Coin Reservation; Abandoned Unatte
   assert.equal(orderResult.order.status, 'created');
 });
 
-test('DB INTEGRATION: Concurrent Fulfillments with Advisory & Row Locks', async () => {
+test('DB INTEGRATION: Concurrent Fulfillments with Advisory & Row Locks', async (t) => {
+  if (!isDockerPgAvailable()) {
+    t.skip('Docker container zyvra_test_pg not running');
+    return;
+  }
   const userId = '99999999-9999-9999-9999-999999999999';
   const orderId = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
   const gatewayOrderId = 'order_concurrency_1';
@@ -287,7 +317,11 @@ test('DB INTEGRATION: Concurrent Fulfillments with Advisory & Row Locks', async 
   assert.equal(accessCount, 1);
 });
 
-test('DB INTEGRATION: Payment Status Handling (captured, authorized, failed, pending, refunded)', async () => {
+test('DB INTEGRATION: Payment Status Handling (captured, authorized, failed, pending, refunded)', async (t) => {
+  if (!isDockerPgAvailable()) {
+    t.skip('Docker container zyvra_test_pg not running');
+    return;
+  }
   const userId = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
   const orderId = 'cccccccc-cccc-cccc-cccc-cccccccccccc';
   const gatewayOrderId = 'order_states_1';
@@ -334,7 +368,11 @@ test('DB INTEGRATION: Payment Status Handling (captured, authorized, failed, pen
   assert.equal(finalStatus, 'paid');
 });
 
-test('DB INTEGRATION: Cross-Item Coin Reservation Serialization and Invariant', async () => {
+test('DB INTEGRATION: Cross-Item Coin Reservation Serialization and Invariant', async (t) => {
+  if (!isDockerPgAvailable()) {
+    t.skip('Docker container zyvra_test_pg not running');
+    return;
+  }
   const userId = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
   const folderA = 'eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee';
   const folderB = 'ffffffff-ffff-ffff-ffff-ffffffffffff';
@@ -396,7 +434,11 @@ test('DB INTEGRATION: Cross-Item Coin Reservation Serialization and Invariant', 
   assert.equal(orderC.order.final_amount, 500); // Full price
 });
 
-test('DB INTEGRATION: Tampered Payment Amount & Replay Attack Protection', async () => {
+test('DB INTEGRATION: Tampered Payment Amount & Replay Attack Protection', async (t) => {
+  if (!isDockerPgAvailable()) {
+    t.skip('Docker container zyvra_test_pg not running');
+    return;
+  }
   const userId = '12121212-1212-1212-1212-121212121212';
   const orderId = '34343434-3434-3434-3434-343434343434';
   const gatewayOrderId = 'order_tamper_pg_1';
@@ -481,7 +523,11 @@ test('DB INTEGRATION: Tampered Payment Amount & Replay Attack Protection', async
   assert.equal(walletReplay, 30);
 });
 
-test('DB INTEGRATION: Coin Shortfall Audit Visibility and Student Privacy Invariant', async () => {
+test('DB INTEGRATION: Coin Shortfall Audit Visibility and Student Privacy Invariant', async (t) => {
+  if (!isDockerPgAvailable()) {
+    t.skip('Docker container zyvra_test_pg not running');
+    return;
+  }
   const studentId = '56565656-5656-5656-5656-565656565656';
   const adminId = '78787878-7878-7878-7878-787878787878';
   const orderId = '90909090-9090-9090-9090-909090909090';

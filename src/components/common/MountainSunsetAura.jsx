@@ -1,8 +1,9 @@
-export default function MountainSunsetAura({ className = '', height = 180, showSun = true }) {
+export default function MountainSunsetAura({ className = '', height = 180, mobileHeight, showSun = true }) {
   return (
     <div
-      className={`relative w-full overflow-hidden pointer-events-none select-none ${className}`}
-      style={{ height: `${height}px` }}
+      className={`mountain-sunset-aura relative w-full overflow-hidden pointer-events-none select-none ${className}`}
+      data-mobile-height={mobileHeight ? 'true' : undefined}
+      style={{ height: `${height}px`, ...(mobileHeight ? { '--mobile-aura-height': `${mobileHeight}px` } : {}) }}
       aria-hidden="true"
     >
       {/* Background Deep Slate/Indigo Focus Gradient */}
