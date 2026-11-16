@@ -131,8 +131,14 @@ export default function QuizResult() {
           score: directAttempt.score || 0,
           total_marks: directAttempt.max_score || directAttempt.total_marks || 0,
           percentage: directAttempt.percentage || 0,
+          total_questions: directAttempt.total_questions || 0,
+          attempted_count: directAttempt.attempted_count || 0,
+          correct_count: directAttempt.correct_count || 0,
+          incorrect_count: directAttempt.incorrect_count || 0,
+          skipped_with_e_count: directAttempt.skipped_with_e_count || 0,
           time_spent_seconds: directAttempt.time_spent_seconds || 0,
-          solutions: []
+          solutions: [],
+          details_unavailable: true
         };
       }
 
@@ -171,10 +177,11 @@ export default function QuizResult() {
     return result ? (result.scorecard || result.summary || result) : {};
   }, [result]);
   const score = Number(valueOf(scorecard, 'score', 'total_score', 'final_score')) || 0;
+  const totalMarks = Number(valueOf(scorecard, 'total_marks', 'max_score', 'max_marks')) || 0;
   const rawPercentage = Number(valueOf(scorecard, 'percentage', 'score_percentage'));
   const percentage = rawPercentage > 0 && rawPercentage <= 1
     ? Math.round(rawPercentage * 100)
-    : (rawPercentage || 0);
+    : (rawPercentage || (totalMarks > 0 ? Math.round((score / totalMarks) * 100) : 0));
 
   // Load Peer Benchmark Data if not provided by result
   useEffect(() => {
@@ -201,23 +208,33 @@ export default function QuizResult() {
         // Direct table query fallback
         const { data: attempts, error: fetchErr } = await supabase
           .from('test_attempts')
-          .select('id, score, time_spent_seconds, status')
+          .select('id, user_id, score, status, submitted_at, completed_at, created_at')
           .eq('test_id', testId)
           .in('status', ['submitted', 'completed', 'graded', 'finished']);
 
         if (!fetchErr && Array.isArray(attempts) && attempts.length > 0) {
-          const totalAttempts = attempts.length;
           const userScore = Number(valueOf(scorecard, 'score', 'total_score', 'final_score')) || 0;
-          const totalScores = attempts.reduce((acc, curr) => acc + (Number(curr.score) || 0), 0);
-          const avgScore = Math.round((totalScores / totalAttempts) * 10) / 10;
-          const belowCount = attempts.filter((a) => (Number(a.score) || 0) < userScore).length;
-          const percentile = totalAttempts > 1
-            ? Math.round((belowCount / (totalAttempts - 1)) * 100)
+          const latestByStudent = new Map();
+          attempts.forEach((attempt) => {
+            if (!attempt.user_id || attempt.user_id === user?.id) return;
+            const timestamp = Date.parse(attempt.submitted_at || attempt.completed_at || attempt.created_at || '') || 0;
+            const previous = latestByStudent.get(attempt.user_id);
+            if (!previous || timestamp > previous.timestamp) {
+              latestByStudent.set(attempt.user_id, { score: Number(attempt.score) || 0, timestamp });
+            }
+          });
+          const peers = Array.from(latestByStudent.values());
+          const peerCount = peers.length;
+          const avgScore = peerCount
+            ? Math.round((peers.reduce((sum, peer) => sum + peer.score, 0) / peerCount) * 10) / 10
+            : userScore;
+          const percentile = peerCount
+            ? Math.round((peers.filter((peer) => peer.score <= userScore).length / peerCount) * 100)
             : 100;
 
           if (active) {
             setPeerStats({
-              total_attempts: totalAttempts,
+              total_attempts: peerCount + 1,
               average_score: avgScore,
               percentile,
               score_diff: Math.round((userScore - avgScore) * 10) / 10
@@ -233,7 +250,7 @@ export default function QuizResult() {
 
     fetchPeerStats();
     return () => { active = false; };
-  }, [result?.peer_stats, result?.test_id, attemptId, supabase, scorecard]);
+  }, [result?.peer_stats, result?.test_id, attemptId, supabase, scorecard, user?.id]);
 
   const currentSolution = solutions[currentSolutionIndex] || null;
   const totalQuestions = Number(valueOf(scorecard, 'total_questions', 'question_count')) || solutions.length;
@@ -262,12 +279,12 @@ export default function QuizResult() {
       return {
         correctCount: Number(valueOf(scorecard, 'correct_count', 'correct')) || 0,
         incorrectCount: Number(valueOf(scorecard, 'incorrect_count', 'incorrect')) || 0,
-        unattemptedCount: Number(valueOf(scorecard, 'unattempted_count', 'skipped_count', 'unanswered_count')) || 0
+        unattemptedCount: Number(valueOf(scorecard, 'unattempted_count', 'skipped_with_e_count', 'skipped_count', 'unanswered_count')) || Math.max(0, totalQuestions - (Number(valueOf(scorecard, 'attempted_count')) || 0))
       };
     }
 
     return { correctCount, incorrectCount, unattemptedCount };
-  }, [solutions, scorecard]);
+  }, [solutions, scorecard, totalQuestions]);
 
   // Topic Analysis Aggregate: Real Question Grouping by Tags/Subject/Topic
   const topicAnalysis = useMemo(() => {
@@ -517,7 +534,7 @@ export default function QuizResult() {
               <div className="text-center">
                 <div className="text-[9px] sm:text-[10px] font-bold dark:text-slate-400 text-slate-500 uppercase">Your Score</div>
                 <div className="text-base sm:text-2xl font-black dark:text-white text-slate-900 mt-0.5">
-                  {score} <span className="text-xs font-semibold dark:text-slate-400 text-slate-500">/ {totalQuestions}</span>
+                  {score} <span className="text-xs font-semibold dark:text-slate-400 text-slate-500">/ {totalMarks || totalQuestions}</span>
                 </div>
                 <span className="inline-block mt-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   {percentage}%
@@ -570,6 +587,11 @@ export default function QuizResult() {
 
             {/* Question Review List */}
             <div className="space-y-2.5">
+              {solutions.length === 0 && (
+                <div className="p-5 text-center text-xs dark:text-slate-300 text-slate-600 rounded-2xl dark:bg-[#1E293B]/85 bg-white border dark:border-amber-500/30 border-amber-200">
+                  Your score is saved, but question-by-question review could not be loaded. Please reopen this result in a moment.
+                </div>
+              )}
               {filteredSolutions.map((item, idx) => {
                 const question = item.question || item;
                 const origIndex = solutions.indexOf(item);
@@ -951,6 +973,11 @@ export default function QuizResult() {
             })()}
           </div>
         )}
+        {activeTab === 'solutions' && !currentSolution && (
+          <div className="p-6 text-center text-sm dark:text-slate-300 text-slate-600 rounded-2xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200">
+            Detailed solutions are unavailable for this result. Your submitted score is saved; reopen the result to try again.
+          </div>
+        )}
 
         {/* ======================================================== */}
         {/* TAB 3: TOPIC ANALYSIS */}
@@ -1002,7 +1029,7 @@ export default function QuizResult() {
               ))}
               {topicAnalysis.length === 0 && (
                 <div className="p-6 text-center text-xs dark:text-slate-400 text-slate-500 rounded-2xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200">
-                  No topic breakdown available for this attempt.
+                  {solutions.length === 0 ? 'Topic analysis could not be loaded for this result.' : 'No topic tags are available for this attempt.'}
                 </div>
               )}
             </div>
@@ -1068,8 +1095,8 @@ export default function QuizResult() {
                     <div className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 my-1">
                       {avgTimePerQuestion}s
                     </div>
-                    <span className="text-[11px] font-semibold text-emerald-500">
-                      {avgTimePerQuestion === 0 ? 'Fast & Accurate' : avgTimePerQuestion <= 35 ? 'Fast & Steady' : avgTimePerQuestion <= 70 ? 'Optimal Pace' : 'Moderate Pace'}
+                    <span className="text-[11px] font-semibold dark:text-slate-400 text-slate-500">
+                      {timeSpent <= 0 ? 'Timing unavailable' : avgTimePerQuestion <= 35 ? 'Fast & Steady' : avgTimePerQuestion <= 70 ? 'Optimal Pace' : 'Moderate Pace'}
                     </span>
                   </div>
                 </div>
