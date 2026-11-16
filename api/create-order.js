@@ -125,6 +125,25 @@ export default async function handler(req, res) {
     const expectedPaise = Math.round(requestedAmount * 100);
     const supabaseAdminClient = getPaymentAdminClient();
 
+    if (itemType === 'full_pass') {
+      const { data: passRow, error: passError } = await supabaseAdminClient
+        .from('platform_settings')
+        .select('setting_value, value')
+        .eq('setting_key', 'full_pass_config')
+        .maybeSingle();
+      if (passError) {
+        console.error('Full Pass configuration lookup failed:', passError.message);
+        return respond(503, { error: 'Full Pass settings are temporarily unavailable.' });
+      }
+      let passConfig = passRow?.setting_value ?? passRow?.value ?? {};
+      if (typeof passConfig === 'string') {
+        try { passConfig = JSON.parse(passConfig); } catch { passConfig = {}; }
+      }
+      const includedCount = (Array.isArray(passConfig?.included_exam_ids) ? passConfig.included_exam_ids.length : 0)
+        + (Array.isArray(passConfig?.included_tool_ids) ? passConfig.included_tool_ids.length : 0);
+      if (!includedCount) return respond(409, { error: 'Full Pass has no included exams or tools yet.' });
+    }
+
     // 5. Existing In-Flight Order Check (Deduplication & Safety)
     const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
     const { data: existingOrders, error: ordersError } = await supabaseAdminClient

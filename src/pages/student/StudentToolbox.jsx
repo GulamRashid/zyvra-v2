@@ -112,7 +112,7 @@ export default function StudentToolbox() {
   });
   const [toolPricing, setToolPricing] = useState({});
   const [comboPricing, setComboPricing] = useState({ price: 0, validity_days: 30 });
-  const [fullPassPricing, setFullPassPricing] = useState({ price: 0, validity_days: 365 });
+  const [fullPassPricing, setFullPassPricing] = useState({ price: 0, validity_days: 365, included_exam_ids: [], included_tool_ids: [], included_exam_titles: [] });
   const [toolAccess, setToolAccess] = useState({});
   const [toolboxLoaded, setToolboxLoaded] = useState(false);
   const [accessError, setAccessError] = useState('');
@@ -206,9 +206,10 @@ export default function StudentToolbox() {
           setLoading(false);
           return;
       }
-      const [bookmarkResult, settingsResult] = await Promise.all([
+      const [bookmarkResult, settingsResult, examsResult] = await Promise.all([
           user ? supabase.from('student_bookmarks').select('*').eq('user_id', user.id) : Promise.resolve({ data: [], error: null }),
-          supabase.from('platform_settings').select('*')
+          supabase.from('platform_settings').select('*'),
+          supabase.from('exams').select('id,title')
       ]);
       if (settingsResult.error) throw settingsResult.error;
       if (!active) return;
@@ -253,7 +254,11 @@ export default function StudentToolbox() {
       const parsedPass = typeof rawPass === 'string' ? JSON.parse(rawPass) : rawPass;
       const safePass = {
         price: Math.max(0, Number(parsedPass?.price) || 0),
-        validity_days: Math.min(3650, Math.max(1, Number(parsedPass?.validity_days) || 365))
+        validity_days: Math.min(3650, Math.max(1, Number(parsedPass?.validity_days) || 365)),
+        included_exam_ids: Array.isArray(parsedPass?.included_exam_ids) ? parsedPass.included_exam_ids : [],
+        included_tool_ids: Array.isArray(parsedPass?.included_tool_ids) ? parsedPass.included_tool_ids : [],
+        included_exam_titles: (examsResult.data || []).filter((exam) => (parsedPass?.included_exam_ids || []).includes(exam.id)).map((exam) => exam.title),
+        included_tool_titles: (configuredTools || []).filter((tool) => (parsedPass?.included_tool_ids || []).includes(tool.id)).map((tool) => tool.name || tool.title).filter(Boolean)
       };
       setToolPricing(safePricing);
       setComboPricing(safeCombo);
@@ -356,7 +361,8 @@ export default function StudentToolbox() {
     }
   };
   const openFullPassCheckout = () => {
-    if (fullPassPricing.price > 0 && !toolAccess.__full_pass) {
+    const hasIncludedItems = fullPassPricing.included_exam_ids.length + fullPassPricing.included_tool_ids.length > 0;
+    if (fullPassPricing.price > 0 && hasIncludedItems && !toolAccess.__full_pass) {
       setCheckout({
         itemType: 'full_pass',
         itemId: 'global',
@@ -532,14 +538,17 @@ export default function StudentToolbox() {
               </div>
 
               <div className="flex flex-row flex-wrap sm:flex-col sm:items-end gap-1.5">
-                {fullPassPricing.price > 0 && !toolAccess.__full_pass && (
-                  <button
-                    type="button"
-                    onClick={openFullPassCheckout}
-                    className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-[11px] shadow-glowGold transition-transform active:scale-95"
-                  >
-                    🌟 Full Pass · ₹{fullPassPricing.price}
-                  </button>
+                {fullPassPricing.price > 0 && fullPassPricing.included_exam_ids.length + fullPassPricing.included_tool_ids.length > 0 && !toolAccess.__full_pass && (
+                  <div className="flex flex-col items-start gap-1">
+                    <button
+                      type="button"
+                      onClick={openFullPassCheckout}
+                      className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-[11px] shadow-glowGold transition-transform active:scale-95"
+                    >
+                      🌟 Full Pass · ₹{fullPassPricing.price}
+                    </button>
+                    <span className="text-[10px] font-semibold dark:text-slate-300 text-slate-600">Includes {fullPassPricing.included_exam_titles.slice(0, 3).join(', ') || 'no exams'}{fullPassPricing.included_exam_titles.length > 3 ? ` +${fullPassPricing.included_exam_titles.length - 3}` : ''}{fullPassPricing.included_tool_titles.length ? ` · ${fullPassPricing.included_tool_titles.slice(0, 2).join(', ')}${fullPassPricing.included_tool_titles.length > 2 ? ` +${fullPassPricing.included_tool_titles.length - 2}` : ''}` : ''}</span>
+                  </div>
                 )}
                 {toolAccess.__full_pass && <span className="px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 text-[10px] font-black">Full Pass active</span>}
                 {comboPricing.price > 0 && !toolAccess.__combo && !toolAccess.__full_pass && (

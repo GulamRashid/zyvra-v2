@@ -93,6 +93,9 @@ export default function AdminTools() {
   const [bundleValidityDays, setBundleValidityDays] = useState(30);
   const [fullPassPrice, setFullPassPrice] = useState(0);
   const [fullPassDays, setFullPassDays] = useState(365);
+  const [fullPassExamIds, setFullPassExamIds] = useState([]);
+  const [fullPassToolIds, setFullPassToolIds] = useState([]);
+  const [fullPassExams, setFullPassExams] = useState([]);
   const [toolboxPricing, setToolboxPricing] = useState({ tools: {}, combo: { price: 0, validity_days: 30 } });
   const [editLimitDaily, setEditLimitDaily] = useState(false);
   const [editDailyCount, setEditDailyCount] = useState(5);
@@ -127,14 +130,22 @@ export default function AdminTools() {
     }
     setLoading(true);
     try {
-      const [{ data, error }, { data: pricingRow }, { data: passRow }] = await Promise.all([
+      const [{ data, error }, { data: pricingRow }, { data: passRow }, { data: examsData, error: examsError }] = await Promise.all([
         supabase.from('platform_settings').select('*').eq('setting_key', 'study_toolbox_config').maybeSingle(),
         supabase.from('platform_settings').select('setting_value').eq('setting_key', 'toolbox_pricing').maybeSingle(),
-        supabase.from('platform_settings').select('*').eq('setting_key', 'full_pass_config').maybeSingle()
+        supabase.from('platform_settings').select('*').eq('setting_key', 'full_pass_config').maybeSingle(),
+        supabase.from('exams').select('id,title,status,access_mode,pricing_mode,price').order('display_order', { ascending: true })
       ]);
+      if (examsError) throw examsError;
       const fullPass = passRow?.setting_value ?? passRow?.value ?? {};
       setFullPassPrice(Math.max(0, Number(fullPass.price) || 0));
       setFullPassDays(Math.min(3650, Math.max(1, Number(fullPass.validity_days) || 365)));
+      const configured = Array.isArray(data?.setting_value) ? data.setting_value : [];
+      const premiumToolIds = configured.filter((item) => item?.enabled !== false && item?.active !== false && (item?.access_type === 'paid' || item?.access_type === 'premium' || Number(item?.price) > 0)).map((item) => item.id).filter(Boolean);
+      const publishedExams = (examsData || []).filter((exam) => ['published', 'active', 'live', 'coming-soon', 'coming_soon'].includes(String(exam.status || '').toLowerCase()));
+      setFullPassExams(publishedExams);
+      setFullPassExamIds(Array.isArray(fullPass.included_exam_ids) ? fullPass.included_exam_ids : publishedExams.filter((exam) => Number(exam.price) > 0 || ['paid', 'paid-own', 'paid_own'].includes(String(exam.access_mode || exam.pricing_mode || '').toLowerCase())).map((exam) => exam.id));
+      setFullPassToolIds(Array.isArray(fullPass.included_tool_ids) ? fullPass.included_tool_ids : premiumToolIds);
       const pricing = pricingRow?.setting_value || {};
       setToolboxPricing({ tools: pricing.tools || {}, combo: pricing.combo || { price: 0, validity_days: 30 } });
       setBundlePrice(Math.max(0, Number(pricing.combo?.price) || 0));
@@ -148,7 +159,7 @@ export default function AdminTools() {
           category: item.category || 'General',
           iconName: item.icon || 'Wrench',
           iconChar: item.icon === 'Clock' ? '⏱️' : item.icon === 'Calculator' ? '🧮' : item.icon === 'BookOpen' ? '🏛️' : item.icon === 'Brain' ? '🧠' : '🔧',
-          accessType: item.access_type || item.accessType || (item.price > 0 ? 'paid' : 'free'),
+          accessType: ['paid', 'premium'].includes(String(item.access_type || item.accessType || (item.price > 0 ? 'paid' : 'free')).toLowerCase()) ? 'paid' : 'free',
           purchaseType: item.purchaseType || (item.price > 0 ? 'Single Purchase' : 'Always Free'),
           price: Number(item.price) || 0,
           validityDays: Math.min(3650, Math.max(1, Number(item.validity_days) || 30)),
@@ -290,10 +301,15 @@ export default function AdminTools() {
     if (!supabase) return;
     setSaving(true);
     try {
-      const value = { price: Math.max(0, Number(fullPassPrice) || 0), validity_days: Math.min(3650, Math.max(1, Number(fullPassDays) || 365)) };
+      const value = {
+        price: Math.max(0, Number(fullPassPrice) || 0),
+        validity_days: Math.min(3650, Math.max(1, Number(fullPassDays) || 365)),
+        included_exam_ids: fullPassExamIds,
+        included_tool_ids: fullPassToolIds
+      };
       const { error } = await supabase.from('platform_settings').upsert({ setting_key: 'full_pass_config', key: 'full_pass_config', setting_value: value }, { onConflict: 'setting_key' });
       if (error) throw error;
-      setStatusMessage({ text: 'Full Pass price and validity saved.', type: 'success' });
+      setStatusMessage({ text: 'Full Pass price, validity and included items saved.', type: 'success' });
     } catch (err) {
       setStatusMessage({ text: err.message || 'Unable to save Full Pass settings.', type: 'error' });
     } finally { setSaving(false); }
@@ -661,6 +677,31 @@ export default function AdminTools() {
               <div className="grid grid-cols-2 gap-2">
                 <label className="text-[10px] font-bold text-slate-300">Price (₹)<input type="number" min="0" value={fullPassPrice} onChange={(e) => setFullPassPrice(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>
                 <label className="text-[10px] font-bold text-slate-300">Validity (days)<input type="number" min="1" max="3650" value={fullPassDays} onChange={(e) => setFullPassDays(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">Included exams</span>
+                  <div className="flex gap-2"><button type="button" onClick={() => setFullPassExamIds(fullPassExams.map((exam) => exam.id))} className="text-[10px] font-bold text-indigo-300">Select all</button><button type="button" onClick={() => setFullPassExamIds([])} className="text-[10px] font-bold text-slate-400">Clear</button></div>
+                </div>
+                {fullPassExams.length ? fullPassExams.map((exam) => (
+                  <label key={exam.id} className="flex items-center gap-2 rounded-lg bg-slate-800/70 px-2.5 py-2 text-xs text-slate-200">
+                    <input type="checkbox" checked={fullPassExamIds.includes(exam.id)} onChange={(e) => setFullPassExamIds((ids) => e.target.checked ? [...new Set([...ids, exam.id])] : ids.filter((id) => id !== exam.id))} className="accent-emerald-400" />
+                    <span className="min-w-0 flex-1 truncate">{exam.title}</span>
+                    <span className="text-[9px] text-slate-400">includes its sections & chapters</span>
+                  </label>
+                )) : <p className="text-[10px] text-slate-400">No published exams are available.</p>}
+                <div className="flex items-center justify-between gap-2 pt-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">Included tool groups</span>
+                  <div className="flex gap-2"><button type="button" onClick={() => setFullPassToolIds(tools.filter((tool) => tool.active && tool.accessType === 'paid').map((tool) => tool.id))} className="text-[10px] font-bold text-indigo-300">Select all</button><button type="button" onClick={() => setFullPassToolIds([])} className="text-[10px] font-bold text-slate-400">Clear</button></div>
+                </div>
+                {tools.filter((tool) => tool.active && tool.accessType === 'paid').length ? tools.filter((tool) => tool.active && tool.accessType === 'paid').map((tool) => (
+                  <label key={tool.id} className="flex items-center gap-2 rounded-lg bg-slate-800/70 px-2.5 py-2 text-xs text-slate-200">
+                    <input type="checkbox" checked={fullPassToolIds.includes(tool.id)} onChange={(e) => setFullPassToolIds((ids) => e.target.checked ? [...new Set([...ids, tool.id])] : ids.filter((id) => id !== tool.id))} className="accent-emerald-400" />
+                    <span className="min-w-0 flex-1">{tool.name}</span>
+                    <span className="text-[9px] text-slate-400">{tool.category}</span>
+                  </label>
+                )) : <p className="text-[10px] text-slate-400">Set a tool as paid to include it here.</p>}
+                <p className="text-[10px] leading-relaxed text-slate-400">New exams stay out of Full Pass until selected. New sections added inside a selected exam are included automatically.</p>
               </div>
               <button type="button" disabled={saving} onClick={saveFullPassPricing} className="w-full py-2 rounded-lg bg-emerald-400 text-slate-950 text-xs font-black disabled:opacity-50">Save Full Pass</button>
               <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-300">Unlock All Tools Bundle</h4>
