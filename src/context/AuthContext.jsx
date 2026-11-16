@@ -45,7 +45,10 @@ export function AuthProvider({ children }) {
     const results = await Promise.allSettled([
       withTimeout(supabase.from('profiles').select('account_status,avatar_url,created_at,current_streak,daily_goal_progress,daily_goal_target,daily_goal_type,email,email_verified,full_name,id,last_active_date,mobile,mobile_verified,onboarding_completed,preferred_language,referral_code,role,target_exams,theme,updated_at').eq('id', userId).maybeSingle(), 'Profile lookup'),
       withTimeout(supabase.from('coin_wallets').select('balance').eq('user_id', userId).maybeSingle(), 'Coin balance lookup'),
-      withTimeout(supabase.from('user_access').select('is_active,active,status,expires_at').eq('user_id', userId), 'Account access lookup')
+      // `user_access` stores the active flag as `is_active`; selecting the
+      // legacy/nonexistent `active` column makes PostgREST reject the whole
+      // query and leaves every profile stuck in “access status unavailable”.
+      withTimeout(supabase.from('user_access').select('is_active,status,expires_at').eq('user_id', userId), 'Account access lookup')
     ]);
     if (userRef.current !== userId) return;
     const profileResult = results[0].status === 'fulfilled' ? results[0].value : null;
@@ -74,7 +77,7 @@ export function AuthProvider({ children }) {
     } else {
       const now = Date.now();
       const activeGrants = (accessResult.data || []).filter((grant) => {
-        if (grant.is_active === false || grant.active === false) return false;
+        if (grant.is_active === false) return false;
         if (grant.status && !['active', 'granted', 'lifetime'].includes(String(grant.status).toLowerCase())) return false;
         return !grant.expires_at || new Date(grant.expires_at).getTime() > now;
       });
