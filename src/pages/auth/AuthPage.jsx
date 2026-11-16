@@ -216,7 +216,7 @@ export default function AuthPage() {
           <form onSubmit={method === 'otp' ? sendOtp : passwordAuth}>
             <label className="field-label">Email address<div className="input-with-icon"><Mail size={17} /><input className="text-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required placeholder="you@example.com" autoComplete="email" /></div></label>
             {method === 'password' && <label className="field-label">Password<div className="input-with-icon"><KeyRound size={17} /><input className="text-input" type={showPassword ? 'text' : 'password'} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={6} placeholder="Your password" autoComplete="current-password" /><button className="password-eye" type="button" onClick={() => setShowPassword(!showPassword)} aria-label="Show or hide password">{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></label>}
-            {method === 'otp' && !refCode && (
+            {method === 'otp' && (
               <label className="field-label">Referral code (Optional)<div className="input-with-icon"><Gift size={17} /><input className="text-input uppercase" value={refCode} onChange={(event) => setRefCode(event.target.value.trim().toUpperCase())} placeholder="e.g. ZYVRA100" autoComplete="off" /></div></label>
             )}
             {method === 'otp' && <>
