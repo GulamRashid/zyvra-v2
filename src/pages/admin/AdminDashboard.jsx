@@ -6,6 +6,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import SettingsPreview from './SettingsPreview';
+import AdminWorkflowGuide from '../../components/admin/AdminWorkflowGuide';
 
 const metrics = [
   { key: 'users', label: 'Total users', icon: Users, tone: 'green', trend: 'All registered accounts' },
@@ -165,6 +166,9 @@ export default function AdminDashboard() {
           <AlertTriangle size={15} /> Needs attention: {needsAttention.join(', ')} unavailable.
         </div>
       )}
+
+      {/* Visual Workflow Onboarding Guide for New Admins */}
+      <AdminWorkflowGuide />
 
       <div className="metrics-grid">
         {metrics.map(({ key, label, icon: Icon, tone, trend }) => {

@@ -938,6 +938,9 @@ export default function ContentManager() {
 
   return <div className="content-manager">
     <div className="page-heading content-manager-heading"><div><div className="eyebrow">ADMINISTRATION / CONTENT OPERATIONS</div><h1>Content manager</h1><p>Build and maintain the exam → folder → chapter learning hierarchy.</p></div><button className="button button-gold" onClick={() => setDialog({ kind: selectedExam ? 'folder' : 'exam', item: null })}><Plus size={16} /> {selectedExam ? 'Add folder' : 'Add exam'}</button></div>
+    <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 px-3.5 py-2.5 text-xs text-indigo-200 flex items-center gap-2 mb-4">
+      <span>💡 <strong>स्टेप 1 (कंटेंट हायरार्की):</strong> पहले बाईं तरफ 'Add exam' से परीक्षा बनाएं। फिर परीक्षा पर क्लिक करके उसके अंदर विषय फ़ोल्डर्स (Folder) और अध्यायों (Chapter) को जोड़ें। हर चैप्टर में आप पीडीएफ नोट्स भी अपलोड कर सकते हैं।</span>
+    </div>
     {(error || actionError) && <div className="feedback error-feedback" role="alert">{actionError || error}</div>}
     {successMessage && <div className="feedback success-feedback" role="status">{successMessage}</div>}
     <div className="content-manager-layout">

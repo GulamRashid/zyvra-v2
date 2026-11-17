@@ -625,6 +625,10 @@ export default function PricingManager() {
         </div>
       </div>
 
+      <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 px-3.5 py-2.5 text-xs text-indigo-200 flex items-center gap-2">
+        <span>💡 <strong>स्टेप 4 (मूल्य निर्धारण):</strong> किसी भी परीक्षा, विषय फ़ोल्डर या टेस्ट का चयन करके तय करें कि वह 'Free' रहेगा या 'Paid'। आप यहाँ से डिस्काउंट कूपन कोड (Coupon Codes) भी बना सकते हैं।</span>
+      </div>
+
       {/* Status Notice */}
       {statusMessage.text && (
         <div

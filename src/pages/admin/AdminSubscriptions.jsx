@@ -149,6 +149,10 @@ export default function AdminSubscriptions() {
         </button>
       </div>
 
+      <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 px-3.5 py-2.5 text-xs text-indigo-200 flex items-center gap-2 mb-4">
+        <span>💡 <strong>त्वरित सहायता:</strong> यहाँ छात्रों के कोर्स व टेस्ट सीरीज़ अनलॉक्स की सूची है। यदि किसी छात्र का एक्सेस अस्थायी रूप से रोकना हो तो 'Revoke' दबाएं, और वापस चालू करने के लिए 'Reinstate' दबाएं।</span>
+      </div>
+
       {loadError && (
         <div className="banner error-banner" style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444' }}>
           <strong>Error:</strong> {loadError}
@@ -292,7 +296,7 @@ export default function AdminSubscriptions() {
                               onClick={() => toggleGrantStatus(grant)}
                               style={{ fontSize: '0.75rem', padding: '4px 8px' }}
                             >
-                              {isActive ? 'Revoke' : 'Reinstate'}
+                              {isActive ? 'Revoke (रोकें)' : 'Reinstate (चालू करें)'}
                             </button>
                           </td>
                         </tr>

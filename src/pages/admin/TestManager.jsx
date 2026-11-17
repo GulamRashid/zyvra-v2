@@ -82,12 +82,19 @@ function TestEditor({ test, chapters, linkedOptionCounts, onClose, onSaved }) {
     <label className="content-switch"><input type="checkbox" checked={Boolean(values.coin_reward_enabled)} onChange={(event) => setField('coin_reward_enabled', event.target.checked)} /><span>Enable Zyvra Coins reward (qualification and first-attempt rules enforced by server)</span></label>
     <label className="field-label">Answer & explanation display
       <select className="text-input" value={values.solution_mode || 'after_submit'} onChange={(event) => setField('solution_mode', event.target.value)}>
-        <option value="after_submit">Exam Mode — show answers & explanations only after test submission</option>
-        <option value="immediate">Practice Mode — show answer & explanation immediately upon selecting an option</option>
+        <option value="after_submit">Exam Mode (परीक्षा मोड — सबमिट करने के बाद रिजल्ट व समाधान दिखेगा)</option>
+        <option value="immediate">Practice Mode (प्रैक्टिस मोड — विकल्प चुनते ही तुरंत सही उत्तर व व्याख्या दिखेगी)</option>
       </select>
       <small>Practice mode reveals correct answer, explanation, and option notes right as the student picks an answer.</small>
     </label>
-    <label className="field-label">Availability<select className="text-input" value={values.status} onChange={(event) => { setField('status', event.target.value); setError(''); }}><option value="draft">Draft</option><option value="published">Published</option><option value="scheduled">Scheduled</option><option value="paused">Paused</option></select></label>
+    <label className="field-label">Availability
+      <select className="text-input" value={values.status} onChange={(event) => { setField('status', event.target.value); setError(''); }}>
+        <option value="draft">Draft (केवल एडमिन को दिखेगा — अप्रकाशित)</option>
+        <option value="published">Published (लाइव — छात्र टेस्ट दे सकते हैं)</option>
+        <option value="scheduled">Scheduled (शेड्यूल किया गया)</option>
+        <option value="paused">Paused (अस्थायी रूप से रोका गया)</option>
+      </select>
+    </label>
     {error && <div className="feedback error-feedback" role="alert">{error}</div>}
     <div className="modal-actions"><button type="button" className="button button-outline" onClick={onClose}>Cancel</button><button className="button button-primary" disabled={saving}>{saving ? 'Saving…' : test ? 'Save test' : 'Create test'}</button></div>
   </form></div>;
@@ -344,6 +351,9 @@ export default function TestManager() {
   const filteredTests = tests.filter((test) => !query.trim() || `${test.title} ${test.pattern} ${chapterTitle(test.chapter_id)}`.toLowerCase().includes(query.trim().toLowerCase()));
   return <div className="test-manager-page">
     <div className="page-heading"><div><div className="eyebrow">ADMINISTRATION / ASSESSMENT DESIGN</div><h1>Test manager</h1><p>Configure BPSC patterns, scoring rules and question order.</p></div><button className="button button-primary" onClick={() => setEditor({ test: null })}><Plus size={15} /> Create test</button></div>
+    <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 px-3.5 py-2.5 text-xs text-indigo-200 flex items-center gap-2 mb-4">
+      <span>💡 <strong>त्वरित सहायता:</strong> नया टेस्ट बनाने के लिए 'Create test' पर क्लिक करें। टेस्ट बनने के बाद उस पर क्लिक करके दाईं ओर प्रश्न बैंक से सवाल जोड़ें और 'Published' स्टेटस सेट करें ताकि छात्र उसे हल कर सकें।</span>
+    </div>
     {error && <div className="feedback error-feedback" role="alert">{error}</div>}
     {successMessage && <div className="feedback success-feedback" role="status">{successMessage}</div>}
     <div className="test-manager-layout">
