@@ -3917,3 +3917,58 @@ body.light .practice-explanation-card {
   border-color: #e2e8f0;
 }
 
+/* Landing Page Motion Graphics & Animations */
+@keyframes landingFloat {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(0.5deg); }
+}
+
+@keyframes landingFloatDelayed {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(-0.5deg); }
+}
+
+@keyframes landingPulseGlow {
+  0%, 100% { opacity: 0.35; transform: scale(1); filter: blur(40px); }
+  50% { opacity: 0.65; transform: scale(1.12); filter: blur(55px); }
+}
+
+@keyframes landingGradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes landingMarquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-landing-float {
+  animation: landingFloat 5s ease-in-out infinite;
+}
+
+.animate-landing-float-delayed {
+  animation: landingFloatDelayed 6.5s ease-in-out 1.5s infinite;
+}
+
+.animate-landing-glow {
+  animation: landingPulseGlow 6s ease-in-out infinite;
+}
+
+.animate-landing-gradient {
+  background-size: 200% 200%;
+  animation: landingGradientShift 8s ease infinite;
+}
+
+.animate-landing-marquee {
+  display: flex;
+  width: 200%;
+  animation: landingMarquee 25s linear infinite;
+}
+
+.animate-landing-marquee:hover {
+  animation-play-state: paused;
+}
+
+

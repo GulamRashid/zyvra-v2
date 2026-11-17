@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef } from 'react';
-import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import StudentLayout from './components/layouts/StudentLayout';
 import AdminLayout from './components/layouts/AdminLayout';
 import ProtectedRoute from './components/layouts/ProtectedRoute';
@@ -7,7 +7,9 @@ import LoadingSkeleton from './components/common/LoadingSkeleton';
 import QuizErrorBoundary from './components/common/QuizErrorBoundary';
 import PwaInstallBanner from './components/common/PwaInstallBanner';
 import PwaUpdatePrompt from './components/common/PwaUpdatePrompt';
+import { useAuth } from './context/AuthContext';
 
+const LandingPage = lazy(() => import('./pages/landing/LandingPage'));
 const AuthPage = lazy(() => import('./pages/auth/AuthPage'));
 const StudentHome = lazy(() => import('./pages/student/StudentHome'));
 const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
@@ -38,8 +40,33 @@ const AdminTools = lazy(() => import('./pages/admin/AdminTools'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
 const AdminEngagement = lazy(() => import('./pages/admin/AdminEngagement'));
 
+function RootRoute() {
+  const { user, loading, guest } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return <main className="page-loading"><LoadingSkeleton rows={5} /></main>;
+  }
+
+  if (!user && !guest) {
+    if (location.pathname === '/' || location.pathname === '') {
+      return <LandingPage />;
+    }
+    return <Navigate to="/auth" replace state={{ from: location }} />;
+  }
+
+  return (
+    <ProtectedRoute>
+      <StudentLayout>
+        <Outlet />
+      </StudentLayout>
+    </ProtectedRoute>
+  );
+}
+
 function AppRoutes() {
   return <Suspense fallback={<main className="page-loading"><LoadingSkeleton rows={5} /></main>}><Routes>
+    <Route path="/landing" element={<LandingPage />} />
     <Route path="/auth" element={<AuthPage />} />
     <Route path="/quiz/:testId" element={<QuizErrorBoundary><ProtectedRoute><LiveQuiz /></ProtectedRoute></QuizErrorBoundary>} />
     <Route path="/quiz/result/:attemptId" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />
@@ -59,8 +86,9 @@ function AppRoutes() {
       <Route path="reports" element={<AdminReports />} />
       <Route path="settings" element={<Navigate to="/admin" replace />} />
     </Route>
-    <Route path="/" element={<ProtectedRoute><StudentLayout /></ProtectedRoute>}>
+    <Route path="/" element={<RootRoute />}>
       <Route index element={<StudentHome />} />
+      <Route path="home" element={<StudentHome />} />
       <Route path="explore" element={<ExploreExams />} />
       <Route path="explore/:examSlug" element={<ExamDetail />} />
       <Route path="folder/:folderId" element={<FolderView />} />
@@ -88,27 +116,29 @@ function AppRoutes() {
 function RouteStatePreserver() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const hasRestoredRef = useRef(false);
 
   useEffect(() => {
     if (hasRestoredRef.current) return;
     hasRestoredRef.current = true;
 
-    if (location.pathname === '/') {
+    // Only restore previous route for authenticated students on root
+    if (user && location.pathname === '/') {
       try {
         const savedRoute = sessionStorage.getItem('zyvra_active_route');
-        if (savedRoute && savedRoute !== '/' && !savedRoute.startsWith('/auth')) {
+        if (savedRoute && savedRoute !== '/' && !savedRoute.startsWith('/auth') && !savedRoute.startsWith('/landing')) {
           navigate(savedRoute, { replace: true });
         }
       } catch {
         // ignore
       }
     }
-  }, [location.pathname, navigate]);
+  }, [location.pathname, navigate, user]);
 
   useEffect(() => {
     const fullPath = location.pathname + location.search;
-    if (fullPath.startsWith('/auth')) return;
+    if (fullPath.startsWith('/auth') || fullPath === '/landing') return;
     try {
       sessionStorage.setItem('zyvra_active_route', fullPath);
     } catch {
