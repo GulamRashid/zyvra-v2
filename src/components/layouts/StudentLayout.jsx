@@ -115,34 +115,34 @@ export default function StudentLayout() {
 
       <div className="main-column">
         <header className="topbar student-topbar">
-          <div className="topbar-left flex items-center gap-2.5">
-            <button className="icon-button mobile-menu" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
+          <div className="topbar-left flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+            <button className="icon-button mobile-menu shrink-0" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
               <Menu size={20} />
             </button>
-            <div className="mobile-brand flex items-center gap-2 font-bold text-[var(--text)] tracking-wide">
-              <img src="/logo-192.png" alt="Zyvra" className="w-7 h-7 rounded-lg object-contain shadow-sm" />
-              <span>ZYVRA</span>
+            <div className="mobile-brand flex items-center gap-1.5 font-bold text-[var(--text)] tracking-wide shrink-0">
+              <img src="/logo-192.png" alt="Zyvra" className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg object-contain shadow-sm" />
+              <span className="hidden xs:inline text-xs sm:text-sm font-black">ZYVRA</span>
             </div>
           </div>
 
-          <div className="topbar-actions flex items-center gap-2">
+          <div className="topbar-actions flex items-center gap-1.5 sm:gap-2">
+            {/* Language Switcher (EN / HI) - Always visible on mobile & desktop */}
+            <LanguageToggle />
+
+            {/* Dark / Light Mode Toggle - Always visible on mobile & desktop */}
+            <ThemeToggle />
+
             {/* Study Streak Badge - Vibrant Orange Dopamine Trigger */}
             <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/15 border border-orange-500/35 text-orange-400 text-xs font-black shadow-[0_0_15px_rgba(249,115,22,0.25)]"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-orange-500/15 border border-orange-500/35 text-orange-400 text-xs font-black shadow-[0_0_15px_rgba(249,115,22,0.25)] shrink-0"
               title={`${streak} day study streak`}
             >
-              <Flame size={14} className="fill-orange-500 text-orange-500 animate-pulse" />
+              <Flame size={13} className="fill-orange-500 text-orange-500 animate-pulse" />
               <span className="font-extrabold text-orange-400">{profileError ? '—' : streak}</span>
             </div>
 
             {/* Coin Badge */}
             <CoinBadge balance={coinBalance} />
-
-            {/* Language & Theme - Compact & Hidden on mobile to prevent header overflow */}
-            <div className="hidden sm:flex items-center gap-2">
-              <LanguageToggle />
-              <ThemeToggle />
-            </div>
 
             <NavLink
               className="icon-button notification-button relative"

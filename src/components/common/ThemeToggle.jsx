@@ -22,14 +22,14 @@ export default function ThemeToggle() {
     <button
       type="button"
       onClick={handleToggle}
-      className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-all duration-200 active:scale-95 dark:bg-slate-800/80 bg-slate-100 hover:dark:bg-slate-700 hover:bg-slate-200 border dark:border-slate-700/60 border-slate-300 shadow-sm"
+      className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all duration-200 active:scale-95 dark:bg-slate-800/80 bg-slate-100 hover:dark:bg-slate-700 hover:bg-slate-200 border dark:border-slate-700/60 border-slate-300 shadow-sm shrink-0"
       aria-label={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
       title={isLight ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
     >
       {isLight ? (
-        <Moon size={18} className="text-indigo-600 transition-transform hover:-rotate-12" />
+        <Moon size={16} className="text-indigo-600 transition-transform hover:-rotate-12" />
       ) : (
-        <Sun size={18} className="text-amber-400 transition-transform hover:rotate-45" />
+        <Sun size={16} className="text-amber-400 transition-transform hover:rotate-45" />
       )}
     </button>
   );

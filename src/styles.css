@@ -826,8 +826,8 @@ body.light .practice-card { background: linear-gradient(135deg, #EEF2FF, #F8FAFC
   .drawer-close, .mobile-menu { display: inline-grid; }
   .sidebar-brand .drawer-close { margin-left: auto; }
   .main-column { margin-left: 0; padding-bottom: 64px; }
-  .topbar { height: 58px; padding: 0 14px; }
-  .topbar-actions { gap: 5px; }
+  .topbar { height: 58px; padding: 0 10px; }
+  .topbar-actions { gap: 6px; }
   .mobile-brand { display: inline-flex; align-items: center; gap: 7px; font: 800 12px Manrope, sans-serif; letter-spacing: .11em; }
   .mobile-brand .brand-mark { width: 29px; height: 29px; flex-basis: 29px; border-radius: 9px; font-size: 16px; }
   .notification-button { display: none; }
