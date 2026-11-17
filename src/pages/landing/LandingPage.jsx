@@ -2,13 +2,10 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
-  BarChart3,
   BookOpen,
   CheckCircle2,
   ChevronDown,
-  Clock,
   Coins,
-  Flame,
   Menu,
   Moon,
   ShieldCheck,
@@ -16,10 +13,9 @@ import {
   Star,
   Sun,
   Target,
-  Trophy,
-  X,
-  Zap
+  X
 } from 'lucide-react';
+import HeroMotionGraphic from '../../components/landing/HeroMotionGraphic';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 
@@ -404,117 +400,9 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right Column: Clean, Elegant 3D CBT Platform Showcase Mockup (No Heavy MCQ) */}
-          <div className="lg:col-span-5 relative">
-            {/* Glow Aura */}
-            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-indigo-500/25 via-emerald-500/20 to-purple-500/25 blur-2xl opacity-80 -z-10 animate-landing-glow" />
-
-            {/* Showcase Card */}
-            <div className={`relative rounded-3xl border p-4 sm:p-6 space-y-4 backdrop-blur-xl animate-landing-float ${
-              isDark
-                ? 'bg-slate-900/95 border-indigo-500/30 shadow-2xl shadow-indigo-950/80 text-white'
-                : 'bg-white/95 border-slate-200/90 shadow-xl shadow-slate-200/80 text-slate-800'
-            }`}>
-              {/* Mockup Header */}
-              <div className={`flex items-center justify-between pb-3.5 border-b text-xs ${
-                isDark ? 'border-slate-800' : 'border-slate-100'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                  <span className="font-black text-indigo-500 tracking-wider text-[11px]">
-                    BPSC 70th PRELIMS MOCK 04
-                  </span>
-                </div>
-                <div className={`flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded text-[11px] ${
-                  isDark ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                }`}>
-                  <Clock size={12} />
-                  <span>01:44:28</span>
-                </div>
-              </div>
-
-              {/* Real CBT Question Palette Strip */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>
-                    {isHindi ? 'CBT प्रश्न स्थिति (5-Status Palette)' : 'CBT Question Status Palette'}
-                  </span>
-                  <span className="text-[10px] text-emerald-500 font-semibold">142/150 Visited</span>
-                </div>
-
-                <div className="grid grid-cols-5 gap-1 sm:gap-1.5 text-center font-bold">
-                  <div className="p-1 sm:p-1.5 rounded-lg bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">
-                    <div className="font-mono text-[11px] sm:text-xs">84</div>
-                    <div className="text-[8px] sm:text-[9px] truncate">Answered</div>
-                  </div>
-                  <div className="p-1 sm:p-1.5 rounded-lg bg-purple-500/20 text-purple-500 border border-purple-500/40">
-                    <div className="font-mono text-[11px] sm:text-xs">18</div>
-                    <div className="text-[8px] sm:text-[9px] truncate">Ans & Mark</div>
-                  </div>
-                  <div className="p-1 sm:p-1.5 rounded-lg bg-indigo-500/20 text-indigo-500 border border-indigo-500/40">
-                    <div className="font-mono text-[11px] sm:text-xs">6</div>
-                    <div className="text-[8px] sm:text-[9px] truncate">Marked</div>
-                  </div>
-                  <div className="p-1 sm:p-1.5 rounded-lg bg-rose-500/20 text-rose-500 border border-rose-500/40">
-                    <div className="font-mono text-[11px] sm:text-xs">12</div>
-                    <div className="text-[8px] sm:text-[9px] truncate">Unans</div>
-                  </div>
-                  <div className={`p-1 sm:p-1.5 rounded-lg border ${
-                    isDark ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-100 text-slate-500 border-slate-200'
-                  }`}>
-                    <div className="font-mono text-[11px] sm:text-xs">30</div>
-                    <div className="text-[8px] sm:text-[9px] truncate">Not Visit</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Diagnostic Scorecard Box */}
-              <div className={`p-4 rounded-2xl border space-y-3 ${
-                isDark ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <div className="flex items-center justify-between text-xs font-bold">
-                  <span className="flex items-center gap-1.5 text-indigo-500">
-                    <BarChart3 size={15} />
-                    <span>Live Diagnostic Analytics</span>
-                  </span>
-                  <span className="text-[11px] font-mono text-emerald-500">94.2% Accuracy</span>
-                </div>
-
-                {/* Accuracy Progress Bar */}
-                <div className={`w-full h-2 rounded-full overflow-hidden ${
-                  isDark ? 'bg-slate-800' : 'bg-slate-200'
-                }`}>
-                  <div className="h-full bg-gradient-to-r from-indigo-500 via-teal-400 to-emerald-500 rounded-full w-[94.2%]" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 text-xs pt-1">
-                  <div className="flex items-center gap-2">
-                    <Flame size={14} className="text-orange-500" />
-                    <div>
-                      <div className="font-mono font-bold">42s / Q</div>
-                      <div className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Avg Speed</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Trophy size={14} className="text-amber-500" />
-                    <div>
-                      <div className="font-mono font-bold text-amber-500">Rank #14</div>
-                      <div className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Leaderboard</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Floating Feature Badges */}
-              <div className="flex items-center justify-between pt-1 text-[11px] font-bold">
-                <span className="flex items-center gap-1 text-emerald-500">
-                  <Zap size={13} /> 0ms Instant Lock Engine
-                </span>
-                <span className="flex items-center gap-1 text-indigo-500">
-                  <ShieldCheck size={13} /> Offline Auto-Sync 🔒
-                </span>
-              </div>
-            </div>
+          {/* Right Column: High-Impact Aspirant Command Center & Orbital Motion Graphic */}
+          <div className="lg:col-span-5 relative flex items-center justify-center py-4 lg:py-0">
+            <HeroMotionGraphic isDark={isDark} isHindi={isHindi} />
           </div>
         </div>
       </section>
