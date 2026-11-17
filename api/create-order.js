@@ -141,7 +141,9 @@ export default async function handler(req, res) {
       }
       const includedCount = (Array.isArray(passConfig?.included_exam_ids) ? passConfig.included_exam_ids.length : 0)
         + (Array.isArray(passConfig?.included_tool_ids) ? passConfig.included_tool_ids.length : 0);
-      if (!includedCount) return respond(409, { error: 'Full Pass has no included exams or tools yet.' });
+      const isIncludeAll = passConfig?.include_all === true;
+      if (!includedCount && !isIncludeAll) return respond(409, { error: 'Full Pass has no included exams or tools yet.' });
+      if (passConfig?.is_active === false) return respond(409, { error: 'Full Pass is currently not available for purchase.' });
     }
 
     // 5. Existing In-Flight Order Check (Deduplication & Safety)

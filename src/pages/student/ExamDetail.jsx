@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Atom, BookMarked, BookOpen, Brain, Calculator, ChevronRight, Clock3, FlaskConical, Folder, Globe2, GraduationCap, Landmark, LockKeyhole, ScrollText } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, ArrowRight, Atom, BookMarked, BookOpen, Brain, Calculator, ChevronRight, Clock3, Crown, FlaskConical, Folder, Globe2, GraduationCap, Landmark, LockKeyhole, ScrollText } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getFolderPricing, isPublished } from '../../lib/content';
@@ -19,6 +19,23 @@ export default function ExamDetail() {
   const { language } = useThemeLanguage();
   const [checkoutItem, setCheckoutItem] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [fullPassConfig, setFullPassConfig] = useState(null);
+
+  useEffect(() => {
+    if (!supabase) return;
+    supabase
+      .from('platform_settings')
+      .select('setting_value, value')
+      .eq('setting_key', 'full_pass_config')
+      .maybeSingle()
+      .then(({ data }) => {
+        const val = data?.setting_value || data?.value;
+        if (val && typeof val === 'object') {
+          setFullPassConfig(val);
+        }
+      })
+      .catch((err) => console.warn('Could not load full pass config in ExamDetail:', err));
+  }, []);
   const exam = useMemo(() => exams.find((item) => item.slug === examSlug && isPublished(item)), [exams, examSlug]);
   const rootFolders = folders.filter((folder) => folder.exam_id === exam?.id && !folder.parent_folder_id && !folder.parent_id && isPublished(folder));
   const examFolderIds = new Set(folders.filter((folder) => folder.exam_id === exam?.id && isPublished(folder)).map((folder) => folder.id));
@@ -63,7 +80,7 @@ export default function ExamDetail() {
             <strong>{language === 'hi' ? `पूरा ${exam.title} अनलॉक करें` : `Unlock Complete ${exam.title}`} · ₹{examPrice.toLocaleString('en-IN')}</strong>
             <span>{language === 'hi' ? `इस परीक्षा के सभी ${rootFolders.length} विषयों, सब-फ़ोल्डर्स, अध्यायों और टेस्ट्स का पूरा एक्सेस पाएं।` : `Gain full, unrestricted access to all ${rootFolders.length} sections, including all nested sub-folders, chapters, and tests under this exam.`}</span>
           </div>
-          <div className="paywall-actions">
+          <div className="paywall-actions flex flex-wrap items-center gap-2">
             <button
               className="button button-gold"
               disabled={!user || accessLoading}
@@ -77,6 +94,24 @@ export default function ExamDetail() {
             >
               {accessLoading ? (language === 'hi' ? 'जाँच जारी है…' : 'Checking access…') : `${language === 'hi' ? `पूरा ${exam.title} अनलॉक करें` : `Unlock Complete ${exam.title}`} · ₹${examPrice.toLocaleString('en-IN')}`} <ArrowRight size={14} />
             </button>
+            {fullPassConfig && fullPassConfig.is_active && (
+              <button
+                type="button"
+                className="button button-outline"
+                disabled={!user || accessLoading}
+                onClick={() => setCheckoutItem({
+                  itemType: 'full_pass',
+                  itemId: 'global',
+                  itemTitle: fullPassConfig.title || 'ZYVRA All-Access Full Pass',
+                  tier: 'All-Access Pass',
+                  basePrice: fullPassConfig.price || 999,
+                  validityDays: fullPassConfig.validity_days || 365
+                })}
+              >
+                <Crown size={14} className="text-amber-400" />
+                <span>{language === 'hi' ? `या पूरा Full Pass लें · ₹${fullPassConfig.price || 999}` : `Or Get Full Pass · ₹${fullPassConfig.price || 999}`}</span>
+              </button>
+            )}
           </div>
         </section>
       )}

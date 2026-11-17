@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BadgePercent,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   Coins,
+  Crown,
   FileQuestion,
   FileText,
   Folder,
@@ -12,10 +14,12 @@ import {
   GraduationCap,
   Layers,
   Lock,
+  PackageCheck,
   Plus,
   RefreshCw,
   Save,
   Search,
+  Sparkles,
   Tag,
   Trash2,
   Unlock,
@@ -80,6 +84,21 @@ export default function PricingManager() {
   // Coupons state from platform_settings
   const [coupons, setCoupons] = useState([]);
 
+  // Active top tab: 'tree' | 'full_pass'
+  const [activeTab, setActiveTab] = useState('tree');
+
+  // Platform Full Pass configuration state
+  const [fullPassConfig, setFullPassConfig] = useState({
+    title: 'ZYVRA All-Access Full Pass',
+    subtitle: 'सभी परीक्षाओं, टेस्ट्स और टूल्स का 1 साल का अनलिमिटेड एक्सेस',
+    price: 999,
+    validity_days: 365,
+    is_active: true,
+    include_all: true,
+    included_exam_ids: [],
+    included_tool_ids: ['mistake-notebook', 'flashcards', 'math-shortcuts', 'formula-sheet', 'polity-articles', 'risk-simulator']
+  });
+
   // Fetch tests from Supabase
   const fetchTests = useCallback(async () => {
     if (!supabase) return;
@@ -99,14 +118,14 @@ export default function PricingManager() {
     }
   }, [supabase]);
 
-  // Fetch platform pricing settings & coupons from Supabase
+  // Fetch platform pricing settings, coupons & full pass from Supabase
   const fetchSettings = useCallback(async () => {
     if (!supabase) return;
     try {
       const { data } = await supabase
         .from('platform_settings')
         .select('*')
-        .in('setting_key', ['content_pricing_rules', 'coupon_codes']);
+        .in('setting_key', ['content_pricing_rules', 'coupon_codes', 'full_pass_config']);
 
       if (data) {
         data.forEach((row) => {
@@ -116,6 +135,17 @@ export default function PricingManager() {
             setPricingRules(val);
           } else if (key === 'coupon_codes' && Array.isArray(val)) {
             setCoupons(val);
+          } else if (key === 'full_pass_config' && val && typeof val === 'object') {
+            setFullPassConfig((prev) => ({
+              ...prev,
+              ...val,
+              price: val.price !== undefined ? Number(val.price) : prev.price,
+              validity_days: val.validity_days !== undefined ? Number(val.validity_days) : prev.validity_days,
+              is_active: val.is_active !== undefined ? Boolean(val.is_active) : true,
+              include_all: val.include_all !== undefined ? Boolean(val.include_all) : true,
+              included_exam_ids: Array.isArray(val.included_exam_ids) ? val.included_exam_ids : [],
+              included_tool_ids: Array.isArray(val.included_tool_ids) ? val.included_tool_ids : prev.included_tool_ids
+            }));
           }
         });
       }
@@ -481,6 +511,52 @@ export default function PricingManager() {
     }
   };
 
+  // Canonical Tools available for Full Pass inclusion
+  const AVAILABLE_FULL_PASS_TOOLS = useMemo(() => [
+    { id: 'mistake-notebook', name: 'Mistake Notebook Pro (गलती नोटबुक)', category: 'Revision', icon: '🗂️' },
+    { id: 'flashcards', name: 'Spaced Flashcards Pro (स्मरण कार्ड्स)', category: 'Memory', icon: '📑' },
+    { id: 'math-shortcuts', name: 'Speed Math & Mental Calc (शॉर्टकट ट्रिक्स)', category: 'Math', icon: '🧮' },
+    { id: 'formula-sheet', name: 'Reasoning & Logic Formula Hub (सूत्र संग्रह)', category: 'Reasoning', icon: '🧠' },
+    { id: 'polity-articles', name: 'Constitution Articles Navigator (संविधान अनुच्छेद)', category: 'General Studies', icon: '🏛️' },
+    { id: 'risk-simulator', name: 'Negative Marking Risk Simulator (रिस्क कैलकुलेटर)', category: 'Strategy', icon: '🎯' }
+  ], []);
+
+  // Save Platform Full Pass configuration to platform_settings
+  const handleSaveFullPass = async () => {
+    if (!supabase) return;
+    setSaving(true);
+    setStatusMessage({ text: '', type: '' });
+    try {
+      const allExamIds = exams.map((e) => e.id);
+      const toSave = {
+        title: fullPassConfig.title?.trim() || 'ZYVRA All-Access Full Pass',
+        subtitle: fullPassConfig.subtitle?.trim() || 'सभी परीक्षाओं, टेस्ट्स और टूल्स का 1 साल का अनलिमिटेड एक्सेस',
+        price: Math.max(0, Number(fullPassConfig.price) || 0),
+        validity_days: Math.min(3650, Math.max(1, Number(fullPassConfig.validity_days) || 365)),
+        is_active: Boolean(fullPassConfig.is_active),
+        include_all: Boolean(fullPassConfig.include_all),
+        included_exam_ids: fullPassConfig.include_all ? allExamIds : (fullPassConfig.included_exam_ids || []),
+        included_tool_ids: fullPassConfig.included_tool_ids || []
+      };
+
+      const { error } = await supabase.from('platform_settings').upsert({
+        setting_key: 'full_pass_config',
+        key: 'full_pass_config',
+        setting_value: toSave
+      }, { onConflict: 'setting_key' });
+
+      if (error) throw error;
+      setFullPassConfig(toSave);
+      setStatusMessage({ text: 'Platform Full Pass settings saved successfully!', type: 'success' });
+    } catch (err) {
+      console.error('Failed to save Full Pass settings:', err);
+      setStatusMessage({ text: err.message || 'Failed to save Full Pass settings.', type: 'error' });
+    } finally {
+      setSaving(false);
+      setTimeout(() => setStatusMessage({ text: '', type: '' }), 4000);
+    }
+  };
+
   // Real Delete Item Action
   const handleDeleteItem = async () => {
     if (!currentSelectedItem || !supabase) return;
@@ -696,9 +772,62 @@ export default function PricingManager() {
           <div className="text-xl font-black text-amber-400">{coupons.length}</div>
           <div className="text-[10px] text-slate-400 mt-0.5">Configured</div>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('full_pass')}
+          className={`p-3.5 rounded-2xl border text-left transition-all ${
+            activeTab === 'full_pass'
+              ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/50 shadow-glowGold'
+              : 'bg-[#1E293B] border-slate-700/60 hover:border-amber-400/60'
+          }`}
+        >
+          <div className="flex items-center gap-2 text-xs text-amber-400 font-semibold mb-1">
+            <Crown size={14} /> Full Pass
+          </div>
+          <div className="text-xl font-black text-amber-300">₹{fullPassConfig.price || 999}</div>
+          <div className="text-[10px] text-slate-400 mt-0.5">
+            {fullPassConfig.is_active ? 'Active · Click to Edit' : 'Disabled'}
+          </div>
+        </button>
       </div>
 
-      {/* Main 3-Column Working Grid */}
+      {/* Top Tab Switcher */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+        <button
+          type="button"
+          onClick={() => setActiveTab('tree')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+            activeTab === 'tree'
+              ? 'bg-indigo-600 text-white shadow-glowIndigo font-black'
+              : 'bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold'
+          }`}
+        >
+          <Layers size={14} />
+          <span>Syllabus & Tree Pricing</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('full_pass')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+            activeTab === 'full_pass'
+              ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black shadow-glowGold'
+              : 'bg-slate-800 text-amber-300 hover:bg-slate-700 font-bold'
+          }`}
+        >
+          <Crown size={14} />
+          <span>Platform Full Pass (All-Access Pass)</span>
+          <span className={`text-[9px] px-2 py-0.5 rounded-full font-black ${
+            fullPassConfig.is_active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+          }`}>
+            {fullPassConfig.is_active ? `Active · ₹${fullPassConfig.price || 999}` : 'Disabled'}
+          </span>
+        </button>
+      </div>
+
+      {/* Main 3-Column Working Grid (Tree View) */}
+      {activeTab === 'tree' && (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* ======================================================== */}
         {/* COLUMN 1 (4 Cols): Real Tree View Content Hierarchy */}
@@ -1165,6 +1294,411 @@ export default function PricingManager() {
           </div>
         </div>
       </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 2: PLATFORM FULL PASS (ALL-ACCESS PASS) MANAGER */}
+      {/* ======================================================== */}
+      {activeTab === 'full_pass' && (
+        <div className="space-y-5">
+          {/* Top Banner Notice */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-indigo-500/15 border border-amber-400/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center text-2xl shadow-glowGold shrink-0">
+                👑
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                    All-Access Platform Pass
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                    fullPassConfig.is_active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                  }`}>
+                    {fullPassConfig.is_active ? 'Active on Student Portal' : 'Paused / Hidden'}
+                  </span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                  {fullPassConfig.title || 'ZYVRA All-Access Full Pass'}
+                </h2>
+                <p className="text-xs text-slate-300 font-medium max-w-2xl mt-0.5">
+                  छात्रों को 1 साल के लिए प्लेटफॉर्म के सभी कोर्सेज, टेस्ट्स और टूल्स का एक साथ एक्सेस देने के लिए यह मास्टर बंडल है। आप यहाँ तय कर सकते हैं कि पास चालू रहेगा या बंद, मूल्य कितना होगा, और इसमें कौन-कौन से कोर्सेज और टूल्स शामिल होंगे।
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={saving}
+              onClick={handleSaveFullPass}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-glowGold transition-all flex items-center justify-center gap-2 disabled:opacity-50 shrink-0 active:scale-95"
+            >
+              <Save size={15} />
+              <span>{saving ? 'Saving...' : 'Save Full Pass Settings'}</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            {/* Left 7 Columns: Form Controls */}
+            <div className="lg:col-span-7 space-y-4">
+              {/* Card 1: Core Pass Attributes */}
+              <div className="p-4 sm:p-5 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                    <Crown size={15} className="text-amber-400" />
+                    <span>Pass Pricing & Status</span>
+                  </h3>
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <span className="text-xs font-bold text-slate-300">
+                      {fullPassConfig.is_active ? 'Active (चालू)' : 'Paused (बंद)'}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={Boolean(fullPassConfig.is_active)}
+                      onChange={(e) => setFullPassConfig((prev) => ({ ...prev, is_active: e.target.checked }))}
+                      className="accent-amber-400 w-4 h-4 cursor-pointer"
+                    />
+                  </label>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">Pass Title (नाम)</label>
+                    <input
+                      type="text"
+                      value={fullPassConfig.title || ''}
+                      onChange={(e) => setFullPassConfig((prev) => ({ ...prev, title: e.target.value }))}
+                      placeholder="e.g. ZYVRA All-Access Full Pass"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1">Tagline / Subtitle (विवरण)</label>
+                    <input
+                      type="text"
+                      value={fullPassConfig.subtitle || ''}
+                      onChange={(e) => setFullPassConfig((prev) => ({ ...prev, subtitle: e.target.value }))}
+                      placeholder="e.g. सभी परीक्षाओं, टेस्ट्स और टूल्स का 1 साल का अनलिमिटेड एक्सेस"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-medium focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">Price in Rupees (₹ मूल्य)</label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-slate-400 text-xs font-bold">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={fullPassConfig.price ?? 999}
+                          onChange={(e) => setFullPassConfig((prev) => ({ ...prev, price: Math.max(0, Number(e.target.value) || 0) }))}
+                          className="w-full pl-7 pr-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-amber-300 text-sm font-black focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-300 block mb-1">Validity (दिनों में)</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="3650"
+                        value={fullPassConfig.validity_days ?? 365}
+                        onChange={(e) => setFullPassConfig((prev) => ({ ...prev, validity_days: Math.max(1, Number(e.target.value) || 365) }))}
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-black focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 2: Included Courses & Exams */}
+              <div className="p-4 sm:p-5 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 space-y-3.5">
+                <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                    <GraduationCap size={15} className="text-indigo-400" />
+                    <span>Included Courses & Exams (शामिल परीक्षाएं)</span>
+                  </h3>
+                  <span className="text-[10px] text-slate-400 font-bold">
+                    {fullPassConfig.include_all ? 'All Exams Included' : `${fullPassConfig.included_exam_ids?.length || 0} of ${exams.length} Selected`}
+                  </span>
+                </div>
+
+                {/* Scope Mode: All-Inclusive vs Custom Selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <label className={`p-3 rounded-2xl border cursor-pointer transition-all ${
+                    fullPassConfig.include_all
+                      ? 'bg-indigo-600/20 border-indigo-500 text-white'
+                      : 'bg-slate-900/60 border-slate-700/60 text-slate-300 hover:bg-slate-900'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="pass_scope"
+                        checked={Boolean(fullPassConfig.include_all)}
+                        onChange={() => setFullPassConfig((prev) => ({ ...prev, include_all: true }))}
+                        className="accent-indigo-500"
+                      />
+                      <span className="text-xs font-black">ऑल-इनक्लूसिव (Auto-Include All)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1 pl-5 leading-relaxed">
+                      वर्तमान और भविष्य में बनने वाली सभी परीक्षाएं अपने आप फुल पास में अनलॉक रहेंगी।
+                    </p>
+                  </label>
+
+                  <label className={`p-3 rounded-2xl border cursor-pointer transition-all ${
+                    !fullPassConfig.include_all
+                      ? 'bg-indigo-600/20 border-indigo-500 text-white'
+                      : 'bg-slate-900/60 border-slate-700/60 text-slate-300 hover:bg-slate-900'
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="radio"
+                        name="pass_scope"
+                        checked={!fullPassConfig.include_all}
+                        onChange={() => setFullPassConfig((prev) => ({ ...prev, include_all: false }))}
+                        className="accent-indigo-500"
+                      />
+                      <span className="text-xs font-black">कस्टम चयन (Select Specific)</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1 pl-5 leading-relaxed">
+                      केवल वे परीक्षाएं जिन्हें आप नीचे चेकबॉक्स से चुनेंगे, वही शामिल होंगी।
+                    </p>
+                  </label>
+                </div>
+
+                {/* Exam Checkbox List */}
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[11px] font-bold text-slate-300">उपलब्ध परीक्षाएं (Exams in Catalog):</span>
+                    {!fullPassConfig.include_all && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFullPassConfig((prev) => ({ ...prev, included_exam_ids: exams.map((e) => e.id) }))}
+                          className="text-[11px] font-bold text-indigo-400 hover:underline"
+                        >
+                          Select All
+                        </button>
+                        <span className="text-slate-600">•</span>
+                        <button
+                          type="button"
+                          onClick={() => setFullPassConfig((prev) => ({ ...prev, included_exam_ids: [] }))}
+                          className="text-[11px] font-bold text-slate-400 hover:underline"
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5 max-h-[220px] overflow-y-auto no-scrollbar">
+                    {exams.length === 0 ? (
+                      <div className="p-3 text-center text-xs text-slate-400">
+                        No published exams found in database.
+                      </div>
+                    ) : (
+                      exams.map((exam) => {
+                        const isChecked = fullPassConfig.include_all || (fullPassConfig.included_exam_ids || []).includes(exam.id);
+                        const examFolders = folders.filter((f) => f.exam_id === exam.id);
+
+                        return (
+                          <label
+                            key={exam.id}
+                            className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${
+                              isChecked
+                                ? 'bg-indigo-950/40 border-indigo-500/40 text-white'
+                                : 'bg-slate-900/50 border-slate-700/50 text-slate-400 hover:bg-slate-900'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              disabled={fullPassConfig.include_all}
+                              checked={isChecked}
+                              onChange={(e) => {
+                                const current = fullPassConfig.included_exam_ids || [];
+                                const next = e.target.checked
+                                  ? [...new Set([...current, exam.id])]
+                                  : current.filter((id) => id !== exam.id);
+                                setFullPassConfig((prev) => ({ ...prev, included_exam_ids: next }));
+                              }}
+                              className="accent-indigo-500 w-4 h-4 rounded cursor-pointer disabled:opacity-75"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-bold truncate text-slate-100">{exam.title}</span>
+                                <span className="text-[10px] text-slate-400 shrink-0">
+                                  {examFolders.length} folders
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-slate-400 block truncate">
+                                {exam.description || `${exam.category || 'Exam'} syllabus & question sets`}
+                              </span>
+                            </div>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Included Pro Tools */}
+              <div className="p-4 sm:p-5 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                    <PackageCheck size={15} className="text-emerald-400" />
+                    <span>Included Study Tools (शामिल टूल्स)</span>
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFullPassConfig((prev) => ({ ...prev, included_tool_ids: AVAILABLE_FULL_PASS_TOOLS.map((t) => t.id) }))}
+                      className="text-[11px] font-bold text-emerald-400 hover:underline"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-slate-600">•</span>
+                    <button
+                      type="button"
+                      onClick={() => setFullPassConfig((prev) => ({ ...prev, included_tool_ids: [] }))}
+                      className="text-[11px] font-bold text-slate-400 hover:underline"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {AVAILABLE_FULL_PASS_TOOLS.map((tool) => {
+                    const isChecked = (fullPassConfig.included_tool_ids || []).includes(tool.id);
+                    return (
+                      <label
+                        key={tool.id}
+                        className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer ${
+                          isChecked
+                            ? 'bg-emerald-950/40 border-emerald-500/40 text-white'
+                            : 'bg-slate-900/50 border-slate-700/50 text-slate-400 hover:bg-slate-900'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => {
+                            const current = fullPassConfig.included_tool_ids || [];
+                            const next = e.target.checked
+                              ? [...new Set([...current, tool.id])]
+                              : current.filter((id) => id !== tool.id);
+                            setFullPassConfig((prev) => ({ ...prev, included_tool_ids: next }));
+                          }}
+                          className="accent-emerald-500 w-4 h-4 rounded cursor-pointer"
+                        />
+                        <span className="text-base shrink-0">{tool.icon}</span>
+                        <div className="min-w-0 flex-1">
+                          <strong className="text-xs font-bold block truncate text-slate-100">{tool.name}</strong>
+                          <span className="text-[10px] text-slate-400 block">{tool.category}</span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Right 5 Columns: Live Student Preview & Actions */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="p-4 sm:p-5 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 space-y-3.5">
+                <div className="flex items-center justify-between border-b border-slate-700/80 pb-2.5">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
+                    <Sparkles size={14} className="text-amber-400" />
+                    <span>Live Student Preview (छात्रों को कैसा दिखेगा)</span>
+                  </h3>
+                  <span className="text-[10px] text-emerald-400 font-bold">Real-time</span>
+                </div>
+
+                {/* Simulated Student Portal Banner */}
+                <div className="rounded-2xl p-4 bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-indigo-500/20 border-2 border-amber-400/60 shadow-md space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center gap-1">
+                      👑 All-Access Full Pass
+                    </span>
+                    <span className="text-[10px] font-bold text-amber-300">
+                      {fullPassConfig.validity_days || 365} Days Unlimited
+                    </span>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-black text-white">
+                      {fullPassConfig.title || 'ZYVRA All-Access Full Pass'}
+                    </h4>
+                    <p className="text-[11px] text-slate-300 font-medium mt-0.5">
+                      {fullPassConfig.subtitle || 'सभी परीक्षाओं, टेस्ट्स और टूल्स का 1 साल का अनलिमिटेड एक्सेस'}
+                    </p>
+                  </div>
+
+                  <div className="space-y-1 text-[11px] font-medium text-slate-300">
+                    <div className="flex items-center gap-1.5 text-emerald-300">
+                      <CheckCircle2 size={13} className="shrink-0" />
+                      <span>{fullPassConfig.include_all ? 'सभी वर्तमान और भविष्य की परीक्षाएं' : `${fullPassConfig.included_exam_ids?.length || 0} चुनिंदा परीक्षाएं`}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-emerald-300">
+                      <CheckCircle2 size={13} className="shrink-0" />
+                      <span>पूरा टेस्ट सीरीज व अध्याय-वार मॉक टेस्ट</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-emerald-300">
+                      <CheckCircle2 size={13} className="shrink-0" />
+                      <span>{fullPassConfig.included_tool_ids?.length || 0} प्रो स्टडी टूल्स (गलती नोटबुक, सूत्र...)</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-amber-400/30 flex items-center justify-between">
+                    <div>
+                      <div className="text-xl font-black text-amber-300 leading-none">
+                        ₹{fullPassConfig.price || 999}
+                      </div>
+                      <span className="text-[10px] text-slate-400">
+                        {fullPassConfig.validity_days || 365} दिनों की वैधता
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled
+                      className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs shadow-glowGold opacity-95 cursor-default flex items-center gap-1"
+                    >
+                      <span>पूरा पास अनलॉक करें →</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-700/60 text-xs text-slate-300 space-y-1.5">
+                  <strong className="block text-slate-100 font-bold flex items-center gap-1.5">
+                    <span>💡 यह कैसे काम करता है:</span>
+                  </strong>
+                  <p className="text-[11px] leading-relaxed text-slate-400">
+                    छात्र जैसे ही इस पास को खरीदेगा, उसका खाता Razorpay से वेरीफाई होते ही डेटाबेस में <code>user_access (item_type: 'full_pass', item_id: 'global')</code> में दर्ज हो जाएगा।
+                  </p>
+                  <p className="text-[11px] leading-relaxed text-slate-400">
+                    इसके बाद छात्र के लिए वे सभी कोर्सेज और टूल्स तुरंत अनलॉक हो जाएंगे जो आपने ऊपर शामिल किए हैं।
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleSaveFullPass}
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-glowGold transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-98"
+                >
+                  <Save size={16} />
+                  <span>{saving ? 'Updating Database...' : 'Save Full Pass Settings'}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal: Create New Folder */}
       {createFolderModalOpen && (

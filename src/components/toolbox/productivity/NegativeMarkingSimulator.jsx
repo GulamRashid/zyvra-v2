@@ -150,15 +150,21 @@ export default function NegativeMarkingSimulator() {
       {/* Target Cutoff & Scheme Configuration Bar */}
       <div className="grid grid-cols-3 gap-1 sm:gap-2 p-2 sm:p-2.5 rounded-2xl dark:bg-slate-800/80 bg-slate-100 border dark:border-slate-700/60 border-slate-200 text-center items-center">
         <div className="min-w-0">
-          <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 block uppercase truncate">Marks/Right</span>
+          <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 block uppercase truncate">
+            {isHindi ? 'सही अंक' : 'Marks/Right'}
+          </span>
           <span className="text-xs sm:text-sm font-black text-emerald-500">+{marksPerQ}</span>
         </div>
         <div className="min-w-0">
-          <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 block uppercase truncate">Penalty/Wrong</span>
+          <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 block uppercase truncate">
+            {isHindi ? 'कटौती/गलत' : 'Penalty/Wrong'}
+          </span>
           <span className="text-xs sm:text-sm font-black text-rose-500">-{penaltyPerQ.toFixed(2)}</span>
         </div>
         <div className="min-w-0">
-          <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 block uppercase truncate">Target Cutoff</span>
+          <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 block uppercase truncate">
+            {isHindi ? 'लक्ष्य कटऑफ' : 'Target Cutoff'}
+          </span>
           <input
             type="number"
             value={targetCutoff}
@@ -179,7 +185,7 @@ export default function NegativeMarkingSimulator() {
           <div className="flex items-center justify-between text-xs font-bold gap-2 min-w-0">
             <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 min-w-0 flex-1">
               <CheckCircle2 size={15} className="shrink-0" />
-              <span className="truncate">{isHindi ? '100% पक्के सवाल' : '100% Confident (Sure)'}</span>
+              <span className="truncate">{isHindi ? '100% पक्के सवाल (Sure Questions)' : '100% Confident (Sure)'}</span>
             </span>
             <span className="text-xs sm:text-sm font-black shrink-0 px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
               {sureCount} Qs
@@ -194,8 +200,8 @@ export default function NegativeMarkingSimulator() {
             className="w-full accent-emerald-500 cursor-pointer"
           />
           <div className="flex justify-between text-[10px] text-slate-500 font-medium">
-            <span>Accuracy: ~100%</span>
-            <span>Yield: +{(sureCount * marksPerQ).toFixed(1)} marks</span>
+            <span>{isHindi ? 'सटीकता: ~100%' : 'Accuracy: ~100%'}</span>
+            <span>{isHindi ? 'प्राप्त' : 'Yield'}: +{(sureCount * marksPerQ).toFixed(1)} marks</span>
           </div>
         </div>
 
@@ -219,9 +225,9 @@ export default function NegativeMarkingSimulator() {
             className="w-full accent-indigo-500 cursor-pointer"
           />
           <div className="flex justify-between text-[10px] text-slate-500 font-medium">
-            <span>Prob: 50%</span>
+            <span>{isHindi ? 'संभावना: 50%' : 'Prob: 50%'}</span>
             <span className={results.evFifty >= 0 ? 'text-emerald-500 font-bold' : 'text-rose-500'}>
-              Gain: {results.evFifty >= 0 ? `+${results.evFifty.toFixed(2)}` : results.evFifty.toFixed(2)} marks
+              {isHindi ? 'लाभ' : 'Gain'}: {results.evFifty >= 0 ? `+${results.evFifty.toFixed(2)}` : results.evFifty.toFixed(2)} marks
             </span>
           </div>
         </div>
@@ -231,7 +237,7 @@ export default function NegativeMarkingSimulator() {
           <div className="flex items-center justify-between text-xs font-bold gap-2 min-w-0">
             <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 min-w-0 flex-1">
               <HelpCircle size={15} className="shrink-0" />
-              <span className="truncate">{isHindi ? '1 विकल्प एलिमिनेट (3 बचे)' : '1 Option Eliminated'}</span>
+              <span className="truncate">{isHindi ? '1 विकल्प एलिमिनेट (3 में से अनुमान)' : '1 Option Eliminated'}</span>
             </span>
             <span className="text-xs sm:text-sm font-black shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
               {oneEliminatedCount} Qs
@@ -246,9 +252,9 @@ export default function NegativeMarkingSimulator() {
             className="w-full accent-amber-500 cursor-pointer"
           />
           <div className="flex justify-between text-[10px] text-slate-500 font-medium">
-            <span>Prob: 33.3%</span>
+            <span>{isHindi ? 'संभावना: 33.3%' : 'Prob: 33.3%'}</span>
             <span className={results.evOne >= 0 ? 'text-emerald-500 font-bold' : 'text-rose-500'}>
-              Gain: {results.evOne >= 0 ? `+${results.evOne.toFixed(2)}` : results.evOne.toFixed(2)} marks
+              {isHindi ? 'लाभ' : 'Gain'}: {results.evOne >= 0 ? `+${results.evOne.toFixed(2)}` : results.evOne.toFixed(2)} marks
             </span>
           </div>
         </div>
@@ -273,9 +279,9 @@ export default function NegativeMarkingSimulator() {
             className="w-full accent-rose-500 cursor-pointer"
           />
           <div className="flex justify-between text-[10px] text-slate-500 font-medium">
-            <span>Prob: 25%</span>
+            <span>{isHindi ? 'संभावना: 25%' : 'Prob: 25%'}</span>
             <span className={results.evBlind >= 0 ? 'text-slate-500 font-bold' : 'text-rose-500 font-black'}>
-              Expected: {results.evBlind.toFixed(2)} marks
+              {isHindi ? 'अपेक्षित' : 'Expected'}: {results.evBlind.toFixed(2)} marks
             </span>
           </div>
         </div>
@@ -297,7 +303,7 @@ export default function NegativeMarkingSimulator() {
               {results.expectedScore}
             </div>
             <span className="text-[10px] font-bold text-slate-500">
-              Attempted: {totalAttempted} Qs
+              {isHindi ? 'हल किए:' : 'Attempted:'} {totalAttempted} Qs
             </span>
           </div>
         </div>
@@ -307,21 +313,21 @@ export default function NegativeMarkingSimulator() {
           <div className="p-2.5 rounded-xl dark:bg-slate-800/80 bg-white border dark:border-slate-700/40 border-slate-200">
             <span className="text-[10px] font-bold text-slate-400 block flex items-center justify-center gap-1">
               <TrendingDown size={11} className="text-rose-500" />
-              <span>Worst Case</span>
+              <span>{isHindi ? 'न्यूनतम (Worst)' : 'Worst Case'}</span>
             </span>
             <strong className="text-sm font-black text-rose-500">{results.worstCase}</strong>
           </div>
           <div className="p-2.5 rounded-xl dark:bg-slate-800/80 bg-white border dark:border-slate-700/40 border-slate-200">
             <span className="text-[10px] font-bold text-slate-400 block flex items-center justify-center gap-1">
               <Percent size={11} className="text-indigo-500" />
-              <span>Target Cutoff</span>
+              <span>{isHindi ? 'लक्ष्य कटऑफ' : 'Target Cutoff'}</span>
             </span>
             <strong className="text-sm font-black dark:text-white text-slate-900">{targetCutoff}</strong>
           </div>
           <div className="p-2.5 rounded-xl dark:bg-slate-800/80 bg-white border dark:border-slate-700/40 border-slate-200">
             <span className="text-[10px] font-bold text-slate-400 block flex items-center justify-center gap-1">
               <TrendingUp size={11} className="text-emerald-500" />
-              <span>Best Case</span>
+              <span>{isHindi ? 'अधिकतम (Best)' : 'Best Case'}</span>
             </span>
             <strong className="text-sm font-black text-emerald-500">{results.bestCase}</strong>
           </div>

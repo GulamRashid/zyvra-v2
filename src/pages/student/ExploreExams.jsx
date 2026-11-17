@@ -1,17 +1,59 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, BookOpen, Folder, GraduationCap, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import ContentIcon from '../../components/common/ContentIcon';
+import CheckoutModal from '../../components/common/CheckoutModal';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { isPublished } from '../../lib/content';
+import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 
 export default function ExploreExams() {
   const { exams, folders, chapters, loading, error } = useContentCatalog();
+  const { user, supabase } = useAuth();
   const { language } = useThemeLanguage();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [search, setSearch] = useState('');
+  const [fullPassConfig, setFullPassConfig] = useState(null);
+  const [hasFullPass, setHasFullPass] = useState(false);
+  const [checkout, setCheckout] = useState(null);
+
+  // Load platform full pass configuration and verify user access
+  useEffect(() => {
+    if (!supabase) return;
+    let active = true;
+    const loadFullPass = async () => {
+      try {
+        const { data } = await supabase
+          .from('platform_settings')
+          .select('setting_value, value')
+          .eq('setting_key', 'full_pass_config')
+          .maybeSingle();
+
+        if (!active) return;
+        const val = data?.setting_value || data?.value;
+        if (val && typeof val === 'object') {
+          setFullPassConfig(val);
+        }
+
+        if (user?.id) {
+          const { data: accessData } = await supabase.rpc('check_user_access', {
+            p_user_id: user.id,
+            p_item_type: 'full_pass',
+            p_item_id: 'global'
+          });
+          if (active) {
+            setHasFullPass(Boolean(accessData));
+          }
+        }
+      } catch (e) {
+        console.warn('Could not load full pass config in ExploreExams:', e);
+      }
+    };
+    loadFullPass();
+    return () => { active = false; };
+  }, [supabase, user?.id]);
 
   // Dynamically derive categories from actual exams in database
   const categories = useMemo(() => {
@@ -106,6 +148,71 @@ export default function ExploreExams() {
           </div>
         )}
 
+        {/* All-Access Platform Full Pass Banner */}
+        {fullPassConfig && fullPassConfig.is_active && !search.trim() && (
+          <div className="relative overflow-hidden rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-indigo-500/15 border-2 border-amber-400/40 shadow-sm transition-all hover:border-amber-400/70">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="space-y-1 min-w-0 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center gap-1 shadow-xs">
+                    👑 {language === 'hi' ? 'ऑल-एक्सेस प्लेटफॉर्म पास' : 'All-Access Platform Pass'}
+                  </span>
+                  <span className="text-[10px] font-bold text-amber-500 dark:text-amber-400">
+                    {fullPassConfig.validity_days || 365} {language === 'hi' ? 'दिन अनलिमिटेड' : 'Days Unlimited'}
+                  </span>
+                </div>
+                <h2 className="text-base sm:text-lg font-black dark:text-white text-slate-900 tracking-tight">
+                  {fullPassConfig.title || 'ZYVRA All-Access Full Pass'}
+                </h2>
+                <p className="text-xs dark:text-slate-300 text-slate-600 font-medium">
+                  {fullPassConfig.subtitle || (language === 'hi' ? 'सभी परीक्षाओं, टेस्ट्स और टूल्स का अनलिमिटेड 1 साल का एक्सेस' : 'Unlimited 1-year access to all exams, tests and study tools')}
+                </p>
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                  <span className="flex items-center gap-1">✓ {language === 'hi' ? 'सभी वर्तमान और भविष्य की परीक्षाएं' : 'All Current & Future Exams'}</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">✓ {language === 'hi' ? 'पूर्ण टेस्ट सीरीज और मॉक टेस्ट' : 'Full Test Series & Mock Tests'}</span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">✓ {language === 'hi' ? 'प्रो स्टडी टूल्स' : 'Pro Study Tools'}</span>
+                </div>
+              </div>
+
+              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0 border-t sm:border-t-0 dark:border-slate-800 border-slate-200/80 pt-2.5 sm:pt-0">
+                {hasFullPass ? (
+                  <div className="px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-xs font-black flex items-center gap-1.5 shadow-xs">
+                    <span>✓</span>
+                    <span>{language === 'hi' ? 'फुल पास एक्टिव है' : 'Full Pass Active'}</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-left sm:text-right">
+                      <div className="text-xl sm:text-2xl font-black text-amber-500 dark:text-amber-400 leading-none">
+                        ₹{fullPassConfig.price || 999}
+                      </div>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                        {fullPassConfig.validity_days || 365} {language === 'hi' ? 'दिनों के लिए' : 'days validity'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCheckout({
+                        itemType: 'full_pass',
+                        itemId: 'global',
+                        itemTitle: fullPassConfig.title || 'ZYVRA All-Access Full Pass',
+                        basePrice: fullPassConfig.price || 999,
+                        validityDays: fullPassConfig.validity_days || 365
+                      })}
+                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-glowGold transition-all active:scale-95 flex items-center gap-1.5"
+                    >
+                      <span>{language === 'hi' ? 'पूरा पास अनलॉक करें' : 'Unlock Full Pass'}</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Exams Grid (Compact, tap-friendly, responsive) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {visibleExams.map((exam) => {
@@ -167,6 +274,18 @@ export default function ExploreExams() {
           <p className="text-center text-xs dark:text-emerald-400/70 text-slate-500 font-medium pt-2">
             ✨ Curated paths to keep your study focused.
           </p>
+        )}
+
+        {/* Full Pass Checkout Modal */}
+        {checkout && (
+          <CheckoutModal
+            {...checkout}
+            onClose={() => setCheckout(null)}
+            onCompleted={() => {
+              setHasFullPass(true);
+              setCheckout(null);
+            }}
+          />
         )}
       </div>
     </div>
