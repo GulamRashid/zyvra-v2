@@ -162,7 +162,7 @@ export default function AdminNotifications() {
       {loading ? (
         <LoadingSkeleton rows={4} />
       ) : (
-        <div className="admin-two-col-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 440px) 1fr', gap: '24px', marginTop: '20px' }}>
+        <div className="admin-two-col-grid">
           {/* Create Announcement Form */}
           <section className="panel-card">
             <div className="section-heading">
@@ -207,7 +207,7 @@ export default function AdminNotifications() {
                 </label>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '14px' }}>
+              <div className="admin-fields-row-2">
                 <div>
                   <label className="field-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.825rem', fontWeight: 600 }}>
                     Audience

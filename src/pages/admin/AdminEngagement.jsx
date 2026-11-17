@@ -156,10 +156,16 @@ export default function AdminEngagement() {
       setSearchLoading(true);
       try {
         const query = questionSearch.trim();
+        const safeQuery = query.replace(/[,()]/g, ' ').replace(/\s+/g, ' ').trim();
+        if (!safeQuery) {
+          setQuestionResults([]);
+          setSearchLoading(false);
+          return;
+        }
         const { data, error } = await supabase
           .from('questions')
           .select('id, question_text, question_text_hi, subject, topic, correct_answer, options')
-          .or(`question_text.ilike.%${query}%,subject.ilike.%${query}%,topic.ilike.%${query}%`)
+          .or(`question_text.ilike.%${safeQuery}%,subject.ilike.%${safeQuery}%,topic.ilike.%${safeQuery}%`)
           .limit(8);
 
         if (error) throw error;
@@ -402,11 +408,11 @@ export default function AdminEngagement() {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center p-1 rounded-2xl dark:bg-[#1E293B] bg-slate-200 border dark:border-slate-700/60 border-slate-300">
+        <div className="flex flex-wrap sm:flex-nowrap w-full sm:w-auto items-center p-1 rounded-2xl dark:bg-[#1E293B] bg-slate-200 border dark:border-slate-700/60 border-slate-300 gap-1">
           <button
             type="button"
             onClick={() => setActiveTab('banners')}
-            className={`px-4 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
+            className={`flex-1 sm:flex-initial justify-center px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
               activeTab === 'banners'
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -418,7 +424,7 @@ export default function AdminEngagement() {
           <button
             type="button"
             onClick={() => setActiveTab('qotd')}
-            className={`px-4 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
+            className={`flex-1 sm:flex-initial justify-center px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 transition-all ${
               activeTab === 'qotd'
                 ? 'bg-indigo-600 text-white shadow-md'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -671,7 +677,7 @@ export default function AdminEngagement() {
                   </div>
 
                   {/* Options snippet */}
-                  <div className="grid grid-cols-2 gap-1.5 pt-2 border-t dark:border-slate-800 border-slate-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-2 border-t dark:border-slate-800 border-slate-200">
                     {(selectedQuestion.options || []).map((opt, idx) => {
                       const letter = String.fromCharCode(65 + idx);
                       const isCorrect = letter === selectedQuestion.correct_answer;
@@ -1021,7 +1027,7 @@ export default function AdminEngagement() {
                     </button>
                   ))}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <input
                     type="text"
                     required
@@ -1041,7 +1047,7 @@ export default function AdminEngagement() {
               </div>
 
               {/* 6. Display Order & Active Toggle */}
-              <div className="grid grid-cols-2 gap-3 pt-2 border-t dark:border-slate-800 border-slate-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t dark:border-slate-800 border-slate-200">
                 <div>
                   <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
                     Display Order

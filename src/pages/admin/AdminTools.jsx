@@ -71,6 +71,34 @@ const DEFAULT_SYSTEM_TOOLS = [
     active: true,
     popular: true,
     order: 4
+  },
+  {
+    id: 'flashcards',
+    name: 'Spaced Repetition Flashcards Pro',
+    category: 'Revision & Memory',
+    iconName: 'BookOpen',
+    iconChar: '🗂️',
+    accessType: 'paid',
+    purchaseType: 'Single Purchase',
+    price: 49,
+    validityDays: 365,
+    active: true,
+    popular: true,
+    order: 5
+  },
+  {
+    id: 'mistake-notebook',
+    name: 'Mistake Notebook & Error Vault Pro',
+    category: 'Revision & Memory',
+    iconName: 'ListChecks',
+    iconChar: '📓',
+    accessType: 'paid',
+    purchaseType: 'Single Purchase',
+    price: 49,
+    validityDays: 365,
+    active: true,
+    popular: true,
+    order: 6
   }
 ];
 
@@ -147,7 +175,7 @@ export default function AdminTools() {
           name: item.name || item.title || 'Untitled Tool',
           category: item.category || 'General',
           iconName: item.icon || 'Wrench',
-          iconChar: item.icon === 'Clock' ? '⏱️' : item.icon === 'Calculator' ? '🧮' : item.icon === 'BookOpen' ? '🏛️' : item.icon === 'Brain' ? '🧠' : '🔧',
+          iconChar: item.id === 'flashcards' ? '🗂️' : item.id === 'mistake-notebook' ? '📓' : item.id === 'polity-articles' ? '🏛️' : item.icon === 'Clock' ? '⏱️' : item.icon === 'Calculator' ? '🧮' : item.icon === 'Brain' ? '🧠' : item.icon === 'BookOpen' ? '📖' : '🔧',
           accessType: ['paid', 'premium'].includes(String(item.access_type || item.accessType || (item.price > 0 ? 'paid' : 'free')).toLowerCase()) ? 'paid' : 'free',
           purchaseType: item.purchaseType || (item.price > 0 ? 'Single Purchase' : 'Always Free'),
           price: Number(item.price) || 0,
@@ -357,10 +385,15 @@ export default function AdminTools() {
           return false;
         }
       }
+      if (categoryFilter !== 'all') {
+        const cat = String(tool.category || '').toLowerCase();
+        const filt = String(categoryFilter).toLowerCase();
+        if (!cat.includes(filt) && !filt.includes(cat)) return false;
+      }
       if (accessFilter !== 'all' && tool.accessType !== accessFilter) return false;
       return true;
     });
-  }, [tools, searchQuery, accessFilter]);
+  }, [tools, searchQuery, categoryFilter, accessFilter]);
 
   // Real derived metrics
   const totalCount = tools.length;
@@ -400,7 +433,7 @@ export default function AdminTools() {
       </div>
 
       <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/30 px-3 py-2 text-xs leading-relaxed text-indigo-100">
-        Only live groups are configurable here: Math, Reasoning, Productivity, and General Studies. New custom tools must first be implemented in the student app before they can be sold or included in Full Pass.
+        Live configurable tool groups: Math, Reasoning, Productivity, General Studies, and Revision & Memory (Flashcards & Mistake Notebook). New custom tools must be implemented in the student app before they can be sold or included in Full Pass.
       </div>
 
       {/* Status Notice */}
@@ -487,9 +520,10 @@ export default function AdminTools() {
             >
               <option value="all">All Categories</option>
               <option value="Quantitative Aptitude">Math</option>
-              <option value="Reasoning & Logic">Reasoning</option>
+              <option value="Reasoning">Reasoning</option>
               <option value="General Studies">GS</option>
-              <option value="Productivity & Focus">Productivity</option>
+              <option value="Productivity">Productivity</option>
+              <option value="Revision & Memory">Revision & Memory</option>
             </select>
             <select
               value={accessFilter}

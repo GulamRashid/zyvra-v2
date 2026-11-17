@@ -191,8 +191,8 @@ export default function AdminSubscriptions() {
 
           <section className="panel-card" style={{ marginTop: '24px' }}>
             <div className="section-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div className="input-with-icon" style={{ minWidth: '260px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', width: '100%', maxWidth: '720px' }}>
+                <div className="input-with-icon" style={{ minWidth: '0', flex: '1 1 200px' }}>
                   <Search size={15} />
                   <input
                     type="search"
@@ -204,7 +204,7 @@ export default function AdminSubscriptions() {
                   />
                 </div>
 
-                <div style={{ display: 'flex', gap: '6px' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {[
                     { id: 'all', label: 'ALL' },
                     { id: 'active', label: 'ACTIVE' },

@@ -228,7 +228,7 @@ export default function AdminReports() {
             </article>
           </div>
 
-          <div className="admin-two-col-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginTop: '24px' }}>
+          <div className="admin-equal-two-col-grid">
             <section className="panel-card">
               <div className="section-heading">
                 <div>
