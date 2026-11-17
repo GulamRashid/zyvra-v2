@@ -532,7 +532,7 @@ export default function QuizResult() {
             }`}
           >
             <CheckCircle2 size={14} />
-            <span>Review</span>
+            <span>{appLanguage === 'hi' ? 'समीक्षा' : 'Review'}</span>
           </button>
 
           <button
@@ -545,7 +545,7 @@ export default function QuizResult() {
             }`}
           >
             <Lightbulb size={14} />
-            <span>Solutions</span>
+            <span>{appLanguage === 'hi' ? 'समाधान' : 'Solutions'}</span>
           </button>
 
           <button
@@ -558,7 +558,7 @@ export default function QuizResult() {
             }`}
           >
             <BarChart3 size={14} />
-            <span>Analysis</span>
+            <span>{appLanguage === 'hi' ? 'विश्लेषण' : 'Analysis'}</span>
           </button>
 
           <button
@@ -571,7 +571,7 @@ export default function QuizResult() {
             }`}
           >
             <Trophy size={14} />
-            <span>Compare</span>
+            <span>{appLanguage === 'hi' ? 'तुलना' : 'Compare'}</span>
           </button>
         </div>
 
@@ -587,11 +587,13 @@ export default function QuizResult() {
               </div>
               <div className="space-y-1">
                 <h2 className="text-base sm:text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-2">
-                  <span>Test Submitted Successfully</span>
+                  <span>{appLanguage === 'hi' ? 'टेस्ट सफलतापूर्वक जमा हुआ' : 'Test Submitted Successfully'}</span>
                   <CheckCircle2 size={18} className="text-emerald-400" />
                 </h2>
                 <p className="text-xs sm:text-sm dark:text-slate-300 text-slate-600 font-medium">
-                  You've completed the test. Review your performance and check detailed solutions.
+                  {appLanguage === 'hi'
+                    ? 'आपने टेस्ट पूरा कर लिया है। नीचे अपना स्कोर और विस्तृत समाधान देखें।'
+                    : "You've completed the test. Review your performance and check detailed solutions."}
                 </p>
               </div>
             </div>
@@ -599,7 +601,7 @@ export default function QuizResult() {
             {/* Scorecard Grid */}
             <div className="grid grid-cols-4 gap-1.5 sm:gap-3 dark:bg-[#1E293B]/85 bg-white backdrop-blur-md border dark:border-slate-700/60 border-slate-200 rounded-2xl p-3 sm:p-4 shadow-sm">
               <div className="text-center">
-                <div className="text-[9px] sm:text-[10px] font-bold dark:text-slate-400 text-slate-500 uppercase">Your Score</div>
+                <div className="text-[9px] sm:text-[10px] font-bold dark:text-slate-400 text-slate-500 uppercase">{appLanguage === 'hi' ? 'आपका स्कोर' : 'Your Score'}</div>
                 <div className="text-base sm:text-2xl font-black dark:text-white text-slate-900 mt-0.5">
                   {score} <span className="text-xs font-semibold dark:text-slate-400 text-slate-500">/ {totalMarks || totalQuestions}</span>
                 </div>
@@ -613,7 +615,7 @@ export default function QuizResult() {
                   <CheckCircle2 size={13} />
                 </div>
                 <div className="text-base sm:text-xl font-black dark:text-white text-slate-900">{stats.correctCount}</div>
-                <div className="text-[9px] sm:text-[10px] font-semibold dark:text-slate-400 text-slate-500">Correct</div>
+                <div className="text-[9px] sm:text-[10px] font-semibold dark:text-slate-400 text-slate-500">{appLanguage === 'hi' ? 'सही' : 'Correct'}</div>
               </div>
 
               <div className="text-center border-l dark:border-slate-700/60 border-slate-200">
@@ -621,7 +623,7 @@ export default function QuizResult() {
                   <CircleX size={13} />
                 </div>
                 <div className="text-base sm:text-xl font-black dark:text-white text-slate-900">{stats.incorrectCount}</div>
-                <div className="text-[9px] sm:text-[10px] font-semibold dark:text-slate-400 text-slate-500">Incorrect</div>
+                <div className="text-[9px] sm:text-[10px] font-semibold dark:text-slate-400 text-slate-500">{appLanguage === 'hi' ? 'गलत' : 'Incorrect'}</div>
               </div>
 
               <div className="text-center border-l dark:border-slate-700/60 border-slate-200">
@@ -629,13 +631,13 @@ export default function QuizResult() {
                   <MinusCircle size={13} />
                 </div>
                 <div className="text-base sm:text-xl font-black dark:text-white text-slate-900">{stats.unattemptedCount}</div>
-                <div className="text-[9px] sm:text-[10px] font-semibold dark:text-slate-400 text-slate-500">Skipped</div>
+                <div className="text-[9px] sm:text-[10px] font-semibold dark:text-slate-400 text-slate-500">{appLanguage === 'hi' ? 'छोड़े गए' : 'Skipped'}</div>
               </div>
             </div>
 
             {/* Question Review Section Header with Filter */}
             <div className="flex items-center justify-between pt-1">
-              <h3 className="text-sm sm:text-base font-extrabold dark:text-white text-slate-900">Question Review</h3>
+              <h3 className="text-sm sm:text-base font-extrabold dark:text-white text-slate-900">{appLanguage === 'hi' ? 'प्रश्नों की समीक्षा' : 'Question Review'}</h3>
 
               <div className="flex items-center gap-1.5 sm:gap-2">
                 <Filter size={13} className="dark:text-slate-400 text-slate-500" />
@@ -644,10 +646,10 @@ export default function QuizResult() {
                   onChange={(e) => setReviewFilter(e.target.value)}
                   className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 dark:text-slate-200 text-slate-800 text-xs font-bold focus:outline-none min-h-[44px]"
                 >
-                  <option value="all">All ({solutions.length})</option>
-                  <option value="correct">Correct ({stats.correctCount})</option>
-                  <option value="incorrect">Incorrect ({stats.incorrectCount})</option>
-                  <option value="unattempted">Skipped ({stats.unattemptedCount})</option>
+                  <option value="all">{appLanguage === 'hi' ? 'सभी' : 'All'} ({solutions.length})</option>
+                  <option value="correct">{appLanguage === 'hi' ? 'सही' : 'Correct'} ({stats.correctCount})</option>
+                  <option value="incorrect">{appLanguage === 'hi' ? 'गलत' : 'Incorrect'} ({stats.incorrectCount})</option>
+                  <option value="unattempted">{appLanguage === 'hi' ? 'छोड़े गए' : 'Skipped'} ({stats.unattemptedCount})</option>
                 </select>
               </div>
             </div>
@@ -698,15 +700,15 @@ export default function QuizResult() {
                         <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-bold">
                           {hasSelection ? (
                             <span className="px-2 py-0.5 rounded-md dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 dark:text-slate-300 text-slate-700">
-                              Your: {chosenKey}
+                              {appLanguage === 'hi' ? 'आपका' : 'Your'}: {chosenKey}
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded-md dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 text-slate-400">
-                              Skipped
+                              {appLanguage === 'hi' ? 'छोड़ा' : 'Skipped'}
                             </span>
                           )}
                           <span className="px-2 py-0.5 rounded-md dark:bg-emerald-500/15 bg-emerald-50 border dark:border-emerald-500/30 border-emerald-200 text-emerald-600 dark:text-emerald-400">
-                            Ans: {correctKey || 'B'} ✓
+                            {appLanguage === 'hi' ? 'उत्तर' : 'Ans'}: {correctKey || 'B'} ✓
                           </span>
                         </div>
                       </div>
@@ -715,15 +717,15 @@ export default function QuizResult() {
                     <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                       {isCorrect ? (
                         <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                          <Check size={12} strokeWidth={3} /> Correct
+                          <Check size={12} strokeWidth={3} /> {appLanguage === 'hi' ? 'सही' : 'Correct'}
                         </span>
                       ) : hasSelection ? (
                         <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-black bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1">
-                          <CircleX size={12} /> Incorrect
+                          <CircleX size={12} /> {appLanguage === 'hi' ? 'गलत' : 'Incorrect'}
                         </span>
                       ) : (
                         <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold dark:bg-slate-800 bg-slate-100 text-slate-400 border dark:border-slate-700 border-slate-200">
-                          Skipped
+                          {appLanguage === 'hi' ? 'छोड़ा' : 'Skipped'}
                         </span>
                       )}
                       <ChevronRight size={16} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-800 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
@@ -741,7 +743,7 @@ export default function QuizResult() {
                 className="w-full sm:flex-1 py-3 rounded-full dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 dark:text-slate-200 text-slate-800 hover:text-black dark:hover:text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors min-h-[44px] shadow-sm"
               >
                 <RotateCcw size={15} />
-                <span>Re-attempt Test</span>
+                <span>{appLanguage === 'hi' ? 'फिर से टेस्ट दें' : 'Re-attempt Test'}</span>
               </Link>
 
               <button
@@ -752,7 +754,7 @@ export default function QuizResult() {
                 }}
                 className="w-full sm:flex-1 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm shadow-glowIndigo transition-transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 min-h-[44px]"
               >
-                <span>View Detailed Solutions</span>
+                <span>{appLanguage === 'hi' ? 'विस्तृत समाधान देखें' : 'View Detailed Solutions'}</span>
                 <ArrowRight size={16} />
               </button>
             </div>

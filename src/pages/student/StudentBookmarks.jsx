@@ -168,7 +168,7 @@ export default function StudentBookmarks() {
                 return (
                   <div
                     key={item.id || idx}
-                    className="p-4 rounded-3xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 shadow-sm flex items-center justify-between gap-3"
+                    className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 shadow-sm flex items-center justify-between gap-3"
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center shrink-0">
@@ -213,7 +213,7 @@ export default function StudentBookmarks() {
               return (
                 <div
                   key={item.id || idx}
-                  className="p-4 sm:p-5 rounded-3xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 shadow-sm space-y-3"
+                  className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 shadow-sm space-y-2.5"
                 >
                   <div className="flex items-center justify-between">
                     <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase dark:bg-amber-500/15 bg-amber-50 dark:text-amber-400 text-amber-700 border border-amber-500/30">
