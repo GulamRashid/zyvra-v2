@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { normalizeAccessResult } from '../lib/commerce';
 
 export default function useContentAccess(items, user, supabase, refreshKey = 0) {
@@ -6,6 +6,8 @@ export default function useContentAccess(items, user, supabase, refreshKey = 0) 
   const [loading, setLoading] = useState(false);
   const [resolvedRequestKey, setResolvedRequestKey] = useState('');
   const [error, setError] = useState('');
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
   const itemKey = items.map((item) => `${item.type}:${item.id}:${item.paid ? 1 : 0}`).join('|');
   const requestKey = `${itemKey}::${user?.id || ''}::${refreshKey}`;
   const hasPaidItems = items.some((item) => item.paid);
@@ -13,11 +15,16 @@ export default function useContentAccess(items, user, supabase, refreshKey = 0) 
   useEffect(() => {
     let active = true;
     const load = async () => {
+      // Callers derive `items` from filtered catalog arrays, so its object
+      // identity can change on every render even when the access request did
+      // not. Use the stable request key below to avoid restarting this effect
+      // every time its own loading state causes a render.
+      const currentItems = itemsRef.current;
       const userId = user?.id;
-      setLoading(items.some((item) => item.paid));
+      setLoading(currentItems.some((item) => item.paid));
       setError('');
       const results = {};
-      const paidItems = items.filter((item) => item.paid);
+      const paidItems = currentItems.filter((item) => item.paid);
       paidItems.forEach((item) => { results[`${item.type}:${item.id}`] = false; });
       if (!paidItems.length) {
         setAccessByKey(results);
@@ -106,7 +113,7 @@ export default function useContentAccess(items, user, supabase, refreshKey = 0) 
     };
     load();
     return () => { active = false; };
-  }, [items, requestKey, supabase, user?.id]);
+  }, [requestKey, supabase, user?.id]);
 
   const requestResolved = !hasPaidItems || resolvedRequestKey === requestKey;
   return {
