@@ -2,17 +2,21 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
+  BarChart3,
   BookOpen,
-  Check,
   CheckCircle2,
   ChevronDown,
   Clock,
   Coins,
+  Flame,
   Menu,
+  Moon,
   ShieldCheck,
   Sparkles,
   Star,
+  Sun,
   Target,
+  Trophy,
   X,
   Zap
 } from 'lucide-react';
@@ -21,13 +25,10 @@ import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 
 export default function LandingPage() {
   const { user } = useAuth();
-  const { language, setLanguage } = useThemeLanguage();
+  const { theme, setTheme, language, setLanguage } = useThemeLanguage();
   const navigate = useNavigate();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [selectedDemoOption, setSelectedDemoOption] = useState('B');
-  const [demoSubmitted, setDemoSubmitted] = useState(true);
-  const [demoLang, setDemoLang] = useState('hi');
   const [activeFaq, setActiveFaq] = useState(0);
   const [scrolled, setScrolled] = useState(false);
 
@@ -39,36 +40,12 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const isDark = theme === 'dark';
   const isHindi = language === 'hi';
 
-  const demoQuestion = {
-    en: {
-      question: 'Which Article of the Constitution of India guarantees "Equality before the law" and "Equal protection of the laws"?',
-      options: [
-        { key: 'A', text: 'Article 12 — Definition of State' },
-        { key: 'B', text: 'Article 14 — Right to Equality' },
-        { key: 'C', text: 'Article 19 — Protection of Freedom' },
-        { key: 'D', text: 'Article 21 — Protection of Life and Liberty' },
-        { key: 'E', text: 'None of the above / More than one of the above (BPSC Pattern)' }
-      ],
-      correct: 'B',
-      explanation: 'Article 14 states that the State shall not deny to any person equality before the law or the equal protection of the laws within the territory of India. This right is conferred on all persons, whether citizens or foreigners.'
-    },
-    hi: {
-      question: 'भारतीय संविधान का कौन सा अनुच्छेद "विधि के समक्ष समता" एवं "विधियों के समान संरक्षण" की गारंटी प्रदान करता है?',
-      options: [
-        { key: 'A', text: 'अनुच्छेद 12 — राज्य की परिभाषा' },
-        { key: 'B', text: 'अनुच्छेद 14 — समता का अधिकार' },
-        { key: 'C', text: 'अनुच्छेद 19 — स्वतंत्रता का संरक्षण' },
-        { key: 'D', text: 'अनुच्छेद 21 — प्राण और दैहिक स्वतंत्रता' },
-        { key: 'E', text: 'उपर्युक्त में से कोई नहीं / उपर्युक्त में से एक से अधिक (BPSC)' }
-      ],
-      correct: 'B',
-      explanation: 'अनुच्छेद 14 के अनुसार राज्य भारत के राज्यक्षेत्र में किसी व्यक्ति को विधि के समक्ष समता से या विधियों के समान संरक्षण से वंचित नहीं करेगा। यह अधिकार नागरिकों और विदेशियों दोनों को प्राप्त है।'
-    }
+  const toggleTheme = () => {
+    setTheme(isDark ? 'light' : 'dark');
   };
-
-  const currentDemo = demoQuestion[demoLang];
 
   const faqs = [
     {
@@ -104,26 +81,41 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#070B14] text-slate-100 selection:bg-indigo-500 selection:text-white font-sans relative overflow-x-hidden">
+    <div className={`min-h-screen transition-colors duration-200 selection:bg-indigo-500 selection:text-white font-sans relative overflow-x-hidden ${
+      isDark ? 'bg-[#070B14] text-slate-100' : 'bg-[#F8FAFC] text-slate-800'
+    }`}>
       {/* Background Glow Orbs */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-gradient-to-tr from-indigo-600/15 via-purple-600/10 to-emerald-500/10 blur-[130px] rounded-full pointer-events-none -z-10 animate-landing-glow" />
-      <div className="fixed top-[45%] -left-[200px] w-[500px] h-[500px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none -z-10" />
-      <div className="fixed top-[65%] -right-[200px] w-[550px] h-[550px] bg-indigo-500/10 blur-[140px] rounded-full pointer-events-none -z-10" />
+      {isDark ? (
+        <>
+          <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-gradient-to-tr from-indigo-600/15 via-purple-600/10 to-emerald-500/10 blur-[130px] rounded-full pointer-events-none -z-10 animate-landing-glow" />
+          <div className="fixed top-[45%] -left-[200px] w-[500px] h-[500px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none -z-10" />
+          <div className="fixed top-[65%] -right-[200px] w-[550px] h-[550px] bg-indigo-500/10 blur-[140px] rounded-full pointer-events-none -z-10" />
+        </>
+      ) : (
+        <>
+          <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[900px] h-[450px] bg-gradient-to-tr from-indigo-200/50 via-sky-100/60 to-emerald-100/50 blur-[100px] rounded-full pointer-events-none -z-10" />
+          <div className="fixed top-[40%] -left-[150px] w-[450px] h-[450px] bg-indigo-100/50 blur-[100px] rounded-full pointer-events-none -z-10" />
+        </>
+      )}
 
       {/* Decorative Grid Pattern */}
       <div
-        className="fixed inset-0 pointer-events-none -z-10 opacity-[0.035]"
+        className={`fixed inset-0 pointer-events-none -z-10 ${isDark ? 'opacity-[0.035]' : 'opacity-[0.03]'}`}
         style={{
-          backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)',
+          backgroundImage: isDark
+            ? 'radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)'
+            : 'radial-gradient(rgba(15, 23, 42, 0.5) 1px, transparent 1px)',
           backgroundSize: '32px 32px'
         }}
       />
 
-      {/* STICKY GLASS HEADER */}
+      {/* STICKY HEADER */}
       <header
         className={`sticky top-0 z-50 transition-all duration-300 ${
           scrolled
-            ? 'bg-[#0B1120]/85 backdrop-blur-xl border-b border-indigo-500/15 shadow-xl shadow-black/40 py-3'
+            ? isDark
+              ? 'bg-[#0B1120]/90 backdrop-blur-xl border-b border-indigo-500/15 shadow-xl shadow-black/40 py-3'
+              : 'bg-white/90 backdrop-blur-xl border-b border-slate-200 shadow-sm py-3'
             : 'bg-transparent py-5'
         }`}
       >
@@ -131,54 +123,77 @@ export default function LandingPage() {
           {/* Logo & Brand */}
           <Link to="/" className="flex items-center gap-3 group">
             <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 p-[1.5px] shadow-lg shadow-indigo-500/25 group-hover:shadow-indigo-500/40 transition-shadow">
-              <div className="w-full h-full bg-[#0B1120] rounded-[14px] flex items-center justify-center overflow-hidden">
+              <div className={`w-full h-full rounded-[14px] flex items-center justify-center overflow-hidden ${
+                isDark ? 'bg-[#0B1120]' : 'bg-white'
+              }`}>
                 <img src="/logo.png" alt="ZYVRA Logo" className="w-7 h-7 object-contain group-hover:scale-105 transition-transform" />
               </div>
             </div>
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
-                <span className="font-black text-xl tracking-wider text-white bg-clip-text">
+                <span className={`font-black text-xl tracking-wider ${isDark ? 'text-white' : 'text-slate-900'}`}>
                   ZYVRA
                 </span>
-                <span className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
                   CBT 2.0
                 </span>
               </div>
-              <span className="text-[10px] text-slate-400 font-semibold tracking-wide">
+              <span className={`text-[10px] font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Next-Gen Exam Prep
               </span>
             </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-300">
-            <a href="#features" className="hover:text-white transition-colors">
+          <nav className={`hidden md:flex items-center gap-8 text-sm font-semibold ${
+            isDark ? 'text-slate-300' : 'text-slate-600'
+          }`}>
+            <a href="#features" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>
               {isHindi ? 'विशेषताएं' : 'Features'}
             </a>
-            <a href="#cbt-engine" className="hover:text-white transition-colors">
+            <a href="#cbt-engine" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>
               {isHindi ? 'CBT इंजन' : 'CBT Engine'}
             </a>
-            <a href="#exams" className="hover:text-white transition-colors">
+            <a href="#exams" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>
               {isHindi ? 'परीक्षाएं' : 'Exams'}
             </a>
-            <a href="#toolbox" className="hover:text-white transition-colors">
+            <a href="#toolbox" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>
               {isHindi ? 'टूलबॉक्स' : 'Toolbox'}
             </a>
-            <a href="#faq" className="hover:text-white transition-colors">
+            <a href="#faq" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>
               {isHindi ? 'सामान्य प्रश्न' : 'FAQ'}
             </a>
           </nav>
 
-          {/* Header Action Buttons (Sign In / Sign Up) */}
+          {/* Header Action Buttons */}
           <div className="hidden sm:flex items-center gap-3">
+            {/* Theme Toggle Button */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className={`p-2 rounded-xl border transition-colors flex items-center justify-center ${
+                isDark
+                  ? 'bg-slate-800/80 hover:bg-slate-700/80 border-slate-700/60 text-amber-400'
+                  : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm'
+              }`}
+              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label="Toggle Theme"
+            >
+              {isDark ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
+
             {/* Language Toggle */}
             <button
               type="button"
               onClick={() => setLanguage(isHindi ? 'en' : 'hi')}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/60 text-xs font-bold text-slate-300 transition-colors flex items-center gap-1.5"
+              className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-colors flex items-center gap-1.5 ${
+                isDark
+                  ? 'bg-slate-800/80 hover:bg-slate-700/80 border-slate-700/60 text-slate-200'
+                  : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm'
+              }`}
               title="Toggle Language"
             >
-              <span className="text-amber-400">🌐</span>
+              <span className="text-amber-500">🌐</span>
               <span>{isHindi ? 'English' : 'हिंदी'}</span>
             </button>
 
@@ -195,7 +210,11 @@ export default function LandingPage() {
               <>
                 <Link
                   to="/auth?mode=signin"
-                  className="px-4 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/50 text-white font-bold text-xs transition-all shadow-sm"
+                  className={`px-4 py-2 rounded-xl border font-bold text-xs transition-all shadow-sm ${
+                    isDark
+                      ? 'bg-slate-900/80 hover:bg-slate-800 border-slate-700/80 hover:border-indigo-500/50 text-white'
+                      : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-800'
+                  }`}
                 >
                   {isHindi ? 'साइन इन करें' : 'Sign In'}
                 </Link>
@@ -210,48 +229,64 @@ export default function LandingPage() {
             )}
           </div>
 
-          {/* Mobile Hamburger Button */}
+          {/* Mobile Actions */}
           <div className="flex sm:hidden items-center gap-2">
             <button
               type="button"
+              onClick={toggleTheme}
+              className={`p-2 rounded-xl border text-xs font-bold ${
+                isDark ? 'bg-slate-800 border-slate-700 text-amber-400' : 'bg-white border-slate-200 text-slate-700'
+              }`}
+              aria-label="Toggle theme"
+            >
+              {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
+            <button
+              type="button"
               onClick={() => setLanguage(isHindi ? 'en' : 'hi')}
-              className="p-2 rounded-xl bg-slate-800 text-xs font-bold text-slate-300"
+              className={`p-2 rounded-xl border text-xs font-bold ${
+                isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
+              }`}
             >
               {isHindi ? 'EN' : 'HI'}
             </button>
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white"
+              className={`p-2 rounded-xl border ${
+                isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
+              }`}
               aria-label="Open navigation menu"
             >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         </div>
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="sm:hidden px-4 pt-3 pb-6 bg-[#0B1120] border-b border-slate-800 space-y-4 animate-in slide-in-from-top-4 duration-200">
-            <div className="flex flex-col space-y-2 text-sm font-semibold text-slate-300">
-              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="py-1.5 px-3 rounded-lg hover:bg-slate-800">
+          <div className={`sm:hidden px-4 pt-3 pb-6 border-b space-y-4 animate-in slide-in-from-top-4 duration-200 ${
+            isDark ? 'bg-[#0B1120] border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-800 shadow-xl'
+          }`}>
+            <div className="flex flex-col space-y-2 text-sm font-semibold">
+              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-indigo-500/10">
                 {isHindi ? 'विशेषताएं' : 'Features'}
               </a>
-              <a href="#cbt-engine" onClick={() => setMobileMenuOpen(false)} className="py-1.5 px-3 rounded-lg hover:bg-slate-800">
+              <a href="#cbt-engine" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-indigo-500/10">
                 {isHindi ? 'CBT इंजन' : 'CBT Engine'}
               </a>
-              <a href="#exams" onClick={() => setMobileMenuOpen(false)} className="py-1.5 px-3 rounded-lg hover:bg-slate-800">
+              <a href="#exams" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-indigo-500/10">
                 {isHindi ? 'परीक्षाएं' : 'Exams'}
               </a>
-              <a href="#toolbox" onClick={() => setMobileMenuOpen(false)} className="py-1.5 px-3 rounded-lg hover:bg-slate-800">
+              <a href="#toolbox" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-indigo-500/10">
                 {isHindi ? 'टूलबॉक्स' : 'Toolbox'}
               </a>
-              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-1.5 px-3 rounded-lg hover:bg-slate-800">
+              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-indigo-500/10">
                 {isHindi ? 'सामान्य प्रश्न' : 'FAQ'}
               </a>
             </div>
 
-            <div className="pt-2 border-t border-slate-800 flex flex-col gap-2">
+            <div className={`pt-2 border-t flex flex-col gap-2 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
               {user ? (
                 <button
                   type="button"
@@ -266,7 +301,9 @@ export default function LandingPage() {
                   <Link
                     to="/auth?mode=signin"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full py-2 rounded-xl bg-slate-900 border border-slate-700 text-white font-bold text-sm text-center"
+                    className={`w-full py-2 rounded-xl border font-bold text-sm text-center ${
+                      isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-800'
+                    }`}
                   >
                     {isHindi ? 'साइन इन करें' : 'Sign In'}
                   </Link>
@@ -284,173 +321,196 @@ export default function LandingPage() {
         )}
       </header>
 
-      {/* HERO SECTION */}
-      <section className="relative pt-12 pb-20 lg:pt-20 lg:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-          {/* Left Column: Value Proposition & CTAs */}
+      {/* CLEAN & ATTRACTIVE HERO SECTION */}
+      <section className="relative pt-8 pb-16 sm:pt-14 sm:pb-24 lg:pt-20 lg:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+          {/* Left Column: Clear Value Prop & CTAs */}
           <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            {/* Pulsing Pill Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/25 text-xs font-bold text-indigo-300 shadow-sm animate-pulse">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            {/* Pill Badge */}
+            <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm ${
+              isDark
+                ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300'
+                : 'bg-indigo-50 border border-indigo-200 text-indigo-700'
+            }`}>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               <span>{isHindi ? '⚡ सरकारी परीक्षा की असली CBT तैयारी' : '⚡ Next-Gen CBT Exam Preparation Engine'}</span>
             </div>
 
             {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.12]">
+            <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] ${
+              isDark ? 'text-white' : 'text-slate-900'
+            }`}>
               {isHindi ? (
                 <>
-                  असली परीक्षा जैसा <span className="bg-gradient-to-r from-indigo-400 via-sky-300 to-emerald-400 bg-clip-text text-transparent">CBT माहौल</span>, हर सवाल पर गहरी पकड़।
+                  असली परीक्षा जैसा <span className="bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 bg-clip-text text-transparent">CBT माहौल</span>, हर सवाल पर गहरी पकड़।
                 </>
               ) : (
                 <>
-                  Master Competitive Exams with <span className="bg-gradient-to-r from-indigo-400 via-sky-300 to-emerald-400 bg-clip-text text-transparent">Real CBT Precision</span>.
+                  Master Competitive Exams with <span className="bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 bg-clip-text text-transparent">Real CBT Precision</span>.
                 </>
               )}
             </h1>
 
-            {/* Subtitle */}
-            <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
+            {/* Subtitle with High Contrast */}
+            <p className={`text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 leading-relaxed font-medium ${
+              isDark ? 'text-slate-200' : 'text-slate-600'
+            }`}>
               {isHindi
                 ? 'BPSC 5-विकल्प अनिवार्य रूल, नेगेटिव मार्किंग, शुद्ध द्विभाषी व्याख्या, ज़ीरो डेटा लॉस ऑफलाइन सिंक और छात्रों के लिए स्मार्ट टूलबॉक्स — सब कुछ एक ही जगह।'
-                : 'Experience official BPSC 5-option patterns, multi-statement assertion questions, in-depth bilingual explanations, offline-resilient auto-sync, and student productivity tools engineered for toppers.'}
+                : 'Experience official BPSC 5-option patterns, multi-statement assertion questions, in-depth bilingual explanations, offline-resilient auto-sync, and student productivity tools engineered for serious aspirants.'}
             </p>
 
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
               <Link
                 to={user ? '/home' : '/auth?mode=signup'}
-                className="w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-500 hover:from-indigo-500 hover:to-emerald-400 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition-all hover:scale-[1.03] active:scale-95 group"
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-500 hover:from-indigo-500 hover:to-emerald-400 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition-all hover:scale-[1.03] active:scale-95 group"
               >
                 <span>{user ? (isHindi ? 'डैशबोर्ड में जाएं' : 'Open Student Dashboard') : (isHindi ? 'मुफ़्त टेस्ट देना शुरू करें' : 'Start Practicing Free')}</span>
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </Link>
 
-              <a
-                href="#demo-section"
-                className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 hover:border-indigo-500/50 text-slate-200 font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all"
+              <Link
+                to="/explore"
+                className={`w-full sm:w-auto px-6 py-4 rounded-2xl border font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all ${
+                  isDark
+                    ? 'bg-slate-900/90 hover:bg-slate-800 border-slate-700 text-slate-100 hover:border-indigo-500/50'
+                    : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-800 shadow-sm hover:border-indigo-400'
+                }`}
               >
-                <span>{isHindi ? 'लाइव CBT डेमो देखें' : 'Try Interactive Demo'}</span>
-                <span className="text-amber-400">✨</span>
-              </a>
+                <span>{isHindi ? 'उपलब्ध परीक्षाएं देखें' : 'Explore All Exams'}</span>
+                <span className="text-amber-500">✨</span>
+              </Link>
             </div>
 
             {/* Micro Social Proof */}
-            <div className="flex items-center justify-center lg:justify-start gap-6 pt-4 text-xs text-slate-400">
+            <div className={`flex items-center justify-center lg:justify-start gap-6 pt-3 text-xs font-semibold ${
+              isDark ? 'text-slate-300' : 'text-slate-600'
+            }`}>
               <div className="flex items-center gap-1.5">
-                <CheckCircle2 size={15} className="text-emerald-400" />
-                <span>{isHindi ? 'कोई क्रेडिट कार्ड नहीं' : 'No Credit Card Needed'}</span>
+                <CheckCircle2 size={16} className="text-emerald-500" />
+                <span>{isHindi ? 'क्रेडिट कार्ड की ज़रूरत नहीं' : 'No Credit Card Required'}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <ShieldCheck size={15} className="text-emerald-400" />
+                <ShieldCheck size={16} className="text-emerald-500" />
                 <span>{isHindi ? '100% फ्री प्रैक्टिस टियर' : 'Free Tier Available'}</span>
               </div>
               <div className="flex items-center gap-1.5 hidden sm:flex">
-                <Star size={14} className="text-amber-400 fill-amber-400" />
-                <span>4.9/5 Aspirant Rating</span>
+                <Star size={15} className="text-amber-400 fill-amber-400" />
+                <span>4.9/5 Rating</span>
               </div>
             </div>
           </div>
 
-          {/* Right Column: Floating Interactive Mock CBT Interface (Motion Graphic) */}
-          <div className="lg:col-span-5 relative" id="demo-section">
-            {/* Decorative Glow Ring */}
-            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-indigo-500/30 via-emerald-500/20 to-purple-500/30 blur-xl opacity-75 -z-10 animate-landing-glow" />
+          {/* Right Column: Clean, Elegant 3D CBT Platform Showcase Mockup (No Heavy MCQ) */}
+          <div className="lg:col-span-5 relative">
+            {/* Glow Aura */}
+            <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-indigo-500/25 via-emerald-500/20 to-purple-500/25 blur-2xl opacity-80 -z-10 animate-landing-glow" />
 
-            {/* Interactive Mock CBT Card */}
-            <div className="relative rounded-3xl bg-slate-900/95 border border-indigo-500/30 shadow-2xl shadow-indigo-950/80 p-5 space-y-4 backdrop-blur-xl animate-landing-float">
-              {/* CBT Mock Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800 text-xs">
+            {/* Showcase Card */}
+            <div className={`relative rounded-3xl border p-5 sm:p-6 space-y-4 backdrop-blur-xl animate-landing-float ${
+              isDark
+                ? 'bg-slate-900/95 border-indigo-500/30 shadow-2xl shadow-indigo-950/80 text-white'
+                : 'bg-white/95 border-slate-200/90 shadow-xl shadow-slate-200/80 text-slate-800'
+            }`}>
+              {/* Mockup Header */}
+              <div className={`flex items-center justify-between pb-3.5 border-b text-xs ${
+                isDark ? 'border-slate-800' : 'border-slate-100'
+              }`}>
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
-                  <span className="font-black text-indigo-400 tracking-wider">LIVE CBT SIMULATION</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                  <span className="font-black text-indigo-500 tracking-wider text-[11px]">
+                    BPSC 70th PRELIMS MOCK 04
+                  </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setDemoLang(demoLang === 'hi' ? 'en' : 'hi')}
-                    className="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-bold text-amber-300 border border-slate-700 hover:bg-slate-700"
-                  >
-                    {demoLang === 'hi' ? 'Switch to English' : 'हिंदी में देखें'}
-                  </button>
-                  <div className="flex items-center gap-1 font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25 text-[11px]">
-                    <Clock size={12} />
-                    <span>01:44:28</span>
+                <div className={`flex items-center gap-1 font-mono font-bold px-2 py-0.5 rounded text-[11px] ${
+                  isDark ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                }`}>
+                  <Clock size={12} />
+                  <span>01:44:28</span>
+                </div>
+              </div>
+
+              {/* Real CBT Question Palette Strip */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className={isDark ? 'text-slate-300' : 'text-slate-600'}>
+                    {isHindi ? 'CBT प्रश्न स्थिति (5-Status Palette)' : 'CBT Question Status Palette'}
+                  </span>
+                  <span className="text-[10px] text-emerald-500 font-semibold">142/150 Visited</span>
+                </div>
+
+                <div className="grid grid-cols-5 gap-1.5 text-center text-[10px] font-bold">
+                  <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">
+                    <div className="font-mono text-xs">84</div>
+                    <div className="text-[9px] truncate">Answered</div>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-purple-500/20 text-purple-500 border border-purple-500/40">
+                    <div className="font-mono text-xs">18</div>
+                    <div className="text-[9px] truncate">Ans & Mark</div>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-500 border border-indigo-500/40">
+                    <div className="font-mono text-xs">6</div>
+                    <div className="text-[9px] truncate">Marked</div>
+                  </div>
+                  <div className="p-1.5 rounded-lg bg-rose-500/20 text-rose-500 border border-rose-500/40">
+                    <div className="font-mono text-xs">12</div>
+                    <div className="text-[9px] truncate">Unans</div>
+                  </div>
+                  <div className={`p-1.5 rounded-lg border ${
+                    isDark ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-100 text-slate-500 border-slate-200'
+                  }`}>
+                    <div className="font-mono text-xs">30</div>
+                    <div className="text-[9px] truncate">Not Visit</div>
                   </div>
                 </div>
               </div>
 
-              {/* Question Text */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] text-slate-400">
-                  <span className="font-bold text-slate-300">Question 14 of 150</span>
-                  <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-mono text-[10px]">Polity · Medium</span>
+              {/* Diagnostic Scorecard Box */}
+              <div className={`p-4 rounded-2xl border space-y-3 ${
+                isDark ? 'bg-slate-950/70 border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="flex items-center gap-1.5 text-indigo-500">
+                    <BarChart3 size={15} />
+                    <span>Live Diagnostic Analytics</span>
+                  </span>
+                  <span className="text-[11px] font-mono text-emerald-500">94.2% Accuracy</span>
                 </div>
-                <p className="text-sm font-semibold text-white leading-relaxed">
-                  {currentDemo.question}
-                </p>
-              </div>
 
-              {/* Options List */}
-              <div className="space-y-2 pt-1">
-                {currentDemo.options.map((opt) => {
-                  const isSelected = selectedDemoOption === opt.key;
-                  const isCorrect = demoSubmitted && opt.key === currentDemo.correct;
-                  return (
-                    <button
-                      key={opt.key}
-                      type="button"
-                      onClick={() => {
-                        setSelectedDemoOption(opt.key);
-                        setDemoSubmitted(true);
-                      }}
-                      className={`w-full text-left p-2.5 rounded-xl border text-xs flex items-center justify-between gap-3 transition-all ${
-                        isCorrect
-                          ? 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200 font-bold shadow-md shadow-emerald-500/10'
-                          : isSelected
-                            ? 'bg-rose-500/15 border-rose-500/50 text-rose-200'
-                            : 'bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700 hover:bg-slate-800/50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={`w-5 h-5 rounded-lg flex items-center justify-center font-mono font-bold text-[11px] shrink-0 ${
-                          isCorrect
-                            ? 'bg-emerald-500 text-slate-950'
-                            : isSelected
-                              ? 'bg-rose-500 text-white'
-                              : 'bg-slate-800 text-slate-400'
-                        }`}>
-                          {opt.key}
-                        </span>
-                        <span className="truncate">{opt.text}</span>
-                      </div>
-                      {isCorrect && <Check size={14} className="text-emerald-400 shrink-0" />}
-                    </button>
-                  );
-                })}
-              </div>
+                {/* Accuracy Progress Bar */}
+                <div className={`w-full h-2 rounded-full overflow-hidden ${
+                  isDark ? 'bg-slate-800' : 'bg-slate-200'
+                }`}>
+                  <div className="h-full bg-gradient-to-r from-indigo-500 via-teal-400 to-emerald-500 rounded-full w-[94.2%]" />
+                </div>
 
-              {/* Instant Explanation Card */}
-              {demoSubmitted && (
-                <div className="p-3 rounded-2xl bg-slate-950 border border-emerald-500/30 text-[11px] space-y-1.5 animate-in fade-in duration-300">
-                  <div className="flex items-center justify-between text-emerald-400 font-bold">
-                    <span className="flex items-center gap-1.5">
-                      <Sparkles size={13} />
-                      {demoLang === 'hi' ? 'सटीक व्याख्या (Explanation)' : 'Detailed Analysis'}
-                    </span>
-                    <span className="text-[10px] text-slate-400 font-normal">KaTeX Ready</span>
+                <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                  <div className="flex items-center gap-2">
+                    <Flame size={14} className="text-orange-500" />
+                    <div>
+                      <div className="font-mono font-bold">42s / Q</div>
+                      <div className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Avg Speed</div>
+                    </div>
                   </div>
-                  <p className="text-slate-300 leading-relaxed text-[11px]">
-                    {currentDemo.explanation}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <Trophy size={14} className="text-amber-500" />
+                    <div>
+                      <div className="font-mono font-bold text-amber-500">Rank #14</div>
+                      <div className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Leaderboard</div>
+                    </div>
+                  </div>
                 </div>
-              )}
+              </div>
 
-              {/* Floating Performance Pill */}
-              <div className="flex items-center justify-between pt-1 text-[11px] text-slate-400">
-                <span className="flex items-center gap-1 text-emerald-400 font-semibold">
-                  <Zap size={13} /> 0ms Lag Instant CBT Locking
+              {/* Floating Feature Badges */}
+              <div className="flex items-center justify-between pt-1 text-[11px] font-bold">
+                <span className="flex items-center gap-1 text-emerald-500">
+                  <Zap size={13} /> 0ms Instant Lock Engine
                 </span>
-                <span className="text-slate-500">Auto-saved Locally 🔒</span>
+                <span className="flex items-center gap-1 text-indigo-500">
+                  <ShieldCheck size={13} /> Offline Auto-Sync 🔒
+                </span>
               </div>
             </div>
           </div>
@@ -458,41 +518,43 @@ export default function LandingPage() {
       </section>
 
       {/* STATS TICKER STRIP */}
-      <section className="border-y border-indigo-500/15 bg-slate-950/70 backdrop-blur-md py-8">
+      <section className={`border-y py-8 transition-colors ${
+        isDark ? 'border-indigo-500/15 bg-slate-950/70' : 'border-slate-200 bg-white'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-400 to-sky-400 bg-clip-text text-transparent">
+              <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-500 to-sky-500 bg-clip-text text-transparent">
                 10,000+
               </div>
-              <div className="text-xs font-semibold text-slate-400">
+              <div className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {isHindi ? 'द्विभाषी प्रामाणिक सवाल' : 'Curated Bilingual Questions'}
               </div>
             </div>
 
             <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">
+              <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">
                 100%
               </div>
-              <div className="text-xs font-semibold text-slate-400">
+              <div className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {isHindi ? 'ऑफलाइन डेटा सुरक्षा (Zero Loss)' : 'Offline Data Resilient'}
               </div>
             </div>
 
             <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">
+              <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
                 5-Option
               </div>
-              <div className="text-xs font-semibold text-slate-400">
+              <div className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {isHindi ? 'BPSC व स्टेट PCS पैटर्न' : 'BPSC & State PCS CBT'}
               </div>
             </div>
 
             <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
                 0ms
               </div>
-              <div className="text-xs font-semibold text-slate-400">
+              <div className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {isHindi ? 'सुपरफास्ट रिस्पॉन्स टाइम' : 'Lightning-Fast CBT Response'}
               </div>
             </div>
@@ -503,13 +565,15 @@ export default function LandingPage() {
       {/* CORE FEATURES SHOWCASE */}
       <section id="features" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="text-xs font-black uppercase tracking-widest text-indigo-400 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+          <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full ${
+            isDark ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300' : 'bg-indigo-50 border border-indigo-200 text-indigo-700'
+          }`}>
             {isHindi ? 'अत्याधुनिक सुविधाएं' : 'Engineered for Toppers'}
           </span>
-          <h2 className="text-3xl sm:text-4xl font-black text-white">
+          <h2 className={`text-3xl sm:text-4xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
             {isHindi ? 'हर वह फीचर जो परीक्षा हॉल में बढ़त दिलाए' : 'Everything You Need to Rank at the Top'}
           </h2>
-          <p className="text-sm sm:text-base text-slate-400">
+          <p className={`text-sm sm:text-base font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
             {isHindi
               ? 'साधारण पीडीएफ और क्विज ऐप को छोड़िए। ZYVRA आपको परीक्षा के दिन की हर चुनौती के लिए पूरी तरह तैयार करता है।'
               : 'Move beyond static PDFs and outdated test engines. ZYVRA replicates real testing conditions with precision analytics.'}
@@ -518,14 +582,18 @@ export default function LandingPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Feature Card 1 */}
-          <div className="p-6 rounded-3xl bg-slate-900/60 border border-indigo-500/20 hover:border-indigo-500/40 transition-all hover:-translate-y-1 group">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-5 group-hover:scale-110 transition-transform">
+          <div className={`p-6 rounded-3xl border transition-all hover:-translate-y-1 group ${
+            isDark
+              ? 'bg-slate-900/70 border-indigo-500/20 hover:border-indigo-500/40'
+              : 'bg-white border-slate-200 hover:border-indigo-400 shadow-sm hover:shadow-md'
+          }`}>
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500 mb-5 group-hover:scale-110 transition-transform">
               <Target size={24} />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">
+            <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {isHindi ? 'वास्तविक CBT इंटरफेस' : 'True-to-Life CBT Interface'}
             </h3>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+            <p className={`text-xs sm:text-sm leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
               {isHindi
                 ? '5-स्टेटस कलर पैलेट (Answered, Marked, Unanswered, Not Visited), सेक्शन स्विचिंग, और लाइव टाइमर के साथ बिल्कुल आधिकारिक परीक्षा जैसा अहसास।'
                 : 'Exact color status palettes (Answered, Marked for Review, Not Visited), section-wise countdown, and instant lock prevention.'}
@@ -533,14 +601,18 @@ export default function LandingPage() {
           </div>
 
           {/* Feature Card 2 */}
-          <div className="p-6 rounded-3xl bg-slate-900/60 border border-emerald-500/20 hover:border-emerald-500/40 transition-all hover:-translate-y-1 group">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-5 group-hover:scale-110 transition-transform">
+          <div className={`p-6 rounded-3xl border transition-all hover:-translate-y-1 group ${
+            isDark
+              ? 'bg-slate-900/70 border-emerald-500/20 hover:border-emerald-500/40'
+              : 'bg-white border-slate-200 hover:border-emerald-400 shadow-sm hover:shadow-md'
+          }`}>
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 mb-5 group-hover:scale-110 transition-transform">
               <BookOpen size={24} />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">
+            <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {isHindi ? 'स्क्रिप्ट-इंटीग्रिटी द्विभाषी इंजन' : 'Bilingual Script Integrity'}
             </h3>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+            <p className={`text-xs sm:text-sm leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
               {isHindi
                 ? 'अंग्रेजी स्लॉट में कोई टूटी-फूटी हिंदी नहीं, और हिंदी स्लॉट में शुद्ध देवनागरी। बीच टेस्ट में किसी भी सवाल की भाषा एक क्लिक में बदलें।'
                 : 'Zero font corruption or mixed language garble. Clean English and authentic Devanagari Hindi with instant one-click switching.'}
@@ -548,14 +620,18 @@ export default function LandingPage() {
           </div>
 
           {/* Feature Card 3 */}
-          <div className="p-6 rounded-3xl bg-slate-900/60 border border-amber-500/20 hover:border-amber-500/40 transition-all hover:-translate-y-1 group">
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 mb-5 group-hover:scale-110 transition-transform">
+          <div className={`p-6 rounded-3xl border transition-all hover:-translate-y-1 group ${
+            isDark
+              ? 'bg-slate-900/70 border-amber-500/20 hover:border-amber-500/40'
+              : 'bg-white border-slate-200 hover:border-amber-400 shadow-sm hover:shadow-md'
+          }`}>
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 mb-5 group-hover:scale-110 transition-transform">
               <ShieldCheck size={24} />
             </div>
-            <h3 className="text-lg font-bold text-white mb-2">
+            <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {isHindi ? '100% ऑफलाइन ऑटो-सिंक' : 'Zero-Loss Offline Auto-Sync'}
             </h3>
-            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+            <p className={`text-xs sm:text-sm leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
               {isHindi
                 ? 'इंटरनेट कटने पर भी टेस्ट कभी नहीं रुकेगा। आपके सभी रिस्पॉन्स डिवाइस पर सुरक्षित रहते हैं और कनेक्शन आते ही बैकग्राउंड में सिंक हो जाते हैं।'
                 : 'Never lose a test to network drops. Progress is recorded synchronously in local storage and seamlessly synced back on reconnect.'}
@@ -565,70 +641,90 @@ export default function LandingPage() {
       </section>
 
       {/* EXAMS WE COVER */}
-      <section id="exams" className="py-20 bg-slate-950/60 border-y border-slate-800/80">
+      <section id="exams" className={`py-20 border-y transition-colors ${
+        isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-100/70 border-slate-200'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
           <div className="text-center max-w-2xl mx-auto space-y-3">
-            <span className="text-xs font-black uppercase tracking-widest text-emerald-400 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full ${
+              isDark ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
+            }`}>
               {isHindi ? 'कवर की जाने वाली परीक्षाएं' : 'Targeted Exam Series'}
             </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-white">
+            <h2 className={`text-3xl sm:text-4xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {isHindi ? 'शीर्ष प्रतियोगी परीक्षाओं के लिए विशेष टेस्ट' : 'Curated for Top Competitive Exams'}
             </h2>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Exam 1 */}
-            <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-indigo-500/40 transition-all space-y-3">
+            <div className={`p-5 rounded-2xl border transition-all space-y-3 ${
+              isDark
+                ? 'bg-slate-900/80 border-slate-800 hover:border-indigo-500/40'
+                : 'bg-white border-slate-200 hover:border-indigo-400 shadow-sm'
+            }`}>
               <div className="flex items-center justify-between">
                 <span className="text-2xl">🏛️</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-500 border border-indigo-500/30">
                   5-Option BPSC
                 </span>
               </div>
-              <h4 className="text-base font-bold text-white">BPSC 70th & 71th CCE</h4>
-              <p className="text-xs text-slate-400">
+              <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>BPSC 70th & 71th CCE</h4>
+              <p className={`text-xs leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {isHindi ? 'प्रिलिम्स GS, बिहार विशेष, और करंट अफेयर्स विद 5वां विकल्प नियम।' : 'Prelims GS, Bihar Special, and Current Affairs with mandatory Option E rule.'}
               </p>
             </div>
 
             {/* Exam 2 */}
-            <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-emerald-500/40 transition-all space-y-3">
+            <div className={`p-5 rounded-2xl border transition-all space-y-3 ${
+              isDark
+                ? 'bg-slate-900/80 border-slate-800 hover:border-emerald-500/40'
+                : 'bg-white border-slate-200 hover:border-emerald-400 shadow-sm'
+            }`}>
               <div className="flex items-center justify-between">
                 <span className="text-2xl">⚡</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
                   State PCS
                 </span>
               </div>
-              <h4 className="text-base font-bold text-white">UPPSC & MPPSC Prelims</h4>
-              <p className="text-xs text-slate-400">
+              <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>UPPSC & MPPSC Prelims</h4>
+              <p className={`text-xs leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {isHindi ? 'स्टेट स्पेशल सामान्य अध्ययन, इतिहास, भूगोल, और संविधान।' : 'General Studies, History, Polity, Geography & State-specific Special GK.'}
               </p>
             </div>
 
             {/* Exam 3 */}
-            <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-amber-500/40 transition-all space-y-3">
+            <div className={`p-5 rounded-2xl border transition-all space-y-3 ${
+              isDark
+                ? 'bg-slate-900/80 border-slate-800 hover:border-amber-500/40'
+                : 'bg-white border-slate-200 hover:border-amber-400 shadow-sm'
+            }`}>
               <div className="flex items-center justify-between">
                 <span className="text-2xl">🚄</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-500 border border-amber-500/30">
                   SSC / Railway
                 </span>
               </div>
-              <h4 className="text-base font-bold text-white">SSC CGL, CHSL & RRB NTPC</h4>
-              <p className="text-xs text-slate-400">
+              <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>SSC CGL, CHSL & RRB NTPC</h4>
+              <p className={`text-xs leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {isHindi ? 'रीजनिंग, मैथ, जनरल अवेयरनेस और इंग्लिश के हाई-स्पीड स्पीड टेस्ट।' : 'High-speed sectional CBT mocks for Quantitative Aptitude, Reasoning & GA.'}
               </p>
             </div>
 
             {/* Exam 4 */}
-            <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-purple-500/40 transition-all space-y-3">
+            <div className={`p-5 rounded-2xl border transition-all space-y-3 ${
+              isDark
+                ? 'bg-slate-900/80 border-slate-800 hover:border-purple-500/40'
+                : 'bg-white border-slate-200 hover:border-purple-400 shadow-sm'
+            }`}>
               <div className="flex items-center justify-between">
                 <span className="text-2xl">🎓</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-purple-500/20 text-purple-500 border border-purple-500/30">
                   Teaching / CTET
                 </span>
               </div>
-              <h4 className="text-base font-bold text-white">Bihar TRE & CTET</h4>
-              <p className="text-xs text-slate-400">
+              <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Bihar TRE & CTET</h4>
+              <p className={`text-xs leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {isHindi ? 'शिक्षक भर्ती परीक्षा और बाल विकास, सामाजिक विज्ञान मॉक टेस्ट।' : 'Teacher recruitment exams, Child Pedagogy, Social Science & Language tests.'}
               </p>
             </div>
@@ -640,82 +736,100 @@ export default function LandingPage() {
       <section id="toolbox" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
           <div className="lg:col-span-6 space-y-6">
-            <span className="text-xs font-black uppercase tracking-widest text-amber-400 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20">
+            <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full ${
+              isDark ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400' : 'bg-amber-50 border border-amber-200 text-amber-700'
+            }`}>
               {isHindi ? 'इन-बिल्ट स्टूडेंट टूलबॉक्स' : 'Productivity Suite'}
             </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-white leading-tight">
+            <h2 className={`text-3xl sm:text-4xl font-black leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {isHindi ? (
-                <>पढ़ाई में फोकस और निरंतरता के लिए <span className="text-amber-400">स्मार्ट टूल्स</span></>
+                <>पढ़ाई में फोकस और निरंतरता के लिए <span className="text-amber-500">स्मार्ट टूल्स</span></>
               ) : (
-                <>Smart Study Tools Built Directly into Your <span className="text-amber-400">Workflow</span></>
+                <>Smart Study Tools Built Directly into Your <span className="text-amber-500">Workflow</span></>
               )}
             </h2>
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+            <p className={`text-sm sm:text-base leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
               {isHindi
                 ? 'आपको अलग से पोमोडोरो या नोट्स ऐप डाउनलोड करने की ज़रूरत नहीं है। ZYVRA के अंदर ही सारे उत्पादकता टूल्स मौजूद हैं:'
                 : 'No need to switch between multiple productivity apps. Everything you need to retain information and stay focused is right here:'}
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800">
-                <span className="text-xl">⏱️</span>
+              <div className={`flex items-start gap-3 p-4 rounded-2xl border ${
+                isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+              }`}>
+                <span className="text-2xl">⏱️</span>
                 <div>
-                  <h4 className="text-xs font-bold text-white">Pomodoro Timer</h4>
-                  <p className="text-[11px] text-slate-400">25m focus & 5m break cycles</p>
+                  <h4 className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Pomodoro Timer</h4>
+                  <p className={`text-[11px] font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>25m focus & 5m break cycles</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800">
-                <span className="text-xl">🧮</span>
+              <div className={`flex items-start gap-3 p-4 rounded-2xl border ${
+                isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+              }`}>
+                <span className="text-2xl">🧮</span>
                 <div>
-                  <h4 className="text-xs font-bold text-white">Smart Calculator</h4>
-                  <p className="text-[11px] text-slate-400">Fractions, % and Permutations</p>
+                  <h4 className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Smart Calculator</h4>
+                  <p className={`text-[11px] font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Fractions, % and Permutations</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800">
-                <span className="text-xl">📓</span>
+              <div className={`flex items-start gap-3 p-4 rounded-2xl border ${
+                isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+              }`}>
+                <span className="text-2xl">📓</span>
                 <div>
-                  <h4 className="text-xs font-bold text-white">Mistake Notebook</h4>
-                  <p className="text-[11px] text-slate-400">Auto-save wrong questions</p>
+                  <h4 className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Mistake Notebook</h4>
+                  <p className={`text-[11px] font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Auto-save wrong questions</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-slate-900/60 border border-slate-800">
-                <span className="text-xl">🃏</span>
+              <div className={`flex items-start gap-3 p-4 rounded-2xl border ${
+                isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+              }`}>
+                <span className="text-2xl">🃏</span>
                 <div>
-                  <h4 className="text-xs font-bold text-white">Smart Flashcards</h4>
-                  <p className="text-[11px] text-slate-400">Memorize constitutional articles</p>
+                  <h4 className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Smart Flashcards</h4>
+                  <p className={`text-[11px] font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Memorize articles & formulas</p>
                 </div>
               </div>
             </div>
           </div>
 
           <div className="lg:col-span-6">
-            <div className="relative p-6 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900/90 to-indigo-950/40 border border-amber-500/25 shadow-2xl space-y-4">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl space-y-4 ${
+              isDark
+                ? 'bg-gradient-to-br from-slate-900 via-slate-900/90 to-indigo-950/40 border-amber-500/25 shadow-amber-950/20'
+                : 'bg-white border-amber-200 shadow-amber-100/40'
+            }`}>
+              <div className={`flex items-center justify-between pb-3 border-b ${
+                isDark ? 'border-slate-800' : 'border-slate-100'
+              }`}>
                 <div className="flex items-center gap-2">
-                  <Coins size={18} className="text-amber-400" />
-                  <span className="text-xs font-black uppercase tracking-wider text-amber-300">
+                  <Coins size={18} className="text-amber-500" />
+                  <span className="text-xs font-black uppercase tracking-wider text-amber-500">
                     {isHindi ? 'ZYVRA कॉइन्स व रिवॉर्ड्स' : 'Coin Rewards & Free Unlocks'}
                   </span>
                 </div>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold text-[10px]">
+                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-bold text-[10px]">
                   {isHindi ? '100% फ्री कमाई' : 'Earn as You Learn'}
                 </span>
               </div>
-              <p className="text-xs text-slate-300 leading-relaxed">
+              <p className={`text-xs leading-relaxed font-medium ${isDark ? 'text-slate-200' : 'text-slate-600'}`}>
                 {isHindi
                   ? 'रोज़ाना टेस्ट पूरा करने और दोस्तों को रेफर करने पर ZYVRA कॉइन्स पाएं। इन कॉइन्स को सीधे चेकआउट पर भुनाकर पेड टेस्ट सीरीज और चैप्टर्स को मुफ़्त में अनलॉक करें।'
                   : 'Earn coins through daily test completion, maintaining revision streaks, and sharing referral links. Redeem coins at checkout to unlock paid content for free.'}
               </p>
-              <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
-                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-400 font-bold">
+              <div className={`flex items-center gap-3 p-3.5 rounded-xl border text-xs ${
+                isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 font-bold">
                   🪙
                 </div>
                 <div className="flex-1">
-                  <div className="font-bold text-white">Daily Streak Bonus</div>
-                  <div className="text-[10px] text-slate-400">+50 Coins per completed test session</div>
+                  <div className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Daily Streak Bonus</div>
+                  <div className={`text-[10px] font-medium ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>+50 Coins per completed test session</div>
                 </div>
               </div>
             </div>
@@ -724,13 +838,17 @@ export default function LandingPage() {
       </section>
 
       {/* FAQ SECTION */}
-      <section id="faq" className="py-20 bg-slate-950/60 border-t border-slate-800/80">
+      <section id="faq" className={`py-20 border-t transition-colors ${
+        isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-100/60 border-slate-200'
+      }`}>
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
           <div className="text-center space-y-3">
-            <span className="text-xs font-black uppercase tracking-widest text-indigo-400 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+            <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full ${
+              isDark ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300' : 'bg-indigo-50 border border-indigo-200 text-indigo-700'
+            }`}>
               FAQ
             </span>
-            <h2 className="text-3xl sm:text-4xl font-black text-white">
+            <h2 className={`text-3xl sm:text-4xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
               {isHindi ? 'अक्सर पूछे जाने वाले सवाल' : 'Frequently Asked Questions'}
             </h2>
           </div>
@@ -741,21 +859,31 @@ export default function LandingPage() {
               return (
                 <div
                   key={index}
-                  className="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden transition-colors hover:border-slate-700"
+                  className={`rounded-2xl border overflow-hidden transition-colors ${
+                    isDark
+                      ? 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
+                      : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
+                  }`}
                 >
                   <button
                     type="button"
                     onClick={() => setActiveFaq(isOpen ? -1 : index)}
-                    className="w-full text-left p-4 sm:p-5 flex items-center justify-between gap-4 font-bold text-sm sm:text-base text-white"
+                    className={`w-full text-left p-4 sm:p-5 flex items-center justify-between gap-4 font-bold text-sm sm:text-base ${
+                      isDark ? 'text-white' : 'text-slate-900'
+                    }`}
                   >
                     <span>{isHindi ? faq.qHi : faq.qEn}</span>
                     <ChevronDown
                       size={18}
-                      className={`text-slate-400 shrink-0 transition-transform ${isOpen ? 'rotate-180 text-indigo-400' : ''}`}
+                      className={`shrink-0 transition-transform ${
+                        isOpen ? 'rotate-180 text-indigo-500' : isDark ? 'text-slate-400' : 'text-slate-500'
+                      }`}
                     />
                   </button>
                   {isOpen && (
-                    <div className="px-4 pb-5 sm:px-5 text-xs sm:text-sm text-slate-300 leading-relaxed border-t border-slate-800/60 pt-3">
+                    <div className={`px-4 pb-5 sm:px-5 text-xs sm:text-sm leading-relaxed border-t pt-3 font-medium ${
+                      isDark ? 'border-slate-800 text-slate-200' : 'border-slate-100 text-slate-600'
+                    }`}>
                       {isHindi ? faq.aHi : faq.aEn}
                     </div>
                   )}
@@ -768,19 +896,25 @@ export default function LandingPage() {
 
       {/* FINAL HIGH-CONVERTING CTA BANNER */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
-        <div className="relative rounded-3xl p-8 sm:p-12 overflow-hidden bg-gradient-to-r from-indigo-900/80 via-slate-900 to-emerald-950/80 border border-indigo-500/40 shadow-2xl shadow-indigo-950/60 space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
+        <div className={`relative rounded-3xl p-8 sm:p-12 overflow-hidden border shadow-2xl space-y-6 ${
+          isDark
+            ? 'bg-gradient-to-r from-indigo-950 via-slate-900 to-emerald-950/80 border-indigo-500/40 shadow-indigo-950/60 text-white'
+            : 'bg-gradient-to-r from-indigo-50 via-white to-emerald-50 border-indigo-200 shadow-indigo-100 text-slate-900'
+        }`}>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-500 text-xs font-bold">
             <Sparkles size={13} />
             <span>{isHindi ? 'अपनी तैयारी को टॉप रैंक में बदलें' : 'Accelerate Your Exam Preparation'}</span>
           </div>
 
-          <h2 className="text-3xl sm:text-5xl font-black text-white max-w-2xl mx-auto leading-tight">
+          <h2 className="text-3xl sm:text-5xl font-black max-w-2xl mx-auto leading-tight">
             {isHindi
               ? 'सपनों की सरकारी नौकरी के लिए आज ही शुरू करें।'
               : 'Join Thousands of Serious Aspirants on ZYVRA.'}
           </h2>
 
-          <p className="text-sm sm:text-base text-slate-300 max-w-xl mx-auto">
+          <p className={`text-sm sm:text-base max-w-xl mx-auto font-medium ${
+            isDark ? 'text-slate-200' : 'text-slate-600'
+          }`}>
             {isHindi
               ? 'बिना किसी रुकावट के मुफ़्त टेस्ट दें, अपनी कमज़ोरियों को पहचानें और वास्तविक CBT परीक्षा का अनुभव लें।'
               : 'Experience official-grade mock tests, get instant diagnostic scorecards, and study with complete focus.'}
@@ -799,20 +933,22 @@ export default function LandingPage() {
       </section>
 
       {/* FOOTER */}
-      <footer className="border-t border-slate-800 bg-[#070B14] py-12 text-xs text-slate-400">
+      <footer className={`border-t py-12 text-xs transition-colors ${
+        isDark ? 'border-slate-800 bg-[#070B14] text-slate-400' : 'border-slate-200 bg-white text-slate-600'
+      }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="ZYVRA" className="w-6 h-6 object-contain" />
-            <span className="font-black text-white tracking-wider text-sm">ZYVRA</span>
-            <span className="text-slate-600">|</span>
-            <span>© {new Date().getFullYear()} ZYVRA Prep. All rights reserved.</span>
+            <span className={`font-black tracking-wider text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>ZYVRA</span>
+            <span className={isDark ? 'text-slate-700' : 'text-slate-300'}>|</span>
+            <span className="font-medium">© {new Date().getFullYear()} ZYVRA Prep. All rights reserved.</span>
           </div>
 
-          <div className="flex items-center gap-6">
-            <Link to="/explore" className="hover:text-white transition-colors">{isHindi ? 'परीक्षाएं' : 'Exams'}</Link>
-            <Link to="/tests" className="hover:text-white transition-colors">{isHindi ? 'टेस्ट हब' : 'Tests'}</Link>
-            <Link to="/toolbox" className="hover:text-white transition-colors">{isHindi ? 'टूलबॉक्स' : 'Toolbox'}</Link>
-            <Link to="/auth?mode=signin" className="hover:text-white transition-colors">{isHindi ? 'लॉगिन' : 'Sign In'}</Link>
+          <div className="flex items-center gap-6 font-semibold">
+            <Link to="/explore" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>{isHindi ? 'परीक्षाएं' : 'Exams'}</Link>
+            <Link to="/tests" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>{isHindi ? 'टेस्ट हब' : 'Tests'}</Link>
+            <Link to="/toolbox" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>{isHindi ? 'टूलबॉक्स' : 'Toolbox'}</Link>
+            <Link to="/auth?mode=signin" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>{isHindi ? 'लॉगिन' : 'Sign In'}</Link>
           </div>
         </div>
       </footer>
