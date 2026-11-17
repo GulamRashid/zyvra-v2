@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Binary, Bookmark, BookOpen, Brain, Calculator, CalendarDays, ChevronRight,
   Clock3, Compass, Dices, Heart, Landmark, ListChecks, LockKeyhole, Percent, Search,
-  Scale, Shapes, Sigma, StickyNote, Superscript, TrendingUp, Wrench
+  Scale, Shapes, Sigma, StickyNote, Superscript, Target, TrendingUp, Wrench
 } from 'lucide-react';
 import CheckoutModal from '../../components/common/CheckoutModal';
 import SmartCalculator from '../../components/toolbox/math/SmartCalculator';
@@ -18,6 +18,7 @@ import BloodRelations from '../../components/toolbox/reasoning/BloodRelations';
 import DirectionCompass from '../../components/toolbox/reasoning/DirectionCompass';
 import DiceRules from '../../components/toolbox/reasoning/DiceRules';
 import ConstitutionArticles from '../../components/toolbox/gs/ConstitutionArticles';
+import NegativeMarkingSimulator from '../../components/toolbox/productivity/NegativeMarkingSimulator';
 import StickyNotes from '../../components/toolbox/productivity/StickyNotes';
 import PomodoroTimer from '../../components/toolbox/productivity/PomodoroTimer';
 import DailyTargets from '../../components/toolbox/productivity/DailyTargets';
@@ -58,6 +59,7 @@ const CATEGORY_TOOLS = {
     { id: 'reasoning-formulas', titleKey: 'tbReasoningFormulas', subtitleKey: 'tbReasoningFormulasDesc', Icon: Sigma, accessKey: 'formula-sheet' }
   ],
   productivity: [
+    { id: 'risk-simulator', titleKey: 'tbRiskSimulator', subtitleKey: 'tbRiskSimulatorDesc', Icon: Target, accessKey: null, isFree: true },
     { id: 'pomodoro', titleKey: 'tbPomodoro', subtitleKey: 'tbPomodoroDesc', Icon: Clock3, accessKey: null, isFree: true },
     { id: 'sticky-notes', titleKey: 'tbStickyNotes', subtitleKey: 'tbStickyNotesDesc', Icon: StickyNote, accessKey: null, isFree: true },
     { id: 'daily-targets', titleKey: 'tbDailyTargets', subtitleKey: 'tbDailyTargetsDesc', Icon: ListChecks, accessKey: null, isFree: true },
@@ -480,6 +482,7 @@ export default function StudentToolbox() {
     if (activeTool === 'blood-relations') return <BloodRelations />;
     if (activeTool === 'direction-compass') return <DirectionCompass />;
     if (activeTool === 'dice-rules') return <DiceRules />;
+    if (activeTool === 'risk-simulator') return <NegativeMarkingSimulator />;
     if (activeTool === 'constitution-articles') return <ConstitutionArticles />;
     if (activeTool === 'unit-converter') return <UnitConverter />;
     if (activeTool === 'sticky-notes') return <StickyNotes />;
@@ -661,13 +664,14 @@ export default function StudentToolbox() {
                 <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">Quick Access</span>
               </div>
 
-              <div className="grid grid-cols-3 sm:grid-cols-5 min-w-0 gap-1.5 sm:gap-2">
+              <div className="grid grid-cols-3 sm:grid-cols-6 min-w-0 gap-1.5 sm:gap-2">
                 {[
-                  { id: 'calculator', cat: 'math', label: 'Calculator', icon: Calculator, color: 'text-indigo-500' },
-                  { id: 'fraction-converter', cat: 'math', label: 'Percentage', icon: Percent, color: 'text-cyan-500' },
-                  { id: 'constitution-articles', cat: 'general-studies', label: 'Articles', icon: Landmark, color: 'text-indigo-500' },
-                  { id: 'geometry-formulas', cat: 'math', label: 'Formulas', icon: Sigma, color: 'text-indigo-500' },
-                  { id: 'pomodoro', cat: 'productivity', label: 'Timer', icon: Clock3, color: 'text-rose-500' }
+                  { id: 'risk-simulator', cat: 'productivity', label: 'Risk Simulator', icon: Target, color: 'text-amber-500' },
+                  { id: 'mistake-notebook', cat: 'revision', label: 'Mistake Vault', icon: ListChecks, color: 'text-indigo-500' },
+                  { id: 'constitution-articles', cat: 'general-studies', label: 'Polity Vault', icon: Landmark, color: 'text-emerald-500' },
+                  { id: 'calculator', cat: 'math', label: 'Calculator', icon: Calculator, color: 'text-cyan-500' },
+                  { id: 'fraction-converter', cat: 'math', label: 'Percentage', icon: Percent, color: 'text-indigo-500' },
+                  { id: 'pomodoro', cat: 'productivity', label: 'Focus Timer', icon: Clock3, color: 'text-rose-500' }
                 ].map((item) => {
                   const toolObj = (CATEGORY_TOOLS[item.cat] || []).find((t) => t.id === item.id);
                   const locked = toolObj ? isToolLocked(toolObj) : false;

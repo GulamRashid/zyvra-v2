@@ -146,3 +146,40 @@ test('Freemium Limits: enforces 5 free mistakes and 10 free flashcards for free 
   assert.equal(FREE_FLASHCARDS_LIMIT, 10, 'Free flashcards limit must be 10');
 });
 
+// Negative Marking & Expected Value Tests
+function calculateExpectedScore({ sure, fiftyFifty, oneEliminated, blind, marks = 1, penalty = 0.333 }) {
+  const sureScore = sure * marks;
+  const evFifty = fiftyFifty * (0.5 * marks - 0.5 * penalty);
+  const evOne = oneEliminated * (0.333 * marks - 0.667 * penalty);
+  const evBlind = blind * (0.25 * marks - 0.75 * penalty);
+  return Number((sureScore + evFifty + evOne + evBlind).toFixed(2));
+}
+
+test('Negative Marking Simulator: 50-50 elimination gives positive expected value', () => {
+  // With marks = +1 and penalty = -0.333:
+  // EV per 50-50 question is (0.5 * 1 - 0.5 * 0.333) = +0.3335
+  const result = calculateExpectedScore({
+    sure: 70,
+    fiftyFifty: 20,
+    oneEliminated: 0,
+    blind: 0,
+    marks: 1,
+    penalty: 0.333
+  });
+  // 70 + 20 * 0.3335 = ~76.67
+  assert.ok(result > 76.5 && result < 76.8, `Expected score ~76.67, got ${result}`);
+});
+
+test('Negative Marking Simulator: blind guesses yield zero or negative expectation', () => {
+  // 10 blind guesses with 1/3 penalty: 0.25*1 - 0.75*0.333 = 0.25 - 0.25 = ~0.0
+  const result = calculateExpectedScore({
+    sure: 80,
+    fiftyFifty: 0,
+    oneEliminated: 0,
+    blind: 10,
+    marks: 1,
+    penalty: 0.333
+  });
+  assert.ok(Math.abs(result - 80) < 0.1, `Blind guessing should not add reliable points, got ${result}`);
+});
+
