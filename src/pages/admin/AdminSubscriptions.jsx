@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BookOpen, Clock, Key, Layers, PackageCheck, RefreshCw, Search
 } from 'lucide-react';
@@ -16,7 +16,7 @@ export default function AdminSubscriptions() {
   const [filterType, setFilterType] = useState('all');
   const [loadError, setLoadError] = useState('');
 
-  const loadGrants = async (active = () => true) => {
+  const loadGrants = useCallback(async (active = () => true) => {
     if (!supabase) return;
     setRefreshing(true);
     setLoadError('');
@@ -62,13 +62,13 @@ export default function AdminSubscriptions() {
         setRefreshing(false);
       }
     }
-  };
+  }, [supabase]);
 
   useEffect(() => {
     let active = true;
     loadGrants(() => active);
     return () => { active = false; };
-  }, [supabase]);
+  }, [loadGrants]);
 
   const summary = useMemo(() => {
     const now = Date.now();

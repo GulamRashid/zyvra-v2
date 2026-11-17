@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowDownLeft, ArrowUpRight, BookOpen, Coins, Gift, Search, ShieldCheck, UserRound, Users, X } from 'lucide-react';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -146,7 +146,7 @@ export default function UserManager() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     if (!supabase) { setError('Supabase is not configured.'); setLoading(false); return; }
     setError('');
     const [profilesResult, walletsResult] = await Promise.all([
@@ -161,7 +161,7 @@ export default function UserManager() {
     setWallets(walletMap);
     setLoading(false);
     return { profileRows, walletMap };
-  };
+  }, [supabase]);
 
   useEffect(() => {
     let active = true;
@@ -172,7 +172,7 @@ export default function UserManager() {
       }
     });
     return () => { active = false; };
-  }, [supabase]);
+  }, [loadUsers]);
 
   const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase();

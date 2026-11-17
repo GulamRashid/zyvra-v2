@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle, CheckCircle2, Coins, Gift, RefreshCw, Save,
   Search, Share2, Sparkles, Users
@@ -33,7 +33,7 @@ export default function AdminCoins() {
   // Recent transactions table
   const [recentTransactions, setRecentTransactions] = useState([]);
 
-  const loadData = async (active = () => true) => {
+  const loadData = useCallback(async (active = () => true) => {
     if (!supabase) return;
     setRefreshing(true);
     setLoadError('');
@@ -126,13 +126,13 @@ export default function AdminCoins() {
         setRefreshing(false);
       }
     }
-  };
+  }, [supabase]);
 
   useEffect(() => {
     let active = true;
     loadData(() => active);
     return () => { active = false; };
-  }, [supabase]);
+  }, [loadData]);
 
   const handleSaveSettings = async (e) => {
     e.preventDefault();

@@ -27,13 +27,27 @@ import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import SvgIconUploader from '../../components/common/SvgIconUploader';
 import ContentIcon from '../../components/common/ContentIcon';
 
+function filterTree(nodes, query) {
+  if (!query) return nodes;
+  const lower = query.toLowerCase();
+  const result = [];
+  for (const node of nodes) {
+    const match = node.title.toLowerCase().includes(lower);
+    const filteredChildren = node.children ? filterTree(node.children, query) : [];
+    if (match || filteredChildren.length > 0) {
+      result.push({ ...node, children: filteredChildren });
+    }
+  }
+  return result;
+}
+
 export default function PricingManager() {
   const { supabase } = useAuth();
   const { exams, folders, chapters, loading: catalogLoading, refresh: refreshCatalog } = useContentCatalog();
 
   const [tests, setTests] = useState([]);
   const [loadingTests, setLoadingTests] = useState(true);
-  const [activeTab, setActiveTab] = useState('pricing'); // 'pricing' | 'discount' | 'coupons' | 'coins' | 'templates'
+
   const [treeSearch, setTreeSearch] = useState('');
   const [expandedNodes, setExpandedNodes] = useState(new Set());
 
@@ -567,21 +581,6 @@ export default function PricingManager() {
   }, [folders, chapters, tests]);
 
   const paidItemsCount = Math.max(0, totalItemsCount - freeItemsCount);
-
-  // Filtered Tree Nodes by search
-  const filterTree = (nodes, query) => {
-    if (!query) return nodes;
-    const lower = query.toLowerCase();
-    const result = [];
-    for (const node of nodes) {
-      const match = node.title.toLowerCase().includes(lower);
-      const filteredChildren = node.children ? filterTree(node.children, query) : [];
-      if (match || filteredChildren.length > 0) {
-        result.push({ ...node, children: filteredChildren });
-      }
-    }
-    return result;
-  };
 
   const visibleTree = useMemo(() => {
     return filterTree(dynamicTree, treeSearch);

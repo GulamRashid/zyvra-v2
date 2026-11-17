@@ -24,6 +24,7 @@ import {
   Target,
   Maximize2,
   Minimize2,
+  Wifi,
   WifiOff,
   X
 } from 'lucide-react';
@@ -48,6 +49,45 @@ import {
 } from '../../lib/tests';
 import { translateText } from '../../lib/translator';
 
+const SUBMIT_MODAL_STRINGS = {
+  en: {
+    title: 'Submit Test Confirmation',
+    subtitle: 'Review your question summary below before final submission. Unanswered questions will receive zero marks.',
+    answered: 'Answered',
+    ansAndMarked: 'Ans & Marked',
+    ansAndMarkedNote: 'Evaluated for score',
+    markedReview: 'Marked Review',
+    notAnswered: 'Not Answered',
+    notVisited: 'Not Visited',
+    total: 'Total Questions',
+    timeRemaining: 'Time Remaining',
+    continueBtn: 'Resume Test',
+    submitBtn: 'Confirm & Submit',
+    submittingBtn: 'Submitting…',
+    unansweredWarning: 'You have {count} unanswered question(s). Are you sure you want to submit?',
+    offlineBanner: 'Offline Mode: Your selections are saved locally on this device. Cloud sync will automatically resume when internet reconnects.',
+    onlineToast: 'Back online! Your progress has been automatically synced to the cloud.'
+  },
+  hi: {
+    title: 'टेस्ट सबमिशन की पुष्टि',
+    subtitle: 'अंतिम सबमिशन से पहले अपने प्रश्नों का सारांश देखें। अनुत्तरित प्रश्नों के लिए शून्य अंक मिलेंगे।',
+    answered: 'उत्तर दिए',
+    ansAndMarked: 'उत्तर व चिह्नित',
+    ansAndMarkedNote: 'मूल्यांकन में मान्य',
+    markedReview: 'समीक्षा हेतु',
+    notAnswered: 'उत्तर नहीं दिए',
+    notVisited: 'देखे नहीं गए',
+    total: 'कुल प्रश्न',
+    timeRemaining: 'शेष समय',
+    continueBtn: 'टेस्ट जारी रखें',
+    submitBtn: 'पुष्टि करें व सबमिट करें',
+    submittingBtn: 'सबमिट हो रहा है…',
+    unansweredWarning: 'आपके {count} प्रश्न अनुत्तरित हैं। क्या आप वाकई सबमिट करना चाहते हैं?',
+    offlineBanner: 'ऑफलाइन मोड: आपके उत्तर इस डिवाइस पर सुरक्षित हैं। इंटरनेट पुनः कनेक्ट होने पर यह अपने आप सिंक हो जाएंगे।',
+    onlineToast: 'इंटरनेट पुनः कनेक्ट हुआ! आपकी प्रगति सर्वर पर सिंक हो गई है।'
+  }
+};
+
 const pendingAttemptStarts = new Map();
 const QUIZ_CACHE_VERSION = 1;
 
@@ -62,7 +102,7 @@ function readQuizCache(userId, testId) {
     try {
       const parsed = JSON.parse(storage.getItem(key) || 'null');
       if (parsed?.version === QUIZ_CACHE_VERSION && Array.isArray(parsed.questions)) return parsed;
-    } catch (_) {
+    } catch {
       // Try the other storage area when one is unavailable or corrupt.
     }
   }
@@ -104,13 +144,6 @@ function startAttemptOnce(supabase, testId, userId) {
   pendingAttemptStarts.set(key, request);
   request.then(() => pendingAttemptStarts.delete(key), () => pendingAttemptStarts.delete(key));
   return request;
-}
-
-function getDeadline(test, attempt) {
-  const startedAt = attempt.started_at || attempt.created_at;
-  if (!startedAt) return Date.now() + Number(test.duration_minutes || 60) * 60_000;
-  const elapsed = Date.now() - new Date(startedAt).getTime();
-  return Date.now() + Math.max(0, Number(test.duration_minutes || 60) * 60_000 - elapsed);
 }
 
 function getRemaining(deadline) {
@@ -304,7 +337,7 @@ export default function LiveQuiz() {
   const [declared, setDeclared] = useState(false);
   const [startingTest, setStartingTest] = useState(false);
   const [testPhase, setTestPhase] = useState('loading'); // 'loading' | 'instructions' | 'resume_prompt' | 'active'
-  const [pausedAttemptData, setPausedAttemptData] = useState(null);
+
   const [toast, setToast] = useState('');
   const [violationCount, setViolationCount] = useState(0);
   const [antiCheatWarning, setAntiCheatWarning] = useState('');
@@ -314,10 +347,24 @@ export default function LiveQuiz() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [paletteFilter, setPaletteFilter] = useState('all'); // 'all' | 'answered' | 'unanswered' | 'marked'
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [showOnlineToast, setShowOnlineToast] = useState(false);
+  const saveProgressSnapshotRef = useRef();
+  const onlineToastTimerRef = useRef();
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => {
+      setIsOnline(true);
+      setShowOnlineToast(true);
+      if (typeof saveProgressSnapshotRef.current === 'function') {
+        saveProgressSnapshotRef.current({ status: 'in_progress' }, true);
+      }
+      if (onlineToastTimerRef.current) clearTimeout(onlineToastTimerRef.current);
+      onlineToastTimerRef.current = setTimeout(() => setShowOnlineToast(false), 4500);
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setShowOnlineToast(false);
+    };
     const handleFullscreenChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
 
     window.addEventListener('online', handleOnline);
@@ -328,6 +375,7 @@ export default function LiveQuiz() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      if (onlineToastTimerRef.current) clearTimeout(onlineToastTimerRef.current);
     };
   }, []);
 
@@ -338,7 +386,7 @@ export default function LiveQuiz() {
       } else {
         document.exitFullscreen().catch(() => {});
       }
-    } catch (_) {}
+    } catch { /* fullscreen ignore */ }
   };
 
   const submitLock = useRef(false);
@@ -559,6 +607,7 @@ export default function LiveQuiz() {
 
     return snapshot;
   }, [supabase]);
+  saveProgressSnapshotRef.current = saveProgressSnapshot;
 
   const recordDropoffEvent = useCallback((type, details = {}) => {
     const cur = stateRef.current;
@@ -691,7 +740,7 @@ export default function LiveQuiz() {
         const rawLocal = localStorage.getItem(`zyvra_test_progress_${user.id}_${testId}`)
           || localStorage.getItem(`zyvra-paused-attempt-${user.id}-${testId}`);
         if (rawLocal) localSnapshot = JSON.parse(rawLocal);
-      } catch (_) {}
+      } catch { /* fullscreen ignore */ }
 
       const hasResumeAttempt = (dbIncomplete && dbIncomplete.status !== 'completed' && dbIncomplete.status !== 'submitted')
         || localSnapshot
@@ -785,14 +834,7 @@ export default function LiveQuiz() {
           setVisitedQuestions(restoredVisited);
           setRemaining(restoredRemaining);
 
-          setPausedAttemptData({
-            ...(dbIncomplete || {}),
-            attemptId: activeAttemptId,
-            answeredCount: Object.values(restoredResponses).filter((r) => r?.selected_option).length,
-            remainingSeconds: restoredRemaining,
-            totalQuestions: safeQuestions.length,
-            lastSavedAt: dbIncomplete?.paused_at || dbIncomplete?.updated_at || localSnapshot?.updatedAt || new Date().toISOString()
-          });
+
 
           // If navigated with autoResume (e.g. from ChapterDetail Resume button), start immediately
           if (location.state?.autoResume) {
@@ -1230,7 +1272,7 @@ export default function LiveQuiz() {
     if (typeof raw === 'string') {
       try {
         raw = JSON.parse(raw);
-      } catch (_) {}
+      } catch { /* fullscreen ignore */ }
     }
     if (raw != null) {
       const parsed = getOptionEntries(raw);
@@ -1257,8 +1299,50 @@ export default function LiveQuiz() {
       });
   }, [question]);
 
-  const attemptedCount = Object.values(responses || {}).filter((response) => response?.selected_option).length;
-  const markedCount = Object.values(responses || {}).filter((response) => response?.marked_for_review).length;
+  const stats = useMemo(() => {
+    let answered = 0;
+    let markedOnly = 0;
+    let answeredAndMarked = 0;
+    let notVisited = 0;
+    let notAnswered = 0;
+
+    (questions || []).forEach((q, idx) => {
+      const qId = q.id;
+      const resp = responses?.[qId];
+      const hasAnswer = Boolean(resp?.selected_option);
+      const isMarked = Boolean(resp?.marked_for_review);
+      const isVisited = visitedQuestions.has(qId) || hasAnswer || isMarked || currentIndex === idx;
+
+      if (hasAnswer && isMarked) {
+        answeredAndMarked += 1;
+      } else if (hasAnswer) {
+        answered += 1;
+      } else if (isMarked) {
+        markedOnly += 1;
+      } else if (!isVisited) {
+        notVisited += 1;
+      } else {
+        notAnswered += 1;
+      }
+    });
+
+    const totalAnswered = answered + answeredAndMarked;
+    const totalUnanswered = notAnswered + notVisited + markedOnly;
+
+    return {
+      answered,
+      markedOnly,
+      answeredAndMarked,
+      notVisited,
+      notAnswered,
+      totalAnswered,
+      totalUnanswered,
+      totalQuestions: questions?.length || 0
+    };
+  }, [questions, responses, visitedQuestions, currentIndex]);
+
+  const attemptedCount = stats.totalAnswered;
+  const markedCount = stats.markedOnly + stats.answeredAndMarked;
 
   const answer = async (option) => {
     if (!question?.id || !option || submitting || pausing) return;
@@ -1452,7 +1536,7 @@ export default function LiveQuiz() {
       } else {
         throw new Error(res?.error || 'Evaluation not allowed.');
       }
-    } catch (err) {
+    } catch {
       setEvaluationErrors((prev) => ({
         ...prev,
         [qId]: 'Retry failed. Check your internet connection.'
@@ -1579,10 +1663,17 @@ export default function LiveQuiz() {
           </Link>
         </header>
 
+      {showOnlineToast && (
+        <div className="bg-emerald-600 text-white px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-md transition-all">
+          <Wifi size={15} />
+          <span>{language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.onlineToast : SUBMIT_MODAL_STRINGS.en.onlineToast}</span>
+        </div>
+      )}
+
       {!isOnline && (
         <div className="bg-amber-500 text-black px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-sm">
           <WifiOff size={15} />
-          <span>Offline mode: Your selections are saved on this device. Keep this tab open; cloud sync will retry when the connection returns.</span>
+          <span>{language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.offlineBanner : SUBMIT_MODAL_STRINGS.en.offlineBanner}</span>
         </div>
       )}
 
@@ -1736,10 +1827,17 @@ export default function LiveQuiz() {
           </Link>
         </header>
 
+      {showOnlineToast && (
+        <div className="bg-emerald-600 text-white px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-md transition-all">
+          <Wifi size={15} />
+          <span>{language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.onlineToast : SUBMIT_MODAL_STRINGS.en.onlineToast}</span>
+        </div>
+      )}
+
       {!isOnline && (
         <div className="bg-amber-500 text-black px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-sm">
           <WifiOff size={15} />
-          <span>Offline mode: Your selections are saved on this device. Keep this tab open; cloud sync will retry when the connection returns.</span>
+          <span>{language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.offlineBanner : SUBMIT_MODAL_STRINGS.en.offlineBanner}</span>
         </div>
       )}
 
@@ -1831,18 +1929,116 @@ export default function LiveQuiz() {
         {/* Modal: Confirm Submit */}
         {confirmSubmit && (
           <div className="modal-backdrop">
-            <section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="submit-confirm-title">
-              <button className="modal-close" onClick={() => setConfirmSubmit(false)} aria-label="Close">
+            <section className="confirm-modal max-w-lg" role="dialog" aria-modal="true" aria-labelledby="submit-confirm-title-resume">
+              <button
+                type="button"
+                className="modal-close"
+                onClick={() => setConfirmSubmit(false)}
+                aria-label="Close"
+              >
                 <X size={18} />
               </button>
-              <div className="locked-icon"><ListChecks size={22} /></div>
-              <h2 id="submit-confirm-title">Submit your test?</h2>
-              <p>You have answered {attemptedCount} of {questions.length} questions and marked {markedCount} for review. Unanswered questions will be submitted blank.</p>
-              {error && <div className="feedback error-feedback">{typeof error === 'object' ? error.message : error}</div>}
-              <div className="modal-actions">
-                <button className="button button-outline" onClick={() => setConfirmSubmit(false)}>Cancel</button>
-                <button className="button button-primary" disabled={submitting} onClick={() => submit(false)}>
-                  {submitting ? 'Submitting…' : 'Confirm Submission'}
+              <div className="flex items-center gap-2.5 mb-2">
+                <div className="w-10 h-10 rounded-2xl dark:bg-emerald-500/10 bg-emerald-50 border dark:border-emerald-500/20 border-emerald-200 flex items-center justify-center text-emerald-500 shrink-0">
+                  <ListChecks size={22} />
+                </div>
+                <div>
+                  <h2 id="submit-confirm-title-resume" className="text-base sm:text-lg font-black dark:text-white text-slate-900 m-0 text-left">
+                    {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.title : SUBMIT_MODAL_STRINGS.en.title}
+                  </h2>
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-500 dark:text-amber-400">
+                    <Clock3 size={13} />
+                    <span>
+                      {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.timeRemaining : SUBMIT_MODAL_STRINGS.en.timeRemaining}:{' '}
+                      <strong>{formatTime(remaining)}</strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs dark:text-slate-300 text-slate-600 mb-3 text-left">
+                {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.subtitle : SUBMIT_MODAL_STRINGS.en.subtitle}
+              </p>
+
+              {/* 5-Status CBT Question Summary Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 my-3 text-center">
+                <div className="p-2.5 rounded-2xl dark:bg-emerald-950/40 bg-emerald-50 border border-emerald-500/30">
+                  <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block truncate">
+                    {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.answered : SUBMIT_MODAL_STRINGS.en.answered}
+                  </span>
+                  <strong className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                    {stats.answered}
+                  </strong>
+                </div>
+
+                <div className="p-2.5 rounded-2xl dark:bg-indigo-950/40 bg-indigo-50 border border-indigo-500/30">
+                  <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 block truncate">
+                    {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.ansAndMarked : SUBMIT_MODAL_STRINGS.en.ansAndMarked}
+                  </span>
+                  <strong className="text-xl font-black text-indigo-600 dark:text-indigo-400">
+                    {stats.answeredAndMarked}
+                  </strong>
+                  <span className="text-[9px] text-indigo-400 block -mt-0.5">
+                    {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.ansAndMarkedNote : SUBMIT_MODAL_STRINGS.en.ansAndMarkedNote}
+                  </span>
+                </div>
+
+                <div className="p-2.5 rounded-2xl dark:bg-purple-950/40 bg-purple-50 border border-purple-500/30">
+                  <span className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 block truncate">
+                    {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.markedReview : SUBMIT_MODAL_STRINGS.en.markedReview}
+                  </span>
+                  <strong className="text-xl font-black text-purple-600 dark:text-purple-400">
+                    {stats.markedOnly}
+                  </strong>
+                </div>
+
+                <div className="p-2.5 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border border-rose-500/30">
+                  <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 block truncate">
+                    {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.notAnswered : SUBMIT_MODAL_STRINGS.en.notAnswered}
+                  </span>
+                  <strong className="text-xl font-black text-rose-600 dark:text-rose-400">
+                    {stats.notAnswered}
+                  </strong>
+                </div>
+
+                <div className="p-2.5 rounded-2xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block truncate">
+                    {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.notVisited : SUBMIT_MODAL_STRINGS.en.notVisited}
+                  </span>
+                  <strong className="text-xl font-black dark:text-slate-300 text-slate-700">
+                    {stats.notVisited}
+                  </strong>
+                </div>
+
+                <div className="p-2.5 rounded-2xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block truncate">
+                    {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.total : SUBMIT_MODAL_STRINGS.en.total}
+                  </span>
+                  <strong className="text-xl font-black dark:text-white text-slate-900">
+                    {stats.totalQuestions}
+                  </strong>
+                </div>
+              </div>
+
+              {stats.totalUnanswered > 0 && (
+                <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-semibold my-2">
+                  <AlertTriangle size={16} className="shrink-0" />
+                  <span>
+                    {(language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.unansweredWarning : SUBMIT_MODAL_STRINGS.en.unansweredWarning)
+                      .replace('{count}', String(stats.totalUnanswered))}
+                  </span>
+                </div>
+              )}
+
+              {error && <div className="feedback error-feedback my-2">{typeof error === 'object' ? error.message : error}</div>}
+              <div className="modal-actions pt-2">
+                <button type="button" className="button button-outline" onClick={() => setConfirmSubmit(false)}>
+                  {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.continueBtn : SUBMIT_MODAL_STRINGS.en.continueBtn}
+                </button>
+                <button type="button" className="button button-primary" disabled={submitting} onClick={() => submit(false)}>
+                  {submitting
+                    ? (language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.submittingBtn : SUBMIT_MODAL_STRINGS.en.submittingBtn)
+                    : (language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.submitBtn : SUBMIT_MODAL_STRINGS.en.submitBtn)}
                 </button>
               </div>
             </section>
@@ -2115,10 +2311,17 @@ export default function LiveQuiz() {
         </div>
       </header>
 
+      {showOnlineToast && (
+        <div className="bg-emerald-600 text-white px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-md transition-all">
+          <Wifi size={15} />
+          <span>{language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.onlineToast : SUBMIT_MODAL_STRINGS.en.onlineToast}</span>
+        </div>
+      )}
+
       {!isOnline && (
         <div className="bg-amber-500 text-black px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 shadow-sm">
           <WifiOff size={15} />
-          <span>Offline mode: Your selections are saved on this device. Keep this tab open; cloud sync will retry when the connection returns.</span>
+          <span>{language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.offlineBanner : SUBMIT_MODAL_STRINGS.en.offlineBanner}</span>
         </div>
       )}
 
@@ -2809,41 +3012,116 @@ export default function LiveQuiz() {
       {/* Modal: Final Submit Confirmation */}
       {confirmSubmit && (
         <div className="modal-backdrop">
-          <section className="confirm-modal" role="dialog" aria-modal="true" aria-labelledby="submit-confirm-title">
-            <button className="modal-close" onClick={() => setConfirmSubmit(false)} aria-label="Close">
+          <section className="confirm-modal max-w-lg" role="dialog" aria-modal="true" aria-labelledby="submit-confirm-title">
+            <button
+              type="button"
+              className="modal-close"
+              onClick={() => setConfirmSubmit(false)}
+              aria-label="Close"
+            >
               <X size={18} />
             </button>
-            <div className="locked-icon"><ListChecks size={22} /></div>
-            <h2 id="submit-confirm-title">Submit your test?</h2>
-            <p className="text-sm dark:text-slate-300 text-slate-600 mb-3">
-              Review your attempt summary below before final submission. Unanswered questions will receive zero marks.
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 my-3 text-center">
-              <div className="p-2.5 rounded-2xl dark:bg-emerald-950/40 bg-emerald-50 border border-emerald-500/30">
-                <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block">Answered</span>
-                <strong className="text-lg font-black text-emerald-600 dark:text-emerald-400">{attemptedCount}</strong>
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="w-10 h-10 rounded-2xl dark:bg-emerald-500/10 bg-emerald-50 border dark:border-emerald-500/20 border-emerald-200 flex items-center justify-center text-emerald-500 shrink-0">
+                <ListChecks size={22} />
               </div>
-              <div className="p-2.5 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border border-rose-500/30">
-                <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 block">Unanswered</span>
-                <strong className="text-lg font-black text-rose-600 dark:text-rose-400">{questions.length - attemptedCount}</strong>
-              </div>
-              <div className="p-2.5 rounded-2xl dark:bg-purple-950/40 bg-purple-50 border border-purple-500/30">
-                <span className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 block">Marked</span>
-                <strong className="text-lg font-black text-purple-600 dark:text-purple-400">{markedCount}</strong>
-              </div>
-              <div className="p-2.5 rounded-2xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300">
-                <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block">Total</span>
-                <strong className="text-lg font-black dark:text-white text-slate-900">{questions.length}</strong>
+              <div>
+                <h2 id="submit-confirm-title" className="text-base sm:text-lg font-black dark:text-white text-slate-900 m-0 text-left">
+                  {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.title : SUBMIT_MODAL_STRINGS.en.title}
+                </h2>
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-500 dark:text-amber-400">
+                  <Clock3 size={13} />
+                  <span>
+                    {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.timeRemaining : SUBMIT_MODAL_STRINGS.en.timeRemaining}:{' '}
+                    <strong>{formatTime(remaining)}</strong>
+                  </span>
+                </div>
               </div>
             </div>
-            {error && <div className="feedback error-feedback">{typeof error === 'object' ? error.message : error}</div>}
-            <div className="modal-actions">
+
+            <p className="text-xs dark:text-slate-300 text-slate-600 mb-3 text-left">
+              {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.subtitle : SUBMIT_MODAL_STRINGS.en.subtitle}
+            </p>
+
+            {/* 5-Status CBT Question Summary Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 my-3 text-center">
+              <div className="p-2.5 rounded-2xl dark:bg-emerald-950/40 bg-emerald-50 border border-emerald-500/30">
+                <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 block truncate">
+                  {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.answered : SUBMIT_MODAL_STRINGS.en.answered}
+                </span>
+                <strong className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                  {stats.answered}
+                </strong>
+              </div>
+
+              <div className="p-2.5 rounded-2xl dark:bg-indigo-950/40 bg-indigo-50 border border-indigo-500/30">
+                <span className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 block truncate">
+                  {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.ansAndMarked : SUBMIT_MODAL_STRINGS.en.ansAndMarked}
+                </span>
+                <strong className="text-xl font-black text-indigo-600 dark:text-indigo-400">
+                  {stats.answeredAndMarked}
+                </strong>
+                <span className="text-[9px] text-indigo-400 block -mt-0.5">
+                  {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.ansAndMarkedNote : SUBMIT_MODAL_STRINGS.en.ansAndMarkedNote}
+                </span>
+              </div>
+
+              <div className="p-2.5 rounded-2xl dark:bg-purple-950/40 bg-purple-50 border border-purple-500/30">
+                <span className="text-[10px] uppercase font-bold text-purple-600 dark:text-purple-400 block truncate">
+                  {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.markedReview : SUBMIT_MODAL_STRINGS.en.markedReview}
+                </span>
+                <strong className="text-xl font-black text-purple-600 dark:text-purple-400">
+                  {stats.markedOnly}
+                </strong>
+              </div>
+
+              <div className="p-2.5 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border border-rose-500/30">
+                <span className="text-[10px] uppercase font-bold text-rose-600 dark:text-rose-400 block truncate">
+                  {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.notAnswered : SUBMIT_MODAL_STRINGS.en.notAnswered}
+                </span>
+                <strong className="text-xl font-black text-rose-600 dark:text-rose-400">
+                  {stats.notAnswered}
+                </strong>
+              </div>
+
+              <div className="p-2.5 rounded-2xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300">
+                <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block truncate">
+                  {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.notVisited : SUBMIT_MODAL_STRINGS.en.notVisited}
+                </span>
+                <strong className="text-xl font-black dark:text-slate-300 text-slate-700">
+                  {stats.notVisited}
+                </strong>
+              </div>
+
+              <div className="p-2.5 rounded-2xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300">
+                <span className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 block truncate">
+                  {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.total : SUBMIT_MODAL_STRINGS.en.total}
+                </span>
+                <strong className="text-xl font-black dark:text-white text-slate-900">
+                  {stats.totalQuestions}
+                </strong>
+              </div>
+            </div>
+
+            {stats.totalUnanswered > 0 && (
+              <div className="flex items-center gap-2 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs font-semibold my-2">
+                <AlertTriangle size={16} className="shrink-0" />
+                <span>
+                  {(language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.unansweredWarning : SUBMIT_MODAL_STRINGS.en.unansweredWarning)
+                    .replace('{count}', String(stats.totalUnanswered))}
+                </span>
+              </div>
+            )}
+
+            {error && <div className="feedback error-feedback my-2">{typeof error === 'object' ? error.message : error}</div>}
+            <div className="modal-actions pt-2">
               <button type="button" className="button button-outline" onClick={() => setConfirmSubmit(false)}>
-                Continue test
+                {language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.continueBtn : SUBMIT_MODAL_STRINGS.en.continueBtn}
               </button>
               <button type="button" className="button button-primary" disabled={submitting} onClick={() => submit(false)}>
-                {submitting ? 'Submitting…' : 'Submit test'}
+                {submitting
+                  ? (language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.submittingBtn : SUBMIT_MODAL_STRINGS.en.submittingBtn)
+                  : (language === 'hi' ? SUBMIT_MODAL_STRINGS.hi.submitBtn : SUBMIT_MODAL_STRINGS.en.submitBtn)}
               </button>
             </div>
           </section>

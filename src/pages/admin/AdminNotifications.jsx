@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Bell, Send, Trash2, Megaphone, CheckCircle2, AlertCircle, RefreshCw
 } from 'lucide-react';
@@ -20,7 +20,7 @@ export default function AdminNotifications() {
   const [priority, setPriority] = useState('normal');
   const [loadError, setLoadError] = useState('');
 
-  const loadAnnouncements = async (active = () => true) => {
+  const loadAnnouncements = useCallback(async (active = () => true) => {
     if (!supabase) return;
     setRefreshing(true);
     setLoadError('');
@@ -50,13 +50,13 @@ export default function AdminNotifications() {
         setRefreshing(false);
       }
     }
-  };
+  }, [supabase]);
 
   useEffect(() => {
     let active = true;
     loadAnnouncements(() => active);
     return () => { active = false; };
-  }, [supabase]);
+  }, [loadAnnouncements]);
 
   const handleCreateAnnouncement = async (e) => {
     e.preventDefault();

@@ -48,7 +48,6 @@ export default function FolderView() {
   const folderChapters = chapters.filter((chapter) => chapter.folder_id === folder?.id && isPublished(chapter));
   const parent = path.length > 1 ? path[path.length - 2] : null;
   const rootFolder = path.length > 0 ? path[0] : null;
-  const rootPricing = rootFolder ? getFolderPricing(rootFolder, folders) : { amount: 0 };
   const pricing = getFolderPricing(folder, folders);
   const examPrice = Number(exam?.price || 0);
   const examIsPaid = examPrice > 0 || exam?.access_mode === 'paid-own' || exam?.access_mode === 'paid_own' || exam?.pricing_mode === 'paid-own' || exam?.pricing_mode === 'paid_own';
@@ -59,7 +58,7 @@ export default function FolderView() {
     ...(pricing.amount > 0 ? [{ type: 'folder', id: folder.id, paid: true }] : []),
     ...childFolders.map((child) => ({ type: 'folder', id: child.id, paid: getFolderPricing(child, folders).amount > 0 })),
     ...folderChapters.map((chapter) => ({ type: 'chapter', id: chapter.id, paid: getChapterAccess(chapter, folder, folders).amount > 0 }))
-  ], [exam, examIsPaid, path, folder?.id, pricing.amount, childFolders, folderChapters, folders]);
+  ], [exam, examIsPaid, path, folder, pricing.amount, childFolders, folderChapters, folders]);
 
   const { accessByKey, loading: accessLoading, error: accessError } = useContentAccess(accessItems, user, supabase, refreshKey);
 

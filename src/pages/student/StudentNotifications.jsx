@@ -68,7 +68,7 @@ export default function StudentNotifications() {
     setReadIds(newSet);
     try {
       localStorage.setItem(storageKey, JSON.stringify(Array.from(newSet)));
-    } catch {}
+    } catch { /* ignore storage write error */ }
   };
 
   const markAsRead = (id) => {
@@ -78,7 +78,7 @@ export default function StudentNotifications() {
     setReadIds(newSet);
     try {
       localStorage.setItem(storageKey, JSON.stringify(Array.from(newSet)));
-    } catch {}
+    } catch { /* ignore storage write error */ }
   };
 
   const unreadCount = useMemo(() => {

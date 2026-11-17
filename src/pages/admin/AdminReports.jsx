@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Activity, Award, BarChart3, FileQuestion, IndianRupee, RefreshCw, Users
 } from 'lucide-react';
@@ -32,7 +32,7 @@ export default function AdminReports() {
   const [recentAttempts, setRecentAttempts] = useState([]);
   const [dropoffInsights, setDropoffInsights] = useState({ total: null, byType: [], hotspots: [] });
 
-  const loadReportData = async (active = () => true, requestedKeys = REPORT_QUERY_KEYS) => {
+  const loadReportData = useCallback(async (active = () => true, requestedKeys = REPORT_QUERY_KEYS) => {
     if (!supabase) {
       setQueryErrors((previous) => requestedKeys.reduce((next, key) => ({
         ...next,
@@ -151,13 +151,13 @@ export default function AdminReports() {
         setRefreshing(false);
       }
     }
-  };
+  }, [supabase]);
 
   useEffect(() => {
     let active = true;
     loadReportData(() => active);
     return () => { active = false; };
-  }, [supabase]);
+  }, [loadReportData]);
 
   const metricValue = (key, value, formatter = (number) => number.toLocaleString()) => {
     if (queryErrors[key]) return 'Data unavailable';

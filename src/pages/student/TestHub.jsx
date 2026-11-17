@@ -22,7 +22,7 @@ function isComplete(attempt) {
 
 export default function TestHub() {
   const { user, supabase } = useAuth();
-  const { t, language } = useThemeLanguage();
+  const { language } = useThemeLanguage();
   const { chapters, folders, exams, loading: catalogLoading } = useContentCatalog();
   const location = useLocation();
   const navigate = useNavigate();
@@ -67,9 +67,9 @@ export default function TestHub() {
   }, [warmQuiz]);
 
   // Chapter & Exam lookup maps
-  const chapterById = useMemo(() => new Map(chapters.map((c) => [c.id, c])), [chapters]);
+
   const folderById = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders]);
-  const examById = useMemo(() => new Map(exams.map((e) => [e.id, e])), [exams]);
+
 
   // Fetch tests and user attempts strictly from Supabase
   const loadTestData = useCallback(async () => {

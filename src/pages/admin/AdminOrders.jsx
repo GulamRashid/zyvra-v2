@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   CheckCircle2, Clock, CreditCard, IndianRupee, RefreshCw, Search, XCircle
 } from 'lucide-react';
@@ -17,7 +17,7 @@ export default function AdminOrders() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const loadOrders = async (active = () => true) => {
+  const loadOrders = useCallback(async (active = () => true) => {
     if (!supabase) {
       setLoadError('Orders could not be loaded. Please try again.');
       setLoading(false);
@@ -68,13 +68,13 @@ export default function AdminOrders() {
         setRefreshing(false);
       }
     }
-  };
+  }, [supabase]);
 
   useEffect(() => {
     let active = true;
     loadOrders(() => active);
     return () => { active = false; };
-  }, [supabase]);
+  }, [loadOrders]);
 
   const summary = useMemo(() => {
     const paid = orders.filter((o) => ['paid', 'success', 'captured'].includes(String(o.status || '').toLowerCase()));

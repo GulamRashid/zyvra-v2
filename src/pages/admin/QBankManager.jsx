@@ -220,6 +220,9 @@ function ImportDialog({ chapters, onClose, onImported }) {
   const [showGuide, setShowGuide] = useState(false);
   const [activeGuideTab, setActiveGuideTab] = useState('mcq');
   const [copiedPrompt, setCopiedPrompt] = useState(false);
+  const [previewFilter, setPreviewFilter] = useState('all'); // 'all' | 'ready' | 'errors' | 'saved'
+  const [previewSearch, setPreviewSearch] = useState('');
+  const [importSummary, setImportSummary] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -368,10 +371,14 @@ function ImportDialog({ chapters, onClose, onImported }) {
         return {
           row: { ...row, usage_scope: usageScope },
           duplicate: result.errors.some((message) => message.toLowerCase().includes('duplicate')),
+          originalRowNumber: index + 1,
           ...result
         };
       });
       setPreview(checked);
+      setPreviewFilter('all');
+      setPreviewSearch('');
+      setImportSummary(null);
     } catch (parseError) {
       setError(parseError.message || 'The import data is not valid.');
     } finally {
@@ -437,28 +444,62 @@ function ImportDialog({ chapters, onClose, onImported }) {
     setIsImporting(true);
     setImportProgress({ saved: 0, total: validRows.length });
     setError('');
+    setImportSummary(null);
     let savedCount = 0;
+    let failedCount = 0;
     const allInsertedIds = [];
     try {
       const batchSize = 50;
       for (let start = 0; start < validRows.length; start += batchSize) {
         const batch = validRows.slice(start, start + batchSize);
+        const chunkItems = validItems.slice(start, start + batch.length);
+
         const { data: insertedData, error: insertError } = await supabase
           .from('questions')
           .insert(batch)
           .select('id');
+
         if (insertError) {
-          throw new Error(`Import stopped after ${start} of ${validRows.length} rows: ${insertError.message}`);
+          console.warn(`Batch insert failed for rows ${start + 1}-${start + batch.length}. Falling back to row-by-row insert:`, insertError);
+          // Fallback to inserting row-by-row so only genuine offending rows fail
+          for (let bIdx = 0; bIdx < batch.length; bIdx += 1) {
+            const singleRow = batch[bIdx];
+            const matchingItem = chunkItems[bIdx];
+            const { data: singleData, error: singleError } = await supabase
+              .from('questions')
+              .insert(singleRow)
+              .select('id');
+
+            if (singleError) {
+              failedCount += 1;
+              const errMsg = singleError.message || 'Database insert failed';
+              setPreview((current) => (current
+                ? current.map((item) => (item === matchingItem ? {
+                    ...item,
+                    valid: false,
+                    imported: false,
+                    errors: [...(item.errors || []), `Database error: ${errMsg}`]
+                  } : item))
+                : current));
+            } else if (singleData && singleData.length > 0) {
+              allInsertedIds.push(singleData[0].id);
+              savedCount += 1;
+              setPreview((current) => (current
+                ? current.map((item) => (item === matchingItem ? { ...item, imported: true } : item))
+                : current));
+            }
+            setImportProgress({ saved: savedCount, total: validRows.length });
+          }
+        } else {
+          if (insertedData) {
+            allInsertedIds.push(...insertedData.map((item) => item.id));
+          }
+          setPreview((current) => (current
+            ? current.map((item) => (chunkItems.includes(item) ? { ...item, imported: true } : item))
+            : current));
+          savedCount += batch.length;
+          setImportProgress({ saved: savedCount, total: validRows.length });
         }
-        if (insertedData) {
-          allInsertedIds.push(...insertedData.map((item) => item.id));
-        }
-        const savedItems = validItems.slice(start, start + batch.length);
-        setPreview((current) => current
-          ? current.map((item) => savedItems.includes(item) ? { ...item, imported: true } : item)
-          : current);
-        savedCount = Math.min(start + batch.length, validRows.length);
-        setImportProgress({ saved: savedCount, total: validRows.length });
       }
 
       // If a target test is selected, automatically link all newly imported questions in exact sequence
@@ -489,38 +530,92 @@ function ImportDialog({ chapters, onClose, onImported }) {
           }
         }
       }
+
+      if (failedCount > 0) {
+        setImportSummary({
+          saved: savedCount,
+          failed: failedCount,
+          message: `Import partially completed: ${savedCount} question${savedCount === 1 ? '' : 's'} saved to Question Bank, but ${failedCount} row${failedCount === 1 ? '' : 's'} failed database insert. Review the Errors tab below.`
+        });
+        setPreviewFilter('errors');
+        if (onImported) onImported();
+      } else {
+        setImportProgress(null);
+        setError('');
+        if (onImported) onImported();
+        onClose();
+      }
     } catch (insertError) {
       console.error('DB Insert Failed:', insertError);
       const message = getContentErrorMessage(insertError, 'Unable to import questions.');
       setError(`${message} ${savedCount} rows were saved in this run. Retry to continue with the remaining rows.`);
-      return;
     } finally {
       setIsImporting(false);
     }
-    setImportProgress(null);
-    setError('');
-    onClose();
-    if (onImported) onImported();
   };
 
   const validCount = preview?.filter((item) => item.valid && !item.imported).length || 0;
   const importedCount = preview?.filter((item) => item.imported).length || 0;
   const duplicateCount = preview?.filter((item) => item.duplicate && !item.imported).length || 0;
-  const invalidCount = preview?.filter((item) => !item.valid && !item.duplicate).length || 0;
+  const invalidCount = preview?.filter((item) => !item.valid && !item.duplicate && !item.imported).length || 0;
   const rejectedCount = duplicateCount + invalidCount;
-  const previewItems = preview?.slice(0, 50) || [];
+
+  const filteredPreview = useMemo(() => {
+    if (!preview) return [];
+    let items = preview;
+    if (previewFilter === 'ready') {
+      items = items.filter((item) => item.valid && !item.imported);
+    } else if (previewFilter === 'errors') {
+      items = items.filter((item) => !item.valid && !item.imported);
+    } else if (previewFilter === 'saved') {
+      items = items.filter((item) => item.imported);
+    }
+
+    if (previewSearch.trim()) {
+      const q = previewSearch.trim().toLowerCase();
+      items = items.filter((item) => {
+        const textEn = String(item.row?.question_text || item.row?.question_en || '').toLowerCase();
+        const textHi = String(item.row?.question_text_hi || item.row?.question_hi || '').toLowerCase();
+        const subject = String(item.row?.subject || '').toLowerCase();
+        const rowNum = String(item.originalRowNumber || '');
+        const errs = (item.errors || []).join(' ').toLowerCase();
+        return textEn.includes(q) || textHi.includes(q) || subject.includes(q) || rowNum.includes(q) || errs.includes(q);
+      });
+    }
+
+    return items;
+  }, [preview, previewFilter, previewSearch]);
+
+  const previewItems = filteredPreview.slice(0, 50);
   const csvEscape = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
   const downloadRejectedRows = () => {
     const rejectedRows = (preview || []).filter((item) => !item.valid && !item.imported);
     if (!rejectedRows.length) return;
+
+    const getOptText = (opts, idx) => {
+      if (!opts || !Array.isArray(opts)) return '';
+      const opt = opts[idx];
+      if (!opt) return '';
+      if (typeof opt === 'string') return opt;
+      if (opt.en && opt.hi) return `${opt.en} | ${opt.hi}`;
+      return opt.en || opt.text || opt.hi || opt.text_hi || '';
+    };
+
     const csvRows = [
-      ['row', 'category', 'question_text', 'chapter_id', 'subject', 'errors'],
+      ['row', 'category', 'question_text', 'question_text_hi', 'chapter_id', 'subject', 'option_a', 'option_b', 'option_c', 'option_d', 'option_e', 'correct_answer', 'errors'],
       ...rejectedRows.map((item, index) => [
-        index + 1,
+        item.originalRowNumber || index + 1,
         item.duplicate ? 'duplicate' : 'invalid',
         item.row?.question_text || item.row?.question_en || item.row?.question_text_en || '',
+        item.row?.question_text_hi || item.row?.question_hi || '',
         item.row?.chapter_id || '',
         item.row?.subject || '',
+        getOptText(item.row?.options, 0),
+        getOptText(item.row?.options, 1),
+        getOptText(item.row?.options, 2),
+        getOptText(item.row?.options, 3),
+        getOptText(item.row?.options, 4),
+        item.row?.correct_answer || '',
         item.errors.join(' | ')
       ])
     ];
@@ -783,88 +878,222 @@ function ImportDialog({ chapters, onClose, onImported }) {
     />
     <button className="button button-outline" onClick={validate} disabled={isValidating || isImporting}><Filter size={15} /> {isValidating ? 'Validating…' : 'Validate & preview'}</button>
     {error && <div className="feedback error-feedback">{error}</div>}
-    {preview && <div className="import-preview">
-      <div className="import-preview-heading"><strong>Import preview</strong><span>{validCount} pending · {importedCount} saved · {rejectedCount} rejected</span></div>
-      <div className="feedback" role="status">{preview.length} rows scanned, {validCount} ready, {duplicateCount} duplicates, {invalidCount} invalid</div>
-      {rejectedCount > 0 && <button type="button" className="button button-outline" onClick={downloadRejectedRows}>Download rejected rows CSV ({rejectedCount})</button>}
-      {preview.length > previewItems.length && <small className="field-hint">Showing first 50 of {preview.length} rows.</small>}
-      {previewItems.map((item, index) => (
-        <div className={`import-preview-row ${item.valid ? 'valid' : 'invalid'} p-3 rounded-2xl border mb-3`} key={item.row?.id || index}>
-          <div className="flex items-start gap-3 w-full">
-            <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 mt-1 ${item.valid ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
-              {item.valid ? <Check size={14} /> : <X size={14} />}
-            </span>
-            <div className="flex-1 space-y-2.5 overflow-hidden">
-              <div className="flex items-center justify-between gap-2 flex-wrap">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
-                    {item.row?.question_type || 'mcq'}
-                  </span>
-                  <span className="text-xs font-bold text-slate-400">Row {index + 1}</span>
-                </div>
-                <small className="text-xs text-slate-400">
-                  {item.imported ? 'Saved in this import' : `Usage: ${usageScopeLabel(item.row?.usage_scope)} · Difficulty: ${item.row?.difficulty || 'medium'}`}
-                </small>
-              </div>
+    {preview && (
+      <div className="import-preview space-y-3">
+        <div className="import-preview-heading flex flex-wrap items-center justify-between gap-2">
+          <strong>Import Preview</strong>
+          <span className="text-xs text-slate-400">
+            {validCount} ready · {importedCount} saved · {rejectedCount} rejected
+          </span>
+        </div>
 
-              {/* Formatted English Question */}
-              <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700/60">
-                <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Question (English)</div>
-                <QuestionFormatter text={item.row?.question_text || item.row?.question_en} />
-              </div>
+        {importSummary && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-2">
+            <span>{importSummary.message}</span>
+            <button
+              type="button"
+              className="text-xs font-bold text-amber-200 underline hover:text-white"
+              onClick={() => setImportSummary(null)}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
-              {/* Formatted Hindi Question if present */}
-              {(item.row?.question_text_hi || item.row?.question_hi) && (
-                <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700/60">
-                  <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">प्रश्न (Hindi)</div>
-                  <QuestionFormatter text={item.row?.question_text_hi || item.row?.question_hi} />
-                </div>
-              )}
+        {/* Filter Pills & Search Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 p-2 rounded-xl bg-slate-900/60 border border-slate-700/60 text-xs">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <button
+              type="button"
+              className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                previewFilter === 'all'
+                  ? 'bg-indigo-600 text-white shadow-sm'
+                  : 'bg-slate-800 text-slate-400 hover:text-white'
+              }`}
+              onClick={() => setPreviewFilter('all')}
+            >
+              All ({preview.length})
+            </button>
+            <button
+              type="button"
+              className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                previewFilter === 'ready'
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-slate-800 text-slate-400 hover:text-white'
+              }`}
+              onClick={() => setPreviewFilter('ready')}
+            >
+              <Check size={12} />
+              Ready to Import ({validCount})
+            </button>
+            {rejectedCount > 0 && (
+              <button
+                type="button"
+                className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                  previewFilter === 'errors'
+                    ? 'bg-rose-600 text-white shadow-sm'
+                    : 'bg-rose-950/60 text-rose-300 hover:bg-rose-900/60 border border-rose-500/30'
+                }`}
+                onClick={() => setPreviewFilter('errors')}
+              >
+                <X size={12} />
+                Errors & Duplicates ({rejectedCount})
+              </button>
+            )}
+            {importedCount > 0 && (
+              <button
+                type="button"
+                className={`px-3 py-1 rounded-lg font-bold transition-all ${
+                  previewFilter === 'saved'
+                    ? 'bg-sky-600 text-white shadow-sm'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+                onClick={() => setPreviewFilter('saved')}
+              >
+                Saved ({importedCount})
+              </button>
+            )}
+          </div>
 
-              {/* Formatted Answer Options */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                {(item.row?.options || []).map((opt, oIdx) => {
-                  const letter = String.fromCharCode(65 + oIdx);
-                  const isCorrect = String(item.row?.correct_answer || '').toUpperCase() === letter;
-                  const optEn = typeof opt === 'string' ? opt : opt?.en || opt?.text || '';
-                  const optHi = typeof opt === 'object' ? opt?.hi || opt?.text_hi || '' : '';
-                  return (
-                    <div
-                      key={letter}
-                      className={`p-2 rounded-xl border text-xs flex items-center justify-between gap-2 transition-colors ${
-                        isCorrect
-                          ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-bold'
-                          : 'bg-slate-800/40 border-slate-700/50 text-slate-300'
-                      }`}
-                    >
-                      <span className="font-mono font-bold mr-1">{letter}.</span>
-                      <span className="flex-1">{optEn} {optHi && <span className="opacity-75">({optHi})</span>}</span>
-                      {isCorrect && <Check size={13} className="text-emerald-400 shrink-0" />}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {item.row?.explanation && (
-                <div className="text-xs text-slate-400 pt-1">
-                  <strong className="text-slate-300">Explanation: </strong>
-                  {item.row.explanation}
-                </div>
-              )}
-
-              {item.errors.map((message) => (
-                <div key={message} className="text-xs font-semibold text-rose-400 bg-rose-500/10 px-2 py-1 rounded">
-                  {message}
-                </div>
-              ))}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search preview..."
+                value={previewSearch}
+                onChange={(e) => setPreviewSearch(e.target.value)}
+                className="bg-slate-950 border border-slate-700/80 rounded-lg text-xs pl-7 pr-2.5 py-1 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 w-36 sm:w-44"
+              />
             </div>
+            {rejectedCount > 0 && (
+              <button
+                type="button"
+                className="button button-outline text-xs py-1 px-2.5 flex items-center gap-1 text-rose-400 hover:text-rose-300 border-rose-500/40"
+                onClick={downloadRejectedRows}
+                title="Export rows with errors or duplicates to CSV"
+              >
+                <Download size={13} />
+                Export Rejected ({rejectedCount})
+              </button>
+            )}
           </div>
         </div>
-      ))}
-    </div>}
+
+        <div className="text-xs text-slate-400 flex items-center justify-between">
+          <span>
+            Showing {previewItems.length} of {filteredPreview.length} {previewFilter !== 'all' ? `(${previewFilter})` : ''} rows
+            {filteredPreview.length > previewItems.length && ' (capped at first 50)'}
+          </span>
+          {rejectedCount > 0 && previewFilter !== 'errors' && (
+            <button
+              type="button"
+              className="text-xs font-semibold text-rose-400 hover:underline flex items-center gap-1"
+              onClick={() => setPreviewFilter('errors')}
+            >
+              <AlertTriangle size={12} />
+              View {rejectedCount} problematic rows
+            </button>
+          )}
+        </div>
+
+        {previewItems.map((item, index) => {
+          const rowNum = item.originalRowNumber ?? (index + 1);
+          return (
+            <div
+              className={`import-preview-row ${item.imported ? 'valid' : item.valid ? 'valid' : 'invalid'} p-3 rounded-2xl border mb-3`}
+              key={item.row?.id || `preview-${rowNum}-${index}`}
+            >
+              <div className="flex items-start gap-3 w-full">
+                <span
+                  className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 mt-1 ${
+                    item.imported
+                      ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30'
+                      : item.valid
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                  }`}
+                >
+                  {item.imported ? <Check size={14} /> : item.valid ? <Check size={14} /> : <X size={14} />}
+                </span>
+                <div className="flex-1 space-y-2.5 overflow-hidden">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                        {item.row?.question_type || 'mcq'}
+                      </span>
+                      <span className="text-xs font-bold text-slate-300">Row {rowNum}</span>
+                      {item.duplicate && (
+                        <span className="text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          Duplicate
+                        </span>
+                      )}
+                    </div>
+                    <small className="text-xs text-slate-400">
+                      {item.imported ? 'Saved in this import' : `Usage: ${usageScopeLabel(item.row?.usage_scope)} · Difficulty: ${item.row?.difficulty || 'medium'}`}
+                    </small>
+                  </div>
+
+                  {/* Formatted English Question */}
+                  <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700/60">
+                    <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">Question (English)</div>
+                    <QuestionFormatter text={item.row?.question_text || item.row?.question_en} />
+                  </div>
+
+                  {/* Formatted Hindi Question if present */}
+                  {(item.row?.question_text_hi || item.row?.question_hi) && (
+                    <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-700/60">
+                      <div className="text-[10px] uppercase font-bold text-slate-400 mb-1">प्रश्न (Hindi)</div>
+                      <QuestionFormatter text={item.row?.question_text_hi || item.row?.question_hi} />
+                    </div>
+                  )}
+
+                  {/* Formatted Answer Options */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                    {(item.row?.options || []).map((opt, oIdx) => {
+                      const letter = String.fromCharCode(65 + oIdx);
+                      const isCorrect = String(item.row?.correct_answer || '').toUpperCase() === letter;
+                      const optEn = typeof opt === 'string' ? opt : opt?.en || opt?.text || '';
+                      const optHi = typeof opt === 'object' ? opt?.hi || opt?.text_hi || '' : '';
+                      return (
+                        <div
+                          key={letter}
+                          className={`p-2 rounded-xl border text-xs flex items-center justify-between gap-2 transition-colors ${
+                            isCorrect
+                              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 font-bold'
+                              : 'bg-slate-800/40 border-slate-700/50 text-slate-300'
+                          }`}
+                        >
+                          <span className="font-mono font-bold mr-1">{letter}.</span>
+                          <span className="flex-1">{optEn} {optHi && <span className="opacity-75">({optHi})</span>}</span>
+                          {isCorrect && <Check size={13} className="text-emerald-400 shrink-0" />}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {item.row?.explanation && (
+                    <div className="text-xs text-slate-400 pt-1">
+                      <strong className="text-slate-300">Explanation: </strong>
+                      {item.row.explanation}
+                    </div>
+                  )}
+
+                  {item.errors.map((message) => (
+                    <div key={message} className="text-xs font-semibold text-rose-400 bg-rose-500/10 px-2 py-1 rounded">
+                      {message}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    )}
     <footer className="import-modal-actions">
       <button type="button" className="button button-outline" onClick={onClose} disabled={isImporting}>
-        Cancel
+        {importedCount > 0 && validCount === 0 ? 'Done' : 'Cancel'}
       </button>
       {importProgress && (
         <span className="field-hint">

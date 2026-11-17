@@ -105,9 +105,9 @@ const quickActionTiles = [
 ];
 
 export default function StudentHome() {
-  const { profile, profileError, coinBalance, guest, user, supabase, refreshAccount } = useAuth();
-  const { t, language } = useThemeLanguage();
-  const { exams, folders, chapters } = useContentCatalog();
+  const { profile, profileError, guest, user, supabase, refreshAccount } = useAuth();
+  const { language } = useThemeLanguage();
+  const { exams, chapters } = useContentCatalog();
 
   const [attempts, setAttempts] = useState([]);
   const [allAttempts, setAllAttempts] = useState([]);
@@ -137,7 +137,7 @@ export default function StudentHome() {
     if (user && supabase) {
       refreshAccount().catch((err) => console.error('Unable to refresh account:', err));
     }
-  }, [user?.id, supabase, refreshAccount]);
+  }, [user, supabase, refreshAccount]);
 
   useEffect(() => {
     setSavedChapter(loadSavedChapter(user?.id));

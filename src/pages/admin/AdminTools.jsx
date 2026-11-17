@@ -91,6 +91,9 @@ export default function AdminTools() {
   const [editPurchaseType, setEditPurchaseType] = useState('Always Free');
   const [editPrice, setEditPrice] = useState(0);
   const [editValidityDays, setEditValidityDays] = useState(30);
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [editLimitDaily, setEditLimitDaily] = useState(false);
+  const [editDailyCount, setEditDailyCount] = useState(5);
   const [bundlePrice, setBundlePrice] = useState(0);
   const [bundleValidityDays, setBundleValidityDays] = useState(30);
   const [fullPassPrice, setFullPassPrice] = useState(0);
@@ -198,6 +201,9 @@ export default function AdminTools() {
     setStatusMessage({ text: '', type: '' });
     setTools(updatedTools);
 
+    try {
+      localStorage.setItem('zyvra_admin_toolbox_tools', JSON.stringify(updatedTools));
+    } catch { /* ignore localStorage error */ }
     // Transform back to schema expected by platform_settings
     const dbPayload = updatedTools.map((t) => ({
       id: t.id,
@@ -475,6 +481,17 @@ export default function AdminTools() {
               />
             </div>
             <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="px-2 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-bold focus:outline-none"
+            >
+              <option value="all">All Categories</option>
+              <option value="Quantitative Aptitude">Math</option>
+              <option value="Reasoning & Logic">Reasoning</option>
+              <option value="General Studies">GS</option>
+              <option value="Productivity & Focus">Productivity</option>
+            </select>
+            <select
               value={accessFilter}
               onChange={(e) => setAccessFilter(e.target.value)}
               className="px-2 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-bold focus:outline-none"
@@ -623,6 +640,34 @@ export default function AdminTools() {
                 <label className="text-[11px] font-bold text-slate-300 block mt-2">Validity (days)
                   <input type="number" min="1" max="3650" value={editValidityDays} onChange={(e) => setEditValidityDays(Number(e.target.value))} className="mt-1 w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-black focus:outline-none focus:border-amber-400" />
                 </label>
+              </div>
+            )}
+
+            {/* Daily limit for free tools */}
+            {editAccessType === 'free' && (
+              <div className="space-y-1.5 pt-1">
+                <label className="flex items-center justify-between cursor-pointer select-none">
+                  <span className="text-[11px] font-bold text-slate-300">Limit Daily Free Uses</span>
+                  <input
+                    type="checkbox"
+                    checked={editLimitDaily}
+                    onChange={(e) => setEditLimitDaily(e.target.checked)}
+                    className="accent-amber-400 w-3.5 h-3.5 cursor-pointer"
+                  />
+                </label>
+                {editLimitDaily && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={editDailyCount}
+                      onChange={(e) => setEditDailyCount(Math.max(1, Number(e.target.value) || 1))}
+                      className="w-20 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                    />
+                    <span className="text-[10px] text-slate-400">free uses / day</span>
+                  </div>
+                )}
               </div>
             )}
 

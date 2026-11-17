@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AlertTriangle, Archive, ArrowDownToLine, ArrowLeft, BookOpen, Check, ChevronRight, CircleDollarSign, Clock3, Copy, FileText, Folder, FolderOpen, GraduationCap, Layers3, Pencil, Plus, Search, Trash2, Upload, RefreshCw, X } from 'lucide-react';
 import useContentCatalog from '../../hooks/useContentCatalog';
@@ -116,17 +116,17 @@ function ResourceManagerModal({ chapter, onClose }) {
     }
   };
 
-  const refresh = async () => {
+  const refresh = useCallback(async () => {
     const { data, error: loadError } = await supabase.from('chapter_resources').select('*').eq('chapter_id', chapter.id);
     if (loadError) throw loadError;
     setResources((data || []).sort((left, right) => Number(left.display_order || 0) - Number(right.display_order || 0)));
-  };
+  }, [chapter.id]);
   useEffect(() => {
     let active = true;
     refresh().catch((loadError) => { if (active) setError(loadError.message || 'Unable to load chapter resources.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [chapter.id]);
+  }, [chapter.id, refresh]);
 
   const edit = (resource) => {
     setEditing(resource);
@@ -622,10 +622,7 @@ export default function ContentManager() {
     setSuccessMessage('');
     setContentToDelete({ kind: 'chapter', item: chapter });
   };
-  const handleDeleteContentClick = (kind, item) => {
-    if (kind === 'folder') handleDeleteFolder(item);
-    else handleDeleteChapter(item);
-  };
+
   const archive = async (kind, item) => {
     const typeLabel = kind === 'exam' ? 'exam' : kind === 'folder' ? 'folder' : 'chapter';
     if (!window.confirm(`Archive “${item.title}”? It will no longer appear in student discovery.`)) return;
@@ -668,7 +665,7 @@ export default function ContentManager() {
       }
       const { error: foldersError } = await supabase.from('folders').delete().eq('exam_id', exam.id);
       if (foldersError) throw foldersError;
-      const { data: deletedRows, error: examError } = await supabase.from('exams').delete().eq('id', exam.id).select();
+      const { error: examError } = await supabase.from('exams').delete().eq('id', exam.id);
       if (examError) throw examError;
 
       removeExam(exam.id);
@@ -715,7 +712,7 @@ export default function ContentManager() {
       // 3. Delete student bookmarks
       try {
         await supabase.from('student_bookmarks').delete().eq('chapter_id', chapterId);
-      } catch (_) {}
+      } catch { /* ignore optional cascade cleanup */ }
 
       // 4. Delete chapter tests and their dependent records
       const { data: tests, error: testsLoadError } = await supabase
@@ -728,10 +725,10 @@ export default function ContentManager() {
       if (testIds.length > 0) {
         try {
           await supabase.from('test_questions').delete().in('test_id', testIds);
-        } catch (_) {}
+        } catch { /* ignore optional cascade cleanup */ }
         try {
           await supabase.from('test_attempts').delete().in('test_id', testIds);
-        } catch (_) {}
+        } catch { /* ignore optional cascade cleanup */ }
         const { error: testsDeleteError } = await supabase
           .from('tests')
           .delete()
@@ -837,7 +834,7 @@ export default function ContentManager() {
         // Delete bookmarks
         try {
           await supabase.from('student_bookmarks').delete().in('chapter_id', chapterIds);
-        } catch (_) {}
+        } catch { /* ignore optional cascade cleanup */ }
 
         // Find tests
         const { data: tests, error: testsLoadError } = await supabase
@@ -850,10 +847,10 @@ export default function ContentManager() {
         if (testIds.length > 0) {
           try {
             await supabase.from('test_questions').delete().in('test_id', testIds);
-          } catch (_) {}
+          } catch { /* ignore optional cascade cleanup */ }
           try {
             await supabase.from('test_attempts').delete().in('test_id', testIds);
-          } catch (_) {}
+          } catch { /* ignore optional cascade cleanup */ }
           const { error: testsDelError } = await supabase
             .from('tests')
             .delete()

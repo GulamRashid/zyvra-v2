@@ -48,7 +48,7 @@ export default function ChapterDetail() {
   const [bookmarkBusy, setBookmarkBusy] = useState('');
   const [reader, setReader] = useState(null);
   const [readerLoading, setReaderLoading] = useState('');
-  const [resourceNotice, setResourceNotice] = useState('');
+
   const [checkoutItem, setCheckoutItem] = useState(null);
   const [accessRefreshKey, setAccessRefreshKey] = useState(0);
   const warmQuiz = useCallback(() => {
@@ -57,10 +57,7 @@ export default function ChapterDetail() {
   const chapter = chapters.find((item) => item.id === chapterId && isPublished(item));
   const folder = folders.find((item) => item.id === chapter?.folder_id && isPublished(item));
   const exam = exams.find((item) => item.id === folder?.exam_id && isPublished(item));
-  const folderPath = folder ? getFolderPath(folder, folders) : [];
-  const rootFolder = folderPath.length > 0 ? folderPath[0] : null;
-  const rootPricing = rootFolder ? getFolderPricing(rootFolder, folders) : { amount: 0 };
-  const parentPricing = folder ? getFolderPricing(folder, folders) : { amount: 0 };
+  const folderPath = useMemo(() => (folder ? getFolderPath(folder, folders) : []), [folder, folders]);
   const hierarchyPublished = folderPath.every(isPublished);
   const access = getChapterAccess(chapter, folder, folders);
   const examPrice = Number(exam?.price || 0);
@@ -70,7 +67,7 @@ export default function ChapterDetail() {
     ...(exam && examIsPaid ? [{ type: 'exam', id: exam.id, paid: true }] : []),
     ...folderPath.filter((p) => getFolderPricing(p, folders).amount > 0).map((p) => ({ type: 'folder', id: p.id, paid: true })),
     ...(access.amount > 0 && chapter ? [{ type: 'chapter', id: chapter.id, paid: true }] : [])
-  ], [exam, examIsPaid, folderPath, access.amount, chapter?.id, folders]);
+  ], [exam, examIsPaid, folderPath, access.amount, chapter, folders]);
 
   const { accessByKey, loading: accessLoading, error: accessError } = useContentAccess(accessItems, user, supabase, accessRefreshKey);
 
@@ -155,7 +152,7 @@ export default function ChapterDetail() {
     return () => { active = false; };
   }, [chapter?.id, hasNotes, isComingSoon, user]);
 
-  const fetchChapterPracticeQuestions = async () => {
+  const fetchChapterPracticeQuestions = useCallback(async () => {
     if (!supabase || !chapter?.id) return [];
 
     const { data, error } = await supabase.rpc('get_practice_questions', {
@@ -167,7 +164,7 @@ export default function ChapterDetail() {
     }
     const rows = Array.isArray(data) ? data : data?.questions;
     return (Array.isArray(rows) ? rows : []).map(sanitizeLiveQuestion);
-  };
+  }, [chapter?.id]);
 
   useEffect(() => {
     let active = true;
@@ -181,7 +178,7 @@ export default function ChapterDetail() {
       })
       .catch((e) => console.warn('Practice questions prefetch note:', e));
     return () => { active = false; };
-  }, [chapter?.id, hasPractice, isComingSoon]);
+  }, [chapter?.id, hasPractice, isComingSoon, fetchChapterPracticeQuestions]);
 
   const handleStartPractice = async () => {
     if (isLocked) {
@@ -212,12 +209,12 @@ export default function ChapterDetail() {
 
   const toggleBookmark = async (resource = null) => {
     if (!user || !supabase) {
-      setResourceNotice(t('signInToBookmark'));
+      setNotice(t('signInToBookmark'));
       return;
     }
     const busyKey = resource?.id || 'chapter';
     setBookmarkBusy(busyKey);
-    setResourceNotice('');
+    setNotice('');
     try {
       const existing = bookmarks.find((bookmark) => resource
         ? bookmark.resource_id === resource.id
@@ -236,7 +233,7 @@ export default function ChapterDetail() {
         setNotice(resource ? '' : t('chapterSaved'));
       }
     } catch (bookmarkError) {
-      setResourceNotice(getFriendlyErrorMessage(bookmarkError, 'Unable to update your bookmark.'));
+      setNotice(getFriendlyErrorMessage(bookmarkError, 'Unable to update your bookmark.'));
     } finally {
       setBookmarkBusy('');
     }
@@ -244,7 +241,7 @@ export default function ChapterDetail() {
 
   const openResource = async (resource) => {
     setReaderLoading(resource.id);
-    setResourceNotice('');
+    setNotice('');
     try {
       const { data: file, error: fileError } = await supabase.from('chapter_resources')
         .select('file_url')
@@ -263,7 +260,7 @@ export default function ChapterDetail() {
       }
       setReader({ resource, url });
     } catch (openError) {
-      setResourceNotice(getFriendlyErrorMessage(openError, 'Unable to open this document.'));
+      setNotice(getFriendlyErrorMessage(openError, 'Unable to open this document.'));
     } finally {
       setReaderLoading('');
     }
@@ -322,7 +319,7 @@ export default function ChapterDetail() {
             const raw = localStorage.getItem(`zyvra_test_progress_${user.id}_${test.id}`)
               || localStorage.getItem(`zyvra-paused-attempt-${user.id}-${test.id}`);
             if (raw) localSnapshot = JSON.parse(raw);
-          } catch (_) {}
+          } catch { /* ignore invalid local snapshot */ }
 
           if (dbAttempt || localSnapshot) {
             const remSecs = localSnapshot?.remainingSeconds ?? dbAttempt?.remaining_seconds ?? (Number(test.duration_minutes || 60) * 60);
@@ -699,6 +696,8 @@ export default function ChapterDetail() {
 
                 {resourcesLoading ? (
                   <p className="text-xs dark:text-slate-400 text-slate-600 font-medium">{t('loadingResources')}</p>
+                ) : resourcesError ? (
+                  <p className="text-xs text-rose-500 font-medium">{resourcesError}</p>
                 ) : !resources.length ? (
                   <div className="p-8 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-2">
                     <FileText size={24} className="mx-auto text-indigo-400 opacity-60" />
