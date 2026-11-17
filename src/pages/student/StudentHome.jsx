@@ -4,6 +4,7 @@ import {
   Bookmark,
   BookOpen,
   ChevronRight,
+  Compass,
   Flame,
   Play,
   Target,
@@ -64,11 +65,12 @@ function loadSavedChapter(userId) {
   }
 }
 
-// Quick Action 5-Tile Row
+// Quick Action 4-Tile Row with bilingual support
 const quickActionTiles = [
   {
     id: 'mock',
-    title: 'Mock Test',
+    titleEn: 'Mock Test',
+    titleHi: 'मॉक टेस्ट',
     subtitle: 'Full length',
     path: '/tests?tab=tests',
     icon: Target,
@@ -77,7 +79,8 @@ const quickActionTiles = [
   },
   {
     id: 'leaderboard',
-    title: 'Ranks',
+    titleEn: 'Ranks',
+    titleHi: 'रैंकिंग',
     subtitle: 'Top ranks',
     path: '/analytics',
     icon: Trophy,
@@ -86,7 +89,8 @@ const quickActionTiles = [
   },
   {
     id: 'bookmarks',
-    title: 'Bookmarks',
+    titleEn: 'Bookmarks',
+    titleHi: 'बुकमार्क्स',
     subtitle: 'Saved questions',
     path: '/bookmarks',
     icon: Bookmark,
@@ -95,7 +99,8 @@ const quickActionTiles = [
   },
   {
     id: 'wallet',
-    title: 'Wallet',
+    titleEn: 'Wallet',
+    titleHi: 'वॉलेट',
     subtitle: 'Your coins',
     path: '/wallet',
     icon: WalletCards,
@@ -431,7 +436,70 @@ export default function StudentHome() {
           )}
         </section>
 
-        {/* Quick Action 5-Tile Row */}
+        {/* Core 3-Track Study Action Cards (Eliminates Exams vs Tests vs Practice Confusion) */}
+        <section className="order-1 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <Link
+            to="/tests?tab=tests"
+            className="p-3 sm:p-3.5 rounded-2xl dark:bg-gradient-to-br dark:from-indigo-950/40 dark:to-slate-900 bg-gradient-to-br from-indigo-50/90 to-white border dark:border-indigo-500/30 border-indigo-200/90 hover:border-indigo-500 flex items-center justify-between gap-3 transition-all shadow-xs group"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Target size={18} />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  {language === 'hi' ? 'पूर्ण मॉक टेस्ट' : 'Full Mock Tests'}
+                </h4>
+                <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium">
+                  {language === 'hi' ? 'परीक्षा पैटर्न व टाइमर' : 'Real timed exam mocks'}
+                </p>
+              </div>
+            </div>
+            <ArrowRight size={15} className="text-indigo-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </Link>
+
+          <Link
+            to="/tests?tab=subjects"
+            className="p-3 sm:p-3.5 rounded-2xl dark:bg-gradient-to-br dark:from-emerald-950/40 dark:to-slate-900 bg-gradient-to-br from-emerald-50/90 to-white border dark:border-emerald-500/30 border-emerald-200/90 hover:border-emerald-500 flex items-center justify-between gap-3 transition-all shadow-xs group"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <BookOpen size={18} />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                  {language === 'hi' ? 'विषयवार अभ्यास' : 'Chapter Practice'}
+                </h4>
+                <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium">
+                  {language === 'hi' ? 'चैप्टर व टॉपिक प्रश्न' : 'Topic & chapter questions'}
+                </p>
+              </div>
+            </div>
+            <ArrowRight size={15} className="text-emerald-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </Link>
+
+          <Link
+            to="/explore"
+            className="p-3 sm:p-3.5 rounded-2xl dark:bg-gradient-to-br dark:from-amber-950/40 dark:to-slate-900 bg-gradient-to-br from-amber-50/90 to-white border dark:border-amber-500/30 border-amber-200/90 hover:border-amber-500 flex items-center justify-between gap-3 transition-all shadow-xs group"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Compass size={18} />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                  {language === 'hi' ? 'पूरा सिलेबस' : 'Explore Syllabus'}
+                </h4>
+                <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium">
+                  {language === 'hi' ? 'सभी परीक्षाओं के फ़ोल्डर्स' : 'All exam folders & notes'}
+                </p>
+              </div>
+            </div>
+            <ArrowRight size={15} className="text-amber-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </Link>
+        </section>
+
+        {/* Quick Action 4-Tile Row */}
         <section className="order-2">
           <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
             {quickActionTiles.map((tile) => {
@@ -440,13 +508,13 @@ export default function StudentHome() {
                 <Link
                   key={tile.id}
                   to={tile.path}
-                  className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-2xl border transition-colors text-center group min-h-[68px] ${tile.bg}`}
+                  className={`flex flex-col items-center justify-center p-2.5 sm:p-4 rounded-2xl border transition-colors text-center group min-h-[64px] ${tile.bg}`}
                 >
-                  <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-1 sm:mb-2 shrink-0 ${tile.iconBg}`}>
-                    <Icon className="w-4 h-4 sm:w-6 sm:h-6" />
+                  <div className={`w-8 h-8 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-1 sm:mb-1.5 shrink-0 ${tile.iconBg}`}>
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
-                  <span className="min-h-[2rem] text-xs sm:text-sm font-bold dark:text-white text-slate-800 tracking-tight leading-tight line-clamp-2">
-                    {tile.title}
+                  <span className="min-h-[1.75rem] text-[11px] sm:text-xs font-bold dark:text-white text-slate-800 tracking-tight leading-tight line-clamp-2">
+                    {language === 'hi' ? tile.titleHi : tile.titleEn}
                   </span>
                 </Link>
               );
@@ -455,73 +523,75 @@ export default function StudentHome() {
         </section>
 
         {/* Recommended practice / Continue Where You Left Section */}
-        <section className="order-1 space-y-2.5">
+        <section className="order-3 space-y-2.5">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm sm:text-lg font-bold dark:text-white text-slate-900 tracking-tight flex items-center gap-2">
+            <h3 className="text-xs sm:text-base font-bold dark:text-white text-slate-900 tracking-tight flex items-center gap-2">
               <span>{recommendation
-                ? (language === 'hi' ? 'आज का सुझाव' : 'Recommended for today')
+                ? (language === 'hi' ? 'आज का अनुशंसित अभ्यास' : 'Recommended For Today')
                 : (language === 'hi' ? 'जहाँ से छोड़ा था वहाँ से शुरू करें' : 'Continue Where You Left')}</span>
             </h3>
             <Link
               to="/tests"
-              className="text-sm font-semibold dark:text-indigo-400 text-indigo-600 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors min-h-[32px]"
+              className="text-xs sm:text-sm font-semibold dark:text-indigo-400 text-indigo-600 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1 transition-colors min-h-[32px]"
             >
               <span>{recommendation
-                ? (language === 'hi' ? 'दूसरा लक्ष्य चुनें' : 'Choose another goal')
+                ? (language === 'hi' ? 'अन्य टेस्ट देखें' : 'Choose another goal')
                 : (language === 'hi' ? 'सभी देखें' : 'View All')}</span>
               <ChevronRight size={14} />
             </Link>
           </div>
 
           {dashboardLoading ? (
-            <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-6 sm:p-8 min-h-[148px] animate-pulse">
-              <div className="h-5 w-2/3 rounded bg-indigo-500/10" />
-              <div className="mt-4 h-4 w-1/2 rounded bg-indigo-500/10" />
-              <div className="mt-5 h-10 w-32 rounded-xl bg-indigo-500/10" />
+            <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-2xl p-3.5 sm:p-5 min-h-[120px] animate-pulse">
+              <div className="h-4 w-2/3 rounded bg-indigo-500/10" />
+              <div className="mt-3 h-3.5 w-1/2 rounded bg-indigo-500/10" />
+              <div className="mt-4 h-9 w-28 rounded-xl bg-indigo-500/10" />
             </div>
           ) : recommendation ? (
-            <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-6 sm:p-8 transition-colors shadow-sm">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+            <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-2xl p-3.5 sm:p-5 transition-colors shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                 <div className="min-w-0">
-                  <div className="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                    {language === 'hi' ? 'आज का recommended' : 'Today’s recommended'}
+                  <div className="text-[10px] sm:text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                    {language === 'hi' ? 'आज का अनुशंसित टेस्ट' : 'Recommended For Today'}
                   </div>
-                  <h4 className="mt-2 text-base sm:text-lg font-bold dark:text-white text-slate-900 truncate">
+                  <h4 className="mt-1 text-sm sm:text-base font-bold dark:text-white text-slate-900 truncate">
                     {recommendation.title}
                   </h4>
-                  <p className="mt-1 text-sm dark:text-slate-300 text-slate-600 font-medium truncate">
+                  <p className="mt-0.5 text-xs sm:text-sm dark:text-slate-300 text-slate-600 font-medium truncate">
                     {recommendation.chapterTitle} · {recommendation.durationMinutes} min
                   </p>
                   {recommendation.test.coin_reward_enabled && (
-                    <p className="mt-2 text-sm text-amber-500 dark:text-amber-400 font-semibold">
-                      🪙 Rewards enabled for qualifying attempts.
+                    <p className="mt-1 text-xs text-amber-500 dark:text-amber-400 font-semibold">
+                      🪙 {language === 'hi' ? 'टेस्ट पूरा करने पर कॉइन रिवार्ड्स उपलब्ध हैं' : 'Rewards enabled for qualifying attempts.'}
                     </p>
                   )}
                 </div>
                 <Link
                   to={recommendation.path}
-                  className={`inline-flex min-h-[44px] shrink-0 items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm transition-all ${
+                  className={`inline-flex min-h-[40px] shrink-0 items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs sm:text-sm font-black transition-all ${
                     recommendation.kind === 'resume'
-                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-lg shadow-emerald-950/30'
-                      : 'bg-indigo-600 hover:bg-indigo-500 text-white font-bold shadow-[0_0_20px_rgba(79,70,229,0.25)]'
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
+                      : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-glowIndigo'
                   }`}
                 >
-                  {recommendation.kind === 'resume' ? 'Resume' : 'Start'}
-                  <ArrowRight size={15} strokeWidth={2.5} />
+                  {recommendation.kind === 'resume'
+                    ? (language === 'hi' ? 'जारी रखें' : 'Resume')
+                    : (language === 'hi' ? 'शुरू करें' : 'Start')}
+                  <ArrowRight size={14} strokeWidth={2.5} />
                 </Link>
               </div>
             </div>
           ) : (
-            <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-6 sm:p-8 flex items-center justify-between gap-3 sm:gap-4 transition-colors shadow-sm">
-              <div className="flex items-center gap-3 sm:gap-3.5 flex-1 min-w-0">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-                  <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600 dark:text-indigo-400" />
+            <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-2xl p-3.5 sm:p-5 flex items-center justify-between gap-3 transition-colors shadow-sm">
+              <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                  <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <div className="flex-1 min-w-0 space-y-1">
-                  <h4 className="text-xs sm:text-base font-bold dark:text-white text-slate-900 truncate">
+                <div className="flex-1 min-w-0 space-y-0.5 sm:space-y-1">
+                  <h4 className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 truncate">
                     {continueItem.title}
                   </h4>
-                  <div className="text-xs dark:text-slate-400 text-slate-600 font-medium truncate">
+                  <div className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-600 font-medium truncate">
                     {continueItem.subtitle}
                   </div>
                   <div className="w-full max-w-xs h-1.5 dark:bg-slate-800 bg-slate-200 rounded-full overflow-hidden">
@@ -532,16 +602,16 @@ export default function StudentHome() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <span className="text-xs font-black dark:text-amber-400 text-amber-600">
                   {continueItem.progress}%
                 </span>
                 <Link
                   to={continueItem.path}
-                  className="min-h-[44px] min-w-[44px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition-colors shadow-sm"
+                  className="min-h-[40px] min-w-[40px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition-colors shadow-sm"
                   aria-label="Continue learning"
                 >
-                  <Play size={16} fill="currentColor" className="ml-0.5 text-white" />
+                  <Play size={14} fill="currentColor" className="ml-0.5 text-white" />
                 </Link>
               </div>
             </div>
@@ -569,19 +639,19 @@ export default function StudentHome() {
                 <Link
                   key={exam.id}
                   to={exam.path}
-                  className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-6 sm:p-8 flex flex-col justify-between transition-colors hover:border-indigo-500 group min-h-[120px]"
+                  className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between transition-colors hover:border-indigo-500 group min-h-[110px] shadow-xs"
                 >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center border bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 p-1.5">
-                      <ContentIcon icon={exam.icon} className="w-5 h-5 text-indigo-500 dark:text-indigo-400" />
+                  <div className="flex items-start justify-between mb-2.5">
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center border bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 p-1.5">
+                      <ContentIcon icon={exam.icon} className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 dark:text-indigo-400" />
                     </div>
-                    <ChevronRight size={16} className="text-slate-400 dark:text-white/40 group-hover:text-slate-800 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                    <ChevronRight size={15} className="text-slate-400 dark:text-white/40 group-hover:text-slate-800 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
                   </div>
                   <div>
-                    <h4 className="text-base font-extrabold dark:text-white text-slate-900 tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    <h4 className="text-xs sm:text-sm font-extrabold dark:text-white text-slate-900 tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                       {exam.title}
                     </h4>
-                    <p className="text-xs font-medium dark:text-slate-400 text-slate-600 mt-0.5 line-clamp-2">
+                    <p className="text-[11px] sm:text-xs font-medium dark:text-slate-400 text-slate-600 mt-0.5 line-clamp-2">
                       {exam.subtitle}
                     </p>
                   </div>

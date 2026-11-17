@@ -705,7 +705,7 @@ export default function StudentToolbox() {
                     : 'dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-300 text-slate-700 hover:border-indigo-500'
                 }`}
               >
-                <span>All Tools</span>
+                <span>{language === 'hi' ? 'सभी टूल्स' : 'All Tools'}</span>
               </button>
               {visibleCategories.map(({ id, titleKey, Icon }) => {
                 const isSelected = activeCategory === id;
@@ -732,19 +732,21 @@ export default function StudentToolbox() {
               <div className="flex items-center justify-between px-1">
                 <h3 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 flex items-center gap-1.5">
                   <span className="text-amber-500">🔥</span>
-                  <span>Popular Tools</span>
+                  <span>{language === 'hi' ? 'लोकप्रिय टूल्स' : 'Popular Tools'}</span>
                 </h3>
-                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">Quick Access</span>
+                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
+                  {language === 'hi' ? 'त्वरित एक्सेस' : 'Quick Access'}
+                </span>
               </div>
 
               <div className="grid grid-cols-3 sm:grid-cols-6 min-w-0 gap-1.5 sm:gap-2">
                 {[
-                  { id: 'risk-simulator', cat: 'productivity', label: 'Risk Simulator', icon: Target, color: 'text-amber-500' },
-                  { id: 'mistake-notebook', cat: 'revision', label: 'Mistake Vault', icon: ListChecks, color: 'text-indigo-500' },
-                  { id: 'constitution-articles', cat: 'general-studies', label: 'Polity Vault', icon: Landmark, color: 'text-emerald-500' },
-                  { id: 'calculator', cat: 'math', label: 'Calculator', icon: Calculator, color: 'text-cyan-500' },
-                  { id: 'fraction-converter', cat: 'math', label: 'Percentage', icon: Percent, color: 'text-indigo-500' },
-                  { id: 'pomodoro', cat: 'productivity', label: 'Focus Timer', icon: Clock3, color: 'text-rose-500' }
+                  { id: 'risk-simulator', cat: 'productivity', label: language === 'hi' ? 'रिस्क कैलकुलेटर' : 'Risk Simulator', icon: Target, color: 'text-amber-500' },
+                  { id: 'mistake-notebook', cat: 'revision', label: language === 'hi' ? 'गलती नोटबुक' : 'Mistake Vault', icon: ListChecks, color: 'text-indigo-500' },
+                  { id: 'constitution-articles', cat: 'general-studies', label: language === 'hi' ? 'संविधान अनुच्छेद' : 'Polity Vault', icon: Landmark, color: 'text-emerald-500' },
+                  { id: 'calculator', cat: 'math', label: language === 'hi' ? 'कैलकुलेटर' : 'Calculator', icon: Calculator, color: 'text-cyan-500' },
+                  { id: 'fraction-converter', cat: 'math', label: language === 'hi' ? 'प्रतिशत' : 'Percentage', icon: Percent, color: 'text-indigo-500' },
+                  { id: 'pomodoro', cat: 'productivity', label: language === 'hi' ? 'फोकस टाइमर' : 'Focus Timer', icon: Clock3, color: 'text-rose-500' }
                 ].map((item) => {
                   const toolObj = (CATEGORY_TOOLS[item.cat] || []).find((t) => t.id === item.id);
                   const locked = toolObj ? isToolLocked(toolObj) : false;
@@ -782,10 +784,10 @@ export default function StudentToolbox() {
               <div className="flex items-center justify-between px-1">
                 <h3 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 flex items-center gap-1.5">
                   <Wrench size={14} className="text-indigo-500" />
-                  <span>Tools by Subject</span>
+                  <span>{language === 'hi' ? 'विषय अनुसार टूल्स' : 'Tools by Subject'}</span>
                 </h3>
                 <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  {visibleCategories.length} Subjects
+                  {visibleCategories.length} {language === 'hi' ? 'विषय' : 'Subjects'}
                 </span>
               </div>
 
@@ -815,14 +817,14 @@ export default function StudentToolbox() {
                             <h4 className="text-sm font-bold dark:text-white text-slate-900">
                               {t(category.titleKey)}
                             </h4>
-                            <p className="text-sm dark:text-slate-400 text-slate-500">
-                              {tools.length} Tools Available
+                            <p className="text-xs dark:text-slate-400 text-slate-500">
+                              {tools.length} {language === 'hi' ? 'टूल्स उपलब्ध' : 'Tools Available'}
                             </p>
                           </div>
                         </div>
 
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold dark:text-indigo-400 text-indigo-600">Open</span>
+                          <span className="text-xs font-bold dark:text-indigo-400 text-indigo-600">{language === 'hi' ? 'खोलें' : 'Open'}</span>
                           <ChevronRight size={16} className="text-slate-400 dark:text-slate-500" />
                         </div>
                       </button>
@@ -855,7 +857,7 @@ export default function StudentToolbox() {
                                 </span>
                               ) : (
                                 <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                                  Free
+                                  {language === 'hi' ? 'मुफ़्त' : 'Free'}
                                 </span>
                               )}
                             </button>
@@ -881,7 +883,7 @@ export default function StudentToolbox() {
                   {currentCategoryTitle}
                 </h3>
                 <p className="text-xs dark:text-slate-400 text-slate-600">
-                  Select a tool below to open its full interactive interface
+                  {language === 'hi' ? 'पूरा इंटरफ़ेस खोलने के लिए नीचे दिए गए टूल को चुनें' : 'Select a tool below to open its full interactive interface'}
                 </p>
               </div>
             </div>

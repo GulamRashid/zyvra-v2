@@ -10,6 +10,7 @@ import useContentCatalog from '../../hooks/useContentCatalog';
 import { getChapterAccess, getFolderPath, getFolderPricing, isFolderUnlocked, isPublished } from '../../lib/content';
 import useContentAccess from '../../hooks/useContentAccess';
 import { useAuth } from '../../context/AuthContext';
+import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 
 function AccessBadge({ label }) {
@@ -38,6 +39,7 @@ export default function FolderView() {
   const { folderId } = useParams();
   const { exams, folders, chapters, loading, error } = useContentCatalog();
   const { user } = useAuth();
+  const { language } = useThemeLanguage();
   const [checkoutItem, setCheckoutItem] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const folder = folders.find((item) => item.id === folderId && isPublished(item));
@@ -47,7 +49,6 @@ export default function FolderView() {
   const childFolders = folders.filter((item) => (item.parent_folder_id === folder?.id || item.parent_id === folder?.id) && isPublished(item));
   const folderChapters = chapters.filter((chapter) => chapter.folder_id === folder?.id && isPublished(chapter));
   const parent = path.length > 1 ? path[path.length - 2] : null;
-  const rootFolder = path.length > 0 ? path[0] : null;
   const pricing = getFolderPricing(folder, folders);
   const examPrice = Number(exam?.price || 0);
   const examIsPaid = examPrice > 0 || exam?.access_mode === 'paid-own' || exam?.access_mode === 'paid_own' || exam?.pricing_mode === 'paid-own' || exam?.pricing_mode === 'paid_own';
@@ -77,7 +78,7 @@ export default function FolderView() {
         {/* Breadcrumbs */}
         <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-indigo-400/80 overflow-x-auto no-scrollbar py-1">
           <Link to="/explore" className="hover:text-indigo-600 dark:hover:text-white whitespace-nowrap">
-            Explore
+            {language === 'hi' ? 'परीक्षाएं' : 'Explore'}
           </Link>
           <ChevronRight size={13} className="shrink-0 text-slate-400" />
           {exam && (
@@ -114,16 +115,16 @@ export default function FolderView() {
           <div className="p-8 rounded-3xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-3">
             <Folder size={28} className="mx-auto text-indigo-500 opacity-60" />
             <strong className="text-base font-black dark:text-white text-slate-900 block">
-              This folder isn’t available.
+              {language === 'hi' ? 'यह फ़ोल्डर उपलब्ध नहीं है।' : 'This folder isn’t available.'}
             </strong>
             <span className="text-xs text-slate-500 dark:text-slate-400 block">
-              It may be unpublished or its exam has changed.
+              {language === 'hi' ? 'यह अभी अप्रकाशित हो सकता है।' : 'It may be unpublished or its exam has changed.'}
             </span>
             <Link
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white text-sm font-black"
               to="/explore"
             >
-              Back to explore
+              {language === 'hi' ? 'परीक्षाओं पर वापस जाएं' : 'Back to explore'}
             </Link>
           </div>
         )}
@@ -131,37 +132,37 @@ export default function FolderView() {
         {!loading && !error && folder && exam && hierarchyPublished && (
           <>
             {/* Folder Hero Banner with Tech/Data Focus Theme */}
-            <section className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50/90 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-4 sm:p-6 shadow-sm space-y-3">
+            <section className="relative overflow-hidden rounded-2xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50/90 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-3.5 sm:p-5 shadow-sm space-y-2.5">
               <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-xl dark:bg-indigo-950/80 bg-white border dark:border-indigo-500/30 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-xs shrink-0">
-                  <ContentIcon icon={folder.icon_url || folder.icon} className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fallback={FolderOpen} />
+                <div className="w-9 h-9 rounded-xl dark:bg-indigo-950/80 bg-white border dark:border-indigo-500/30 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-xs shrink-0">
+                  <ContentIcon icon={folder.icon_url || folder.icon} className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" fallback={FolderOpen} />
                 </div>
                 <div>
                   <div className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 tracking-wider">
-                    {exam.title} / Syllabus
+                    {exam.title} / {language === 'hi' ? 'पाठ्यक्रम' : 'Syllabus'}
                   </div>
-                  <h1 className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
+                  <h1 className="text-base sm:text-xl font-black dark:text-white text-slate-900 tracking-tight">
                     {folder.title}
                   </h1>
                 </div>
               </div>
 
-              <p className="text-sm dark:text-slate-300 text-slate-600 font-medium">
-                {folder.description || 'Explore the topics and chapters in this learning section.'}
+              <p className="text-xs sm:text-sm dark:text-slate-300 text-slate-600 font-medium">
+                {folder.description || (language === 'hi' ? 'इस अध्ययन विषय के अध्यायों और टॉपिक्स का अभ्यास करें।' : 'Explore the topics and chapters in this learning section.')}
               </p>
 
-              <div className="flex items-center gap-2 flex-wrap pt-1 text-sm">
-                <AccessBadge label={pricing.amount ? (accessLoading ? 'Checking…' : isCurrentFolderUnlocked ? 'Purchased' : pricing.label) : 'Free'} />
+              <div className="flex items-center gap-2 flex-wrap pt-1 text-xs sm:text-sm">
+                <AccessBadge label={pricing.amount ? (accessLoading ? (language === 'hi' ? 'जाँच जारी है…' : 'Checking…') : isCurrentFolderUnlocked ? (language === 'hi' ? 'अनलॉक किया हुआ' : 'Purchased') : pricing.label) : (language === 'hi' ? 'मुफ़्त' : 'Free')} />
                 {pricing.amount > 0 && (
                   <span className="text-amber-600 dark:text-amber-400 font-bold">
-                    Explicit pricing rule · {pricing.label}
+                    {pricing.label}
                   </span>
                 )}
                 <span className="flex items-center gap-1 text-slate-500 dark:text-emerald-300/80 font-medium">
-                  <Folder size={13} /> {childFolders.length} subfolders
+                  <Folder size={12} /> {childFolders.length} {language === 'hi' ? 'सब-फ़ोल्डर' : 'subfolders'}
                 </span>
                 <span className="flex items-center gap-1 text-slate-500 dark:text-emerald-300/80 font-medium">
-                  <BookOpen size={13} /> {folderChapters.length} chapters
+                  <BookOpen size={12} /> {folderChapters.length} {language === 'hi' ? 'अध्याय' : 'chapters'}
                 </span>
               </div>
             </section>
@@ -174,17 +175,17 @@ export default function FolderView() {
 
             {/* Paywall Banner if Locked */}
             {pricing.amount > 0 && !accessLoading && !accessError && !isCurrentFolderUnlocked && (
-              <section className="p-4 sm:p-5 rounded-2xl dark:bg-gradient-to-r dark:from-amber-950/40 dark:to-slate-800/60 bg-amber-50/90 border dark:border-amber-500/30 border-amber-300/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-500 shrink-0">
-                    <LockKeyhole size={18} />
+              <section className="p-3.5 sm:p-4 rounded-2xl dark:bg-gradient-to-r dark:from-amber-950/40 dark:to-slate-800/60 bg-amber-50/90 border dark:border-amber-500/30 border-amber-300/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
+                <div className="flex items-center gap-2.5 sm:gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-500 shrink-0">
+                    <LockKeyhole size={16} />
                   </div>
                   <div>
-                    <strong className="text-sm font-black dark:text-white text-slate-900 block">
-                      Unlock Access for {folder.title}
+                    <strong className="text-xs sm:text-sm font-black dark:text-white text-slate-900 block">
+                      {language === 'hi' ? `${folder.title} अनलॉक करें` : `Unlock Access for ${folder.title}`}
                     </strong>
-                    <span className="text-xs text-amber-900/80 dark:text-amber-200/80 font-medium">
-                      Get this section, or unlock the entire {rootFolder?.id !== folder.id ? `${rootFolder?.title} syllabus` : 'bundle'} to automatically unlock all nested sub-folders and chapters inside it.
+                    <span className="text-[11px] sm:text-xs text-amber-900/80 dark:text-amber-200/80 font-medium">
+                      {language === 'hi' ? `इस अनुभाग के सभी सब-फ़ोल्डर्स और अध्यायों का पूरा एक्सेस पाएं।` : `Get this section to automatically unlock all nested sub-folders and chapters inside it.`}
                     </span>
                   </div>
                 </div>
@@ -203,7 +204,7 @@ export default function FolderView() {
                       })
                     }
                   >
-                    <span>{accessLoading ? 'Checking access…' : `Buy ${folder.title} · ₹${pricing.amount.toLocaleString('en-IN')}`}</span>
+                    <span>{accessLoading ? (language === 'hi' ? 'जाँच जारी है…' : 'Checking…') : `${language === 'hi' ? 'खरीदें' : 'Buy'} ${folder.title} · ₹${pricing.amount.toLocaleString('en-IN')}`}</span>
                     <ArrowRight size={14} />
                   </button>
                 </div>
@@ -214,12 +215,14 @@ export default function FolderView() {
             <div className="flex items-center justify-between px-1">
               <div>
                 <div className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 tracking-wider">
-                  Inside This Section
+                  {language === 'hi' ? 'इस अनुभाग में' : 'Inside This Section'}
                 </div>
-                <h2 className="text-base font-black dark:text-white text-slate-900">Topics & chapters</h2>
+                <h2 className="text-sm sm:text-base font-black dark:text-white text-slate-900">
+                  {language === 'hi' ? 'विषय और अध्याय' : 'Topics & chapters'}
+                </h2>
               </div>
-              <span className="text-sm font-bold dark:text-slate-300 text-slate-700">
-                {childFolders.length + folderChapters.length} learning items
+              <span className="text-xs sm:text-sm font-bold dark:text-slate-300 text-slate-700">
+                {childFolders.length + folderChapters.length} {language === 'hi' ? 'अध्ययन सामग्री' : 'learning items'}
               </span>
             </div>
 
@@ -308,7 +311,7 @@ export default function FolderView() {
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
-                        <AccessBadge label={access.amount > 0 ? (accessLoading ? 'Checking…' : isChapterUnlocked ? 'Purchased' : access.label) : access.label} />
+                        <AccessBadge label={access.amount > 0 ? (accessLoading ? (language === 'hi' ? 'जाँच जारी है…' : 'Checking…') : isChapterUnlocked ? (language === 'hi' ? 'अनलॉक किया हुआ' : 'Purchased') : access.label) : access.label} />
                         <ArrowRight size={15} className="text-slate-400 dark:text-slate-500" />
                       </div>
                     </Link>
@@ -320,7 +323,7 @@ export default function FolderView() {
                           className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[44px]"
                           onClick={() => setCheckoutItem({ itemType: 'chapter', itemId: chapter.id, itemTitle: chapter.title, tier: 'Chapter', basePrice: access.amount })}
                         >
-                          <span>Buy chapter · ₹{access.amount.toLocaleString('en-IN')}</span>
+                          <span>{language === 'hi' ? 'अध्याय खरीदें' : 'Buy chapter'} · ₹{access.amount.toLocaleString('en-IN')}</span>
                           <ArrowRight size={13} />
                         </button>
                       </div>

@@ -287,7 +287,7 @@ export default function TestHub() {
             }`}
           >
             <Target size={14} />
-            <span>{language === 'hi' ? 'परीक्षण' : 'Tests'}</span>
+            <span>{language === 'hi' ? 'मॉक टेस्ट' : 'Tests'}</span>
           </button>
 
           <button
@@ -319,13 +319,13 @@ export default function TestHub() {
                     </div>
                     <div>
                       <h3 className="text-xs sm:text-base font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-1.5 sm:gap-2">
-                        <span>{exams[0]?.title} Syllabus Track</span>
+                        <span>{exams[0]?.title} {language === 'hi' ? 'सिलेबस ट्रैक' : 'Syllabus Track'}</span>
                         <span className="text-[9px] sm:text-[10px] uppercase font-bold px-1.5 sm:px-2 py-0.5 rounded-full dark:bg-indigo-500/20 bg-indigo-100 dark:text-indigo-300 text-indigo-800 border dark:border-indigo-400/30 border-indigo-200">
-                          Active
+                          {language === 'hi' ? 'सक्रिय' : 'Active'}
                         </span>
                       </h3>
                       <p className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-600 font-medium mt-0.5">
-                        {folders.length} Subjects · {chapters.length} Chapters · {tests.length} Tests
+                        {folders.length} {language === 'hi' ? 'विषय' : 'Subjects'} · {chapters.length} {language === 'hi' ? 'अध्याय' : 'Chapters'} · {tests.length} {language === 'hi' ? 'टेस्ट' : 'Tests'}
                       </p>
                     </div>
                   </div>
@@ -334,7 +334,7 @@ export default function TestHub() {
                     to={`/explore/${exams[0]?.slug || exams[0]?.id}`}
                     className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-bold text-xs transition-colors shadow-glowIndigo"
                   >
-                    <span>View Syllabus</span>
+                    <span>{language === 'hi' ? 'सिलेबस देखें' : 'View Syllabus'}</span>
                     <ArrowRight size={13} />
                   </Link>
                 </div>
@@ -342,7 +342,7 @@ export default function TestHub() {
                 {/* Progress bar */}
                 <div className="mt-3 pt-2.5 border-t dark:border-slate-700/60 border-slate-200">
                   <div className="flex items-center justify-between text-[11px] sm:text-xs font-semibold mb-1">
-                    <span className="dark:text-slate-300 text-slate-700">Track Completion</span>
+                    <span className="dark:text-slate-300 text-slate-700">{language === 'hi' ? 'सिलेबस प्रगति' : 'Track Completion'}</span>
                     <span className="text-amber-500 dark:text-amber-400 font-bold">
                       {totalQuestionsSum > 0
                         ? `${totalQuestionsSolved} / ${totalQuestionsSum} Solved (${aggregateProgressPct}%)`
@@ -484,13 +484,17 @@ export default function TestHub() {
                     key={f}
                     type="button"
                     onClick={() => setTestFilter(f)}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold capitalize transition-colors min-h-[44px] ${
+                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-colors min-h-[44px] ${
                       testFilter === f
                         ? 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white shadow-glowIndigo'
                         : 'dark:bg-slate-800 bg-white border dark:border-slate-700/60 border-slate-300 dark:text-slate-300 text-slate-700 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
-                    {f} Tests
+                    {f === 'all'
+                      ? (language === 'hi' ? 'सभी टेस्ट' : 'All Tests')
+                      : f === 'free'
+                      ? (language === 'hi' ? 'मुफ़्त टेस्ट' : 'Free Tests')
+                      : (language === 'hi' ? 'अध्याय टेस्ट' : 'Chapter Tests')}
                   </button>
                 ))}
               </div>
@@ -545,8 +549,8 @@ export default function TestHub() {
                           )}
                         </div>
                         {test.coin_reward_enabled && (
-                          <p className="text-sm text-amber-700 dark:text-amber-300">
-                            Rewards enabled for qualifying attempts.
+                          <p className="text-xs text-amber-700 dark:text-amber-300">
+                            {language === 'hi' ? '🪙 टेस्ट पूरा करने पर कॉइन रिवार्ड्स उपलब्ध हैं' : '🪙 Rewards enabled for qualifying attempts.'}
                           </p>
                         )}
                       </div>

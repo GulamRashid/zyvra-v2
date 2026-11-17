@@ -7,6 +7,7 @@ import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import CheckoutModal from '../../components/common/CheckoutModal';
 import useContentAccess from '../../hooks/useContentAccess';
 import { useAuth } from '../../context/AuthContext';
+import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 
 const examIcons = { BookOpen, GraduationCap, Landmark, Atom, Calculator, Globe2, Brain, ScrollText, FlaskConical, BookMarked };
@@ -15,6 +16,7 @@ export default function ExamDetail() {
   const { examSlug } = useParams();
   const { exams, folders, chapters, loading, error } = useContentCatalog();
   const { user } = useAuth();
+  const { language } = useThemeLanguage();
   const [checkoutItem, setCheckoutItem] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const exam = useMemo(() => exams.find((item) => item.slug === examSlug && isPublished(item)), [exams, examSlug]);
@@ -47,19 +49,19 @@ export default function ExamDetail() {
     };
   };
   return <div className="catalog-page">
-    <nav className="student-breadcrumbs"><Link to="/explore">Explore</Link><ChevronRight size={14} /><span>{exam?.title || 'Exam syllabus'}</span></nav>
+    <nav className="student-breadcrumbs"><Link to="/explore">{language === 'hi' ? 'परीक्षाएं' : 'Explore'}</Link><ChevronRight size={14} /><span>{exam?.title || (language === 'hi' ? 'पाठ्यक्रम' : 'Exam syllabus')}</span></nav>
     {error && <div className="feedback error-feedback">{error}</div>}
     {loading && <LoadingSkeleton rows={4} />}
-    {!loading && !error && !exam && <div className="empty-content"><GraduationCap size={25} /><strong>We couldn’t find this exam.</strong><span>It may be unpublished or no longer available.</span><Link className="button button-outline" to="/explore"><ArrowLeft size={15} /> Browse exams</Link></div>}
+    {!loading && !error && !exam && <div className="empty-content"><GraduationCap size={25} /><strong>{language === 'hi' ? 'यह परीक्षा नहीं मिली।' : 'We couldn’t find this exam.'}</strong><span>{language === 'hi' ? 'यह अभी अप्रकाशित हो सकती है।' : 'It may be unpublished or no longer available.'}</span><Link className="button button-outline" to="/explore"><ArrowLeft size={15} /> {language === 'hi' ? 'सभी परीक्षाएं देखें' : 'Browse exams'}</Link></div>}
     {!loading && !error && exam && <>
-      <section className="exam-hero"><div className="exam-hero-icon"><Icon size={31} /></div><div className="eyebrow">YOUR SYLLABUS, CLEARLY ORGANISED</div><h1>{exam.title}</h1><p>{exam.description || 'Explore the syllabus and start building a steady study rhythm.'}</p><div className="exam-hero-stats"><span><Folder size={15} /> {rootFolders.length} main sections</span><span><BookOpen size={15} /> {chapters.filter((chapter) => examFolderIds.has(chapter.folder_id) && isPublished(chapter)).length} learning chapters</span></div>{examIsPaid && accessLoading && <span className="text-xs text-slate-500 dark:text-slate-300">Checking your access…</span>}{examIsPaid && !accessLoading && !accessError && !hasExamAccess && <button className="button button-gold exam-buy-button" disabled={!user} onClick={() => setCheckoutItem({ itemType: 'exam', itemId: exam.id, itemTitle: exam.title, tier: 'Complete Exam Bundle', basePrice: examPrice })}><LockKeyhole size={15} /> Unlock Complete {exam.title} · ₹{examPrice.toLocaleString('en-IN')} <ArrowRight size={14} /></button>}</section>
+      <section className="exam-hero"><div className="exam-hero-icon"><Icon size={31} /></div><div className="eyebrow">{language === 'hi' ? 'सुव्यवस्थित पाठ्यक्रम' : 'YOUR SYLLABUS, CLEARLY ORGANISED'}</div><h1>{exam.title}</h1><p>{exam.description || (language === 'hi' ? 'पाठ्यक्रम देखें और नियमित अध्ययन की शुरुआत करें।' : 'Explore the syllabus and start building a steady study rhythm.')}</p><div className="exam-hero-stats"><span><Folder size={15} /> {rootFolders.length} {language === 'hi' ? 'मुख्य विषय' : 'main sections'}</span><span><BookOpen size={15} /> {chapters.filter((chapter) => examFolderIds.has(chapter.folder_id) && isPublished(chapter)).length} {language === 'hi' ? 'अध्याय' : 'learning chapters'}</span></div>{examIsPaid && accessLoading && <span className="text-xs text-slate-500 dark:text-slate-300">{language === 'hi' ? 'एक्सेस जाँचा जा रहा है…' : 'Checking your access…'}</span>}{examIsPaid && !accessLoading && !accessError && !hasExamAccess && <button className="button button-gold exam-buy-button" disabled={!user} onClick={() => setCheckoutItem({ itemType: 'exam', itemId: exam.id, itemTitle: exam.title, tier: 'Complete Exam Bundle', basePrice: examPrice })}><LockKeyhole size={15} /> {language === 'hi' ? `पूरा ${exam.title} अनलॉक करें` : `Unlock Complete ${exam.title}`} · ₹{examPrice.toLocaleString('en-IN')} <ArrowRight size={14} /></button>}</section>
       {accessError && <div className="feedback error-feedback">{accessError}</div>}
       {examIsPaid && !accessLoading && !accessError && !hasExamAccess && (
         <section className="paywall-banner exam-paywall-banner">
           <span className="paywall-icon"><LockKeyhole size={19} /></span>
           <div>
-            <strong>Unlock Complete {exam.title} · ₹{examPrice.toLocaleString('en-IN')}</strong>
-            <span>Gain full, unrestricted access to all {rootFolders.length} sections, including all nested sub-folders, chapters, and tests under this exam.</span>
+            <strong>{language === 'hi' ? `पूरा ${exam.title} अनलॉक करें` : `Unlock Complete ${exam.title}`} · ₹{examPrice.toLocaleString('en-IN')}</strong>
+            <span>{language === 'hi' ? `इस परीक्षा के सभी ${rootFolders.length} विषयों, सब-फ़ोल्डर्स, अध्यायों और टेस्ट्स का पूरा एक्सेस पाएं।` : `Gain full, unrestricted access to all ${rootFolders.length} sections, including all nested sub-folders, chapters, and tests under this exam.`}</span>
           </div>
           <div className="paywall-actions">
             <button
@@ -73,13 +75,13 @@ export default function ExamDetail() {
                 basePrice: examPrice
               })}
             >
-              {accessLoading ? 'Checking access…' : `Unlock Complete ${exam.title} · ₹${examPrice.toLocaleString('en-IN')}`} <ArrowRight size={14} />
+              {accessLoading ? (language === 'hi' ? 'जाँच जारी है…' : 'Checking access…') : `${language === 'hi' ? `पूरा ${exam.title} अनलॉक करें` : `Unlock Complete ${exam.title}`} · ₹${examPrice.toLocaleString('en-IN')}`} <ArrowRight size={14} />
             </button>
           </div>
         </section>
       )}
-      <div className="section-heading catalog-section-heading"><div><div className="eyebrow">THE LEARNING PATH</div><h2>Explore the syllabus</h2></div><Link to="/explore" className="inline-link"><ArrowLeft size={14} /> All exams</Link></div>
-      {!rootFolders.length && <div className="empty-content"><Folder size={24} /><strong>Syllabus coming soon</strong><span>Learning sections for this exam are being prepared.</span></div>}
+      <div className="section-heading catalog-section-heading"><div><div className="eyebrow">{language === 'hi' ? 'अध्ययन योजना' : 'THE LEARNING PATH'}</div><h2>{language === 'hi' ? 'पाठ्यक्रम और विषय' : 'Explore the syllabus'}</h2></div><Link to="/explore" className="inline-link"><ArrowLeft size={14} /> {language === 'hi' ? 'सभी परीक्षाएं' : 'All exams'}</Link></div>
+      {!rootFolders.length && <div className="empty-content"><Folder size={24} /><strong>{language === 'hi' ? 'पाठ्यक्रम जल्द आ रहा है' : 'Syllabus coming soon'}</strong><span>{language === 'hi' ? 'इस परीक्षा के अध्ययन अनुभाग तैयार किए जा रहे हैं।' : 'Learning sections for this exam are being prepared.'}</span></div>}
       <div className="folder-cards-grid">{rootFolders.map((folder, index) => {
         const counts = countFolder(folder.id);
         const starts = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10'];
@@ -96,26 +98,26 @@ export default function ExamDetail() {
               </div>
             </div>
             <div className="syllabus-card-copy">
-              <span className="eyebrow">LEARNING SECTION</span>
+              <span className="eyebrow">{language === 'hi' ? 'अध्ययन विषय' : 'LEARNING SECTION'}</span>
               <h3>{folder.title}</h3>
               {folder.description && <p>{folder.description}</p>}
               <div className="syllabus-card-meta">
-                <span><Folder size={12} /> {counts.folders} {counts.folders === 1 ? 'subfolder' : 'subfolders'}</span>
+                <span><Folder size={12} /> {counts.folders} {language === 'hi' ? 'सब-फ़ोल्डर' : (counts.folders === 1 ? 'subfolder' : 'subfolders')}</span>
                 <span>•</span>
-                <span><BookOpen size={12} /> {counts.chapters} {counts.chapters === 1 ? 'chapter' : 'chapters'}</span>
+                <span><BookOpen size={12} /> {counts.chapters} {language === 'hi' ? 'अध्याय' : (counts.chapters === 1 ? 'chapter' : 'chapters')}</span>
               </div>
             </div>
           </Link>
           <div className="syllabus-card-footer">
             <div className="syllabus-card-footer-left">
               {price.amount > 0 && accessLoading ? (
-                <span className="access-badge">Checking…</span>
+                <span className="access-badge">{language === 'hi' ? 'जाँच जारी है…' : 'Checking…'}</span>
               ) : price.amount > 0 ? (
                 <span className={`access-badge ${isRootUnlocked ? 'access-free' : 'access-paid'}`}>
-                  {isRootUnlocked ? 'Purchased' : price.label}
+                  {isRootUnlocked ? (language === 'hi' ? 'अनलॉक किया हुआ' : 'Purchased') : price.label}
                 </span>
               ) : (
-                <span className="access-badge access-free">Free</span>
+                <span className="access-badge access-free">{language === 'hi' ? 'मुफ़्त' : 'Free'}</span>
               )}
             </div>
             {price.amount > 0 && !accessLoading && !accessError && !isRootUnlocked && (
@@ -124,13 +126,13 @@ export default function ExamDetail() {
                 className="button button-gold buy-inline-button"
                 onClick={() => setCheckoutItem({ itemType: 'folder', itemId: folder.id, itemTitle: folder.title, tier: 'Folder Bundle', basePrice: price.amount })}
               >
-                Buy bundle · ₹{price.amount.toLocaleString('en-IN')}
+                {language === 'hi' ? 'बंडल खरीदें' : 'Buy bundle'} · ₹{price.amount.toLocaleString('en-IN')}
               </button>
             )}
           </div>
         </article>;
       })}</div>
-      <div className="catalog-tip"><Clock3 size={15} /> You can explore free chapters before committing to a study plan.</div>
+      <div className="catalog-tip"><Clock3 size={15} /> {language === 'hi' ? 'प्लान लेने से पहले आप मुफ़्त अध्यायों को देख और हल कर सकते हैं।' : 'You can explore free chapters before committing to a study plan.'}</div>
       {checkoutItem && <CheckoutModal {...checkoutItem} onClose={() => setCheckoutItem(null)} onCompleted={() => setRefreshKey((value) => value + 1)} />}
     </>}
   </div>;

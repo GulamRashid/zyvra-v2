@@ -2674,7 +2674,7 @@ export default function LiveQuiz() {
               onClick={() => goTo(Math.max(0, currentIndex - 1))}
               disabled={!currentIndex}
             >
-              <ChevronLeft size={16} /> <span>Previous</span>
+              <ChevronLeft size={16} /> <span>{language === 'hi' ? 'पीछे' : 'Previous'}</span>
             </button>
 
             {test?.solution_mode === 'immediate' ? (
@@ -2729,7 +2729,7 @@ export default function LiveQuiz() {
                 disabled={submitting}
                 onClick={confirm}
               >
-                {submitting ? 'Submitting…' : 'Submit Test'}
+                {submitting ? (language === 'hi' ? 'जमा हो रहा है…' : 'Submitting…') : (language === 'hi' ? 'टेस्ट जमा करें' : 'Submit Test')}
               </button>
             ) : (
               <button
@@ -2737,7 +2737,7 @@ export default function LiveQuiz() {
                 className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm transition-colors flex items-center gap-1 min-h-[40px] shadow-glowIndigo"
                 onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
               >
-                <span>Next</span> <ChevronRight size={16} />
+                <span>{language === 'hi' ? 'आगे' : 'Next'}</span> <ChevronRight size={16} />
               </button>
             )}
           </div>
@@ -2750,7 +2750,9 @@ export default function LiveQuiz() {
               className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
             >
               <Grid3X3 size={16} />
-              <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">Question List</span>
+              <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">
+                {language === 'hi' ? 'प्रश्न सूची' : 'Question List'}
+              </span>
             </button>
             <button
               type="button"
@@ -2764,7 +2766,7 @@ export default function LiveQuiz() {
             >
               {bookmarkSaving ? <LoaderCircle size={16} className="animate-spin" /> : <Bookmark size={16} className={responses[question.id]?.marked_for_review ? 'fill-amber-400 text-amber-500' : ''} />}
               <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">
-                {responses[question.id]?.marked_for_review ? 'Marked' : 'Review'}
+                {responses[question.id]?.marked_for_review ? (language === 'hi' ? 'चिह्नित' : 'Marked') : (language === 'hi' ? 'रिव्यू' : 'Review')}
               </span>
             </button>
             <button
@@ -2774,7 +2776,9 @@ export default function LiveQuiz() {
               className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
             >
               {feedbackAction === 'notes' ? <LoaderCircle size={16} className="animate-spin" /> : <FileText size={16} />}
-              <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">Notes</span>
+              <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">
+                {language === 'hi' ? 'नोट्स' : 'Notes'}
+              </span>
             </button>
             <button
               type="button"
@@ -2783,7 +2787,9 @@ export default function LiveQuiz() {
               className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
             >
               {feedbackAction === 'report' ? <LoaderCircle size={16} className="animate-spin" /> : <AlertTriangle size={16} />}
-              <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">Report</span>
+              <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">
+                {language === 'hi' ? 'रिपोर्ट' : 'Report'}
+              </span>
             </button>
           </div>
         </section>
