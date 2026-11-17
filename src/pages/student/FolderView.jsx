@@ -242,26 +242,26 @@ export default function FolderView() {
                 return (
                   <article
                     key={child.id}
-                    className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 transition-all space-y-2"
+                    className="p-3 sm:p-3.5 rounded-xl dark:bg-[#1E293B]/85 bg-white shadow-xs border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 transition-all space-y-1.5"
                   >
                     <Link to={`/folder/${child.id}`} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                          <ContentIcon icon={child.icon_url || child.icon} className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fallback={Folder} />
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                          <ContentIcon icon={child.icon_url || child.icon} className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fallback={Folder} />
                         </div>
                         <div className="min-w-0">
                           <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
                             {child.title}
                           </strong>
-                          <small className="text-sm dark:text-slate-400 text-slate-500 block truncate">
-                            {child.description || `${count} chapters to explore`}
-                          </small>
+                          <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
+                            {child.description || `${count} ${count === 1 ? 'अध्याय' : 'अध्याय'}`}
+                          </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2 shrink-0">
                         <AccessBadge label={childStatus ? 'Coming Soon' : childPricing.amount ? (accessLoading ? 'Checking…' : isChildUnlocked ? 'Purchased' : 'Paid') : 'Free'} />
-                        <ChevronRight size={17} className="text-slate-400 dark:text-slate-500" />
+                        <ChevronRight size={15} className="text-slate-400 dark:text-slate-500" />
                       </div>
                     </Link>
 
@@ -288,18 +288,18 @@ export default function FolderView() {
                 return (
                   <article
                     key={chapter.id}
-                    className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 transition-all space-y-2"
+                    className="p-3 sm:p-3.5 rounded-xl dark:bg-[#1E293B]/85 bg-white shadow-xs border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 transition-all space-y-1.5"
                   >
                     <Link to={`/chapter/${chapter.id}`} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                          <BookOpen size={18} />
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-lg dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                          <BookOpen size={16} />
                         </div>
                         <div className="min-w-0">
                           <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
                             {chapter.title}
                           </strong>
-                          <div className="text-sm dark:text-slate-400 text-slate-500 flex items-center gap-2 mt-0.5">
+                          <div className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-500 flex items-center gap-1.5 mt-0.5">
                             <span className="font-semibold text-indigo-600 dark:text-indigo-400">{chapter.subject || 'General'}</span>
                             <span>•</span>
                             <span><Clock3 size={11} className="inline mr-0.5" />{chapter.estimated_study_time_minutes || '—'} min</span>
@@ -309,7 +309,7 @@ export default function FolderView() {
 
                       <div className="flex items-center gap-2 shrink-0">
                         <AccessBadge label={access.amount > 0 ? (accessLoading ? 'Checking…' : isChapterUnlocked ? 'Purchased' : access.label) : access.label} />
-                        <ArrowRight size={16} className="text-slate-400 dark:text-slate-500" />
+                        <ArrowRight size={15} className="text-slate-400 dark:text-slate-500" />
                       </div>
                     </Link>
 

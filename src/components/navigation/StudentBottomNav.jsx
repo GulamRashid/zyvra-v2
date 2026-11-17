@@ -12,7 +12,7 @@ const navItems = [
 ];
 
 export default function StudentBottomNav() {
-  const { t } = useThemeLanguage();
+  const { t, language } = useThemeLanguage();
   const location = useLocation();
 
   // Hide bottom nav during live quiz attempts to prevent distractions
@@ -22,7 +22,7 @@ export default function StudentBottomNav() {
 
   const getLabel = (item) => {
     if (item.key === 'home') return t('home') || 'Home';
-    if (item.key === 'explore') return t('exploreExams') || 'Exams';
+    if (item.key === 'explore') return language === 'hi' ? 'परीक्षाएं' : 'Exams';
     if (item.key === 'tests') return t('tests') || 'Tests';
     if (item.key === 'practice') return t('practice') || 'Practice';
     if (item.key === 'toolbox') return t('toolbox') || 'Toolbox';

@@ -98,10 +98,11 @@ export default function ExamDetail() {
             <div className="syllabus-card-copy">
               <span className="eyebrow">LEARNING SECTION</span>
               <h3>{folder.title}</h3>
-              <p>{folder.description || 'A thoughtfully organised set of topics to guide your preparation.'}</p>
+              {folder.description && <p>{folder.description}</p>}
               <div className="syllabus-card-meta">
-                <span><Folder size={13} /> {counts.folders} subfolders</span>
-                <span><BookOpen size={13} /> {counts.chapters} chapters</span>
+                <span><Folder size={12} /> {counts.folders} {counts.folders === 1 ? 'subfolder' : 'subfolders'}</span>
+                <span>•</span>
+                <span><BookOpen size={12} /> {counts.chapters} {counts.chapters === 1 ? 'chapter' : 'chapters'}</span>
               </div>
             </div>
           </Link>

@@ -311,45 +311,45 @@ export default function TestHub() {
           <div className="space-y-4">
             {/* Overview Hero Card */}
             {exams.length > 0 && (
-              <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-6 sm:p-8 transition-colors">
+              <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-2xl p-3.5 sm:p-5 transition-colors">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 sm:gap-3.5">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl dark:bg-indigo-500/20 bg-indigo-100 border dark:border-indigo-400/30 border-indigo-200 flex items-center justify-center text-xl sm:text-2xl shrink-0">
+                  <div className="flex items-center gap-2.5 sm:gap-3.5">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl dark:bg-indigo-500/20 bg-indigo-100 border dark:border-indigo-400/30 border-indigo-200 flex items-center justify-center text-lg sm:text-xl shrink-0">
                       🎓
                     </div>
                     <div>
-                      <h3 className="text-sm sm:text-lg font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-2">
+                      <h3 className="text-xs sm:text-base font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-1.5 sm:gap-2">
                         <span>{exams[0]?.title} Syllabus Track</span>
-                        <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full dark:bg-indigo-500/20 bg-indigo-100 dark:text-indigo-300 text-indigo-800 border dark:border-indigo-400/30 border-indigo-200">
+                        <span className="text-[9px] sm:text-[10px] uppercase font-bold px-1.5 sm:px-2 py-0.5 rounded-full dark:bg-indigo-500/20 bg-indigo-100 dark:text-indigo-300 text-indigo-800 border dark:border-indigo-400/30 border-indigo-200">
                           Active
                         </span>
                       </h3>
-                      <p className="text-xs dark:text-slate-400 text-slate-600 font-medium mt-0.5">
-                        {folders.length} Subjects/Folders · {chapters.length} Chapters · {tests.length} Tests
+                      <p className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-600 font-medium mt-0.5">
+                        {folders.length} Subjects · {chapters.length} Chapters · {tests.length} Tests
                       </p>
                     </div>
                   </div>
 
                   <Link
                     to={`/explore/${exams[0]?.slug || exams[0]?.id}`}
-                    className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-extrabold text-sm transition-colors shadow-glowIndigo"
+                    className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-bold text-xs transition-colors shadow-glowIndigo"
                   >
                     <span>View Syllabus</span>
-                    <ArrowRight size={14} />
+                    <ArrowRight size={13} />
                   </Link>
                 </div>
 
                 {/* Progress bar */}
-                <div className="mt-3.5 pt-3 border-t dark:border-slate-700/60 border-slate-200">
-                  <div className="flex items-center justify-between text-xs font-semibold mb-1.5">
-                    <span className="dark:text-slate-300 text-slate-700">Overall Track Completion</span>
+                <div className="mt-3 pt-2.5 border-t dark:border-slate-700/60 border-slate-200">
+                  <div className="flex items-center justify-between text-[11px] sm:text-xs font-semibold mb-1">
+                    <span className="dark:text-slate-300 text-slate-700">Track Completion</span>
                     <span className="text-amber-500 dark:text-amber-400 font-bold">
                       {totalQuestionsSum > 0
                         ? `${totalQuestionsSolved} / ${totalQuestionsSum} Solved (${aggregateProgressPct}%)`
                         : `${totalQuestionsSolved} Solved`}
                     </span>
                   </div>
-                  <div className="w-full h-2 dark:bg-slate-700/60 bg-slate-200 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 dark:bg-slate-700/60 bg-slate-200 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-emerald-500 rounded-full transition-all duration-700"
                       style={{ width: `${aggregateProgressPct}%` }}
@@ -371,14 +371,14 @@ export default function TestHub() {
                 {displaySubjects.map((subject) => (
                   <div
                     key={subject.id}
-                    className="p-4 sm:p-6 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 flex flex-col justify-between space-y-3 transition-colors hover:border-indigo-500"
+                    className="p-3.5 sm:p-4.5 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 flex flex-col justify-between space-y-2.5 transition-colors hover:border-indigo-500 shadow-sm"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2.5">
-                        <span className="text-2xl">{subject.icon}</span>
+                        <span className="text-xl sm:text-2xl">{subject.icon}</span>
                         <div>
-                          <h4 className="text-sm font-black dark:text-white text-slate-900">{subject.title}</h4>
-                          <span className="text-sm dark:text-slate-400 text-slate-500">
+                          <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900">{subject.title}</h4>
+                          <span className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-500">
                             {subject.chaptersCount} Chapters · {subject.questionsCount} Questions
                           </span>
                         </div>
@@ -387,16 +387,16 @@ export default function TestHub() {
                       {/* Play Action */}
                       <Link
                         to={subject.firstTestId ? `/quiz/${subject.firstTestId}` : `/folder/${subject.folderId}`}
-                        className="w-10 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white flex items-center justify-center transition-colors shrink-0 shadow-glowIndigo"
+                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white flex items-center justify-center transition-colors shrink-0 shadow-glowIndigo"
                         title="Start Practice"
                       >
-                        <Play size={14} fill="currentColor" className="ml-0.5 text-white" />
+                        <Play size={13} fill="currentColor" className="ml-0.5 text-white" />
                       </Link>
                     </div>
 
                     {/* Progress Bar */}
                     <div>
-                      <div className="flex items-center justify-between text-sm font-bold dark:text-slate-300 text-slate-700 mb-1">
+                      <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold dark:text-slate-300 text-slate-700 mb-1">
                         <span>Solved</span>
                         <span className="text-amber-500 dark:text-amber-400">{subject.progress}%</span>
                       </div>
@@ -516,22 +516,22 @@ export default function TestHub() {
                   return (
                     <div
                       key={test.id}
-                      className="p-4 sm:p-6 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-indigo-500 transition-colors"
+                      className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 hover:border-indigo-500 transition-colors shadow-sm"
                     >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="text-sm font-black dark:text-white text-slate-900">{test.title}</h4>
+                          <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900">{test.title}</h4>
                           {test.is_free ? (
-                            <span className="px-2 py-0.2 rounded text-[9px] font-black dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-600 border dark:border-emerald-500/30 border-emerald-300">
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-600 border dark:border-emerald-500/30 border-emerald-300">
                               FREE
                             </span>
                           ) : (
-                            <span className="px-2 py-0.2 rounded text-[9px] font-black bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
+                            <span className="px-2 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
                               ₹{test.price || 49}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2.5 text-sm dark:text-slate-400 text-slate-600">
+                        <div className="flex items-center gap-2 text-xs dark:text-slate-400 text-slate-600 flex-wrap">
                           <span>⏱️ {test.duration_minutes || 60} mins</span>
                           <span>•</span>
                           <span>❓ {qCount > 0 ? `${qCount} Questions` : 'Question count unavailable'}</span>
@@ -539,7 +539,7 @@ export default function TestHub() {
                             <>
                               <span>•</span>
                               <span className="text-emerald-500 dark:text-emerald-400 font-bold">
-                                Last Score: {completedAttempt.score}/{completedAttempt.total_questions}
+                                Score: {completedAttempt.score}/{completedAttempt.total_questions}
                               </span>
                             </>
                           )}
