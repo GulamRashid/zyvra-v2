@@ -529,16 +529,16 @@ export default function StudentToolbox() {
       <div className="max-w-2xl min-w-0 mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
         {/* Top Header / Breadcrumb */}
         {currentView !== 'main-menu' ? (
-          <div className="flex items-center justify-between gap-3 p-2.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200">
+          <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 min-w-0">
             <button
               type="button"
               onClick={goBack}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl dark:bg-slate-800 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 dark:text-slate-200 text-slate-800 text-xs font-bold transition-colors min-h-[44px]"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl dark:bg-slate-800 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 dark:text-slate-200 text-slate-800 text-xs font-bold transition-colors min-h-[40px] shrink-0"
             >
-              <ArrowLeft size={16} />
-              <span>{currentView === 'active-tool' ? 'Back to Tools' : 'Back to Toolbox'}</span>
+              <ArrowLeft size={15} />
+              <span>{language === 'hi' ? 'वापस' : 'Back'}</span>
             </button>
-            <div className="text-xs font-black dark:text-white text-slate-900 truncate">
+            <div className="text-xs font-black dark:text-white text-slate-900 truncate text-right min-w-0 flex-1">
               {currentToolTitle || currentCategoryTitle}
             </div>
           </div>
@@ -805,7 +805,7 @@ export default function StudentToolbox() {
                       <button
                         type="button"
                         onClick={() => openCategory(category.id)}
-                        className={`toolbox-app-card ${category.color || ''} w-full p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left`}
+                        className={`w-full p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left ${category.color || ''}`}
                       >
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
@@ -892,34 +892,65 @@ export default function StudentToolbox() {
                 const Icon = tool.Icon;
 
                 return (
-                  <div key={tool.id} className="flex min-w-0 items-stretch gap-2">
-                    <button type="button" onClick={() => openTool(tool)} className="toolbox-tool-card min-w-0 flex-1 p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 flex items-center justify-between gap-3 text-left transition-all hover:scale-[1.01] active:scale-[0.99] min-h-[56px]">
-                    <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    key={tool.id}
+                    className="group relative rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/80 transition-all flex items-center justify-between p-3 sm:p-3.5 gap-2.5 min-w-0"
+                  >
+                    {/* Main Clickable Area to open tool */}
+                    <button
+                      type="button"
+                      onClick={() => openTool(tool)}
+                      className="flex items-center gap-3 min-w-0 flex-1 text-left active:scale-[0.99] transition-transform"
+                    >
                       <div className="w-10 h-10 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                         <Icon size={20} />
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
                           {t(tool.titleKey)}
                         </strong>
-                        <small className="text-sm dark:text-slate-400 text-slate-500 line-clamp-1">
+                        <small className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-500 block truncate">
                           {t(tool.subtitleKey)}
                         </small>
                       </div>
-                    </div>
+                    </button>
 
-                    <div className="shrink-0 flex items-center gap-1.5">
+                    {/* Integrated Action Buttons on Right */}
+                    <div className="shrink-0 flex items-center gap-1 sm:gap-2">
                       {locked ? (
-                        <div className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/40 text-[11px] font-black">
+                        <button
+                          type="button"
+                          onClick={() => openTool(tool)}
+                          className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/40 text-[11px] font-black"
+                        >
                           <LockKeyhole size={12} />
                           <span>₹{getToolConfig(tool).price || 49}</span>
-                        </div>
+                        </button>
                       ) : (
-                        <ChevronRight size={18} className="text-slate-400 dark:text-slate-500" />
+                        <button
+                          type="button"
+                          onClick={() => openTool(tool)}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-500 transition-colors"
+                          aria-label="Open tool"
+                        >
+                          <ChevronRight size={18} />
+                        </button>
                       )}
+
+                      {/* Favorite Button Neatly Integrated Inside Card */}
+                      <button
+                        type="button"
+                        onClick={() => toggleFavorite(tool.id)}
+                        aria-label={favorites.includes(tool.id) ? t('tbRemoveFavorite') : t('tbAddFavorite')}
+                        aria-pressed={favorites.includes(tool.id)}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
+                      >
+                        <Heart
+                          size={16}
+                          className={favorites.includes(tool.id) ? 'fill-rose-500 text-rose-500' : 'text-slate-400 dark:text-slate-500'}
+                        />
+                      </button>
                     </div>
-                    </button>
-                    <button type="button" onClick={() => toggleFavorite(tool.id)} aria-label={favorites.includes(tool.id) ? t('tbRemoveFavorite') : t('tbAddFavorite')} aria-pressed={favorites.includes(tool.id)} className="min-h-12 min-w-12 self-center rounded-xl border dark:border-slate-700 border-slate-200 dark:bg-slate-800 bg-white"><Heart size={17} className={`mx-auto ${favorites.includes(tool.id) ? 'fill-rose-500 text-rose-500' : 'text-slate-400'}`} /></button>
                   </div>
                 );
               })}
@@ -949,7 +980,7 @@ export default function StudentToolbox() {
                 onClose={goBack}
               />
             ) : (
-              <div className="rounded-3xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 p-4 sm:p-5">
+              <div className="rounded-3xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 p-3.5 sm:p-5 min-w-0 overflow-hidden">
                 {renderActiveTool()}
               </div>
             )}

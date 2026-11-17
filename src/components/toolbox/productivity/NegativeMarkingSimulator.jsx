@@ -94,18 +94,18 @@ export default function NegativeMarkingSimulator() {
   };
 
   return (
-    <section className="toolbox-section mini-tool space-y-4">
+    <div className="space-y-4 min-w-0">
       {/* Header */}
-      <div className="section-heading flex items-start justify-between gap-2">
-        <div>
-          <div className="eyebrow">
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <div className="min-w-0 flex-1">
+          <div className="text-[10px] font-black uppercase text-amber-500 tracking-wider">
             {isHindi ? 'परीक्षा रणनीति और संभावना विश्लेषक' : 'EXAM STRATEGY & RISK SIMULATOR'}
           </div>
-          <h3 className="text-base sm:text-lg font-black dark:text-white text-slate-900 flex items-center gap-2">
-            <Target size={20} className="text-amber-500" />
-            <span>{isHindi ? 'नेगेटिव मार्किंग व तुक्का रिस्क कैलकुलेटर' : 'Negative Marking & Cutoff Risk Simulator'}</span>
+          <h3 className="text-sm sm:text-lg font-black dark:text-white text-slate-900 flex items-center gap-2 truncate">
+            <Target size={18} className="text-amber-500 shrink-0" />
+            <span className="truncate">{isHindi ? 'नेगेटिव मार्किंग व तुक्का रिस्क कैलकुलेटर' : 'Negative Marking & Cutoff Risk Simulator'}</span>
           </h3>
-          <p className="text-xs text-slate-500 font-medium">
+          <p className="text-[11px] sm:text-xs text-slate-500 font-medium line-clamp-2">
             {isHindi
               ? 'गणितीय संभाव्यता (Expected Value) से जानें कि किन सवालों में रिस्क लेना फायदेमंद है'
               : 'Calculate expected score, cutoff safety margin and elimination odds'}
@@ -114,7 +114,7 @@ export default function NegativeMarkingSimulator() {
         <button
           type="button"
           onClick={resetValues}
-          className="p-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-1 border dark:border-slate-700 border-slate-200"
+          className="p-1.5 sm:p-2 rounded-xl text-xs font-bold text-slate-500 hover:text-slate-800 dark:hover:text-white flex items-center gap-1 border dark:border-slate-700 border-slate-200 shrink-0 min-h-[36px]"
         >
           <RotateCcw size={13} />
           <span>{isHindi ? 'रीसेट' : 'Reset'}</span>
@@ -122,11 +122,11 @@ export default function NegativeMarkingSimulator() {
       </div>
 
       {/* Exam Presets */}
-      <div className="space-y-1.5">
-        <label className="text-xs font-bold dark:text-slate-300 text-slate-700">
+      <div className="space-y-1.5 min-w-0">
+        <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block">
           {isHindi ? 'परीक्षा का चयन करें (Exam Pattern):' : 'Select Exam Pattern:'}
         </label>
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 touch-pan-x">
           {PRESETS.map((preset) => {
             const isSelected = selectedPresetId === preset.id;
             return (
@@ -134,7 +134,7 @@ export default function NegativeMarkingSimulator() {
                 key={preset.id}
                 type="button"
                 onClick={() => applyPreset(preset)}
-                className={`px-3 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all min-h-[44px] flex items-center justify-center ${
+                className={`px-2.5 sm:px-3 py-2 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all min-h-[40px] flex items-center justify-center shrink-0 ${
                   isSelected
                     ? 'bg-indigo-600 text-white shadow-glowIndigo font-black'
                     : 'dark:bg-slate-800 bg-slate-100 dark:text-slate-300 text-slate-700 hover:bg-slate-200'
@@ -148,40 +148,42 @@ export default function NegativeMarkingSimulator() {
       </div>
 
       {/* Target Cutoff & Scheme Configuration Bar */}
-      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 p-2.5 sm:p-3 rounded-2xl dark:bg-slate-800/80 bg-slate-100 border dark:border-slate-700/60 border-slate-200 text-center">
-        <div>
+      <div className="grid grid-cols-3 gap-1 sm:gap-2 p-2 sm:p-2.5 rounded-2xl dark:bg-slate-800/80 bg-slate-100 border dark:border-slate-700/60 border-slate-200 text-center items-center">
+        <div className="min-w-0">
           <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 block uppercase truncate">Marks/Right</span>
           <span className="text-xs sm:text-sm font-black text-emerald-500">+{marksPerQ}</span>
         </div>
-        <div>
+        <div className="min-w-0">
           <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 block uppercase truncate">Penalty/Wrong</span>
           <span className="text-xs sm:text-sm font-black text-rose-500">-{penaltyPerQ.toFixed(2)}</span>
         </div>
-        <div>
+        <div className="min-w-0">
           <span className="text-[9px] sm:text-[10px] font-bold text-slate-500 block uppercase truncate">Target Cutoff</span>
           <input
             type="number"
             value={targetCutoff}
             onChange={(e) => setTargetCutoff(Math.max(0, Number(e.target.value) || 0))}
-            className="w-16 h-8 sm:h-9 mx-auto text-center font-black text-base sm:text-sm rounded-lg border dark:border-slate-700 border-slate-300 bg-white dark:bg-slate-900 outline-none text-amber-500"
+            className="w-12 sm:w-16 h-7 sm:h-8 mx-auto text-center font-black text-xs sm:text-sm rounded-lg border dark:border-slate-700 border-slate-300 bg-white dark:bg-slate-900 outline-none text-amber-500"
           />
         </div>
       </div>
 
       {/* Question Attempt Categories Inputs */}
-      <div className="space-y-3 pt-1">
+      <div className="space-y-2.5 pt-1 min-w-0">
         <h4 className="text-xs font-black dark:text-white text-slate-900 uppercase tracking-wider">
           {isHindi ? 'आपके प्रश्नों का विभाजन (Questions Breakdown):' : 'Attempt Breakdown by Confidence:'}
         </h4>
 
         {/* 1. 100% Sure Questions */}
-        <div className="p-3.5 rounded-2xl border dark:border-emerald-500/30 border-emerald-200 dark:bg-emerald-950/20 bg-emerald-50/60 space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 size={15} />
-              <span>{isHindi ? '100% पक्के सवाल (Sure Questions)' : '100% Confident (Sure Answers)'}</span>
+        <div className="p-3 sm:p-3.5 rounded-2xl border dark:border-emerald-500/30 border-emerald-200 dark:bg-emerald-950/20 bg-emerald-50/60 space-y-2 min-w-0">
+          <div className="flex items-center justify-between text-xs font-bold gap-2 min-w-0">
+            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 min-w-0 flex-1">
+              <CheckCircle2 size={15} className="shrink-0" />
+              <span className="truncate">{isHindi ? '100% पक्के सवाल' : '100% Confident (Sure)'}</span>
             </span>
-            <strong className="text-sm font-black">{sureCount} Qs</strong>
+            <span className="text-xs sm:text-sm font-black shrink-0 px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+              {sureCount} Qs
+            </span>
           </div>
           <input
             type="range"
@@ -198,13 +200,15 @@ export default function NegativeMarkingSimulator() {
         </div>
 
         {/* 2. 50-50 Elimination (2 Options Eliminated) */}
-        <div className="p-3.5 rounded-2xl border dark:border-indigo-500/30 border-indigo-200 dark:bg-indigo-950/20 bg-indigo-50/60 space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
-              <Zap size={15} />
-              <span>{isHindi ? '50-50 एलिमिनेशन (2 विकल्प हटा दिए)' : '50-50 Elimination (2 Options Eliminated)'}</span>
+        <div className="p-3 sm:p-3.5 rounded-2xl border dark:border-indigo-500/30 border-indigo-200 dark:bg-indigo-950/20 bg-indigo-50/60 space-y-2 min-w-0">
+          <div className="flex items-center justify-between text-xs font-bold gap-2 min-w-0">
+            <span className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400 min-w-0 flex-1">
+              <Zap size={15} className="shrink-0" />
+              <span className="truncate">{isHindi ? '50-50 एलिमिनेशन (2 विकल्प हटा दिए)' : '50-50 Elimination'}</span>
             </span>
-            <strong className="text-sm font-black">{fiftyFiftyCount} Qs</strong>
+            <span className="text-xs sm:text-sm font-black shrink-0 px-2 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30">
+              {fiftyFiftyCount} Qs
+            </span>
           </div>
           <input
             type="range"
@@ -215,21 +219,23 @@ export default function NegativeMarkingSimulator() {
             className="w-full accent-indigo-500 cursor-pointer"
           />
           <div className="flex justify-between text-[10px] text-slate-500 font-medium">
-            <span>Probability: 50%</span>
+            <span>Prob: 50%</span>
             <span className={results.evFifty >= 0 ? 'text-emerald-500 font-bold' : 'text-rose-500'}>
-              Expected Gain: {results.evFifty >= 0 ? `+${results.evFifty.toFixed(2)}` : results.evFifty.toFixed(2)} marks
+              Gain: {results.evFifty >= 0 ? `+${results.evFifty.toFixed(2)}` : results.evFifty.toFixed(2)} marks
             </span>
           </div>
         </div>
 
         {/* 3. 1 Option Eliminated (3 Options Remaining) */}
-        <div className="p-3.5 rounded-2xl border dark:border-amber-500/30 border-amber-200 dark:bg-amber-950/20 bg-amber-50/60 space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-              <HelpCircle size={15} />
-              <span>{isHindi ? '1 विकल्प एलिमिनेट (3 में से अनुमान)' : '1 Option Eliminated (3 Choices Left)'}</span>
+        <div className="p-3 sm:p-3.5 rounded-2xl border dark:border-amber-500/30 border-amber-200 dark:bg-amber-950/20 bg-amber-50/60 space-y-2 min-w-0">
+          <div className="flex items-center justify-between text-xs font-bold gap-2 min-w-0">
+            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 min-w-0 flex-1">
+              <HelpCircle size={15} className="shrink-0" />
+              <span className="truncate">{isHindi ? '1 विकल्प एलिमिनेट (3 बचे)' : '1 Option Eliminated'}</span>
             </span>
-            <strong className="text-sm font-black">{oneEliminatedCount} Qs</strong>
+            <span className="text-xs sm:text-sm font-black shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+              {oneEliminatedCount} Qs
+            </span>
           </div>
           <input
             type="range"
@@ -240,21 +246,23 @@ export default function NegativeMarkingSimulator() {
             className="w-full accent-amber-500 cursor-pointer"
           />
           <div className="flex justify-between text-[10px] text-slate-500 font-medium">
-            <span>Probability: 33.3%</span>
+            <span>Prob: 33.3%</span>
             <span className={results.evOne >= 0 ? 'text-emerald-500 font-bold' : 'text-rose-500'}>
-              Expected Gain: {results.evOne >= 0 ? `+${results.evOne.toFixed(2)}` : results.evOne.toFixed(2)} marks
+              Gain: {results.evOne >= 0 ? `+${results.evOne.toFixed(2)}` : results.evOne.toFixed(2)} marks
             </span>
           </div>
         </div>
 
         {/* 4. Pure Wild Guess / Blind Luck */}
-        <div className="p-3.5 rounded-2xl border dark:border-rose-500/30 border-rose-200 dark:bg-rose-950/20 bg-rose-50/60 space-y-2">
-          <div className="flex items-center justify-between text-xs font-bold">
-            <span className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
-              <AlertTriangle size={15} />
-              <span>{isHindi ? 'अंधा तुक्का (कोई विकल्प नहीं हटा)' : 'Blind Guess (Wild / 4 Choices)'}</span>
+        <div className="p-3 sm:p-3.5 rounded-2xl border dark:border-rose-500/30 border-rose-200 dark:bg-rose-950/20 bg-rose-50/60 space-y-2 min-w-0">
+          <div className="flex items-center justify-between text-xs font-bold gap-2 min-w-0">
+            <span className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 min-w-0 flex-1">
+              <AlertTriangle size={15} className="shrink-0" />
+              <span className="truncate">{isHindi ? 'अंधा तुक्का (कोई विकल्प नहीं हटा)' : 'Blind Guess (Wild)'}</span>
             </span>
-            <strong className="text-sm font-black">{blindGuessCount} Qs</strong>
+            <span className="text-xs sm:text-sm font-black shrink-0 px-2 py-0.5 rounded-lg bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+              {blindGuessCount} Qs
+            </span>
           </div>
           <input
             type="range"
@@ -265,9 +273,9 @@ export default function NegativeMarkingSimulator() {
             className="w-full accent-rose-500 cursor-pointer"
           />
           <div className="flex justify-between text-[10px] text-slate-500 font-medium">
-            <span>Probability: 25%</span>
+            <span>Prob: 25%</span>
             <span className={results.evBlind >= 0 ? 'text-slate-500 font-bold' : 'text-rose-500 font-black'}>
-              Expected Net: {results.evBlind.toFixed(2)} marks (High Risk!)
+              Expected: {results.evBlind.toFixed(2)} marks
             </span>
           </div>
         </div>
@@ -373,6 +381,6 @@ export default function NegativeMarkingSimulator() {
           </p>
         </div>
       </div>
-    </section>
+    </div>
   );
 }

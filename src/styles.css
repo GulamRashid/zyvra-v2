@@ -1481,6 +1481,13 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
 .math-block-inline .katex-display { margin: .25em 0; overflow-x: auto; overflow-y: hidden; }
 .math-render-error { color: var(--danger, #b91c1c); font-family: monospace; font-size: .9em; }
 .toolbox-page .page-heading h1 { font-size: clamp(24px, 2.5vw, 32px); }
+.toolbox-page .toolbox-section {
+  display: block;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
 .toolbox-section { display: grid; gap: 11px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
 .toolbox-section .section-heading { margin: 0; }
 .toolbox-section .section-heading h2 { font-size: 15px; }
