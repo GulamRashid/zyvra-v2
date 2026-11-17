@@ -26,7 +26,7 @@ function normalizeValue(key, value, fallback) {
   if (key === 'sticky-notes') return Array.isArray(value) ? value.filter((item) => item && typeof item === 'object' && !Array.isArray(item) && typeof item.id === 'string').slice(0, 100).map((item) => ({ id: item.id.slice(0, 80), title: String(item.title || '').slice(0, 160), content: String(item.content || '').slice(0, 2000), date: String(item.date || '').slice(0, 40) })) : fallback;
   if (key === 'daily-targets') return Array.isArray(value) ? value.filter((item) => item && typeof item === 'object' && !Array.isArray(item) && typeof item.id === 'string').slice(0, 100).map((item) => ({ id: item.id.slice(0, 80), text: String(item.text || '').slice(0, 200), defaultKey: typeof item.defaultKey === 'string' ? item.defaultKey.slice(0, 50) : undefined, done: item.done === true })) : fallback;
   if (key === 'flashcards') return Array.isArray(value) ? value.filter((item) => item && typeof item === 'object' && !Array.isArray(item) && typeof item.id === 'string').slice(0, 100).map((item) => ({ id: item.id.slice(0, 80), front: String(item.front || '').slice(0, 500), back: String(item.back || '').slice(0, 1000) })) : fallback;
-  if (key === 'mistakes') return Array.isArray(value) ? value.filter((item) => item && typeof item === 'object' && !Array.isArray(item) && typeof item.id === 'string').slice(0, 100).map((item) => ({ id: item.id.slice(0, 80), topic: String(item.topic || '').slice(0, 60), mistake: String(item.mistake || '').slice(0, 500), correctAnswer: String(item.correctAnswer || '').slice(0, 500), nextReview: /^\d{4}-\d{2}-\d{2}$/.test(String(item.nextReview || '')) ? item.nextReview : '', reviewCount: Math.min(1000, Math.max(0, Math.floor(Number(item.reviewCount) || 0))), createdAt: String(item.createdAt || '').slice(0, 40) })) : fallback;
+  if (key === 'mistakes') return Array.isArray(value) ? value.filter((item) => item && typeof item === 'object' && !Array.isArray(item) && typeof item.id === 'string').slice(0, 200).map((item) => ({ id: item.id.slice(0, 80), questionId: item.questionId ? String(item.questionId).slice(0, 80) : undefined, testTitle: item.testTitle ? String(item.testTitle).slice(0, 100) : undefined, topic: String(item.topic || '').slice(0, 80), mistake: String(item.mistake || '').slice(0, 600), correctAnswer: String(item.correctAnswer || '').slice(0, 600), nextReview: /^\d{4}-\d{2}-\d{2}$/.test(String(item.nextReview || '')) ? item.nextReview : '', reviewCount: Math.min(1000, Math.max(0, Math.floor(Number(item.reviewCount) || 0))), createdAt: String(item.createdAt || '').slice(0, 40) })) : fallback;
   if (key === 'exam-countdown') {
     if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback;
     return { title: String(value.title || '').slice(0, 60), date: /^\d{4}-\d{2}-\d{2}$/.test(String(value.date || '')) ? value.date : '' };
@@ -62,9 +62,18 @@ export default function useStudentToolboxData(key, fallback) {
 
   useEffect(() => {
     const retryWhenOnline = () => setRetryNonce((current) => current + 1);
+    const onMistakesUpdated = (e) => {
+      if (key === 'mistakes' && e?.detail?.mistakes) {
+        setValue(normalizeValue('mistakes', e.detail.mistakes, fallbackRef.current));
+      }
+    };
     window.addEventListener('online', retryWhenOnline);
-    return () => window.removeEventListener('online', retryWhenOnline);
-  }, []);
+    window.addEventListener('zyvra:mistakes-updated', onMistakesUpdated);
+    return () => {
+      window.removeEventListener('online', retryWhenOnline);
+      window.removeEventListener('zyvra:mistakes-updated', onMistakesUpdated);
+    };
+  }, [key]);
 
   useEffect(() => {
     const requestId = ++generation.current;

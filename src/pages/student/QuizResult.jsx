@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle, ArrowLeft, ArrowRight, BarChart3, Bookmark, BookOpen,
   Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
-  CircleX, Filter, Lightbulb, MinusCircle, RotateCcw, Share2, Target, Trophy
+  CircleX, Filter, Lightbulb, MinusCircle, Plus, RotateCcw, Share2, Target, Trophy
 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -10,6 +10,7 @@ import QuestionFormatter from '../../components/common/QuestionFormatter';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
+import { readMistakesLocal, saveMistakeToNotebook } from '../../lib/studentToolbox';
 import {
   getOptionEntries,
   normalizeCorrectAnswer,
@@ -93,6 +94,72 @@ export default function QuizResult() {
   // Peer Benchmarking Stats
   const [peerStats, setPeerStats] = useState(null);
   const [loadingPeerStats, setLoadingPeerStats] = useState(false);
+
+  // Mistake Notebook Sync State
+  const [mistakeSavedIds, setMistakeSavedIds] = useState(() => {
+    try {
+      const list = readMistakesLocal(user?.id);
+      return new Set(list.map((item) => String(item.questionId || item.id)));
+    } catch {
+      return new Set();
+    }
+  });
+  const [toastMessage, setToastMessage] = useState(null);
+
+  useEffect(() => {
+    if (!toastMessage) return undefined;
+    const timer = setTimeout(() => setToastMessage(null), 3500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
+
+  const handleSaveToMistakeNotebook = async (question, currentParsed, chosenKey, correctKey, isCorrect) => {
+    const qId = String(question.id || currentSolution?.question_id || `q-${currentSolutionIndex}`);
+    const options = getOptionEntries(question.options);
+    const correctOptObj = options.find(([k]) => k === correctKey);
+    const chosenOptObj = options.find(([k]) => k === chosenKey);
+    const correctText = correctOptObj
+      ? (language === 'hi' ? getStoredHindi(correctOptObj[1]) || getLocalizedEnglish(correctOptObj[1]) : getLocalizedEnglish(correctOptObj[1]))
+      : '';
+    const chosenText = chosenOptObj
+      ? (language === 'hi' ? getStoredHindi(chosenOptObj[1]) || getLocalizedEnglish(chosenOptObj[1]) : getLocalizedEnglish(chosenOptObj[1]))
+      : '';
+
+    const qText = language === 'hi'
+      ? (question.question_text_hi || getStoredHindi(question.question_text) || question.text_hi || question.text || '')
+      : (question.question_text_en || getLocalizedEnglish(question.question_text) || question.text || '');
+
+    const mistakeDesc = chosenKey
+      ? `Selected: Option ${chosenKey} ("${String(chosenText).slice(0, 80)}")\nQ: ${String(qText).slice(0, 200)}`
+      : `Question Skipped / Not Attempted\nQ: ${String(qText).slice(0, 200)}`;
+
+    const correctDesc = `Correct: Option ${correctKey} ("${String(correctText).slice(0, 80)}")\n${(currentParsed?.mainExplanation || '').slice(0, 250)}`;
+
+    const res = await saveMistakeToNotebook({
+      userId: user?.id,
+      topic: question.subject || result?.title || 'Exam Revision',
+      mistake: mistakeDesc,
+      correctAnswer: correctDesc,
+      questionId: qId,
+      testTitle: result?.title || result?.test_title || 'Mock Test'
+    });
+
+    if (res.limitReached) {
+      setToastMessage({
+        type: 'warning',
+        text: language === 'hi'
+          ? 'मुफ्त सीमा समाप्त (5/5)। असीमित टेस्ट गलतियां सहेजने के लिए Toolbox में Pro अनलॉक करें!'
+          : 'Free Limit Reached (5/5). Unlock Pro in Toolbox for unlimited mistake saves!'
+      });
+    } else {
+      setMistakeSavedIds((prev) => new Set([...prev, qId]));
+      setToastMessage({
+        type: 'success',
+        text: language === 'hi'
+          ? '✓ गलती नोटबुक में जोड़ा गया! अंतराल पर दोहराने के लिए तैयार।'
+          : '✓ Saved to Mistake Notebook for Spaced Repetition!'
+      });
+    }
+  };
 
   // Load Attempt Result from Supabase RPC
   useEffect(() => {
@@ -784,6 +851,8 @@ export default function QuizResult() {
               const chosenKey = Array.isArray(selected) ? selected[0] : selected;
               const hasSelection = Boolean(chosenKey);
               const isCorrect = currentSolution.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
+              const qId = String(question.id || currentSolution?.question_id || `q-${currentSolutionIndex}`);
+              const isSavedInMistakes = mistakeSavedIds.has(qId);
 
               const qEn = question.question_text_en || getLocalizedEnglish(question.question_text) || question.text || '';
               const qHi = question.question_text_hi || getStoredHindi(question.question_text) || question.text_hi || '';
@@ -875,6 +944,46 @@ export default function QuizResult() {
                         <span className="text-slate-400">Not Attempted</span>
                       )}
                     </div>
+                  </div>
+
+                  {/* 1-Click Mistake Notebook Action Bar */}
+                  <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-indigo-950/40 bg-indigo-50/80 border dark:border-indigo-500/30 border-indigo-200/80 flex items-center justify-between gap-3 shadow-xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-xl shrink-0">📓</span>
+                      <div className="min-w-0">
+                        <strong className="block text-xs sm:text-sm font-bold dark:text-indigo-200 text-indigo-950 truncate">
+                          {language === 'hi' ? 'गलती नोटबुक (Mistake Vault)' : 'Mistake Notebook Revision'}
+                        </strong>
+                        <span className="text-[11px] dark:text-slate-400 text-slate-600 block truncate">
+                          {language === 'hi'
+                            ? 'इस सवाल को अंतराल पर दोहराने (Spaced Repetition) के लिए सहेजें'
+                            : 'Save this question to revise at smart intervals'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => handleSaveToMistakeNotebook(question, currentParsed, chosenKey, correctKey, isCorrect)}
+                      disabled={isSavedInMistakes}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 min-h-[38px] ${
+                        isSavedInMistakes
+                          ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 cursor-default'
+                          : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-glowIndigo active:scale-95'
+                      }`}
+                    >
+                      {isSavedInMistakes ? (
+                        <>
+                          <Check size={14} strokeWidth={3} />
+                          <span>{language === 'hi' ? 'सहेजा गया' : 'Saved'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <Plus size={14} strokeWidth={3} />
+                          <span>{language === 'hi' ? 'नोटबुक में जोड़ें' : 'Save to Mistakes'}</span>
+                        </>
+                      )}
+                    </button>
                   </div>
 
                   {/* Structured Explanation Box (Matching Mockup 1794580723887.png) */}
@@ -1105,6 +1214,21 @@ export default function QuizResult() {
           </div>
         )}
       </div>
+
+      {/* Floating Action Toast Notification */}
+      {toastMessage && (
+        <aside
+          aria-live="polite"
+          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs sm:text-sm font-bold border transition-all animate-bounce ${
+            toastMessage.type === 'warning'
+              ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-glowGold'
+              : 'bg-emerald-600 text-white border-emerald-400 shadow-glowGreen'
+          }`}
+        >
+          {toastMessage.type === 'warning' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+          <span>{toastMessage.text}</span>
+        </aside>
+      )}
     </div>
   );
 }

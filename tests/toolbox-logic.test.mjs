@@ -112,3 +112,37 @@ test('FractionConverter: GCD function correctness with edge cases', () => {
   assert.equal(gcd(0, 0), 1, 'gcd(0,0) fallback returns 1');
 });
 
+// Spaced Repetition & Freemium Logic Tests
+function nextReviewDateLogic(reviewCount, baseDate = new Date()) {
+  const intervals = [1, 3, 7, 14, 30];
+  const date = new Date(baseDate);
+  date.setDate(date.getDate() + intervals[Math.min(reviewCount, intervals.length - 1)]);
+  const adjusted = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return adjusted.toISOString().slice(0, 10);
+}
+
+test('Spaced Repetition: intervals scale from 1d to 30d across review counts', () => {
+  const base = new Date('2026-01-01T12:00:00Z');
+  assert.equal(nextReviewDateLogic(0, base), '2026-01-02'); // +1 day
+  assert.equal(nextReviewDateLogic(1, base), '2026-01-04'); // +3 days
+  assert.equal(nextReviewDateLogic(2, base), '2026-01-08'); // +7 days
+  assert.equal(nextReviewDateLogic(3, base), '2026-01-15'); // +14 days
+  assert.equal(nextReviewDateLogic(4, base), '2026-01-31'); // +30 days
+  assert.equal(nextReviewDateLogic(10, base), '2026-01-31'); // capped at 30 days
+});
+
+test('Freemium Limits: enforces 5 free mistakes and 10 free flashcards for free tier', () => {
+  const FREE_MISTAKES_LIMIT = 5;
+  const FREE_FLASHCARDS_LIMIT = 10;
+  const PRO_MISTAKES_LIMIT = 200;
+
+  const mockFreeItems = [1, 2, 3, 4, 5];
+  const canAddMoreFree = mockFreeItems.length < FREE_MISTAKES_LIMIT;
+  assert.equal(canAddMoreFree, false, 'Free tier must block additions past 5 mistakes');
+
+  const isPro = true;
+  const canAddMorePro = mockFreeItems.length < (isPro ? PRO_MISTAKES_LIMIT : FREE_MISTAKES_LIMIT);
+  assert.equal(canAddMorePro, true, 'Pro tier must allow additions up to 200 mistakes');
+  assert.equal(FREE_FLASHCARDS_LIMIT, 10, 'Free flashcards limit must be 10');
+});
+

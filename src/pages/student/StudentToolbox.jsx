@@ -42,34 +42,34 @@ const CATEGORY_CONFIG = [
 
 const CATEGORY_TOOLS = {
   math: [
-    { id: 'calculator', titleKey: 'tbCalculator', subtitleKey: 'tbCalculatorDesc', Icon: Calculator, accessKey: 'math-shortcuts' },
-    { id: 'fraction-converter', titleKey: 'tbFraction', subtitleKey: 'tbFractionDesc', Icon: Percent, accessKey: 'math-shortcuts' },
-    { id: 'powers-roots', titleKey: 'tbSquares', subtitleKey: 'tbSquaresDesc', Icon: Superscript, accessKey: 'math-shortcuts' },
+    { id: 'calculator', titleKey: 'tbCalculator', subtitleKey: 'tbCalculatorDesc', Icon: Calculator, accessKey: null, isFree: true },
+    { id: 'fraction-converter', titleKey: 'tbFraction', subtitleKey: 'tbFractionDesc', Icon: Percent, accessKey: null, isFree: true },
+    { id: 'powers-roots', titleKey: 'tbSquares', subtitleKey: 'tbSquaresDesc', Icon: Superscript, accessKey: null, isFree: true },
     { id: 'geometry-formulas', titleKey: 'tbMathFormulas', subtitleKey: 'tbMathFormulasDesc', Icon: Shapes, accessKey: 'math-shortcuts' },
-    { id: 'unit-converter', titleKey: 'tbUnitConverter', subtitleKey: 'tbUnitConverterDesc', Icon: Scale, accessKey: 'math-shortcuts' },
+    { id: 'unit-converter', titleKey: 'tbUnitConverter', subtitleKey: 'tbUnitConverterDesc', Icon: Scale, accessKey: null, isFree: true },
     { id: 'profit-loss', titleKey: 'tbProfitLoss', subtitleKey: 'tbProfitLossDesc', Icon: TrendingUp, accessKey: 'math-shortcuts' },
     { id: 'interest-calculator', titleKey: 'tbInterest', subtitleKey: 'tbInterestDesc', Icon: Percent, accessKey: 'math-shortcuts' }
   ],
   reasoning: [
-    { id: 'alphabet-positions', titleKey: 'tbAlphabet', subtitleKey: 'tbAlphabetDesc', Icon: Binary, accessKey: 'formula-sheet' },
+    { id: 'alphabet-positions', titleKey: 'tbAlphabet', subtitleKey: 'tbAlphabetDesc', Icon: Binary, accessKey: null, isFree: true },
     { id: 'blood-relations', titleKey: 'tbBlood', subtitleKey: 'tbBloodDesc', Icon: Brain, accessKey: 'formula-sheet' },
-    { id: 'direction-compass', titleKey: 'tbDirectionTool', subtitleKey: 'tbDirectionDesc', Icon: Compass, accessKey: 'formula-sheet' },
-    { id: 'dice-rules', titleKey: 'tbDice', subtitleKey: 'tbDiceDesc', Icon: Dices, accessKey: 'formula-sheet' },
+    { id: 'direction-compass', titleKey: 'tbDirectionTool', subtitleKey: 'tbDirectionDesc', Icon: Compass, accessKey: null, isFree: true },
+    { id: 'dice-rules', titleKey: 'tbDice', subtitleKey: 'tbDiceDesc', Icon: Dices, accessKey: null, isFree: true },
     { id: 'reasoning-formulas', titleKey: 'tbReasoningFormulas', subtitleKey: 'tbReasoningFormulasDesc', Icon: Sigma, accessKey: 'formula-sheet' }
   ],
   productivity: [
-    { id: 'pomodoro', titleKey: 'tbPomodoro', subtitleKey: 'tbPomodoroDesc', Icon: Clock3, accessKey: 'pomodoro' },
-    { id: 'sticky-notes', titleKey: 'tbStickyNotes', subtitleKey: 'tbStickyNotesDesc', Icon: StickyNote, accessKey: 'pomodoro' },
-    { id: 'daily-targets', titleKey: 'tbDailyTargets', subtitleKey: 'tbDailyTargetsDesc', Icon: ListChecks, accessKey: 'pomodoro' },
-    { id: 'exam-countdown', titleKey: 'tbExamCountdown', subtitleKey: 'tbExamCountdownDesc', Icon: CalendarDays, accessKey: 'pomodoro' }
+    { id: 'pomodoro', titleKey: 'tbPomodoro', subtitleKey: 'tbPomodoroDesc', Icon: Clock3, accessKey: null, isFree: true },
+    { id: 'sticky-notes', titleKey: 'tbStickyNotes', subtitleKey: 'tbStickyNotesDesc', Icon: StickyNote, accessKey: null, isFree: true },
+    { id: 'daily-targets', titleKey: 'tbDailyTargets', subtitleKey: 'tbDailyTargetsDesc', Icon: ListChecks, accessKey: null, isFree: true },
+    { id: 'exam-countdown', titleKey: 'tbExamCountdown', subtitleKey: 'tbExamCountdownDesc', Icon: CalendarDays, accessKey: null, isFree: true }
   ],
   'general-studies': [
     { id: 'constitution-articles', titleKey: 'tbConstitution', subtitleKey: 'tbConstitutionDesc', Icon: Landmark, accessKey: 'polity-articles' },
-    { id: 'saved-bookmarks', titleKey: 'tbBookmarks', subtitleKey: 'tbBookmarksDesc', Icon: Bookmark, accessKey: null }
+    { id: 'saved-bookmarks', titleKey: 'tbBookmarks', subtitleKey: 'tbBookmarksDesc', Icon: Bookmark, accessKey: null, isFree: true }
   ],
   revision: [
-    { id: 'flashcards', titleKey: 'tbFlashcards', subtitleKey: 'tbFlashcardsDesc', Icon: BookOpen, accessKey: 'formula-sheet' },
-    { id: 'mistake-notebook', titleKey: 'tbMistakeNotebook', subtitleKey: 'tbMistakeNotebookDesc', Icon: ListChecks, accessKey: 'formula-sheet' }
+    { id: 'flashcards', titleKey: 'tbFlashcards', subtitleKey: 'tbFlashcardsDesc', Icon: BookOpen, accessKey: 'flashcards', isFreemium: true },
+    { id: 'mistake-notebook', titleKey: 'tbMistakeNotebook', subtitleKey: 'tbMistakeNotebookDesc', Icon: ListChecks, accessKey: 'mistake-notebook', isFreemium: true }
   ]
 };
 
@@ -289,12 +289,14 @@ export default function StudentToolbox() {
 
   const getToolConfig = (tool) => toolPricing[tool.id] || (tool.accessKey ? toolPricing[tool.accessKey] : null) || {};
   const isToolLocked = (tool) => {
-    if (!tool.accessKey) return false;
+    if (tool.isFree || !tool.accessKey) return false;
     if (settingsUnavailable) return true;
     if (!toolboxLoaded) return false;
     const specificConfig = toolPricing[tool.id];
     const accessKey = specificConfig ? tool.id : tool.accessKey;
-    return getToolConfig(tool).access_type === 'premium' && !toolAccess[accessKey] && !toolAccess.__combo;
+    const isPaid = getToolConfig(tool).access_type === 'premium';
+    const hasAccess = Boolean(toolAccess[accessKey] || toolAccess[tool.id] || toolAccess[tool.accessKey] || toolAccess.__combo || toolAccess.__full_pass);
+    return isPaid && !hasAccess;
   };
   const isToolVisible = (tool) => !tool.accessKey || visibleTools[tool.accessKey] !== false;
   const openCategory = (categoryId) => {
@@ -306,6 +308,12 @@ export default function StudentToolbox() {
     if (categoryId) setActiveCategory(categoryId);
     setRecentTools((current) => [tool.id, ...current.filter((id) => id !== tool.id)].slice(0, 6));
     if (!toolboxLoaded && tool.accessKey) {
+      setActiveTool(tool.id);
+      setCurrentView('active-tool');
+      return;
+    }
+    // Freemium tools (Mistake Notebook, Flashcards) are openable by all students (up to free limits)
+    if (tool.isFreemium) {
       setActiveTool(tool.id);
       setCurrentView('active-tool');
       return;
@@ -477,8 +485,8 @@ export default function StudentToolbox() {
     if (activeTool === 'sticky-notes') return <StickyNotes />;
     if (activeTool === 'daily-targets') return <DailyTargets />;
     if (activeTool === 'exam-countdown') return <ExamCountdown />;
-    if (activeTool === 'flashcards') return <Flashcards />;
-    if (activeTool === 'mistake-notebook') return <MistakeNotebook />;
+    if (activeTool === 'flashcards') return <Flashcards isPremium={!isToolLocked(currentTool)} onUnlock={() => setUnlockTool(currentTool)} />;
+    if (activeTool === 'mistake-notebook') return <MistakeNotebook isPremium={!isToolLocked(currentTool)} onUnlock={() => setUnlockTool(currentTool)} />;
     if (activeTool === 'reasoning-formulas') return renderReasoningHub();
     if (activeTool === 'saved-bookmarks') return renderBookmarks();
     if (activeTool === 'pomodoro') return <PomodoroTimer
