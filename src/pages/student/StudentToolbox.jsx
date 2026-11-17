@@ -31,6 +31,7 @@ import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 import { normalizeAccessResult } from '../../lib/commerce';
 import { getFriendlyErrorMessage } from '../../lib/errors';
+import { readMistakesLocal } from '../../lib/studentToolbox';
 import useStudentToolboxData from '../../hooks/useStudentToolboxData';
 
 const CATEGORY_CONFIG = [
@@ -130,6 +131,16 @@ export default function StudentToolbox() {
       window.localStorage.setItem(`zyvra-toolbox-recents:${user?.id || 'guest'}`, JSON.stringify(recentTools));
     } catch { /* Keep the current session usable when storage is unavailable. */ }
   }, [favorites, recentTools, user?.id, preferenceOwner]);
+  const todayDateStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+  const [userMistakes, setUserMistakes] = useState(() => readMistakesLocal(user?.id));
+  useEffect(() => {
+    setUserMistakes(readMistakesLocal(user?.id));
+    const onMistakesChange = () => setUserMistakes(readMistakesLocal(user?.id));
+    window.addEventListener('zyvra:mistakes-updated', onMistakesChange);
+    return () => window.removeEventListener('zyvra:mistakes-updated', onMistakesChange);
+  }, [user?.id]);
+  const dueMistakesCount = userMistakes.filter((m) => !m.nextReview || m.nextReview <= todayDateStr).length;
+
   useEffect(() => {
     if (!pomodoro.running) return undefined;
     const timer = window.setInterval(() => setPomodoro((current) => {
@@ -610,6 +621,68 @@ export default function StudentToolbox() {
         {/* ======================================================== */}
         {currentView === 'main-menu' && (
           <div className="space-y-4">
+            {/* Today's Revision Workout Bar (Mobile First Cockpit) */}
+            {!searchText && (
+              <div className="rounded-3xl p-3.5 sm:p-4 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-amber-500/10 border border-indigo-500/25 dark:border-indigo-500/30 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg shrink-0 shadow-glowIndigo">
+                    {dueMistakesCount > 0 ? '⚡' : '🎯'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                        {language === 'hi' ? 'आज का दोहराव सत्र' : "Today's Revision Workout"}
+                      </span>
+                      {dueMistakesCount > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
+                          {dueMistakesCount} {language === 'hi' ? 'बाकी' : 'Due'}
+                        </span>
+                      )}
+                    </div>
+                    <strong className="block text-xs sm:text-sm font-bold dark:text-white text-slate-900 truncate">
+                      {dueMistakesCount > 0
+                        ? language === 'hi'
+                          ? `आज दोहराने के लिए ${dueMistakesCount} गलतियां पेंडिंग हैं`
+                          : `${dueMistakesCount} errors need spaced review today`
+                        : userMistakes.length > 0
+                        ? language === 'hi'
+                          ? 'शाबाश! आज की सभी गलतियां दोहरा ली गई हैं'
+                          : 'All caught up! No mistakes due today'
+                        : language === 'hi'
+                        ? 'मॉक टेस्ट से 1-क्लिक में गलतियां जोड़ें और दोहराएं'
+                        : 'Practice mocks & track your error notebook'}
+                    </strong>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  {dueMistakesCount > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tool = allTools.find((t) => t.id === 'mistake-notebook');
+                        if (tool) openTool(tool);
+                      }}
+                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-glowIndigo flex items-center justify-center gap-1.5 min-h-[44px] active:scale-95 transition-transform"
+                    >
+                      <span>⚡ {language === 'hi' ? '5-मिनट दोहराव शुरू करें' : 'Start 5-Min Recap'}</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const tool = allTools.find((t) => t.id === 'risk-simulator');
+                        if (tool) openTool(tool);
+                      }}
+                      className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 text-slate-800 dark:text-slate-100 font-extrabold text-xs flex items-center justify-center gap-1.5 min-h-[44px] active:scale-95 transition-transform"
+                    >
+                      <span>🎯 {language === 'hi' ? 'रिस्क सिम्युलेटर' : 'Risk Simulator'}</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
             <label className="flex min-h-12 items-center gap-2 rounded-2xl border dark:border-slate-700/60 border-slate-200 dark:bg-[#1E293B]/85 bg-white px-3.5 shadow-sm">
               <Search size={18} className="shrink-0 text-slate-500" />
               <input type="search" value={toolSearch} onChange={(event) => setToolSearch(event.target.value)} placeholder={t('tbSearchTools')} aria-label={t('tbSearchTools')} className="min-w-0 flex-1 bg-transparent py-3 text-base font-semibold outline-none placeholder:text-slate-500" />

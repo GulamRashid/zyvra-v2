@@ -87,7 +87,7 @@ export default function ConstitutionArticles() {
                 setActiveTab(tab.id);
                 setSearchQuery('');
               }}
-              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center gap-1.5 min-h-[40px] ${
+              className={`flex-1 min-w-[85px] sm:min-w-0 py-2.5 px-2.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center gap-1.5 min-h-[44px] ${
                 isSelected
                   ? 'bg-indigo-600 text-white shadow-glowIndigo'
                   : 'dark:text-slate-300 text-slate-700 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
@@ -107,7 +107,7 @@ export default function ConstitutionArticles() {
 
       {/* Search Input */}
       <div className="relative">
-        <label className="flex items-center gap-2 rounded-2xl border dark:border-slate-700/60 border-slate-200 dark:bg-slate-800/60 bg-white px-3.5 py-2.5 shadow-sm">
+        <label className="flex items-center gap-2 rounded-2xl border dark:border-slate-700/60 border-slate-200 dark:bg-slate-800/60 bg-white px-3.5 py-2.5 shadow-sm min-h-[46px]">
           <Search size={16} className="text-slate-400 shrink-0" />
           <input
             type="search"
@@ -122,7 +122,7 @@ export default function ConstitutionArticles() {
                 ? isHindi ? 'केस खोजें (उदा: Kesavananda, Bommai, Privacy)...' : 'Search case (e.g. Kesavananda, Bommai, Privacy)...'
                 : isHindi ? 'अनुसूची खोजें...' : 'Search schedules...'
             }
-            className="w-full bg-transparent text-xs sm:text-sm font-semibold outline-none placeholder:text-slate-400 dark:text-white text-slate-900"
+            className="w-full bg-transparent text-base sm:text-sm font-semibold outline-none placeholder:text-slate-400 dark:text-white text-slate-900"
           />
           {searchQuery && (
             <button

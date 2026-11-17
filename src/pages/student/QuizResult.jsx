@@ -946,8 +946,8 @@ export default function QuizResult() {
                     </div>
                   </div>
 
-                  {/* 1-Click Mistake Notebook Action Bar */}
-                  <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-indigo-950/40 bg-indigo-50/80 border dark:border-indigo-500/30 border-indigo-200/80 flex items-center justify-between gap-3 shadow-xs">
+                  {/* 1-Click Mistake Notebook Action Bar (Mobile First) */}
+                  <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-indigo-950/40 bg-indigo-50/80 border dark:border-indigo-500/30 border-indigo-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="text-xl shrink-0">📓</span>
                       <div className="min-w-0">
@@ -966,7 +966,7 @@ export default function QuizResult() {
                       type="button"
                       onClick={() => handleSaveToMistakeNotebook(question, currentParsed, chosenKey, correctKey, isCorrect)}
                       disabled={isSavedInMistakes}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shrink-0 min-h-[38px] ${
+                      className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shrink-0 min-h-[44px] ${
                         isSavedInMistakes
                           ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 cursor-default'
                           : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-glowIndigo active:scale-95'
