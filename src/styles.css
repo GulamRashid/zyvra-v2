@@ -22,9 +22,21 @@
   --shadow: 0 18px 50px rgba(0, 0, 0, .35);
 }
 
-html, body { font-size: 14px; }
+html {
+  font-size: 14px;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  -webkit-text-size-adjust: 100%;
+}
 
 body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
+  position: relative;
+  touch-action: manipulation;
   background-color: var(--bg);
   background-image: 
     radial-gradient(ellipse 90% 50% at 50% -10%, rgba(79, 70, 229, 0.12), transparent 70%),
@@ -32,6 +44,13 @@ body {
     var(--bg);
   background-attachment: fixed;
   color: var(--text);
+}
+
+#root {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
+  min-height: 100vh;
 }
 
 body.light,
@@ -3697,12 +3716,12 @@ body.light .admin-orders-page .data-table {
 }
 
   .student-page-content {
-    padding-bottom: calc(61px + env(safe-area-inset-bottom) + 24px);
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 16px) !important;
   }
 
   @media (min-width: 761px) {
     .student-page-content {
-      padding-bottom: 32px;
+      padding-bottom: 32px !important;
     }
   }
 

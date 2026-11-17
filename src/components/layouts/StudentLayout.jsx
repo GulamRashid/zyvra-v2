@@ -26,7 +26,7 @@ const sections = [
 export default function StudentLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { profile, profileError, coinBalance, isAdmin, guest, signOut } = useAuth();
-  const { t } = useThemeLanguage();
+  const { t, language, theme } = useThemeLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const assessmentActive = /^\/(?:quiz|test|exams?)(?:\/|$)/i.test(location.pathname);
@@ -85,6 +85,19 @@ export default function StudentLayout() {
             <strong className="text-[var(--text)] text-sm block mt-1">Focus, deliberate practice, results.</strong>
             <span className="text-[var(--muted)] text-sm">Your next session is one tap away.</span>
           </div>
+
+          {/* Quick Preference Controls in Drawer for Mobile Ease */}
+          <div className="flex sm:hidden items-center justify-between p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60 mt-3">
+            <div className="flex items-center gap-2">
+              <LanguageToggle />
+              <span className="text-[11px] text-slate-300 font-semibold">{language === 'hi' ? 'भाषा (Hindi)' : 'Language (EN)'}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
+              <span className="text-[11px] text-slate-300 font-semibold">{theme === 'light' ? 'Light' : 'Dark'}</span>
+            </div>
+          </div>
+
           <div className="sidebar-account flex items-center gap-2.5 pt-3 border-t border-slate-700/60 mt-3">
             <div className="avatar w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-indigo-800 flex items-center justify-center font-bold text-white text-xs shadow-sm">
               {name.slice(0, 1).toUpperCase()}
@@ -125,8 +138,11 @@ export default function StudentLayout() {
             {/* Coin Badge */}
             <CoinBadge balance={coinBalance} />
 
-            <LanguageToggle />
-            <ThemeToggle />
+            {/* Language & Theme - Compact & Hidden on mobile to prevent header overflow */}
+            <div className="hidden sm:flex items-center gap-2">
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
 
             <NavLink
               className="icon-button notification-button relative"

@@ -84,19 +84,21 @@ export default function LandingPage() {
     <div className={`min-h-screen transition-colors duration-200 selection:bg-indigo-500 selection:text-white font-sans relative overflow-x-hidden ${
       isDark ? 'bg-[#070B14] text-slate-100' : 'bg-[#F8FAFC] text-slate-800'
     }`}>
-      {/* Background Glow Orbs */}
-      {isDark ? (
-        <>
-          <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[550px] bg-gradient-to-tr from-indigo-600/15 via-purple-600/10 to-emerald-500/10 blur-[130px] rounded-full pointer-events-none -z-10 animate-landing-glow" />
-          <div className="fixed top-[45%] -left-[200px] w-[500px] h-[500px] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none -z-10" />
-          <div className="fixed top-[65%] -right-[200px] w-[550px] h-[550px] bg-indigo-500/10 blur-[140px] rounded-full pointer-events-none -z-10" />
-        </>
-      ) : (
-        <>
-          <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[900px] h-[450px] bg-gradient-to-tr from-indigo-200/50 via-sky-100/60 to-emerald-100/50 blur-[100px] rounded-full pointer-events-none -z-10" />
-          <div className="fixed top-[40%] -left-[150px] w-[450px] h-[450px] bg-indigo-100/50 blur-[100px] rounded-full pointer-events-none -z-10" />
-        </>
-      )}
+      {/* Background Glow Orbs - Contained strictly to avoid mobile horizontal canvas stretch */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10" aria-hidden="true">
+        {isDark ? (
+          <>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] max-w-[100vw] h-[550px] bg-gradient-to-tr from-indigo-600/15 via-purple-600/10 to-emerald-500/10 blur-[130px] rounded-full animate-landing-glow" />
+            <div className="absolute top-[45%] -left-[100px] sm:-left-[200px] w-[500px] h-[500px] bg-emerald-500/10 blur-[120px] rounded-full" />
+            <div className="absolute top-[65%] -right-[100px] sm:-right-[200px] w-[550px] h-[550px] bg-indigo-500/10 blur-[140px] rounded-full" />
+          </>
+        ) : (
+          <>
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] max-w-[100vw] h-[450px] bg-gradient-to-tr from-indigo-200/50 via-sky-100/60 to-emerald-100/50 blur-[100px] rounded-full" />
+            <div className="absolute top-[40%] -left-[100px] sm:-left-[150px] w-[450px] h-[450px] bg-indigo-100/50 blur-[100px] rounded-full" />
+          </>
+        )}
+      </div>
 
       {/* Decorative Grid Pattern */}
       <div
@@ -138,7 +140,7 @@ export default function LandingPage() {
                   CBT 2.0
                 </span>
               </div>
-              <span className={`text-[10px] font-semibold tracking-wide ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className={`text-[10px] font-semibold tracking-wide hidden sm:block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                 Next-Gen Exam Prep
               </span>
             </div>
@@ -408,7 +410,7 @@ export default function LandingPage() {
             <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-indigo-500/25 via-emerald-500/20 to-purple-500/25 blur-2xl opacity-80 -z-10 animate-landing-glow" />
 
             {/* Showcase Card */}
-            <div className={`relative rounded-3xl border p-5 sm:p-6 space-y-4 backdrop-blur-xl animate-landing-float ${
+            <div className={`relative rounded-3xl border p-4 sm:p-6 space-y-4 backdrop-blur-xl animate-landing-float ${
               isDark
                 ? 'bg-slate-900/95 border-indigo-500/30 shadow-2xl shadow-indigo-950/80 text-white'
                 : 'bg-white/95 border-slate-200/90 shadow-xl shadow-slate-200/80 text-slate-800'
@@ -440,28 +442,28 @@ export default function LandingPage() {
                   <span className="text-[10px] text-emerald-500 font-semibold">142/150 Visited</span>
                 </div>
 
-                <div className="grid grid-cols-5 gap-1.5 text-center text-[10px] font-bold">
-                  <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">
-                    <div className="font-mono text-xs">84</div>
-                    <div className="text-[9px] truncate">Answered</div>
+                <div className="grid grid-cols-5 gap-1 sm:gap-1.5 text-center font-bold">
+                  <div className="p-1 sm:p-1.5 rounded-lg bg-emerald-500/20 text-emerald-500 border border-emerald-500/40">
+                    <div className="font-mono text-[11px] sm:text-xs">84</div>
+                    <div className="text-[8px] sm:text-[9px] truncate">Answered</div>
                   </div>
-                  <div className="p-1.5 rounded-lg bg-purple-500/20 text-purple-500 border border-purple-500/40">
-                    <div className="font-mono text-xs">18</div>
-                    <div className="text-[9px] truncate">Ans & Mark</div>
+                  <div className="p-1 sm:p-1.5 rounded-lg bg-purple-500/20 text-purple-500 border border-purple-500/40">
+                    <div className="font-mono text-[11px] sm:text-xs">18</div>
+                    <div className="text-[8px] sm:text-[9px] truncate">Ans & Mark</div>
                   </div>
-                  <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-500 border border-indigo-500/40">
-                    <div className="font-mono text-xs">6</div>
-                    <div className="text-[9px] truncate">Marked</div>
+                  <div className="p-1 sm:p-1.5 rounded-lg bg-indigo-500/20 text-indigo-500 border border-indigo-500/40">
+                    <div className="font-mono text-[11px] sm:text-xs">6</div>
+                    <div className="text-[8px] sm:text-[9px] truncate">Marked</div>
                   </div>
-                  <div className="p-1.5 rounded-lg bg-rose-500/20 text-rose-500 border border-rose-500/40">
-                    <div className="font-mono text-xs">12</div>
-                    <div className="text-[9px] truncate">Unans</div>
+                  <div className="p-1 sm:p-1.5 rounded-lg bg-rose-500/20 text-rose-500 border border-rose-500/40">
+                    <div className="font-mono text-[11px] sm:text-xs">12</div>
+                    <div className="text-[8px] sm:text-[9px] truncate">Unans</div>
                   </div>
-                  <div className={`p-1.5 rounded-lg border ${
+                  <div className={`p-1 sm:p-1.5 rounded-lg border ${
                     isDark ? 'bg-slate-800 text-slate-400 border-slate-700' : 'bg-slate-100 text-slate-500 border-slate-200'
                   }`}>
-                    <div className="font-mono text-xs">30</div>
-                    <div className="text-[9px] truncate">Not Visit</div>
+                    <div className="font-mono text-[11px] sm:text-xs">30</div>
+                    <div className="text-[8px] sm:text-[9px] truncate">Not Visit</div>
                   </div>
                 </div>
               </div>
@@ -944,7 +946,7 @@ export default function LandingPage() {
             <span className="font-medium">© {new Date().getFullYear()} ZYVRA Prep. All rights reserved.</span>
           </div>
 
-          <div className="flex items-center gap-6 font-semibold">
+          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 font-semibold">
             <Link to="/explore" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>{isHindi ? 'परीक्षाएं' : 'Exams'}</Link>
             <Link to="/tests" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>{isHindi ? 'टेस्ट हब' : 'Tests'}</Link>
             <Link to="/toolbox" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>{isHindi ? 'टूलबॉक्स' : 'Toolbox'}</Link>

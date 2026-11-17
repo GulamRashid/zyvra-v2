@@ -70,7 +70,7 @@ export default function ConstitutionArticles() {
       </div>
 
       {/* Main Mode Tabs */}
-      <div className="flex items-center gap-1.5 p-1 rounded-2xl dark:bg-slate-800/80 bg-slate-100 border dark:border-slate-700/60 border-slate-200 overflow-x-auto no-scrollbar">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 p-1 rounded-2xl dark:bg-slate-800/80 bg-slate-100 border dark:border-slate-700/60 border-slate-200">
         {[
           { id: 'articles', label: isHindi ? 'अनुच्छेद (Articles)' : 'Articles', icon: BookOpen, count: POLITY_ARTICLES.length },
           { id: 'amendments', label: isHindi ? 'संशोधन (Amendments)' : 'Amendments', icon: ScrollText, count: MAJOR_AMENDMENTS.length },
@@ -87,15 +87,15 @@ export default function ConstitutionArticles() {
                 setActiveTab(tab.id);
                 setSearchQuery('');
               }}
-              className={`flex-1 min-w-[85px] sm:min-w-0 py-2.5 px-2.5 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center gap-1.5 min-h-[44px] ${
+              className={`w-full py-2 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all flex items-center justify-center gap-1.5 min-h-[44px] ${
                 isSelected
                   ? 'bg-indigo-600 text-white shadow-glowIndigo'
                   : 'dark:text-slate-300 text-slate-700 hover:bg-slate-200/60 dark:hover:bg-slate-700/60'
               }`}
             >
-              <Icon size={14} />
-              <span>{tab.label}</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+              <Icon size={14} className="shrink-0" />
+              <span className="truncate">{tab.label}</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black shrink-0 ${
                 isSelected ? 'bg-indigo-700 text-white' : 'dark:bg-slate-700 bg-slate-200 text-slate-600 dark:text-slate-300'
               }`}>
                 {tab.count}

@@ -360,37 +360,37 @@ export default function StudentHome() {
           </div>
         )}
         {/* Streak & Today's Goal Glassmorphic Panel (Dopamine Trigger Card) */}
-        <section className="order-0 dark:bg-[#1E293B]/90 bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-6 sm:p-8 transition-colors duration-200 shadow-md">
+        <section className="order-0 dark:bg-[#1E293B]/90 bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-3.5 sm:p-6 lg:p-8 transition-colors duration-200 shadow-md">
           <div className="grid grid-cols-2 divide-x dark:divide-slate-700/50 divide-slate-200">
             {/* Left: Study Streak - Vibrant Orange Trigger */}
-            <div className="flex items-center gap-2.5 sm:gap-3 pr-2 sm:pr-3">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(249,115,22,0.25)]">
-                <Flame className={`w-5 h-5 sm:w-6 sm:h-6 ${streak > 0 ? 'text-orange-500 fill-orange-500 animate-pulse' : 'text-neutral-500'}`} />
+            <div className="flex items-center gap-2 sm:gap-3 pr-1.5 sm:pr-3">
+              <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-2xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(249,115,22,0.25)]">
+                <Flame className={`w-4 h-4 sm:w-6 sm:h-6 ${streak > 0 ? 'text-orange-500 fill-orange-500 animate-pulse' : 'text-neutral-500'}`} />
               </div>
               <div className="min-w-0">
-                <div className="text-lg sm:text-2xl font-black dark:text-orange-400 text-orange-600 tracking-tight flex items-baseline gap-1">
-                  {profileError ? '—' : streak} <span className="text-xs sm:text-sm font-bold dark:text-amber-300 text-amber-700">{language === 'hi' ? 'दिन' : 'Days'}</span>
+                <div className="text-base sm:text-2xl font-black dark:text-orange-400 text-orange-600 tracking-tight flex items-baseline gap-1">
+                  {profileError ? '—' : streak} <span className="text-[11px] sm:text-sm font-bold dark:text-amber-300 text-amber-700">{language === 'hi' ? 'दिन' : 'Days'}</span>
                 </div>
-                <div className="text-xs font-bold dark:text-slate-400 text-slate-500 uppercase tracking-wider truncate">
+                <div className="text-[10px] sm:text-xs font-bold dark:text-slate-400 text-slate-500 uppercase tracking-wider truncate">
                   {language === 'hi' ? 'अध्ययन स्ट्रीक' : 'Study Streak'}
                 </div>
               </div>
             </div>
 
             {/* Right: Today's Goal - Bright Amber Trigger */}
-            <div className="flex items-center justify-between pl-2.5 sm:pl-4">
+            <div className="flex items-center justify-between pl-2 sm:pl-4">
               <div className="min-w-0 pr-1">
-                <div className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
-                  {profileError ? '—' : todayQuestionsSolved} <span className="text-xs dark:text-slate-400 text-slate-500 font-normal">{profileError ? '' : `/ ${dailyTarget}`}</span>
+                <div className="text-base sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
+                  {profileError ? '—' : todayQuestionsSolved} <span className="text-[10px] sm:text-xs dark:text-slate-400 text-slate-500 font-normal">{profileError ? '' : `/ ${dailyTarget}`}</span>
                 </div>
-                <div className="text-xs font-bold dark:text-slate-400 text-slate-500 uppercase tracking-wider truncate">
+                <div className="text-[10px] sm:text-xs font-bold dark:text-slate-400 text-slate-500 uppercase tracking-wider truncate">
                   {language === 'hi' ? 'आज का लक्ष्य' : "Today's Target"}
                 </div>
               </div>
 
               {/* Circular SVG Progress Ring with Bright Amber Accent */}
-              <div className="relative w-11 h-11 sm:w-14 sm:h-14 flex items-center justify-center shrink-0">
-                <svg className="w-11 h-11 sm:w-14 sm:h-14 -rotate-90 transform" viewBox="0 0 56 56">
+              <div className="relative w-10 h-10 sm:w-14 sm:h-14 flex items-center justify-center shrink-0">
+                <svg className="w-10 h-10 sm:w-14 sm:h-14 -rotate-90 transform" viewBox="0 0 56 56">
                   <circle
                     cx="28"
                     cy="28"
@@ -411,7 +411,7 @@ export default function StudentHome() {
                     fill="transparent"
                   />
                 </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-xs font-black dark:text-amber-400 text-amber-600">
+                <div className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-xs font-black dark:text-amber-400 text-amber-600">
                   {profileError ? '—' : `${goalPercent}%`}
                 </div>
               </div>

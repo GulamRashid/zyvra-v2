@@ -119,7 +119,7 @@ export default function Flashcards({ isPremium = false, onUnlock = null }) {
             />
           </div>
           {isLimitReached && (
-            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-2 text-xs">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <span className="text-amber-600 dark:text-amber-300 font-semibold">
                 Free card limit reached (10/10). Upgrade for unlimited active recall cards!
               </span>
@@ -127,7 +127,7 @@ export default function Flashcards({ isPremium = false, onUnlock = null }) {
                 <button
                   type="button"
                   onClick={onUnlock}
-                  className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[11px] shrink-0"
+                  className="w-full sm:w-auto px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shrink-0 text-center"
                 >
                   Upgrade
                 </button>

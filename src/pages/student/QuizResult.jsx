@@ -1219,7 +1219,7 @@ export default function QuizResult() {
       {toastMessage && (
         <aside
           aria-live="polite"
-          className={`fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs sm:text-sm font-bold border transition-all animate-bounce ${
+          className={`fixed bottom-20 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 max-w-sm mx-auto sm:mx-0 z-50 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs sm:text-sm font-bold border transition-all animate-bounce ${
             toastMessage.type === 'warning'
               ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-glowGold'
               : 'bg-emerald-600 text-white border-emerald-400 shadow-glowGreen'

@@ -60,7 +60,7 @@ export default function StudentBottomNav() {
       className="student-bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden dark:bg-[#0B1120]/95 bg-white/95 backdrop-blur-xl border-t dark:border-slate-800 border-slate-200 transition-all duration-300 pb-[env(safe-area-inset-bottom,0px)]"
       aria-label="Student Mobile Navigation"
     >
-      <div className="max-w-xl mx-auto px-1.5 py-1 sm:py-1.5 grid grid-cols-6 gap-0.5 sm:gap-1">
+      <div className="max-w-xl mx-auto px-1 py-1 sm:py-1.5 grid grid-cols-6 gap-0.5 sm:gap-1">
         {navItems.map((item) => {
           const active = isItemActive(item);
           const Icon = item.Icon;
@@ -70,15 +70,15 @@ export default function StudentBottomNav() {
             <NavLink
               key={item.key}
               to={item.to}
-              className={`flex min-h-[50px] flex-col items-center justify-center rounded-xl px-0.5 py-1 text-[10px] sm:text-[11px] font-semibold transition-all touch-manipulation ${
+              className={`flex min-h-[48px] flex-col items-center justify-center rounded-xl px-0.5 py-1 text-[9px] sm:text-[10px] font-semibold transition-all touch-manipulation ${
                 active
                   ? 'bg-indigo-600 text-white shadow-sm font-bold scale-[1.02]'
                   : 'text-slate-500 hover:bg-slate-100 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-indigo-300'
               }`}
               aria-current={active ? 'page' : undefined}
             >
-              <Icon size={18} strokeWidth={active ? 2.3 : 1.8} className="mb-0.5 shrink-0" />
-              <span className="truncate max-w-[58px] leading-tight text-center">{label}</span>
+              <Icon size={17} strokeWidth={active ? 2.3 : 1.8} className="mb-0.5 shrink-0" />
+              <span className="truncate max-w-full leading-tight text-center tracking-tight">{label}</span>
             </NavLink>
           );
         })}
