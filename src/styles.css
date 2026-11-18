@@ -968,7 +968,28 @@ body.light .practice-card { background: linear-gradient(135deg, #EEF2FF, #F8FAFC
 .exam-rail-row.selected { border-color: rgba(228, 184, 95, .18); background: rgba(28, 121, 86, .13); }
 .exam-rail-main { display: flex; min-width: 0; flex: 1; align-items: center; gap: 9px; padding: 5px 0; border: 0; background: transparent; text-align: left; cursor: pointer; }
 .exam-rail-main > svg { flex: 0 0 auto; color: var(--muted); }
-.exam-rail-icon { display: grid; width: 34px; height: 34px; flex: 0 0 auto; place-items: center; border-radius: 9px; background: var(--panel2); color: var(--gold); }
+.exam-rail-icon { display: grid; width: 38px; height: 38px; flex: 0 0 auto; place-items: center; border-radius: 10px; background: var(--panel2); color: var(--gold); overflow: hidden; transition: all .16s ease; }
+.selected-exam-badge { display: inline-grid; width: 38px; height: 38px; flex: 0 0 auto; place-items: center; border-radius: 10px; background: var(--panel2); color: var(--gold); overflow: hidden; vertical-align: middle; }
+.has-image-logo,
+.exam-rail-icon:has(img),
+.selected-exam-badge:has(img),
+.content-entry-icon:has(img) {
+  background: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+  padding: 3px !important;
+}
+.has-image-logo img,
+.has-image-logo .content-icon-img,
+.exam-rail-icon:has(img) img,
+.selected-exam-badge:has(img) img,
+.content-entry-icon:has(img) img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 32px !important;
+  max-height: 32px !important;
+  object-fit: contain !important;
+}
 .exam-rail-copy { display: grid; min-width: 0; flex: 1; gap: 2px; }
 .exam-rail-copy strong { overflow: hidden; color: var(--text); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .exam-rail-copy small { color: var(--muted); font-size: 8px; }

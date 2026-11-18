@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { Upload, Link2, CheckCircle2, AlertCircle, RefreshCw, X } from 'lucide-react';
 import { uploadAsset } from '../../lib/storage';
 import UploadGuide from './UploadGuide';
-import ContentIcon from './ContentIcon';
+import ContentIcon, { isIconUrl } from './ContentIcon';
 
 export default function SvgIconUploader({
   value,
@@ -61,9 +61,9 @@ export default function SvgIconUploader({
 
       <div className="flex items-center gap-3">
         {/* Live Icon Preview */}
-        <div className="w-14 h-14 rounded-2xl dark:bg-[#0F172A] bg-slate-100 border dark:border-slate-700/80 border-slate-300 flex items-center justify-center shrink-0 p-2 shadow-inner relative group">
+        <div className={`w-14 h-14 rounded-2xl ${value && isIconUrl(value) ? 'bg-white border-white/60 shadow-md' : 'dark:bg-[#0F172A] bg-slate-100 dark:border-slate-700/80 border-slate-300'} flex items-center justify-center shrink-0 p-2 shadow-inner relative group transition-colors`}>
           {value ? (
-            <ContentIcon icon={value} className="w-9 h-9 object-contain" />
+            <ContentIcon icon={value} className="w-10 h-10 object-contain" />
           ) : (
             <span className="text-[10px] text-slate-400 font-bold uppercase text-center leading-none">
               No Icon
