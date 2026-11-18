@@ -187,9 +187,17 @@ export default function AuthPage() {
     if (!supabase) { setError(configurationError); return; }
     setBusy(true);
     try {
+      const redirectPath = destination && destination !== '/auth' ? destination : '/';
+      const redirectUrl = `${window.location.origin}${redirectPath}`;
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: `${window.location.origin}${destination}` }
+        options: {
+          redirectTo: redirectUrl,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent'
+          }
+        }
       });
       if (authError) throw authError;
     } catch (authError) {
