@@ -46,7 +46,11 @@ export default function TestHub() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [chapterSearchQuery, setChapterSearchQuery] = useState('');
   const [testFilter, setTestFilter] = useState('all'); // 'all' | 'free' | 'chapter'
+  const [selectedExamId, setSelectedExamId] = useState('all');
+  const [selectedClassId, setSelectedClassId] = useState('all');
+
   const warmQuiz = useCallback(() => {
     prefetchLiveQuiz().catch((error) => console.warn('Unable to prefetch quiz:', error));
   }, []);
@@ -66,9 +70,88 @@ export default function TestHub() {
     };
   }, [warmQuiz]);
 
-  // Chapter & Exam lookup maps
-
+  // Chapter, Folder & Exam lookup maps
+  const examById = useMemo(() => new Map(exams.map((e) => [e.id, e])), [exams]);
   const folderById = useMemo(() => new Map(folders.map((f) => [f.id, f])), [folders]);
+  const chapterById = useMemo(() => new Map(chapters.map((c) => [c.id, c])), [chapters]);
+
+  // Top-level folders (classes) for selected exam
+  const availableClassesForExam = useMemo(() => {
+    if (selectedExamId === 'all') return [];
+    return folders.filter((f) => f.exam_id === selectedExamId && !(f.parent_folder_id || f.parent_id));
+  }, [folders, selectedExamId]);
+
+  // Hierarchy Resolver for Chapter
+  const getChapterHierarchy = useCallback((chapter) => {
+    if (!chapter) return { examId: null, classFolderId: null, examTitle: '', classTitle: '', subjectTitle: '', badge: '' };
+    const folder = folderById.get(chapter.folder_id);
+    if (!folder) return { examId: null, classFolderId: null, examTitle: '', classTitle: '', subjectTitle: chapter.subject || '', badge: '' };
+
+    const parent = (folder.parent_folder_id || folder.parent_id)
+      ? folderById.get(folder.parent_folder_id || folder.parent_id)
+      : null;
+
+    const examId = folder.exam_id || parent?.exam_id;
+    const exam = examId ? examById.get(examId) : null;
+
+    if (parent) {
+      const examName = exam?.title || '';
+      const className = parent.title || '';
+      return {
+        examId,
+        classFolderId: parent.id,
+        examTitle: examName,
+        classTitle: className,
+        subjectTitle: folder.title || chapter.subject || '',
+        badge: examName && className ? `${examName} • ${className}` : (examName || className)
+      };
+    }
+
+    const examName = exam?.title || '';
+    const className = folder.title || '';
+    return {
+      examId,
+      classFolderId: folder.id,
+      examTitle: examName,
+      classTitle: className,
+      subjectTitle: chapter.subject || '',
+      badge: examName && className ? `${examName} • ${className}` : (examName || className)
+    };
+  }, [folderById, examById]);
+
+  // Hierarchy Resolver for Test
+  const getTestHierarchy = useCallback((test) => {
+    if (!test) return { badge: '', examId: null, classFolderId: null };
+    if (test.chapter_id) {
+      const ch = chapterById.get(test.chapter_id);
+      if (ch) return getChapterHierarchy(ch);
+    }
+    if (test.folder_id) {
+      const folder = folderById.get(test.folder_id);
+      if (folder) {
+        const parent = (folder.parent_folder_id || folder.parent_id)
+          ? folderById.get(folder.parent_folder_id || folder.parent_id)
+          : null;
+        const examId = folder.exam_id || parent?.exam_id || test.exam_id;
+        const exam = examId ? examById.get(examId) : null;
+        const examName = exam?.title || '';
+        const className = parent?.title || folder.title || '';
+        return {
+          examId,
+          classFolderId: parent?.id || folder.id,
+          badge: examName && className ? `${examName} • ${className}` : (examName || className)
+        };
+      }
+    }
+    if (test.exam_id) {
+      const exam = examById.get(test.exam_id);
+      return {
+        examId: test.exam_id,
+        badge: exam?.title || ''
+      };
+    }
+    return { badge: '', examId: null, classFolderId: null };
+  }, [chapterById, folderById, examById, getChapterHierarchy]);
 
 
   // Fetch tests and user attempts strictly from Supabase
@@ -143,11 +226,28 @@ export default function TestHub() {
     return map;
   }, [userAttempts]);
 
-  // Real Subjects mapped from actual database folders
+  // Real Subjects mapped from actual database folders (filtered by exam & class if selected)
   const displaySubjects = useMemo(() => {
     if (folders.length === 0) return [];
 
-    return folders.map((sf, idx) => {
+    const relevantFolders = folders.filter((sf) => {
+      if (selectedExamId !== 'all') {
+        const parent = (sf.parent_folder_id || sf.parent_id) ? folderById.get(sf.parent_folder_id || sf.parent_id) : null;
+        const examId = sf.exam_id || parent?.exam_id;
+        if (examId !== selectedExamId) return false;
+      }
+      if (selectedClassId !== 'all') {
+        const parentId = sf.parent_folder_id || sf.parent_id;
+        if (sf.id !== selectedClassId && parentId !== selectedClassId) return false;
+      }
+      return true;
+    });
+
+    return relevantFolders.map((sf, idx) => {
+      const parent = (sf.parent_folder_id || sf.parent_id) ? folderById.get(sf.parent_folder_id || sf.parent_id) : null;
+      const exam = sf.exam_id ? examById.get(sf.exam_id) : parent?.exam_id ? examById.get(parent.exam_id) : null;
+      const badge = parent ? `${exam?.title ? exam.title + ' • ' : ''}${parent.title}` : (exam?.title || '');
+
       const subjectChapters = chapters.filter((c) => c.folder_id === sf.id);
       const subjectTests = tests.filter((t) => subjectChapters.some((ch) => ch.id === t.chapter_id) || t.folder_id === sf.id);
 
@@ -165,6 +265,7 @@ export default function TestHub() {
       return {
         id: sf.id,
         title: sf.title,
+        badge,
         icon: idx === 0 ? '📖' : idx === 1 ? '📝' : '🔬',
         chaptersCount: subjectChapters.length,
         testsCount: subjectTests.length,
@@ -175,7 +276,7 @@ export default function TestHub() {
         firstChapterId: subjectChapters[0]?.id || null
       };
     });
-  }, [folders, chapters, tests, questionCounts, userAttempts]);
+  }, [folders, chapters, tests, questionCounts, userAttempts, selectedExamId, selectedClassId, folderById, examById]);
 
   // Total Solved vs Total Questions Real Ratio
   const totalQuestionsSum = useMemo(() => {
@@ -193,14 +294,44 @@ export default function TestHub() {
     ? Math.min(100, Math.round((totalQuestionsSolved / totalQuestionsSum) * 100))
     : 0;
 
-  // Filtered Tests strictly from DB
+  // Filtered Chapters strictly from DB (with Exam, Class, and Search filters)
+  const filteredChapters = useMemo(() => {
+    return chapters.filter((chapter) => {
+      const h = getChapterHierarchy(chapter);
+      if (selectedExamId !== 'all' && h.examId && h.examId !== selectedExamId) {
+        return false;
+      }
+      if (selectedClassId !== 'all' && h.classFolderId && h.classFolderId !== selectedClassId) {
+        return false;
+      }
+      if (chapterSearchQuery.trim()) {
+        const q = chapterSearchQuery.toLowerCase();
+        const matchesTitle = String(chapter.title || '').toLowerCase().includes(q);
+        const matchesSubject = String(h.subjectTitle || '').toLowerCase().includes(q);
+        const matchesClass = String(h.classTitle || '').toLowerCase().includes(q);
+        const matchesExam = String(h.examTitle || '').toLowerCase().includes(q);
+        if (!matchesTitle && !matchesSubject && !matchesClass && !matchesExam) return false;
+      }
+      return true;
+    });
+  }, [chapters, getChapterHierarchy, selectedExamId, selectedClassId, chapterSearchQuery]);
+
+  // Filtered Tests strictly from DB (with Exam, Class, and Search filters)
   const filteredTests = useMemo(() => {
     return tests.filter((test) => {
+      const h = getTestHierarchy(test);
+      if (selectedExamId !== 'all' && h.examId && h.examId !== selectedExamId) {
+        return false;
+      }
+      if (selectedClassId !== 'all' && h.classFolderId && h.classFolderId !== selectedClassId) {
+        return false;
+      }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesTitle = String(test.title || '').toLowerCase().includes(q);
         const matchesDesc = String(test.description || '').toLowerCase().includes(q);
-        if (!matchesTitle && !matchesDesc) return false;
+        const matchesBadge = String(h.badge || '').toLowerCase().includes(q);
+        if (!matchesTitle && !matchesDesc && !matchesBadge) return false;
       }
       if (testFilter === 'free') {
         return test.is_free || !test.price;
@@ -210,7 +341,7 @@ export default function TestHub() {
       }
       return true;
     });
-  }, [tests, searchQuery, testFilter]);
+  }, [tests, getTestHierarchy, selectedExamId, selectedClassId, searchQuery, testFilter]);
 
   return (
     <div className="min-h-screen dark:bg-[#0B1120] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 transition-colors duration-200 overflow-x-hidden">
@@ -249,6 +380,73 @@ export default function TestHub() {
             </button>
           </div>
         )}
+        {/* Exam & Class Selection Bar */}
+        {exams.length > 0 && (
+          <div className="space-y-2 p-2.5 sm:p-3 rounded-2xl dark:bg-[#1E293B]/70 bg-white/80 border dark:border-slate-700/60 border-slate-200/80 backdrop-blur-md shadow-xs">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+              <button
+                type="button"
+                onClick={() => { setSelectedExamId('all'); setSelectedClassId('all'); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all min-h-[38px] ${
+                  selectedExamId === 'all'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'dark:bg-slate-900/60 bg-slate-100 dark:text-slate-300 text-slate-700 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {language === 'hi' ? '⭐ सभी परीक्षाएं' : '⭐ All Exams'}
+              </button>
+
+              {exams.map((exam) => (
+                <button
+                  key={exam.id}
+                  type="button"
+                  onClick={() => { setSelectedExamId(exam.id); setSelectedClassId('all'); }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black shrink-0 transition-all min-h-[38px] flex items-center gap-1.5 ${
+                    selectedExamId === exam.id
+                      ? 'bg-indigo-600 text-white shadow-sm'
+                      : 'dark:bg-slate-900/60 bg-slate-100 dark:text-slate-300 text-slate-700 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span>{exam.title}</span>
+                </button>
+              ))}
+            </div>
+
+            {availableClassesForExam.length > 0 && (
+              <div className="flex items-center gap-1.5 overflow-x-auto pt-1.5 border-t dark:border-slate-800 border-slate-100 scrollbar-none">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 shrink-0 mr-1">
+                  {language === 'hi' ? 'कक्षा / स्तर:' : 'Class / Level:'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedClassId('all')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition-all ${
+                    selectedClassId === 'all'
+                      ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 font-black'
+                      : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {language === 'hi' ? 'सभी' : 'All'}
+                </button>
+                {availableClassesForExam.map((cls) => (
+                  <button
+                    key={cls.id}
+                    type="button"
+                    onClick={() => setSelectedClassId(cls.id)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold shrink-0 transition-all ${
+                      selectedClassId === cls.id
+                        ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 font-black'
+                        : 'dark:text-slate-400 text-slate-600 hover:text-slate-900 dark:hover:text-white'
+                    }`}
+                  >
+                    {cls.title}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Navigation Tabs (Subjects | Chapters | Tests | Custom) */}
         <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/90 bg-white border dark:border-slate-700/60 border-slate-200 backdrop-blur-md overflow-x-auto shadow-sm">
           <button
@@ -377,6 +575,11 @@ export default function TestHub() {
                       <div className="flex items-center gap-2.5">
                         <span className="text-xl sm:text-2xl">{subject.icon}</span>
                         <div>
+                          {subject.badge && (
+                            <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 mb-1">
+                              {subject.badge}
+                            </span>
+                          )}
                           <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900">{subject.title}</h4>
                           <span className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-500">
                             {subject.chaptersCount} Chapters · {subject.questionsCount} Questions
@@ -419,30 +622,55 @@ export default function TestHub() {
         {/* ======================================================== */}
         {activeTab === 'chapters' && (
           <div className="space-y-3">
+            {/* Search Input for Chapters */}
+            <div className="relative w-full">
+              <Search size={14} className="absolute left-3 top-3 dark:text-slate-400 text-slate-400" />
+              <input
+                type="text"
+                placeholder={language === 'hi' ? 'अध्याय, विषय या कक्षा खोजें (उदा. Science, Class 6)...' : 'Search chapters, subjects or classes...'}
+                value={chapterSearchQuery}
+                onChange={(e) => setChapterSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 rounded-xl dark:bg-slate-900 bg-white border dark:border-slate-700/60 border-slate-300 dark:text-white text-slate-900 text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 min-h-[44px]"
+              />
+            </div>
+
             {catalogLoading ? (
               <LoadingSkeleton count={4} />
-            ) : chapters.length === 0 ? (
+            ) : filteredChapters.length === 0 ? (
               <div className="p-8 text-center text-sm dark:text-slate-400 text-slate-500 dark:bg-[#1E293B] bg-white rounded-3xl border dark:border-slate-700/60 border-slate-200">
-                <p>No chapters are available yet. Check back soon for new study content.</p>
+                <p>{language === 'hi' ? 'कोई अध्याय नहीं मिला। कृपया फ़िल्टर बदलें।' : 'No chapters match your selection. Try clearing filters.'}</p>
               </div>
             ) : (
-              chapters.map((chapter) => {
-                const parentFolder = folderById.get(chapter.folder_id);
+              filteredChapters.map((chapter) => {
+                const hInfo = getChapterHierarchy(chapter);
                 return (
                   <div
                     key={chapter.id}
                     className="p-3.5 rounded-2xl dark:bg-[#1E293B]/80 bg-white border dark:border-slate-700/60 border-slate-200 flex items-center justify-between gap-3 hover:border-indigo-500 transition-colors shadow-sm"
                   >
-                    <div className="flex items-center gap-3 truncate">
+                    <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-500 dark:text-indigo-400 shrink-0">
                         <BookOpen size={18} />
                       </div>
-                      <div className="truncate">
+                      <div className="min-w-0">
+                        {/* Clear Hierarchy Badge (Exam • Class) */}
+                        <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                          {hInfo.badge && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                              {hInfo.badge}
+                            </span>
+                          )}
+                          {hInfo.subjectTitle && (
+                            <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                              {hInfo.subjectTitle}
+                            </span>
+                          )}
+                        </div>
                         <h4 className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 truncate">
                           {chapter.title}
                         </h4>
-                        <div className="text-sm dark:text-slate-400 text-slate-500 truncate">
-                          {parentFolder?.title || chapter.subject || 'Chapter Practice'} · {chapter.estimated_study_time_minutes || 30} mins
+                        <div className="text-[11px] dark:text-slate-400 text-slate-500 truncate mt-0.5">
+                          ⏱️ {chapter.estimated_study_time_minutes || 30} mins
                         </div>
                       </div>
                     </div>
@@ -451,7 +679,7 @@ export default function TestHub() {
                       to={`/chapter/${chapter.id}`}
                       className="px-3.5 py-1.5 rounded-xl dark:bg-indigo-500/20 bg-indigo-100 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 border dark:border-indigo-400/40 border-indigo-300 dark:text-indigo-300 text-indigo-800 font-bold text-xs shrink-0 transition-colors min-h-[44px] flex items-center"
                     >
-                      Open Chapter
+                      {language === 'hi' ? 'अध्याय खोलें' : 'Open Chapter'}
                     </Link>
                   </div>
                 );
@@ -516,13 +744,19 @@ export default function TestHub() {
                   ));
                   const completedAttempt = attempts.find(isComplete);
                   const qCount = questionCounts[test.id] ?? (Number(test.question_count) || 0);
+                  const hInfo = getTestHierarchy(test);
 
                   return (
                     <div
                       key={test.id}
                       className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 hover:border-indigo-500 transition-colors shadow-sm"
                     >
-                      <div className="space-y-1">
+                      <div className="space-y-1 min-w-0">
+                        {hInfo.badge && (
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                            {hInfo.badge}
+                          </span>
+                        )}
                         <div className="flex items-center gap-2">
                           <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900">{test.title}</h4>
                           {test.is_free ? (
