@@ -297,7 +297,7 @@ export default function AuthPage() {
                 ? (language === 'hi' ? 'अपनी पढ़ाई जारी रखने के लिए लॉगिन करें।' : 'Sign in to continue your learning.')
                 : method === 'recovery'
                 ? (language === 'hi' ? 'ईमेल कोड से अपना पासवर्ड रीसेट करें।' : 'Reset your password securely with an email code.')
-                : (language === 'hi' ? 'ईमेल पर 6-अंकों का सुरक्षित OTP पाएँ (बिना पासवर्ड के)' : 'Enter your email to receive a free 6-digit OTP.')}
+                : (language === 'hi' ? 'नया खाता बनाएं या बिना पासवर्ड के तुरंत लॉगिन करें' : 'Create an account or sign in with Email OTP.')}
             </p>
           </div>
         </div>
@@ -455,11 +455,56 @@ export default function AuthPage() {
               )}
 
               {method === 'otp' && (
-                <p className="field-hint">
-                  {language === 'hi'
-                    ? 'हम आपके ईमेल पर 6-अंकों का कोड भेजेंगे। पासवर्ड की कोई आवश्यकता नहीं है।'
-                    : 'We’ll email you a 6-digit verification code. No password needed.'}
-                </p>
+                <>
+                  <label className="field-label">
+                    <div className="flex justify-between items-center">
+                      <span>{language === 'hi' ? 'पासवर्ड बनाएं' : 'Create a password'}</span>
+                      <span className="optional-label">{language === 'hi' ? 'ऐच्छिक' : 'OPTIONAL'}</span>
+                    </div>
+                    <div className="input-with-icon">
+                      <KeyRound size={17} />
+                      <input
+                        className="text-input"
+                        type={showPassword ? 'text' : 'password'}
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                        minLength={8}
+                        placeholder={language === 'hi' ? 'कम से कम 8 अक्षर (वैकल्पिक)' : 'At least 8 characters (optional)'}
+                        autoComplete="new-password"
+                      />
+                      <button
+                        className="password-eye"
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label="Show or hide password"
+                      >
+                        {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                      </button>
+                    </div>
+                  </label>
+                  {password && (
+                    <label className="field-label">
+                      {language === 'hi' ? 'पासवर्ड की पुष्टि करें' : 'Confirm password'}
+                      <div className="input-with-icon">
+                        <KeyRound size={17} />
+                        <input
+                          className="text-input"
+                          type="password"
+                          value={passwordConfirm}
+                          onChange={(event) => setPasswordConfirm(event.target.value)}
+                          minLength={8}
+                          placeholder={language === 'hi' ? 'पासवर्ड दोबारा लिखें' : 'Enter it again'}
+                          autoComplete="new-password"
+                        />
+                      </div>
+                    </label>
+                  )}
+                  <p className="field-hint">
+                    {language === 'hi'
+                      ? '💡 अभी पासवर्ड सेट कर सकते हैं ताकि अगली बार बिना OTP के लॉगिन कर सकें, या इसे खाली छोड़कर सिर्फ OTP से लॉगिन करें।'
+                      : '💡 Set a password now to sign in directly without OTP next time, or leave blank to always use OTP.'}
+                  </p>
+                </>
               )}
 
               {method === 'recovery' && (
@@ -482,20 +527,38 @@ export default function AuthPage() {
             </form>
 
             {method === 'password' && (
-              <button
-                type="button"
-                className="text-button auth-switch"
-                onClick={() => {
-                  setMethod('recovery');
-                  setPassword('');
-                  setPasswordConfirm('');
-                  setError('');
-                  setMessage('');
-                  if (email.trim()) sendOtp(undefined, 'recovery');
-                }}
-              >
-                {language === 'hi' ? 'पासवर्ड भूल गए? ईमेल से रीसेट करें।' : 'Forgot password? Get a reset code by email.'}
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="text-button auth-switch"
+                  onClick={() => {
+                    setMethod('recovery');
+                    setPassword('');
+                    setPasswordConfirm('');
+                    setError('');
+                    setMessage('');
+                    if (email.trim()) sendOtp(undefined, 'recovery');
+                  }}
+                >
+                  {language === 'hi' ? 'पासवर्ड भूल गए? ईमेल से रीसेट करें।' : 'Forgot password? Get a reset code by email.'}
+                </button>
+                <div style={{ marginTop: '10px', textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    className="text-button"
+                    style={{ fontSize: '11px', color: 'var(--gold)', fontWeight: 600 }}
+                    onClick={() => {
+                      setMethod('otp');
+                      setPassword('');
+                      setPasswordConfirm('');
+                      setError('');
+                      setMessage('');
+                    }}
+                  >
+                    {language === 'hi' ? '✨ नए छात्र हैं? ईमेल OTP से खाता बनाएं →' : '✨ New student? Register with Email OTP →'}
+                  </button>
+                </div>
+              </>
             )}
 
             {method === 'recovery' && (
@@ -526,6 +589,11 @@ export default function AuthPage() {
         <button className="button google-button button-full" onClick={googleAuth} disabled={busy}>
           <span className="google-g">G</span> {language === 'hi' ? 'Google से जारी रखें' : 'Continue with Google'}
         </button>
+        <p style={{ fontSize: '10px', color: 'var(--muted)', textAlign: 'center', marginTop: '6px', marginBottom: '2px' }}>
+          {language === 'hi'
+            ? '⚡ Google से 1-क्लिक में तुरंत लॉगिन या नया खाता बन जाता है (पासवर्ड की ज़रूरत नहीं)।'
+            : '⚡ Register or sign in instantly with 1-click Google account (no password needed).'}
+        </p>
 
         {guestDemoEnabled && (
           <button className="guest-button" onClick={guestEntry}>
