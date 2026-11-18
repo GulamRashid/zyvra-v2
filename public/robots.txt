@@ -1,0 +1,16 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Allow: /explore
+Allow: /auth
+Allow: /privacy
+Allow: /terms
+
+# Disallow private user & admin paths from indexing
+Disallow: /admin
+Disallow: /admin/*
+Disallow: /student
+Disallow: /student/*
+Disallow: /api/*
+
+Sitemap: https://www.zyvra.me/sitemap.xml
