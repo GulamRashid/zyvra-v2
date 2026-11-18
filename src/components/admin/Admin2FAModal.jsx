@@ -33,8 +33,8 @@ export default function Admin2FAModal({ isOpen, onClose }) {
     try {
       const { data, error: factorsErr } = await supabase.auth.mfa.listFactors();
       if (factorsErr) throw factorsErr;
-      const totpList = data?.totp || [];
-      const verified = totpList.find((f) => f.status === 'verified');
+      const allFactors = data?.all || [];
+      const verified = allFactors.find((f) => f.status === 'verified') || (data?.totp || []).find((f) => f.status === 'verified');
       setActiveFactor(verified || null);
     } catch (err) {
       console.error('MFA factor listing error:', err);
@@ -59,24 +59,47 @@ export default function Admin2FAModal({ isOpen, onClose }) {
     setSuccess('');
     setBusy(true);
     try {
-      // First clean up any unverified TOTP factors to avoid factor limit errors
+      // 1. Clean up ALL unverified factors across data.all to prevent limit & name collision errors
       const { data: currentFactors } = await supabase.auth.mfa.listFactors();
-      const unverified = (currentFactors?.totp || []).filter((f) => f.status !== 'verified');
+      const unverified = (currentFactors?.all || []).filter((f) => f.status !== 'verified');
       for (const factor of unverified) {
         await supabase.auth.mfa.unenroll({ factorId: factor.id }).catch(() => {});
       }
 
-      const { data, error: enrollErr } = await supabase.auth.mfa.enroll({
+      // 2. Enroll TOTP factor with a descriptive friendly name
+      const friendlyName = `ZYVRA Authenticator (${new Date().toLocaleDateString('en-GB')})`;
+      let enrollRes = await supabase.auth.mfa.enroll({
         factorType: 'totp',
-        issuer: 'ZYVRA'
+        issuer: 'ZYVRA',
+        friendlyName
       });
-      if (enrollErr) throw enrollErr;
 
-      setEnrollData(data);
+      // 3. Fallback: if duplicate name conflict or limit error occurs, force clean and retry once
+      if (enrollRes.error) {
+        const errMsg = enrollRes.error.message?.toLowerCase() || '';
+        if (errMsg.includes('already exists') || enrollRes.error.code === 'mfa_factor_name_conflict') {
+          const { data: retryFactors } = await supabase.auth.mfa.listFactors();
+          for (const factor of (retryFactors?.all || [])) {
+            if (factor.status !== 'verified') {
+              await supabase.auth.mfa.unenroll({ factorId: factor.id }).catch(() => {});
+            }
+          }
+          enrollRes = await supabase.auth.mfa.enroll({
+            factorType: 'totp',
+            issuer: 'ZYVRA',
+            friendlyName: `ZYVRA-${Date.now()}`
+          });
+        }
+      }
+
+      if (enrollRes.error) throw enrollRes.error;
+
+      setEnrollData(enrollRes.data);
       setEnrolling(true);
       setVerifyCode(Array(6).fill(''));
       setTimeout(() => inputRefs.current[0]?.focus(), 100);
     } catch (err) {
+      console.error('Failed to initialize 2FA enrollment:', err);
       setError(err.message || 'Failed to initialize 2FA enrollment.');
     } finally {
       setBusy(false);
@@ -304,14 +327,39 @@ export default function Admin2FAModal({ isOpen, onClose }) {
             </div>
 
             {/* Crisp White QR Code Container */}
-            <div className="flex flex-col items-center justify-center p-4 bg-white rounded-xl shadow-lg mx-auto w-fit">
-              {enrollData.totp?.qr_code && (
-                <div
-                  className="w-48 h-48 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
-                  dangerouslySetInnerHTML={{ __html: enrollData.totp.qr_code }}
-                />
+            <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl shadow-xl mx-auto w-fit">
+              {enrollData.totp?.qr_code ? (
+                enrollData.totp.qr_code.startsWith('data:') || enrollData.totp.qr_code.startsWith('http') ? (
+                  <img
+                    src={enrollData.totp.qr_code}
+                    alt="ZYVRA 2FA QR Code"
+                    className="w-52 h-52 object-contain select-none"
+                  />
+                ) : (
+                  <div
+                    className="w-52 h-52 flex items-center justify-center [&>svg]:w-full [&>svg]:h-full"
+                    dangerouslySetInnerHTML={{ __html: enrollData.totp.qr_code }}
+                  />
+                )
+              ) : (
+                <div className="w-52 h-52 flex items-center justify-center text-slate-400">
+                  <Loader2 className="animate-spin text-emerald-600" size={32} />
+                </div>
               )}
             </div>
+
+            {/* Mobile quick link to open Google Authenticator directly if on mobile */}
+            {enrollData.totp?.uri && (
+              <div className="text-center sm:hidden">
+                <a
+                  href={enrollData.totp.uri}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 underline"
+                >
+                  <Smartphone size={14} />
+                  <span>{isHi ? 'सीधे Authenticator ऐप में जोड़ें' : 'Open in Authenticator app'}</span>
+                </a>
+              </div>
+            )}
 
             {/* Secret Backup Key */}
             <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-700/60 flex items-center justify-between text-xs font-mono">

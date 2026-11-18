@@ -145,7 +145,9 @@ export default function AuthPage() {
             // User has 2FA enabled! Prompt for 2FA code
             supabase.auth.mfa.listFactors().then(({ data: factors }) => {
               if (!active) return;
-              const totp = factors?.totp?.find((f) => f.status === 'verified') || factors?.totp?.[0];
+              const totp = factors?.totp?.find((f) => f.status === 'verified')
+                || factors?.all?.find((f) => f.status === 'verified')
+                || factors?.totp?.[0];
               if (totp) {
                 setMfaFactorId(totp.id);
                 setStep('mfa');
@@ -385,7 +387,9 @@ export default function AuthPage() {
       const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (aalData?.currentLevel === 'aal1' && aalData?.nextLevel === 'aal2') {
         const { data: factors } = await supabase.auth.mfa.listFactors();
-        const totp = factors?.totp?.find((f) => f.status === 'verified') || factors?.totp?.[0];
+        const totp = factors?.totp?.find((f) => f.status === 'verified')
+          || factors?.all?.find((f) => f.status === 'verified')
+          || factors?.totp?.[0];
         if (totp) {
           setMfaFactorId(totp.id);
           setStep('mfa');
