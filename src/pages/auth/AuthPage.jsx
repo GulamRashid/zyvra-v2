@@ -130,9 +130,11 @@ export default function AuthPage() {
         ? (language === 'hi' ? 'डोमेन ऑथराइजेशन अपडेट हो रहा है। कृपया पेज रीफ्रेश करके पुनः प्रयास करें।' : 'Domain authorization updating. Please refresh and try again.')
         : /quota-exceeded/i.test(msg) || /quota-exceeded/i.test(code)
         ? (language === 'hi' ? 'आज का SMS कोटा पूरा हो गया है। कृपया Google से लॉगिन करें।' : 'SMS quota exceeded for today. Please sign in with Google.')
+        : /operation-not-allowed/i.test(msg) || /operation-not-allowed/i.test(code)
+        ? (language === 'hi' ? 'Phone Auth सक्रिय किया जा रहा है। कृपया 1 मिनट बाद पुनः प्रयास करें।' : 'Phone sign-in is currently being enabled. Please retry in 1 minute.')
         : /captcha/i.test(msg) || /captcha/i.test(code)
         ? (language === 'hi' ? 'reCAPTCHA वेरिफिकेशन पूरा नहीं हुआ। कृपया पेज रीफ्रेश करें।' : 'reCAPTCHA verification incomplete. Please refresh and retry.')
-        : (language === 'hi' ? 'SMS कोड नहीं भेजा जा सका। कृपया दोबारा प्रयास करें।' : 'Could not send SMS code. Check your mobile number and try again.'));
+        : (language === 'hi' ? `SMS कोड नहीं भेजा जा सका (${code || 'error'})। कृपया दोबारा प्रयास करें।` : `Could not send SMS code (${code || 'error'}). Check your mobile number and try again.`));
     } finally {
       setBusy(false);
     }

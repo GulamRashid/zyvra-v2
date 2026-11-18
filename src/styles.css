@@ -2678,8 +2678,8 @@ body.light .test-hub-hero { border-color: rgba(99, 102, 241, .18); background: r
   letter-spacing: 0.05em;
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgba(228, 184, 95, 0.2);
-  color: #fff;
+  background: rgba(228, 184, 95, 0.25);
+  color: var(--text);
   margin-left: 4px;
 }
 .referral-auth-banner small {
