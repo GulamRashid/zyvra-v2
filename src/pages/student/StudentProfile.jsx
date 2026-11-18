@@ -24,6 +24,7 @@ export default function StudentProfile() {
 
   // Edit profile form state
   const [fullName, setFullName] = useState('');
+  const [mobile, setMobile] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [targets, setTargets] = useState([]);
@@ -135,6 +136,7 @@ export default function StudentProfile() {
     if (profile) {
       setFullName(profile.full_name || profile.name || '');
       setAvatarUrl(profile.avatar_url || '');
+      setMobile(profile.mobile || '');
       setTargets(Array.isArray(profile.target_exams) ? profile.target_exams : []);
       setDailyTarget(Number(profile.daily_goal_target || 50));
       if (profile.referral_code) {
@@ -227,7 +229,6 @@ export default function StudentProfile() {
 
   const displayName = fullName || profile?.full_name || profile?.name || user?.user_metadata?.full_name || (guest ? 'Guest Student' : 'Student');
   const displayEmail = user?.email || (guest ? 'guest@zyvra.in' : '');
-  const displayPhone = profile?.mobile || 'Not provided';
   const referralCode = currentReferralCode || profile?.referral_code || '';
   const inviteUrl = referralCode ? `${window.location.origin}/auth?ref=${referralCode}` : `${window.location.origin}/auth`;
   const inviteMessage = `Zyvra par mere saath exams ki taiyari karein! 🚀\nUse my referral code ${referralCode} to get free bonus coins on signup:\n${inviteUrl}`;
@@ -259,22 +260,64 @@ export default function StudentProfile() {
     setSavingProfile(true);
     setProfileFeedback('');
     try {
+      const cleanMobile = mobile ? String(mobile).replace(/\D/g, '').slice(-10) : '';
+      if (cleanMobile && !/^[6-9]\d{9}$/.test(cleanMobile)) {
+        throw new Error('Kripya 10 ankon ka valid Indian mobile number darj karein.');
+      }
+      const trimmedName = String(fullName || '').trim();
+      if (trimmedName.length < 2) {
+        throw new Error('Kripya apna poora naam kam se kam 2 aksharon ka darj karein.');
+      }
+
       if (supabase && user) {
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            full_name: fullName,
-            target_exams: targets,
-            avatar_url: avatarUrl || profile?.avatar_url || null
-          })
-          .eq('id', user.id);
-        if (error) throw error;
-        setProfileFeedback('Profile updated successfully!');
+        let savedViaApi = false;
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData?.session?.access_token;
+          if (token) {
+            const res = await fetch('/api/update-profile', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                full_name: trimmedName,
+                mobile: cleanMobile || null,
+                avatar_url: avatarUrl || null,
+                target_exams: targets
+              })
+            });
+            const data = await res.json().catch(() => null);
+            if (res.ok && data?.success) {
+              savedViaApi = true;
+            } else if (data?.error) {
+              console.warn('API profile update returned error:', data.error);
+            }
+          }
+        } catch (apiErr) {
+          console.warn('Profile update endpoint unreachable, falling back to direct update:', apiErr);
+        }
+
+        if (!savedViaApi) {
+          const { error } = await supabase
+            .from('profiles')
+            .update({
+              full_name: trimmedName,
+              mobile: cleanMobile || null,
+              target_exams: targets,
+              avatar_url: avatarUrl || profile?.avatar_url || null
+            })
+            .eq('id', user.id);
+          if (error) throw error;
+        }
+
+        setProfileFeedback('Profile successfully updated!');
         if (refreshAccount) await refreshAccount();
         setTimeout(() => {
           setProfileFeedback('');
           setEditProfileOpen(false);
-        }, 1500);
+        }, 1200);
       }
     } catch (err) {
       console.error('Unable to update profile:', err);
@@ -480,11 +523,26 @@ export default function StudentProfile() {
                   </div>
                 )}
 
-                {displayPhone !== 'Not provided' && (
-                  <div className="flex items-center gap-1.5 text-xs dark:text-slate-400 text-slate-600 font-medium">
-                    <Phone size={12} className="text-indigo-500 shrink-0" />
-                    <span>{displayPhone}</span>
+                {profile?.mobile ? (
+                  <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-bold">
+                    <Phone size={12} className="shrink-0" />
+                    <span>+91 {profile.mobile}</span>
                   </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFullName(profile?.full_name || profile?.name || user?.user_metadata?.full_name || '');
+                      setMobile(profile?.mobile || '');
+                      setAvatarUrl(profile?.avatar_url || '');
+                      setProfileFeedback('');
+                      setEditProfileOpen(true);
+                    }}
+                    className="flex items-center gap-1 text-[11px] text-amber-500 hover:text-amber-400 font-bold"
+                  >
+                    <Phone size={11} className="shrink-0" />
+                    <span>+ Add WhatsApp / Mobile</span>
+                  </button>
                 )}
               </div>
             </div>
@@ -492,7 +550,13 @@ export default function StudentProfile() {
             {/* Edit Profile Button */}
             <button
               type="button"
-              onClick={() => setEditProfileOpen(true)}
+              onClick={() => {
+                setFullName(profile?.full_name || profile?.name || user?.user_metadata?.full_name || '');
+                setMobile(profile?.mobile || '');
+                setAvatarUrl(profile?.avatar_url || '');
+                setProfileFeedback('');
+                setEditProfileOpen(true);
+              }}
               className="px-3 sm:px-3.5 py-1.5 rounded-full dark:bg-slate-800/80 bg-white border dark:border-slate-700/60 border-slate-300 hover:border-indigo-400 text-xs font-bold dark:text-slate-200 text-slate-700 hover:text-black dark:hover:text-white flex items-center gap-1.5 shrink-0 transition-all shadow-sm hover:scale-105 active:scale-95"
             >
               <Edit3 size={13} />
@@ -891,21 +955,36 @@ export default function StudentProfile() {
                   required
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Enter your full name"
                   className="w-full px-3 py-2 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700/60 border-slate-300 dark:text-white text-slate-900 text-xs font-bold focus:outline-none focus:border-amber-400"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
-                  Mobile Number <span className="text-[10px] font-normal text-slate-400 dark:text-neutral-500">(Read-only)</span>
-                </label>
-                <input
-                  type="tel"
-                  value={profile?.mobile || 'Not provided'}
-                  readOnly
-                  disabled
-                  className="w-full px-3 py-2 rounded-xl dark:bg-slate-900/50 bg-slate-100 border dark:border-slate-700/40 border-slate-300 dark:text-neutral-400 text-slate-500 text-xs font-medium cursor-not-allowed"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold dark:text-slate-300 text-slate-700">
+                    WhatsApp / Mobile Number
+                  </label>
+                  <span className="text-[10px] text-amber-500 dark:text-amber-400 font-semibold">
+                    Offers & Alerts
+                  </span>
+                </div>
+                <div className="relative flex items-center">
+                  <span className="absolute left-3 text-xs font-bold text-slate-400 dark:text-slate-500 select-none">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    value={mobile}
+                    onChange={(e) => setMobile(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="10-digit mobile number"
+                    maxLength={10}
+                    className="w-full pl-11 pr-3 py-2 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700/60 border-slate-300 dark:text-white text-slate-900 text-xs font-bold focus:outline-none focus:border-amber-400 tracking-wider"
+                  />
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                  Discounts, course updates aur tests ki jaankari ke liye WhatsApp number darj karein.
+                </p>
               </div>
 
               <div className="pt-2 flex items-center justify-end gap-2">

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BadgeCheck, Coins, CreditCard, LoaderCircle, LockKeyhole, X } from 'lucide-react';
+import { BadgeCheck, CheckCircle2, Coins, CreditCard, LoaderCircle, LockKeyhole, Tag, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { formatRupees, parseCoinRedemptionConfig } from '../../lib/commerce';
@@ -32,6 +32,11 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
   const [config, setConfig] = useState({ coins_per_rupee: 10, max_discount_percent: 20 });
   const [purchasesEnabled, setPurchasesEnabled] = useState(true);
   const [redeemCoins, setRedeemCoins] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [couponInput, setCouponInput] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponSuccess, setCouponSuccess] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -42,10 +47,11 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
     let active = true;
     const loadCheckoutData = async () => {
       if (!supabase || !user) throw new Error(t('signInToPurchase'));
-      const [walletResult, settingResult, pricingResult] = await Promise.all([
+      const [walletResult, settingResult, pricingResult, couponResult] = await Promise.all([
         supabase.from('coin_wallets').select('balance').eq('user_id', user.id).maybeSingle(),
         supabase.from('platform_settings').select('*').or('setting_key.eq.coin_redemption_config,key.eq.coin_redemption_config').limit(1).maybeSingle(),
-        supabase.from('platform_settings').select('*').or('setting_key.eq.global_pricing_enabled,key.eq.global_pricing_enabled').limit(1).maybeSingle()
+        supabase.from('platform_settings').select('*').or('setting_key.eq.global_pricing_enabled,key.eq.global_pricing_enabled').limit(1).maybeSingle(),
+        supabase.from('platform_settings').select('*').or('setting_key.eq.coupon_codes,key.eq.coupon_codes').limit(1).maybeSingle()
       ]);
       if (walletResult.error) throw walletResult.error;
       if (settingResult.error) throw settingResult.error;
@@ -56,10 +62,20 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
       const enabled = typeof pricingRaw === 'object' && pricingRaw !== null
         ? pricingRaw.enabled !== false && pricingRaw.enabled !== 'false'
         : pricingRaw !== false && pricingRaw !== 'false';
+      
+      let couponsList = [];
+      const couponRaw = couponResult?.data?.setting_value !== undefined ? couponResult.data.setting_value : couponResult?.data?.value;
+      if (typeof couponRaw === 'string') {
+        try { couponsList = JSON.parse(couponRaw); } catch { couponsList = []; }
+      } else if (Array.isArray(couponRaw)) {
+        couponsList = couponRaw;
+      }
+
       if (!active) return;
       setWalletBalance(Math.max(0, Math.floor(Number(walletResult.data?.balance || 0))));
       setConfig(parsedConfig);
       setPurchasesEnabled(enabled);
+      setAvailableCoupons(Array.isArray(couponsList) ? couponsList : []);
       setLoading(false);
     };
     loadCheckoutData().catch((loadError) => {
@@ -71,14 +87,71 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
     return () => { active = false; };
   }, [supabase, user, t]);
 
+  const handleApplyCoupon = (codeToApply) => {
+    setCouponError('');
+    setCouponSuccess('');
+    const code = (codeToApply || couponInput).trim().toUpperCase();
+    if (!code) {
+      setCouponError(language === 'hi' ? 'कूपन कोड दर्ज करें।' : 'Please enter a coupon code.');
+      return;
+    }
+    const found = availableCoupons.find((c) => String(c.code).trim().toUpperCase() === code && c.active !== false);
+    if (!found) {
+      setCouponError(language === 'hi' ? 'अमान्य या समाप्त कूपन कोड।' : 'Invalid or expired coupon code.');
+      return;
+    }
+    if (found.scope && found.scope !== 'global') {
+      if (found.scope === 'folder' && found.target_folder_id && found.target_folder_id !== itemId) {
+        setCouponError(language === 'hi' ? 'यह कूपन इस कोर्स या फ़ोल्डर के लिए मान्य नहीं है।' : 'This coupon is not valid for this item.');
+        return;
+      }
+      if (found.scope === 'exam' && found.target_exam_id && found.target_exam_id !== itemId) {
+        setCouponError(language === 'hi' ? 'यह कूपन इस परीक्षा के लिए मान्य नहीं है।' : 'This coupon is not valid for this item.');
+        return;
+      }
+    }
+    setAppliedCoupon(found);
+    setCouponSuccess(language === 'hi' ? `कूपन '${found.code}' लागू हो गया!` : `Coupon '${found.code}' applied!`);
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput('');
+    setCouponError('');
+    setCouponSuccess('');
+  };
+
   const pricing = useMemo(() => {
     const base = Math.max(0, Number(basePrice) || 0);
-    const discountLimit = Math.round(base * config.max_discount_percent) / 100;
+
+    let couponDiscount = 0;
+    if (appliedCoupon) {
+      if (appliedCoupon.discount_type === 'percent' || appliedCoupon.discount_type === 'percentage') {
+        const pct = Math.max(0, Math.min(100, Number(appliedCoupon.discount_value) || 0));
+        couponDiscount = Math.round((base * pct) / 100);
+      } else {
+        couponDiscount = Math.min(base, Math.max(0, Number(appliedCoupon.discount_value) || 0));
+      }
+    }
+    const afterCoupon = Math.max(0, base - couponDiscount);
+
+    const discountLimit = Math.round(afterCoupon * config.max_discount_percent) / 100;
     const maxCoins = Math.min(walletBalance, Math.floor(discountLimit * config.coins_per_rupee));
     const coinsUsed = redeemCoins ? maxCoins : 0;
-    const discount = Math.min(base, coinsUsed / config.coins_per_rupee);
-    return { base, maxCoins, coinsUsed, discount, payable: Math.max(0, base - discount) };
-  }, [basePrice, config, redeemCoins, walletBalance]);
+    const coinDiscount = Math.min(afterCoupon, coinsUsed / config.coins_per_rupee);
+    const payable = Math.max(0, Math.round((afterCoupon - coinDiscount) * 100) / 100);
+
+    return {
+      base,
+      couponDiscount,
+      appliedCoupon,
+      maxCoins,
+      coinsUsed,
+      coinDiscount,
+      discount: couponDiscount + coinDiscount,
+      payable
+    };
+  }, [basePrice, appliedCoupon, config, redeemCoins, walletBalance]);
 
   const finishCheckout = async ({ orderId, razorpayOrderId, paymentId, signature, accessToken }) => {
     setError('');
@@ -117,7 +190,8 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
         amount: pricing.payable,
         itemType,
         itemId,
-        coinsToRedeem: pricing.coinsUsed
+        coinsToRedeem: pricing.coinsUsed,
+        couponCode: appliedCoupon?.code || undefined
       }, accessToken);
       if (!order || typeof order !== 'object') throw new Error('Checkout could not create a payment order.');
       const orderId = order.id || order.payment_order_id || order.order_id;
@@ -261,11 +335,87 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
               </div>
             ) : (
               <div className="space-y-3">
+                {/* Coupon Code Section */}
+                <div className="p-3 rounded-2xl dark:bg-[#1E293B]/80 bg-white border dark:border-slate-700/60 border-slate-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold dark:text-slate-300 text-slate-700 flex items-center gap-1.5">
+                      <Tag size={13} className="text-indigo-400" />
+                      <span>{language === 'hi' ? 'कूपन कोड लागू करें' : 'Apply Coupon Code'}</span>
+                    </label>
+                    {appliedCoupon && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        {appliedCoupon.code} APPLIED
+                      </span>
+                    )}
+                  </div>
+
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+                        <div className="text-xs min-w-0">
+                          <span className="font-mono font-bold text-emerald-400 mr-1.5">{appliedCoupon.code}</span>
+                          <span className="dark:text-slate-300 text-slate-600 text-[11px] truncate">
+                            ({appliedCoupon.discount_type === 'percent' || appliedCoupon.discount_type === 'percentage' ? `${appliedCoupon.discount_value}% OFF` : `₹${appliedCoupon.discount_value} OFF`} · बचत −{formatRupees(pricing.couponDiscount)})
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveCoupon}
+                        className="text-xs text-rose-400 hover:text-rose-300 font-bold px-2 py-1 transition-colors shrink-0"
+                      >
+                        ✕ Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponInput}
+                        onChange={(e) => {
+                          setCouponInput(e.target.value.toUpperCase());
+                          setCouponError('');
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleApplyCoupon();
+                          }
+                        }}
+                        placeholder={language === 'hi' ? 'कूपन कोड (जैसे ZYVRA75)' : 'Coupon code (e.g. ZYVRA75)'}
+                        className="flex-1 px-3 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700/60 border-slate-300 text-xs font-mono font-bold uppercase tracking-wider dark:text-white text-slate-900 focus:outline-none focus:border-indigo-400 min-h-[38px]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleApplyCoupon()}
+                        className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors min-h-[38px] shrink-0"
+                      >
+                        {language === 'hi' ? 'लागू करें' : 'Apply'}
+                      </button>
+                    </div>
+                  )}
+
+                  {couponError && (
+                    <p className="text-[11px] text-rose-500 dark:text-rose-400 font-medium">{couponError}</p>
+                  )}
+                  {couponSuccess && (
+                    <p className="text-[11px] text-emerald-500 dark:text-emerald-400 font-medium">{couponSuccess}</p>
+                  )}
+                </div>
+
                 <div className="p-3.5 rounded-2xl dark:bg-[#1E293B]/60 bg-slate-50 border dark:border-slate-700/60 border-slate-200 space-y-2.5 text-xs">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-500 dark:text-slate-400">{t('basePrice')}</span>
                     <strong className="font-extrabold dark:text-white text-slate-900">{formatRupees(pricing.base)}</strong>
                   </div>
+
+                  {pricing.couponDiscount > 0 && (
+                    <div className="flex items-center justify-between text-emerald-500 dark:text-emerald-400 font-bold">
+                      <span>{language === 'hi' ? `कूपन छूट (${appliedCoupon?.code})` : `Coupon Discount (${appliedCoupon?.code})`}</span>
+                      <strong className="font-mono">−{formatRupees(pricing.couponDiscount)}</strong>
+                    </div>
+                  )}
 
                   {/* Coin redemption option */}
                   <label className="p-2 rounded-xl dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 flex items-center justify-between cursor-pointer">
@@ -298,9 +448,9 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
                         </strong>
                       </div>
                       <div className="flex items-center justify-between">
-                        <span>{t('discount')}</span>
+                        <span>{language === 'hi' ? 'कॉइन छूट' : t('discount')}</span>
                         <strong className="font-mono font-bold text-emerald-400">
-                          −{formatRupees(pricing.discount)}
+                          −{formatRupees(pricing.coinDiscount)}
                         </strong>
                       </div>
                     </div>

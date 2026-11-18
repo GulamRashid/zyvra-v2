@@ -99,6 +99,7 @@ export default async function handler(req, res) {
     const itemType = typeof body.itemType === 'string' ? body.itemType.toLowerCase().trim() : '';
     const itemId = typeof body.itemId === 'string' ? body.itemId.trim() : '';
     const coinsToRedeem = Number(body.coinsToRedeem || 0);
+    const couponCode = typeof body.couponCode === 'string' ? body.couponCode.trim().toUpperCase() : null;
 
     if (
       !Number.isFinite(requestedAmount) ||
@@ -317,6 +318,63 @@ export default async function handler(req, res) {
       internalOrderId = order?.id || order?.payment_order_id || order?.order_id;
       razorpayOrderId = order?.razorpay_order_id;
       amountPaise = Number(order?.amount_paise || Math.round(Number(order?.amount) * 100));
+
+      // Authoritative Coupon Validation and Deduction
+      if (couponCode && internalOrderId) {
+        try {
+          const { data: couponRow } = await supabaseAdminClient
+            .from('platform_settings')
+            .select('setting_value, value')
+            .or('setting_key.eq.coupon_codes,key.eq.coupon_codes')
+            .maybeSingle();
+          let rawCoupons = couponRow?.setting_value ?? couponRow?.value ?? [];
+          if (typeof rawCoupons === 'string') {
+            try { rawCoupons = JSON.parse(rawCoupons); } catch { rawCoupons = []; }
+          }
+          let validCoupon = null;
+          if (Array.isArray(rawCoupons)) {
+            validCoupon = rawCoupons.find((c) => String(c.code).trim().toUpperCase() === couponCode && c.active !== false) || null;
+          }
+          if (validCoupon) {
+            if (validCoupon.scope && validCoupon.scope !== 'global') {
+              if (validCoupon.scope === 'folder' && validCoupon.target_folder_id && validCoupon.target_folder_id !== itemId) {
+                validCoupon = null;
+              } else if (validCoupon.scope === 'exam' && validCoupon.target_exam_id && validCoupon.target_exam_id !== itemId) {
+                validCoupon = null;
+              }
+            }
+          }
+          if (validCoupon) {
+            const baseAmount = Number(order?.base_amount ?? order?.base_price ?? (amountPaise / 100));
+            let couponDiscount = 0;
+            if (validCoupon.discount_type === 'percent' || validCoupon.discount_type === 'percentage') {
+              const pct = Math.max(0, Math.min(100, Number(validCoupon.discount_value) || 0));
+              couponDiscount = Math.round((baseAmount * pct) / 100);
+            } else {
+              couponDiscount = Math.min(baseAmount, Math.max(0, Number(validCoupon.discount_value) || 0));
+            }
+            const couponDiscountPaise = Math.round(couponDiscount * 100);
+            if (couponDiscountPaise > 0) {
+              const adjustedPaise = Math.max(100, amountPaise - couponDiscountPaise);
+              const adjustedRupees = adjustedPaise / 100;
+              await supabaseAdminClient
+                .from('payment_orders')
+                .update({
+                  coupon_code: validCoupon.code,
+                  coupon_discount: couponDiscountPaise / 100,
+                  discount_amount: Number(order?.discount_amount || 0) + (couponDiscountPaise / 100),
+                  final_amount: adjustedRupees,
+                  amount: adjustedRupees,
+                  amount_paise: adjustedPaise
+                })
+                .eq('id', internalOrderId);
+              amountPaise = adjustedPaise;
+            }
+          }
+        } catch (couponErr) {
+          console.warn('Coupon processing warning:', couponErr?.message);
+        }
+      }
     } catch (rpcError) {
       console.error('create_checkout_order RPC failed:', rpcError);
       throw new Error('The payment order service is unavailable. Please try again.');
