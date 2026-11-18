@@ -125,12 +125,15 @@ export default function PricingManager() {
       const { data } = await supabase
         .from('platform_settings')
         .select('*')
-        .in('setting_key', ['content_pricing_rules', 'coupon_codes', 'full_pass_config']);
+        .or('setting_key.in.(content_pricing_rules,coupon_codes,full_pass_config),key.in.(content_pricing_rules,coupon_codes,full_pass_config)');
 
       if (data) {
         data.forEach((row) => {
           const key = row.setting_key || row.key;
-          const val = row.setting_value || row.value;
+          let val = row.setting_value ?? row.value;
+          if (typeof val === 'string') {
+            try { val = JSON.parse(val); } catch { /* ignore */ }
+          }
           if (key === 'content_pricing_rules' && val && typeof val === 'object') {
             setPricingRules(val);
           } else if (key === 'coupon_codes' && Array.isArray(val)) {

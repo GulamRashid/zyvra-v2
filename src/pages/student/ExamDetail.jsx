@@ -12,6 +12,15 @@ import { supabase } from '../../lib/supabase';
 
 const examIcons = { BookOpen, GraduationCap, Landmark, Atom, Calculator, Globe2, Brain, ScrollText, FlaskConical, BookMarked };
 
+const DEFAULT_FULL_PASS = {
+  title: 'ZYVRA All-Access Full Pass',
+  subtitle: 'सभी परीक्षाओं, टेस्ट्स और टूल्स का 1 साल का अनलिमिटेड एक्सेस',
+  price: 999,
+  validity_days: 365,
+  is_active: true,
+  include_all: true
+};
+
 export default function ExamDetail() {
   const { examSlug } = useParams();
   const { exams, folders, chapters, loading, error } = useContentCatalog();
@@ -19,19 +28,29 @@ export default function ExamDetail() {
   const { language } = useThemeLanguage();
   const [checkoutItem, setCheckoutItem] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [fullPassConfig, setFullPassConfig] = useState(null);
+  const [fullPassConfig, setFullPassConfig] = useState(DEFAULT_FULL_PASS);
 
   useEffect(() => {
     if (!supabase) return;
     supabase
       .from('platform_settings')
       .select('setting_value, value')
-      .eq('setting_key', 'full_pass_config')
+      .or('setting_key.eq.full_pass_config,key.eq.full_pass_config')
       .maybeSingle()
       .then(({ data }) => {
-        const val = data?.setting_value || data?.value;
+        let val = data?.setting_value || data?.value;
+        if (typeof val === 'string') {
+          try { val = JSON.parse(val); } catch { val = null; }
+        }
         if (val && typeof val === 'object') {
-          setFullPassConfig(val);
+          setFullPassConfig((prev) => ({
+            ...prev,
+            ...val,
+            price: val.price !== undefined ? Number(val.price) : prev.price,
+            validity_days: val.validity_days !== undefined ? Number(val.validity_days) : prev.validity_days,
+            is_active: val.is_active !== false,
+            include_all: val.include_all !== false
+          }));
         }
       })
       .catch((err) => console.warn('Could not load full pass config in ExamDetail:', err));

@@ -9,13 +9,24 @@ import { isPublished } from '../../lib/content';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 
+const DEFAULT_FULL_PASS = {
+  title: 'ZYVRA All-Access Full Pass',
+  subtitle: 'सभी परीक्षाओं, टेस्ट्स और टूल्स का 1 साल का अनलिमिटेड एक्सेस',
+  price: 999,
+  validity_days: 365,
+  is_active: true,
+  include_all: true,
+  included_exam_ids: [],
+  included_tool_ids: ['mistake-notebook', 'flashcards', 'math-shortcuts', 'formula-sheet', 'polity-articles', 'risk-simulator']
+};
+
 export default function ExploreExams() {
   const { exams, folders, chapters, loading, error } = useContentCatalog();
   const { user, supabase } = useAuth();
   const { language } = useThemeLanguage();
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [search, setSearch] = useState('');
-  const [fullPassConfig, setFullPassConfig] = useState(null);
+  const [fullPassConfig, setFullPassConfig] = useState(DEFAULT_FULL_PASS);
   const [hasFullPass, setHasFullPass] = useState(false);
   const [checkout, setCheckout] = useState(null);
 
@@ -28,13 +39,34 @@ export default function ExploreExams() {
         const { data } = await supabase
           .from('platform_settings')
           .select('setting_value, value')
-          .eq('setting_key', 'full_pass_config')
+          .or('setting_key.eq.full_pass_config,key.eq.full_pass_config')
           .maybeSingle();
 
         if (!active) return;
-        const val = data?.setting_value || data?.value;
+        let val = data?.setting_value ?? data?.value;
+        if (typeof val === 'string') {
+          try { val = JSON.parse(val); } catch { val = null; }
+        }
         if (val && typeof val === 'object') {
-          setFullPassConfig(val);
+          setFullPassConfig((prev) => ({
+            ...prev,
+            ...val,
+            price: val.price !== undefined ? Number(val.price) : prev.price,
+            validity_days: val.validity_days !== undefined ? Number(val.validity_days) : prev.validity_days,
+            is_active: val.is_active !== false,
+            include_all: val.include_all !== false
+          }));
+        } else if (!data) {
+          // Auto-seed default row in platform_settings if missing
+          supabase
+            .from('platform_settings')
+            .upsert({
+              setting_key: 'full_pass_config',
+              key: 'full_pass_config',
+              setting_value: DEFAULT_FULL_PASS
+            }, { onConflict: 'setting_key' })
+            .then(() => {})
+            .catch(() => {});
         }
 
         if (user?.id) {
@@ -149,25 +181,25 @@ export default function ExploreExams() {
         )}
 
         {/* All-Access Platform Full Pass Banner */}
-        {fullPassConfig && fullPassConfig.is_active && !search.trim() && (
-          <div className="relative overflow-hidden rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-indigo-500/15 border-2 border-amber-400/40 shadow-sm transition-all hover:border-amber-400/70">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="space-y-1 min-w-0 flex-1">
+        {fullPassConfig && fullPassConfig.is_active !== false && !search.trim() && (
+          <div className="relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-gradient-to-r from-amber-50 via-yellow-50/70 to-indigo-50/70 dark:from-[#1E293B] dark:via-slate-900 dark:to-[#1E293B] border-2 border-amber-400 dark:border-amber-400/50 shadow-md transition-all">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+              <div className="space-y-1.5 min-w-0 flex-1">
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center gap-1 shadow-xs">
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 flex items-center gap-1 shadow-xs">
                     👑 {language === 'hi' ? 'ऑल-एक्सेस प्लेटफॉर्म पास' : 'All-Access Platform Pass'}
                   </span>
-                  <span className="text-[10px] font-bold text-amber-500 dark:text-amber-400">
+                  <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400">
                     {fullPassConfig.validity_days || 365} {language === 'hi' ? 'दिन अनलिमिटेड' : 'Days Unlimited'}
                   </span>
                 </div>
                 <h2 className="text-base sm:text-lg font-black dark:text-white text-slate-900 tracking-tight">
                   {fullPassConfig.title || 'ZYVRA All-Access Full Pass'}
                 </h2>
-                <p className="text-xs dark:text-slate-300 text-slate-600 font-medium">
+                <p className="text-xs dark:text-slate-300 text-slate-700 font-medium">
                   {fullPassConfig.subtitle || (language === 'hi' ? 'सभी परीक्षाओं, टेस्ट्स और टूल्स का अनलिमिटेड 1 साल का एक्सेस' : 'Unlimited 1-year access to all exams, tests and study tools')}
                 </p>
-                <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] font-bold text-slate-600 dark:text-slate-300">
+                <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[11px] font-bold text-slate-700 dark:text-slate-300">
                   <span className="flex items-center gap-1">✓ {language === 'hi' ? 'सभी वर्तमान और भविष्य की परीक्षाएं' : 'All Current & Future Exams'}</span>
                   <span>•</span>
                   <span className="flex items-center gap-1">✓ {language === 'hi' ? 'पूर्ण टेस्ट सीरीज और मॉक टेस्ट' : 'Full Test Series & Mock Tests'}</span>
@@ -176,7 +208,7 @@ export default function ExploreExams() {
                 </div>
               </div>
 
-              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0 border-t sm:border-t-0 dark:border-slate-800 border-slate-200/80 pt-2.5 sm:pt-0">
+              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0 border-t sm:border-t-0 dark:border-slate-800 border-slate-300/80 pt-2.5 sm:pt-0">
                 {hasFullPass ? (
                   <div className="px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-xs font-black flex items-center gap-1.5 shadow-xs">
                     <span>✓</span>
@@ -185,10 +217,10 @@ export default function ExploreExams() {
                 ) : (
                   <>
                     <div className="text-left sm:text-right">
-                      <div className="text-xl sm:text-2xl font-black text-amber-500 dark:text-amber-400 leading-none">
+                      <div className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 leading-none">
                         ₹{fullPassConfig.price || 999}
                       </div>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                      <span className="text-[10px] text-slate-600 dark:text-slate-400 font-semibold">
                         {fullPassConfig.validity_days || 365} {language === 'hi' ? 'दिनों के लिए' : 'days validity'}
                       </span>
                     </div>
@@ -201,10 +233,10 @@ export default function ExploreExams() {
                         basePrice: fullPassConfig.price || 999,
                         validityDays: fullPassConfig.validity_days || 365
                       })}
-                      className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-glowGold transition-all active:scale-95 flex items-center gap-1.5"
+                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm shadow-glowGold transition-all active:scale-95 flex items-center gap-1.5"
                     >
                       <span>{language === 'hi' ? 'पूरा पास अनलॉक करें' : 'Unlock Full Pass'}</span>
-                      <ArrowRight size={14} />
+                      <ArrowRight size={15} />
                     </button>
                   </>
                 )}

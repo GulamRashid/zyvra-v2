@@ -129,7 +129,7 @@ export default async function handler(req, res) {
       const { data: passRow, error: passError } = await supabaseAdminClient
         .from('platform_settings')
         .select('setting_value, value')
-        .eq('setting_key', 'full_pass_config')
+        .or('setting_key.eq.full_pass_config,key.eq.full_pass_config')
         .maybeSingle();
       if (passError) {
         console.error('Full Pass configuration lookup failed:', passError.message);
@@ -139,9 +139,19 @@ export default async function handler(req, res) {
       if (typeof passConfig === 'string') {
         try { passConfig = JSON.parse(passConfig); } catch { passConfig = {}; }
       }
+      // If full_pass_config is not yet in platform_settings, fallback to default active pass
+      if (!passConfig || Object.keys(passConfig).length === 0) {
+        passConfig = {
+          title: 'ZYVRA All-Access Full Pass',
+          price: 999,
+          validity_days: 365,
+          is_active: true,
+          include_all: true
+        };
+      }
       const includedCount = (Array.isArray(passConfig?.included_exam_ids) ? passConfig.included_exam_ids.length : 0)
         + (Array.isArray(passConfig?.included_tool_ids) ? passConfig.included_tool_ids.length : 0);
-      const isIncludeAll = passConfig?.include_all === true;
+      const isIncludeAll = passConfig?.include_all !== false;
       if (!includedCount && !isIncludeAll) return respond(409, { error: 'Full Pass has no included exams or tools yet.' });
       if (passConfig?.is_active === false) return respond(409, { error: 'Full Pass is currently not available for purchase.' });
     }
