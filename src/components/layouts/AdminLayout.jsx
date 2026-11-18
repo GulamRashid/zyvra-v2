@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Activity, Bell, ClipboardList, Coins, FileQuestion, FileText, Gauge, LogOut, Menu, PackageCheck, ShoppingCart, Sparkles, Tag, Users, Wrench, X } from 'lucide-react';
+import { Activity, Bell, ClipboardList, Coins, FileQuestion, FileText, Gauge, LogOut, Menu, PackageCheck, ShieldCheck, ShoppingCart, Sparkles, Tag, Users, Wrench, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
+import Admin2FAModal from '../admin/Admin2FAModal';
 
 const modules = [
   { to: '/admin', label: 'Dashboard', Icon: Gauge, end: true },
@@ -25,6 +26,8 @@ export default function AdminLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => (
     typeof window !== 'undefined' && window.matchMedia('(max-width: 760px)').matches
   ));
+  const [isTwoFaOpen, setIsTwoFaOpen] = useState(false);
+
   useEffect(() => {
     const breakpoint = window.matchMedia('(max-width: 760px)');
     const updateSidebarForViewport = (event) => setIsSidebarCollapsed(event.matches);
@@ -47,8 +50,9 @@ export default function AdminLayout() {
       <header className="admin-topbar"><div>{isSidebarCollapsed
         ? <button type="button" className="icon-button admin-sidebar-toggle" onClick={toggleSidebar} aria-label="Open admin navigation" aria-expanded="false" aria-controls="admin-navigation"><Menu size={20} /></button>
         : <button type="button" className="icon-button admin-sidebar-toggle" onClick={toggleSidebar} aria-label="Close admin navigation" aria-expanded="true" aria-controls="admin-navigation"><X size={20} /></button>}
-        <span className="eyebrow">ADMIN CONTROL CENTER</span></div><div className="topbar-actions"><ThemeToggle /><div className="admin-user"><div className="avatar">{(profile?.full_name || 'A').slice(0, 1).toUpperCase()}</div><span>{profile?.full_name || 'Administrator'}</span></div><button type="button" className="icon-button" title="Sign out" onClick={() => signOut().catch((error) => console.error('Unable to sign out:', error))}><LogOut size={17} /></button></div></header>
+        <span className="eyebrow">ADMIN CONTROL CENTER</span></div><div className="topbar-actions"><ThemeToggle /><button type="button" className="admin-2fa-topbar-btn" title="2FA Security (Google Authenticator)" onClick={() => setIsTwoFaOpen(true)}><ShieldCheck size={15} /><span className="hidden sm:inline">2FA Security</span></button><div className="admin-user"><div className="avatar">{(profile?.full_name || 'A').slice(0, 1).toUpperCase()}</div><span>{profile?.full_name || 'Administrator'}</span></div><button type="button" className="icon-button" title="Sign out" onClick={() => signOut().catch((error) => console.error('Unable to sign out:', error))}><LogOut size={17} /></button></div></header>
       <main className="admin-content"><Outlet /></main>
     </div>
+    <Admin2FAModal isOpen={isTwoFaOpen} onClose={() => setIsTwoFaOpen(false)} />
   </div>;
 }

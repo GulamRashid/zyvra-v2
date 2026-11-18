@@ -684,6 +684,8 @@ body.light .practice-card { background: linear-gradient(135deg, #EEF2FF, #F8FAFC
 .admin-topbar .eyebrow { font-size: 10px; }
 .admin-user { display: flex; align-items: center; gap: 8px; padding-left: 9px; border-left: 1px solid var(--line); font-size: 10px; }
 .admin-user .avatar { width: 29px; height: 29px; flex-basis: 29px; font-size: 10px; }
+.admin-2fa-topbar-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 9px; border: 1px solid rgba(77, 211, 154, .35); background: rgba(77, 211, 154, .08); color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer; transition: all .16s ease; }
+.admin-2fa-topbar-btn:hover { background: rgba(77, 211, 154, .18); border-color: rgba(77, 211, 154, .6); transform: translateY(-1px); }
 .admin-content { width: min(100%, 1450px); margin: 0 auto; padding: 32px; }
 .admin-content .eyebrow { color: var(--muted); }
 .admin-content .section-heading p { min-height: 13px; font-size: 13px; line-height: 1.4; }

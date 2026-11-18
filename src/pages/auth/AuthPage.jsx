@@ -58,10 +58,10 @@ function formatAuthError(authError, language) {
       ? 'सत्यापन कोड समाप्त (expired) हो गया है। कृपया नया कोड मंगाएं।'
       : 'This verification code has expired. Please request a new one.';
   }
-  if (/invalid.*token|token.*invalid|otp.*invalid/i.test(detail)) {
+  if (/invalid.*token|token.*invalid|otp.*invalid|invalid.*code/i.test(detail)) {
     return isHi
-      ? 'गलत 6-अंकीय कोड। कृपया अपना ईमेल चेक करें और सही कोड दर्ज करें।'
-      : 'Invalid 6-digit code. Please check your email and try again.';
+      ? 'गलत 6-अंकीय कोड। कृपया सही कोड दर्ज करें।'
+      : 'Invalid 6-digit code. Please check and try again.';
   }
   if (/password.*least 6|password.*least 8/i.test(detail)) {
     return isHi
@@ -86,7 +86,9 @@ export default function AuthPage() {
     if (requested === 'signup' || hasRef) return 'signup';
     return 'signin';
   });
-  const [step, setStep] = useState('form'); // 'form' | 'verify'
+  // 'form' | 'verify' | 'mfa'
+  const [step, setStep] = useState('form');
+  const [mfaFactorId, setMfaFactorId] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -132,12 +134,36 @@ export default function AuthPage() {
     }
   }, [searchParams]);
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated and MFA is complete
   useEffect(() => {
-    if (!loading && user) {
-      navigate(destination, { replace: true });
+    let active = true;
+    if (!loading && user && step !== 'mfa') {
+      if (supabase?.auth?.mfa) {
+        supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data: aal, error: aalErr }) => {
+          if (!active) return;
+          if (!aalErr && aal?.currentLevel === 'aal1' && aal?.nextLevel === 'aal2') {
+            // User has 2FA enabled! Prompt for 2FA code
+            supabase.auth.mfa.listFactors().then(({ data: factors }) => {
+              if (!active) return;
+              const totp = factors?.totp?.find((f) => f.status === 'verified') || factors?.totp?.[0];
+              if (totp) {
+                setMfaFactorId(totp.id);
+                setStep('mfa');
+                setOtp(Array(6).fill(''));
+                return;
+              }
+              navigate(destination, { replace: true });
+            }).catch(() => navigate(destination, { replace: true }));
+          } else {
+            navigate(destination, { replace: true });
+          }
+        }).catch(() => navigate(destination, { replace: true }));
+      } else {
+        navigate(destination, { replace: true });
+      }
     }
-  }, [loading, user, destination, navigate]);
+    return () => { active = false; };
+  }, [loading, user, destination, navigate, step, supabase]);
 
   // Cooldown countdown timer
   useEffect(() => {
@@ -146,9 +172,9 @@ export default function AuthPage() {
     return () => window.clearInterval(timer);
   }, [cooldown]);
 
-  // Focus on OTP input when verify step opens
+  // Focus on OTP input when verify or mfa step opens
   useEffect(() => {
-    if (step === 'verify') {
+    if (step === 'verify' || step === 'mfa') {
       const timer = setTimeout(() => {
         inputRefs.current[0]?.focus();
       }, 60);
@@ -280,16 +306,55 @@ export default function AuthPage() {
     }
   }, [supabase, configurationError, otp, mode, password, passwordConfirm, email, language, refCode]);
 
+  // 2FA TOTP verification
+  const handleVerifyMfa = useCallback(async (event) => {
+    event?.preventDefault?.();
+    setError('');
+    if (!supabase) { setError(configurationError); return; }
+
+    const token = otp.join('');
+    if (!/^\d{6}$/.test(token)) {
+      setError(language === 'hi' ? 'कृपया सभी 6 अंक दर्ज करें।' : 'Enter all six digits.');
+      return;
+    }
+    if (!mfaFactorId) {
+      setError(language === 'hi' ? '2FA सत्र अमान्य है। कृपया पुनः लॉगिन करें।' : 'Invalid 2FA session. Please sign in again.');
+      return;
+    }
+
+    setBusy(true);
+    try {
+      const { error: verifyErr } = await supabase.auth.mfa.challengeAndVerify({
+        factorId: mfaFactorId,
+        code: token
+      });
+      if (verifyErr) throw verifyErr;
+
+      navigate(destination, { replace: true });
+    } catch (err) {
+      console.warn('MFA challenge failed:', err);
+      setError(language === 'hi'
+        ? 'गलत 2FA कोड। कृपया Google Authenticator ऐप में दिख रहा ताज़ा कोड दर्ज करें।'
+        : 'Invalid 2FA code. Please check your Google Authenticator app and try again.');
+    } finally {
+      setBusy(false);
+    }
+  }, [supabase, configurationError, otp, mfaFactorId, destination, navigate, language]);
+
   // Auto-verify when 6 digits are typed or pasted
   useEffect(() => {
     const token = otp.join('');
-    if (token.length === 6 && /^\d{6}$/.test(token) && step === 'verify' && !busy) {
-      if (mode === 'recovery' && (!password || password.length < 8 || password !== passwordConfirm)) {
-        return;
+    if (token.length === 6 && /^\d{6}$/.test(token) && !busy) {
+      if (step === 'verify') {
+        if (mode === 'recovery' && (!password || password.length < 8 || password !== passwordConfirm)) {
+          return;
+        }
+        handleVerifyOtp();
+      } else if (step === 'mfa') {
+        handleVerifyMfa();
       }
-      handleVerifyOtp();
     }
-  }, [otp, step, busy, mode, password, passwordConfirm, handleVerifyOtp]);
+  }, [otp, step, busy, mode, password, passwordConfirm, handleVerifyOtp, handleVerifyMfa]);
 
   const handlePasswordSignIn = async (event) => {
     event.preventDefault();
@@ -315,6 +380,22 @@ export default function AuthPage() {
         password
       });
       if (authError) throw authError;
+
+      // Check if user has 2FA (MFA) enabled
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalData?.currentLevel === 'aal1' && aalData?.nextLevel === 'aal2') {
+        const { data: factors } = await supabase.auth.mfa.listFactors();
+        const totp = factors?.totp?.find((f) => f.status === 'verified') || factors?.totp?.[0];
+        if (totp) {
+          setMfaFactorId(totp.id);
+          setStep('mfa');
+          setOtp(Array(6).fill(''));
+          setMessage(language === 'hi'
+            ? 'Google Authenticator ऐप में दिख रहा 6-अंकों का कोड दर्ज करें।'
+            : 'Enter the 6-digit code from your Google Authenticator app.');
+          return;
+        }
+      }
     } catch (authError) {
       setError(formatAuthError(authError, language));
     } finally {
@@ -432,11 +513,19 @@ export default function AuthPage() {
         <section className="auth-card">
           <div className="auth-card-heading">
             <div className="auth-icon">
-              {mode === 'signup' ? <UserPlus size={20} /> : <ShieldCheck size={20} />}
+              {step === 'mfa' ? (
+                <ShieldCheck size={20} className="text-emerald-400" />
+              ) : mode === 'signup' ? (
+                <UserPlus size={20} />
+              ) : (
+                <ShieldCheck size={20} />
+              )}
             </div>
             <div>
               <h2>
-                {step === 'verify'
+                {step === 'mfa'
+                  ? (language === 'hi' ? 'टू-फैक्टर ऑथेंटिकेशन (2FA)' : 'Two-Factor Authentication')
+                  : step === 'verify'
                   ? (mode === 'recovery'
                       ? (language === 'hi' ? 'पासवर्ड रीसेट करें' : 'Reset your password')
                       : (language === 'hi' ? 'ईमेल कोड सत्यापित करें' : 'Verify your email'))
@@ -449,7 +538,9 @@ export default function AuthPage() {
                   : (language === 'hi' ? 'साइन इन करें' : 'Sign In')}
               </h2>
               <p>
-                {step === 'verify'
+                {step === 'mfa'
+                  ? (language === 'hi' ? 'Google Authenticator ऐप में दिख रहा 6-अंकों का कोड दर्ज करें।' : 'Enter the 6-digit code from your Google Authenticator app.')
+                  : step === 'verify'
                   ? (mode === 'recovery'
                       ? (language === 'hi' ? 'ईमेल से 6-अंकों का कोड दर्ज करें और नया पासवर्ड चुनें।' : 'Enter the code from your email and set a new password.')
                       : (language === 'hi' ? `${email.trim().toLowerCase()} पर भेजा गया 6-अंकों का कोड दर्ज करें।` : `Enter the six-digit code sent to ${email.trim().toLowerCase()}.`))
@@ -465,7 +556,7 @@ export default function AuthPage() {
           </div>
 
           {/* Active Referral code banner on signup */}
-          {refCode && mode === 'signup' && (
+          {refCode && mode === 'signup' && step === 'form' && (
             <div className="referral-auth-banner">
               <Gift size={16} className="text-amber-400" />
               <div>
@@ -475,7 +566,56 @@ export default function AuthPage() {
             </div>
           )}
 
-          {step === 'verify' ? (
+          {/* STEP: MFA / 2FA CHALLENGE */}
+          {step === 'mfa' ? (
+            <>
+              <button
+                className="back-link"
+                type="button"
+                onClick={async () => {
+                  await supabase?.auth?.signOut?.().catch(() => {});
+                  setStep('form');
+                  setError('');
+                  setMessage('');
+                }}
+              >
+                <ArrowLeft size={14} /> {language === 'hi' ? 'लॉगिन रद्द करें' : 'Cancel & sign out'}
+              </button>
+
+              <form onSubmit={handleVerifyMfa}>
+                <div
+                  className="otp-inputs"
+                  aria-label="Six-digit 2FA code"
+                  onPaste={handleOtpPaste}
+                >
+                  {otp.map((digit, index) => (
+                    <input
+                      key={index}
+                      ref={(element) => { inputRefs.current[index] = element; }}
+                      aria-label={`2FA Digit ${index + 1}`}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(event) => updateOtpDigit(index, event.target.value)}
+                      onKeyDown={(event) => handleOtpKey(index, event)}
+                    />
+                  ))}
+                </div>
+
+                <button type="submit" className="button button-gold button-full mt-2" disabled={busy}>
+                  {busy ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Loader2 size={16} className="animate-spin" />
+                      {language === 'hi' ? 'सत्यापित हो रहा है…' : 'Verifying…'}
+                    </span>
+                  ) : (
+                    language === 'hi' ? <>2FA कोड सत्यापित करें <ArrowRight size={16} /></> : <>Verify 2FA Code <ArrowRight size={16} /></>
+                  )}
+                </button>
+              </form>
+            </>
+          ) : step === 'verify' ? (
             <>
               <button
                 className="back-link"
