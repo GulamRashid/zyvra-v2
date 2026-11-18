@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, CheckCircle2, Eye, EyeOff, Gift, KeyRound, Mail, ShieldCheck, Sparkles } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
@@ -268,7 +268,7 @@ export default function AuthPage() {
         <div className="auth-divider"><span>OR CONTINUE WITH</span></div>
         <button className="button google-button button-full" onClick={googleAuth} disabled={busy}><span className="google-g">G</span> Continue with Google</button>
         {guestDemoEnabled && <button className="guest-button" onClick={guestEntry}>Continue as guest <ArrowRight size={15} /></button>}
-        <p className="auth-legal">By continuing, you agree to Zyvra’s Terms of Service and Privacy Policy.</p>
+        <p className="auth-legal">By continuing, you agree to Zyvra’s <Link to="/terms" className="underline hover:text-white">Terms of Service</Link> and <Link to="/privacy" className="underline hover:text-white">Privacy Policy</Link>.</p>
         <div className="secure-note"><ShieldCheck size={14} /> Your account and progress stay yours.</div>
       </section>
     </div>

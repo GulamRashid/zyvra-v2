@@ -11,6 +11,7 @@ import { useAuth } from './context/AuthContext';
 
 const LandingPage = lazy(() => import('./pages/landing/LandingPage'));
 const AuthPage = lazy(() => import('./pages/auth/AuthPage'));
+const LegalPage = lazy(() => import('./pages/legal/LegalPage'));
 const StudentHome = lazy(() => import('./pages/student/StudentHome'));
 const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
 const StudentWallet = lazy(() => import('./pages/student/StudentWallet'));
@@ -68,6 +69,8 @@ function AppRoutes() {
   return <Suspense fallback={<main className="page-loading"><LoadingSkeleton rows={5} /></main>}><Routes>
     <Route path="/landing" element={<LandingPage />} />
     <Route path="/auth" element={<AuthPage />} />
+    <Route path="/privacy" element={<LegalPage />} />
+    <Route path="/terms" element={<LegalPage />} />
     <Route path="/quiz/:testId" element={<QuizErrorBoundary><ProtectedRoute><LiveQuiz /></ProtectedRoute></QuizErrorBoundary>} />
     <Route path="/quiz/result/:attemptId" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />
     <Route path="/admin" element={<ProtectedRoute admin><AdminLayout /></ProtectedRoute>}>
