@@ -545,6 +545,16 @@ body.light .practice-card { background: linear-gradient(135deg, #EEF2FF, #F8FAFC
 .field-label { display: grid; gap: 7px; margin: 0 0 15px; color: var(--text); font-size: 10px; font-weight: 600; }
 .text-input { width: 100%; min-height: 42px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 9px; outline: 0; background: var(--bg); color: var(--text); font-size: 11px; }
 .text-input::placeholder { color: color-mix(in srgb, var(--muted) 72%, transparent); }
+.phone-input-wrap { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 9px; background: var(--bg); overflow: hidden; transition: border-color .15s ease, box-shadow .15s ease; }
+.phone-input-wrap:focus-within { border-color: var(--gold); box-shadow: 0 0 0 2px rgba(228, 184, 95, .15); }
+.phone-prefix-badge { display: inline-flex; align-items: center; gap: 5px; padding: 0 12px; min-height: 42px; background: var(--panel2); border-right: 1px solid var(--line); color: var(--text); font-size: 13px; font-weight: 600; user-select: none; white-space: nowrap; }
+.phone-number-input { flex: 1; min-height: 42px; padding: 10px 14px; border: 0; background: transparent; color: var(--text); font-size: 14px; font-weight: 600; outline: 0; letter-spacing: 0.5px; }
+.phone-number-input::placeholder { color: color-mix(in srgb, var(--muted) 72%, transparent); font-size: 11px; font-weight: normal; letter-spacing: normal; }
+.referral-toggle-btn { display: inline-flex; align-items: center; gap: 5px; background: transparent; border: 0; padding: 2px 0 8px; color: var(--gold); font-size: 11px; font-weight: 600; cursor: pointer; }
+.referral-toggle-btn:hover { text-decoration: underline; }
+.auth-secondary-btn { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%; margin-top: 10px; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 9px; background: transparent; color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s ease; }
+.auth-secondary-btn:hover { border-color: var(--gold); color: var(--text); background: rgba(228, 184, 95, .04); }
+.auth-topbar-actions { display: flex; align-items: center; gap: 8px; }
 .input-with-icon { position: relative; display: flex; align-items: center; }
 .input-with-icon > svg { position: absolute; left: 12px; color: var(--muted); }
 .input-with-icon .text-input { padding-left: 38px; }
@@ -899,14 +909,12 @@ body.light .practice-card { background: linear-gradient(135deg, #EEF2FF, #F8FAFC
   .pwa-update-dismiss { width: 36px; min-width: 36px; min-height: 44px; }
   .pathway-grid { grid-template-columns: 1fr; gap: 8px; }
   .pathway-card { min-height: 140px; }
-  .auth-page { padding: 0 18px; }
-  .auth-topbar { height: 62px; }
-  .auth-layout { min-height: auto; grid-template-columns: 1fr; gap: 10px; padding: 25px 0 30px; }
-  .auth-story { padding: 3px 2px; }
-  .auth-story h1 { margin: 12px 0 8px; font-size: 34px; }
-  .auth-story > p { margin-bottom: 0; font-size: 11px; }
+  .auth-page { padding: 0 16px; }
+  .auth-topbar { height: 60px; }
+  .auth-layout { min-height: auto; grid-template-columns: 1fr; gap: 0; padding: 12px 0 24px; }
+  .auth-story { display: none; }
   .auth-points, .auth-quote { display: none; }
-  .auth-card { padding: 21px; }
+  .auth-card { padding: 22px 18px; max-width: 440px; margin: 0 auto; width: 100%; }
   .auth-footer { padding-bottom: 15px; }
   .profile-layout { grid-template-columns: 1fr; }
   .profile-identity { display: grid; grid-template-columns: 60px 1fr; column-gap: 12px; align-items: center; padding: 15px; }
