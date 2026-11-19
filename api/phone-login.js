@@ -118,12 +118,20 @@ export async function handlePhoneLogin(req, res) {
           updated_at: new Date().toISOString()
         }, { onConflict: 'id' });
 
-        // Ensure wallet
-        await supabaseAdmin.from('coin_wallets').upsert({
-          user_id: userId,
-          balance: 0,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
+        // Ensure wallet (only if not already exists to prevent resetting student balance)
+        const { data: existingWallet } = await supabaseAdmin
+          .from('coin_wallets')
+          .select('id')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+        if (!existingWallet) {
+          await supabaseAdmin.from('coin_wallets').insert({
+            user_id: userId,
+            balance: 0,
+            updated_at: new Date().toISOString()
+          });
+        }
       }
 
       // Sign in now that user is created

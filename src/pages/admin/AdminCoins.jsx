@@ -105,12 +105,31 @@ export default function AdminCoins() {
         setReferrals(enrichedReferrals);
       }
 
-      // 4. Load recent coin ledger transactions
-      const { data: ledgerRows } = await supabase
-        .from('coin_ledger')
-        .select('id, user_id, amount, transaction_type, reason, created_at')
-        .order('created_at', { ascending: false })
-        .limit(20);
+      // 4. Load recent coin ledger transactions with fallback
+      let ledgerRows = null;
+      try {
+        const { data } = await supabase
+          .from('coin_ledger')
+          .select('id, user_id, amount, transaction_type, reason, created_at')
+          .order('created_at', { ascending: false })
+          .limit(20);
+        ledgerRows = data;
+      } catch (lErr) {
+        console.warn('Error reading coin_ledger:', lErr);
+      }
+
+      if (!ledgerRows || ledgerRows.length === 0) {
+        try {
+          const { data: txRows } = await supabase
+            .from('coin_transactions')
+            .select('id, user_id, amount, transaction_type, reason, created_at')
+            .order('created_at', { ascending: false })
+            .limit(20);
+          if (txRows?.length) ledgerRows = txRows;
+        } catch {
+          // ignore fallback error
+        }
+      }
 
       if (active() && ledgerRows) {
         setRecentTransactions(ledgerRows);

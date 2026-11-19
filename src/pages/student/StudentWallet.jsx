@@ -12,22 +12,49 @@ const LEDGER_PAGE_SIZE = 1000;
 
 async function fetchLedger(supabase, userId) {
   const transactions = [];
-  for (let offset = 0; ; offset += LEDGER_PAGE_SIZE) {
-    const { data, error } = await supabase.from('coin_ledger').select('*')
-      .eq('user_id', userId).order('created_at', { ascending: false })
-      .range(offset, offset + LEDGER_PAGE_SIZE - 1);
-    if (error) throw error;
-    transactions.push(...(data || []));
-    if (!data || data.length < LEDGER_PAGE_SIZE) return transactions;
+  try {
+    for (let offset = 0; ; offset += LEDGER_PAGE_SIZE) {
+      const { data, error } = await supabase.from('coin_ledger').select('*')
+        .eq('user_id', userId).order('created_at', { ascending: false })
+        .range(offset, offset + LEDGER_PAGE_SIZE - 1);
+      if (error) throw error;
+      transactions.push(...(data || []));
+      if (!data || data.length < LEDGER_PAGE_SIZE) break;
+    }
+  } catch (err) {
+    console.warn('Failed to query coin_ledger, falling back to coin_transactions:', err);
   }
+
+  // If coin_ledger returned no rows, fall back to coin_transactions
+  if (transactions.length === 0) {
+    try {
+      const { data: txData, error: txError } = await supabase.from('coin_transactions').select('*')
+        .eq('user_id', userId).order('created_at', { ascending: false })
+        .limit(LEDGER_PAGE_SIZE);
+      if (!txError && txData?.length) {
+        transactions.push(...txData);
+      }
+    } catch (fallbackErr) {
+      console.warn('Fallback to coin_transactions also failed:', fallbackErr);
+    }
+  }
+
+  return transactions;
 }
 
 function transactionAmount(transaction) {
   const raw = Number(transaction.amount ?? transaction.coins ?? transaction.coin_amount ?? 0);
-  const kind = String(transaction.transaction_type || transaction.type || transaction.direction || '').toLowerCase();
+  const kind = String(
+    transaction.transaction_type ||
+    transaction.type ||
+    transaction.tx_type ||
+    transaction.source ||
+    transaction.direction ||
+    ''
+  ).toLowerCase();
   return ['debit', 'spent', 'spend', 'deduction', 'purchase', 'redeem'].some((value) => kind.includes(value))
     ? -Math.abs(raw)
-    : ['credit', 'earned', 'reward', 'refund'].some((value) => kind.includes(value))
+    : ['credit', 'earned', 'reward', 'refund', 'bonus', 'referral'].some((value) => kind.includes(value))
       ? Math.abs(raw)
       : raw;
 }

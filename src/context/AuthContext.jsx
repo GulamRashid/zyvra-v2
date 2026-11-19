@@ -97,10 +97,24 @@ export function AuthProvider({ children }) {
 
     const savedRef = sessionStorage.getItem('zyvra_ref_code') || localStorage.getItem('zyvra_ref_code');
     if (savedRef) {
-      processReferralAward(supabase, userId, savedRef).then((result) => {
+      processReferralAward(supabase, userId, savedRef).then(async (result) => {
         if (result && !result.retryable) {
           sessionStorage.removeItem('zyvra_ref_code');
           localStorage.removeItem('zyvra_ref_code');
+        }
+        if (result?.success) {
+          try {
+            const { data: freshWallet } = await supabase
+              .from('coin_wallets')
+              .select('balance')
+              .eq('user_id', userId)
+              .maybeSingle();
+            if (freshWallet && Number.isFinite(Number(freshWallet.balance))) {
+              setCoinBalance(Number(freshWallet.balance));
+            }
+          } catch (freshErr) {
+            console.warn('Unable to immediately refresh coin balance after referral claim:', freshErr);
+          }
         }
       });
     }

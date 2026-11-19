@@ -92,8 +92,32 @@ export async function handleClaimReferral(req, res) {
       return respond(400, { success: false, already_referred: true, error: 'Referral already claimed.' });
     }
 
-    const referrerCoins = 50;
-    const referredCoins = 20;
+    let referrerCoins = 50;
+    let referredCoins = 20;
+
+    try {
+      const { data: settingData } = await adminClient
+        .from('platform_settings')
+        .select('value, setting_value')
+        .or('key.eq.referral_program_config,setting_key.eq.referral_program_config')
+        .limit(1)
+        .maybeSingle();
+
+      const config = settingData?.setting_value || settingData?.value;
+      if (config && typeof config === 'object') {
+        if (config.referral_enabled === false) {
+          return respond(400, { success: false, error: 'Referral program is currently paused.' });
+        }
+        if (typeof config.referrer_reward_coins === 'number' && config.referrer_reward_coins > 0) {
+          referrerCoins = Number(config.referrer_reward_coins);
+        }
+        if (typeof config.referred_reward_coins === 'number' && config.referred_reward_coins > 0) {
+          referredCoins = Number(config.referred_reward_coins);
+        }
+      }
+    } catch (confErr) {
+      console.warn('Could not read referral settings, using defaults (50/20):', confErr);
+    }
 
     // Insert referral record
     const { error: insertErr } = await adminClient
@@ -119,10 +143,18 @@ export async function handleClaimReferral(req, res) {
       .eq('user_id', referrer.id)
       .maybeSingle();
 
-    const newRefBal = (refWallet?.balance || 0) + referrerCoins;
+    const newRefBal = (Number(refWallet?.balance) || 0) + referrerCoins;
     await adminClient
       .from('coin_wallets')
-      .upsert({ user_id: referrer.id, balance: newRefBal, updated_at: new Date().toISOString() });
+      .upsert({ user_id: referrer.id, balance: newRefBal, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+
+    await adminClient.from('coin_ledger').insert({
+      user_id: referrer.id,
+      amount: referrerCoins,
+      transaction_type: 'credit',
+      reason: 'Referral reward: invited a student',
+      description: `Referral bonus for inviting a student`
+    }).catch(() => {});
 
     await adminClient.from('coin_transactions').insert({
       user_id: referrer.id,
@@ -138,10 +170,18 @@ export async function handleClaimReferral(req, res) {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    const newMyBal = (myWallet?.balance || 0) + referredCoins;
+    const newMyBal = (Number(myWallet?.balance) || 0) + referredCoins;
     await adminClient
       .from('coin_wallets')
-      .upsert({ user_id: user.id, balance: newMyBal, updated_at: new Date().toISOString() });
+      .upsert({ user_id: user.id, balance: newMyBal, updated_at: new Date().toISOString() }, { onConflict: 'user_id' });
+
+    await adminClient.from('coin_ledger').insert({
+      user_id: user.id,
+      amount: referredCoins,
+      transaction_type: 'credit',
+      reason: 'Referral bonus: joined with invite code',
+      description: `Welcome bonus for using referral code ${cleanCode}`
+    }).catch(() => {});
 
     await adminClient.from('coin_transactions').insert({
       user_id: user.id,
