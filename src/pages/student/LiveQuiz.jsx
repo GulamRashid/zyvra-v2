@@ -262,44 +262,54 @@ function FormattedInstructions({ text }) {
   return <div className="instructions-parsed-body">{elements}</div>;
 }
 
-function PaletteLegend({ compact = false }) {
+function PaletteLegend({ compact = false, stats = null, language = 'en' }) {
+  const isHi = language === 'hi';
   return (
     <div className={`cbt-palette-legend ${compact ? 'compact' : ''}`}>
-      <div className="legend-item">
-        <span className="legend-badge answered">1</span>
-        <div className="legend-text">
-          <strong>Answered</strong>
-          {!compact && <span>You have answered the question.</span>}
-        </div>
-      </div>
-      <div className="legend-item">
-        <span className="legend-badge not-answered">2</span>
-        <div className="legend-text">
-          <strong>Not Answered</strong>
-          {!compact && <span>You have not answered the question.</span>}
-        </div>
-      </div>
-      <div className="legend-item">
-        <span className="legend-badge marked">3</span>
-        <div className="legend-text">
-          <strong>Marked for Review</strong>
-          {!compact && <span>Marked for review without an answer.</span>}
-        </div>
-      </div>
-      <div className="legend-item">
-        <span className="legend-badge answered-marked">
-          4<span className="eval-dot" />
+      <div className="legend-item" title="Answered">
+        <span className="legend-badge answered">
+          {stats ? stats.answered : '1'}
         </span>
         <div className="legend-text">
-          <strong>Answered & Marked</strong>
-          {!compact && <span>Answered & marked for review (will be evaluated).</span>}
+          <strong>{isHi ? 'उत्तर दिया' : 'Answered'}</strong>
+          {!compact && <span>{isHi ? 'आपने इस प्रश्न का उत्तर दिया है।' : 'You have answered the question.'}</span>}
         </div>
       </div>
-      <div className="legend-item">
-        <span className="legend-badge not-visited">5</span>
+      <div className="legend-item" title="Not Answered">
+        <span className="legend-badge not-answered">
+          {stats ? stats.notAnswered : '2'}
+        </span>
         <div className="legend-text">
-          <strong>Not Visited</strong>
-          {!compact && <span>You have not visited the question yet.</span>}
+          <strong>{isHi ? 'उत्तर नहीं दिया' : 'Not Answered'}</strong>
+          {!compact && <span>{isHi ? 'आपने इस प्रश्न का उत्तर नहीं दिया है।' : 'You have not answered the question.'}</span>}
+        </div>
+      </div>
+      <div className="legend-item" title="Marked for Review">
+        <span className="legend-badge marked">
+          {stats ? stats.markedOnly : '3'}
+        </span>
+        <div className="legend-text">
+          <strong>{isHi ? 'समीक्षा हेतु' : 'Marked for Review'}</strong>
+          {!compact && <span>{isHi ? 'समीक्षा के लिए चिह्नित (बिना उत्तर)।' : 'Marked for review without an answer.'}</span>}
+        </div>
+      </div>
+      <div className="legend-item" title="Answered & Marked for Review">
+        <span className="legend-badge answered-marked">
+          {stats ? stats.answeredAndMarked : '4'}
+          <span className="eval-dot" />
+        </span>
+        <div className="legend-text">
+          <strong>{isHi ? 'उत्तरित व चिह्नित' : 'Ans & Marked'}</strong>
+          {!compact && <span>{isHi ? 'उत्तर दिया और समीक्षा के लिए चिह्नित (मूल्यांकन होगा)।' : 'Answered & marked (will be evaluated).'}</span>}
+        </div>
+      </div>
+      <div className="legend-item" title="Not Visited">
+        <span className="legend-badge not-visited">
+          {stats ? stats.notVisited : '5'}
+        </span>
+        <div className="legend-text">
+          <strong>{isHi ? 'नहीं देखा' : 'Not Visited'}</strong>
+          {!compact && <span>{isHi ? 'आपने अभी तक यह प्रश्न नहीं देखा है।' : 'You have not visited the question yet.'}</span>}
         </div>
       </div>
     </div>
@@ -1808,7 +1818,7 @@ export default function LiveQuiz() {
               <h3 className="instructions-section-title">
                 <Grid3X3 size={18} className="text-accent" /> Question Palette Symbol Guide
               </h3>
-              <PaletteLegend compact={false} />
+              <PaletteLegend compact={false} language={language} />
             </section>
           </div>
 
@@ -1979,7 +1989,7 @@ export default function LiveQuiz() {
               <div className="instructions-modal-body">
                 <FormattedInstructions text={test?.instructions} />
                 <h3 className="text-sm font-bold mt-4 mb-2 text-text">Question Palette Legend</h3>
-                <PaletteLegend compact={false} />
+                <PaletteLegend compact={false} stats={stats} language={language} />
               </div>
               <div className="instructions-modal-footer">
                 <button type="button" className="button button-primary" onClick={() => setShowInstructionsModal(false)}>
@@ -2426,25 +2436,32 @@ export default function LiveQuiz() {
                 const isCurrent = currentIndex === idx;
 
                 let badgeClasses = 'dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-200 dark:text-slate-400 text-slate-600';
-                if (isCurrent) {
-                  badgeClasses = 'border-2 border-slate-400 bg-slate-400/20 text-slate-700 dark:text-slate-200 ring-2 ring-slate-400/30 font-black';
+                if (hasAnswer && isMarked) {
+                  badgeClasses = 'bg-purple-600 border border-purple-400 text-white font-bold relative';
                 } else if (isMarked) {
                   badgeClasses = 'bg-purple-600 border border-purple-400 text-white font-bold';
                 } else if (hasAnswer) {
-                  badgeClasses = 'bg-[#22c55e] border border-[#22c55e] text-black font-black shadow-sm';
+                  badgeClasses = 'bg-[#22c55e] border border-[#22c55e] text-white font-black shadow-sm';
                 } else if (isVisited) {
-                  badgeClasses = 'bg-red-500/80 border border-red-500 text-white font-bold';
+                  badgeClasses = 'bg-rose-500/90 border border-rose-500 text-white font-bold';
                 }
+
+                const currentRing = isCurrent
+                  ? 'ring-2 ring-indigo-400 ring-offset-2 scale-110 font-black shadow-md z-10 dark:ring-offset-slate-900 ring-offset-white'
+                  : '';
 
                 return (
                   <button
                     key={qId || idx}
                     type="button"
                     onClick={() => goTo(idx)}
-                    className={`w-8 h-8 rounded-full text-xs flex items-center justify-center shrink-0 transition-transform hover:scale-110 active:scale-95 ${badgeClasses}`}
+                    className={`w-8 h-8 rounded-full text-xs flex items-center justify-center shrink-0 transition-all hover:scale-110 active:scale-95 ${badgeClasses} ${currentRing}`}
                     aria-label={`Question ${idx + 1}`}
                   >
                     {idx + 1}
+                    {hasAnswer && isMarked && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-white" />
+                    )}
                   </button>
                 );
               })}
@@ -2801,7 +2818,12 @@ export default function LiveQuiz() {
                 className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm transition-colors flex items-center gap-1 min-h-[40px] shadow-glowIndigo"
                 onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
               >
-                <span>{language === 'hi' ? 'आगे' : 'Next'}</span> <ChevronRight size={16} />
+                <span>
+                  {responses[question?.id]?.selected_option
+                    ? (language === 'hi' ? 'सेव करें और आगे' : 'Save & Next')
+                    : (language === 'hi' ? 'आगे' : 'Next')}
+                </span>
+                <ChevronRight size={16} />
               </button>
             )}
           </div>
@@ -2871,7 +2893,7 @@ export default function LiveQuiz() {
           </div>
 
           {/* Standard 5-State Legend in Sidebar */}
-          <PaletteLegend compact={true} />
+          <PaletteLegend compact={true} stats={stats} language={language} />
 
           {/* Quick Palette Filter Tabs */}
           <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl my-2 text-[11px] font-bold">
@@ -2959,7 +2981,10 @@ export default function LiveQuiz() {
                   type="button"
                   data-question-index={index}
                   className={`palette-number ${stateClass} ${isOptionE ? 'option-e-selected' : ''} ${currentIndex === index ? 'current' : ''}`}
-                  onClick={() => goTo(index)}
+                  onClick={() => {
+                    goTo(index);
+                    setPaletteOpen(false);
+                  }}
                   aria-label={`Question ${index + 1}: ${stateLabel}${isOptionE ? ', Option E selected' : ''}`}
                   title={`Question ${index + 1} — ${stateLabel}${isOptionE ? ', Option E selected' : ''}`}
                 >
@@ -3068,7 +3093,7 @@ export default function LiveQuiz() {
             <div className="instructions-modal-body">
               <FormattedInstructions text={test?.instructions} />
               <h3 className="text-sm font-bold mt-4 mb-2 text-text">Question Palette Legend</h3>
-              <PaletteLegend compact={false} />
+              <PaletteLegend compact={false} stats={stats} language={language} />
             </div>
             <div className="instructions-modal-footer">
               <button type="button" className="button button-primary" onClick={() => setShowInstructionsModal(false)}>
