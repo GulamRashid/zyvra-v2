@@ -40,6 +40,8 @@ const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications')
 const AdminTools = lazy(() => import('./pages/admin/AdminTools'));
 const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
 const AdminEngagement = lazy(() => import('./pages/admin/AdminEngagement'));
+const AdminSupportChat = lazy(() => import('./pages/admin/AdminSupportChat'));
+const SupportChatWidget = lazy(() => import('./components/common/SupportChatWidget'));
 
 function RootRoute() {
   const { user, loading, guest } = useAuth();
@@ -85,6 +87,7 @@ function AppRoutes() {
       <Route path="orders" element={<AdminOrders />} />
       <Route path="subscriptions" element={<AdminSubscriptions />} />
       <Route path="notifications" element={<AdminNotifications />} />
+      <Route path="support" element={<AdminSupportChat />} />
       <Route path="tools" element={<AdminTools />} />
       <Route path="reports" element={<AdminReports />} />
       <Route path="settings" element={<Navigate to="/admin" replace />} />
@@ -174,6 +177,9 @@ export default function App() {
     <>
       <RouteStatePreserver />
       <AppRoutes />
+      <Suspense fallback={null}>
+        <SupportChatWidget />
+      </Suspense>
       <PwaUpdatePrompt />
       <PwaInstallBanner />
     </>

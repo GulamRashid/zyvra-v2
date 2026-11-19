@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Activity, Bell, ClipboardList, Coins, FileQuestion, FileText, Gauge, LogOut, Menu, PackageCheck, ShieldCheck, ShoppingCart, Sparkles, Tag, Users, Wrench, X } from 'lucide-react';
+import { Activity, Bell, ClipboardList, Coins, FileQuestion, FileText, Gauge, LogOut, Menu, MessageCircle, PackageCheck, ShieldCheck, ShoppingCart, Sparkles, Tag, Users, Wrench, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
 import Admin2FAModal from '../admin/Admin2FAModal';
 
 const modules = [
   { to: '/admin', label: 'Dashboard', Icon: Gauge, end: true },
+  { to: '/admin/support', label: 'Support Chat', Icon: MessageCircle },
   { to: '/admin/engagement', label: 'Banners & QotD', Icon: Sparkles },
   { to: '/admin/content', label: 'Content Manager', Icon: FileText },
   { to: '/admin/qbank', label: 'Question Bank', Icon: FileQuestion },

@@ -1750,7 +1750,28 @@ export default function StudentProfile() {
                 Kisi bhi sawal, test issue, pass activation ya billing ke liye hamari student support team se turant sampark karein:
               </p>
 
+              {/* Start In-App Live Chat Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSupportModalOpen(false);
+                  window.dispatchEvent(new CustomEvent('zyvra:open-support-chat'));
+                }}
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+              >
+                <MessageCircle size={17} />
+                <span>💬 Start Live Chat (लाइव चैट शुरू करें)</span>
+              </button>
+
               <div className="p-3.5 rounded-2xl dark:bg-slate-900/90 bg-slate-50 border dark:border-slate-800 border-slate-200 space-y-2.5">
+                <a
+                  href="mailto:zyvra.education@gmail.com"
+                  className="flex items-center gap-2.5 text-indigo-400 font-bold hover:underline"
+                >
+                  <Mail size={18} className="shrink-0" />
+                  <span>Email: zyvra.education@gmail.com</span>
+                </a>
+
                 <a
                   href="https://wa.me/919876543210?text=Namaste%20Zyvra%20Support,%20mujhe%20madad%20chahiye."
                   target="_blank"
@@ -1759,14 +1780,6 @@ export default function StudentProfile() {
                 >
                   <MessageCircle size={18} className="shrink-0" />
                   <span>WhatsApp Chat Support: +91 98765 43210</span>
-                </a>
-
-                <a
-                  href="mailto:support@zyvra.in"
-                  className="flex items-center gap-2.5 text-indigo-400 font-bold hover:underline"
-                >
-                  <Mail size={18} className="shrink-0" />
-                  <span>Email: support@zyvra.in</span>
                 </a>
 
                 <div className="flex items-center gap-2.5 text-slate-400 text-[11px] pt-1 border-t dark:border-slate-800 border-slate-200">

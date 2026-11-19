@@ -84,7 +84,7 @@ export default function LegalPage() {
                 4. Your Rights
               </h2>
               <p>
-                You can review, modify, or update your personal details (such as full name and WhatsApp number) at any time from your Student Profile page. For account inquiries, contact support at <strong>support@zyvra.in</strong>.
+                You can review, modify, or update your personal details (such as full name and WhatsApp number) at any time from your Student Profile page. For account inquiries, contact support at <strong>zyvra.education@gmail.com</strong>.
               </p>
             </section>
           </article>
