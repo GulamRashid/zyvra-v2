@@ -321,3 +321,43 @@ test('CalendarDayTool: verified historical dates and repetition rules', () => {
   assert.equal(getCalendarRepetition(2026), 2037, 'Leap+2 year 2026 repeats in 11 years (2037)');
 });
 
+// Import and test Geography dataset integrity
+import {
+  RIVERS_DATA,
+  MOUNTAINS_PEAKS_DATA,
+  MOUNTAIN_PASSES_DATA,
+  NATIONAL_PARKS_DATA
+} from '../src/data/geographyData.js';
+
+test('Geography dataset: Rivers, Mountains, Passes & Parks validation', () => {
+  // Rivers checks
+  assert.ok(RIVERS_DATA.length >= 10, 'Must have at least 10 major rivers');
+  const ganga = RIVERS_DATA.find((r) => r.id === 'ganga');
+  assert.ok(ganga, 'Ganga must exist');
+  assert.equal(ganga.lengthKm, 2525);
+  assert.ok(ganga.dams.some((d) => d.includes('Tehri')));
+
+  // Mountains checks
+  assert.ok(MOUNTAINS_PEAKS_DATA.length >= 8, 'Must have key Indian peaks');
+  const anamudi = MOUNTAINS_PEAKS_DATA.find((p) => p.id === 'anamudi');
+  assert.ok(anamudi, 'Anamudi (South India highest) must exist');
+  assert.equal(anamudi.elevationM, 2695);
+
+  const kanchenjunga = MOUNTAINS_PEAKS_DATA.find((p) => p.id === 'kanchenjunga');
+  assert.ok(kanchenjunga);
+  assert.equal(kanchenjunga.elevationM, 8586);
+
+  // Passes & Parks checks
+  assert.ok(MOUNTAIN_PASSES_DATA.some((p) => p.id === 'zoji-la'));
+  assert.ok(MOUNTAIN_PASSES_DATA.some((p) => p.id === 'rohtang-pass'));
+  assert.ok(NATIONAL_PARKS_DATA.some((p) => p.id === 'jim-corbett'));
+  assert.ok(NATIONAL_PARKS_DATA.some((p) => p.id === 'kaziranga'));
+
+  // Coordinate boundaries check (0-100% on India bounding box)
+  for (const item of [...RIVERS_DATA, ...MOUNTAINS_PEAKS_DATA, ...MOUNTAIN_PASSES_DATA, ...NATIONAL_PARKS_DATA]) {
+    assert.ok(item.x >= 0 && item.x <= 100, `Item ${item.id} x coordinate must be in [0, 100]`);
+    assert.ok(item.y >= 0 && item.y <= 100, `Item ${item.id} y coordinate must be in [0, 100]`);
+    assert.ok(item.nameEn && item.nameHi, `Item ${item.id} must be bilingual`);
+  }
+});
+

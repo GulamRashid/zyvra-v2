@@ -125,6 +125,19 @@ const DEFAULT_SYSTEM_TOOLS = [
     active: true,
     popular: true,
     order: 8
+  },
+  {
+    id: 'geo-map-explorer',
+    name: 'India Geography & Interactive Map Explorer',
+    category: 'General Studies',
+    iconName: 'MapPin',
+    iconChar: '🗺️',
+    accessType: 'free',
+    purchaseType: 'Always Free',
+    price: 0,
+    active: true,
+    popular: true,
+    order: 9
   }
 ];
 
@@ -201,7 +214,7 @@ export default function AdminTools() {
           name: item.name || item.title || 'Untitled Tool',
           category: item.category || 'General',
           iconName: item.icon || 'Wrench',
-          iconChar: item.id === 'clock-mirror' ? '⏰' : item.id === 'calendar-day' ? '📅' : item.id === 'flashcards' ? '🗂️' : item.id === 'mistake-notebook' ? '📓' : item.id === 'polity-articles' ? '🏛️' : item.icon === 'Clock' ? '⏱️' : item.icon === 'Calculator' ? '🧮' : item.icon === 'Brain' ? '🧠' : item.icon === 'BookOpen' ? '📖' : '🔧',
+          iconChar: item.id === 'geo-map-explorer' ? '🗺️' : item.id === 'clock-mirror' ? '⏰' : item.id === 'calendar-day' ? '📅' : item.id === 'flashcards' ? '🗂️' : item.id === 'mistake-notebook' ? '📓' : item.id === 'polity-articles' ? '🏛️' : item.icon === 'Clock' ? '⏱️' : item.icon === 'Calculator' ? '🧮' : item.icon === 'Brain' ? '🧠' : item.icon === 'BookOpen' ? '📖' : '🔧',
           accessType: ['paid', 'premium'].includes(String(item.access_type || item.accessType || (item.price > 0 ? 'paid' : 'free')).toLowerCase()) ? 'paid' : 'free',
           purchaseType: item.purchaseType || (item.price > 0 ? 'Single Purchase' : 'Always Free'),
           price: Number(item.price) || 0,

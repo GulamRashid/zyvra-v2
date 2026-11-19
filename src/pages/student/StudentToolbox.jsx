@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Binary, Bookmark, BookOpen, Brain, Calculator, Calendar, CalendarDays, ChevronRight,
-  Clock, Clock3, Compass, Dices, Heart, Landmark, ListChecks, LockKeyhole, Percent, Search,
+  Clock, Clock3, Compass, Dices, Heart, Landmark, ListChecks, LockKeyhole, MapPin, Percent, Search,
   Scale, Shapes, Sigma, StickyNote, Superscript, Target, TrendingUp, Wrench, Zap
 } from 'lucide-react';
 import CheckoutModal from '../../components/common/CheckoutModal';
@@ -21,6 +21,7 @@ import DiceRules from '../../components/toolbox/reasoning/DiceRules';
 import ClockMirrorTool from '../../components/toolbox/reasoning/ClockMirrorTool';
 import CalendarDayTool from '../../components/toolbox/reasoning/CalendarDayTool';
 import ConstitutionArticles from '../../components/toolbox/gs/ConstitutionArticles';
+import IndiaGeoMap from '../../components/toolbox/gs/IndiaGeoMap';
 import NegativeMarkingSimulator from '../../components/toolbox/productivity/NegativeMarkingSimulator';
 import StickyNotes from '../../components/toolbox/productivity/StickyNotes';
 import PomodoroTimer from '../../components/toolbox/productivity/PomodoroTimer';
@@ -73,6 +74,7 @@ const CATEGORY_TOOLS = {
     { id: 'exam-countdown', titleKey: 'tbExamCountdown', subtitleKey: 'tbExamCountdownDesc', Icon: CalendarDays, accessKey: null, isFree: true }
   ],
   'general-studies': [
+    { id: 'geo-map-explorer', titleKey: 'tbGeoMap', subtitleKey: 'tbGeoMapDesc', Icon: MapPin, accessKey: 'polity-articles' },
     { id: 'constitution-articles', titleKey: 'tbConstitution', subtitleKey: 'tbConstitutionDesc', Icon: Landmark, accessKey: 'polity-articles' },
     { id: 'saved-bookmarks', titleKey: 'tbBookmarks', subtitleKey: 'tbBookmarksDesc', Icon: Bookmark, accessKey: null, isFree: true }
   ],
@@ -103,7 +105,8 @@ export default function StudentToolbox() {
     'polity-articles': true,
     'formula-sheet': true,
     'clock-mirror': true,
-    'calendar-day': true
+    'calendar-day': true,
+    'geo-map-explorer': true
   });
   const [toolPricing, setToolPricing] = useState({});
   const [comboPricing, setComboPricing] = useState({ price: 0, validity_days: 30 });
@@ -500,6 +503,7 @@ export default function StudentToolbox() {
     if (activeTool === 'direction-compass') return <DirectionCompass />;
     if (activeTool === 'dice-rules') return <DiceRules />;
     if (activeTool === 'risk-simulator') return <NegativeMarkingSimulator />;
+    if (activeTool === 'geo-map-explorer') return <IndiaGeoMap />;
     if (activeTool === 'constitution-articles') return <ConstitutionArticles />;
     if (activeTool === 'unit-converter') return <UnitConverter />;
     if (activeTool === 'sticky-notes') return <StickyNotes />;
