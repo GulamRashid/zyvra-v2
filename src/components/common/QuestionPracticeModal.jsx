@@ -359,15 +359,23 @@ export default function QuestionPracticeModal({
               <span>Question {currentIndex + 1}</span>
               {isAnswered && (
                 <div className="flex items-center gap-2">
-                  <span className={`practice-result-badge ${isCorrect ? 'correct' : 'wrong'}`}>
-                    {isCorrect
-                      ? (language === 'hi' ? 'सही उत्तर ✓' : 'Correct ✓')
-                      : (language === 'hi' ? 'गलत उत्तर ✗' : 'Incorrect ✗')}
-                  </span>
-                  {!isCorrect && correctAnswer && (
-                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                      {language === 'hi' ? `सही उत्तर है: ${correctAnswer}` : `Correct answer: ${correctAnswer}`}
+                  {!correctAnswer ? (
+                    <span className="practice-result-badge text-amber-600 dark:text-amber-400 text-xs font-semibold">
+                      {language === 'hi' ? 'उत्तर की जाँच हो रही है...' : 'Evaluating...'}
                     </span>
+                  ) : (
+                    <>
+                      <span className={`practice-result-badge ${isCorrect ? 'correct' : 'wrong'}`}>
+                        {isCorrect
+                          ? (language === 'hi' ? 'सही उत्तर ✓' : 'Correct ✓')
+                          : (language === 'hi' ? 'गलत उत्तर ✗' : 'Incorrect ✗')}
+                      </span>
+                      {!isCorrect && (
+                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          {language === 'hi' ? `सही उत्तर है: ${correctAnswer}` : `Correct answer: ${correctAnswer}`}
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               )}
