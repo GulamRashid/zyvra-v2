@@ -7,7 +7,7 @@ import CheckoutModal from '../../components/common/CheckoutModal';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import ContentIcon from '../../components/common/ContentIcon';
 import useContentCatalog from '../../hooks/useContentCatalog';
-import { getChapterAccess, getFolderPath, getFolderPricing, isFolderUnlocked, isPublished } from '../../lib/content';
+import { getChapterAccess, getFolderPath, getFolderPricing, isFolderUnlocked, isPublished, sortContentItems } from '../../lib/content';
 import useContentAccess from '../../hooks/useContentAccess';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
@@ -46,8 +46,15 @@ export default function FolderView() {
   const exam = exams.find((item) => item.id === folder?.exam_id && isPublished(item));
   const path = useMemo(() => (folder ? getFolderPath(folder, folders) : []), [folder, folders]);
   const hierarchyPublished = path.every(isPublished);
-  const childFolders = folders.filter((item) => (item.parent_folder_id === folder?.id || item.parent_id === folder?.id) && isPublished(item));
-  const folderChapters = chapters.filter((chapter) => chapter.folder_id === folder?.id && isPublished(chapter));
+  const childFolders = useMemo(() => {
+    const list = folders.filter((item) => (item.parent_folder_id === folder?.id || item.parent_id === folder?.id) && isPublished(item));
+    return sortContentItems(list);
+  }, [folders, folder?.id]);
+
+  const folderChapters = useMemo(() => {
+    const list = chapters.filter((chapter) => chapter.folder_id === folder?.id && isPublished(chapter));
+    return sortContentItems(list);
+  }, [chapters, folder?.id]);
   const parent = path.length > 1 ? path[path.length - 2] : null;
   const pricing = getFolderPricing(folder, folders);
   const examPrice = Number(exam?.price || 0);

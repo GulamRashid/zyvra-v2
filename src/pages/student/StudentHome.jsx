@@ -22,6 +22,7 @@ import ContentIcon from '../../components/common/ContentIcon';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
+import { getExamCategory, isPublished, sortContentItems } from '../../lib/content';
 import { getRecommendedPractice } from '../../lib/recommendations';
 import { getAnsweredQuestionCount } from '../../lib/tests';
 
@@ -307,11 +308,14 @@ export default function StudentHome() {
     chapters
   }), [allAttempts, availableTests, chapters]);
 
-  // Real Dynamic Exams mapped strictly from Database
+  // Real Dynamic Exams mapped strictly from Database with natural sorting & categorization
   const dynamicExams = useMemo(() => {
-    return exams.map((exam) => ({
+    const published = exams.filter(isPublished);
+    const sorted = sortContentItems(published);
+    return sorted.map((exam) => ({
       id: exam.id,
       title: exam.title,
+      category: getExamCategory(exam),
       subtitle: exam.description || 'Chapter tests & practice questions',
       icon: exam.icon_url || exam.icon || 'GraduationCap',
       badge: exam.icon === 'GraduationCap' ? '🎓' : exam.icon === 'BookOpen' ? '📖' : '🏛️',
@@ -690,7 +694,9 @@ export default function StudentHome() {
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center border bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 p-1.5">
                       <ContentIcon icon={exam.icon} className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500 dark:text-indigo-400" />
                     </div>
-                    <ChevronRight size={15} className="text-slate-400 dark:text-white/40 group-hover:text-slate-800 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                    <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                      {exam.category}
+                    </span>
                   </div>
                   <div>
                     <h4 className="text-xs sm:text-sm font-extrabold dark:text-white text-slate-900 tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">

@@ -10,7 +10,7 @@ import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { formatRupees } from '../../lib/commerce';
-import { isPublished } from '../../lib/content';
+import { getExamCategory, isPublished, sortContentItems } from '../../lib/content';
 
 export default function StudentPurchases() {
   const { user, supabase, accountAccess } = useAuth();
@@ -101,21 +101,24 @@ export default function StudentPurchases() {
 
   const hasFullPass = Boolean(fullPassGrant || (accountAccess?.ready && accountAccess?.isPremium));
 
-  // Determine Enrolled Exams
+  // Determine Enrolled Exams with natural sorting
   const enrolledExams = useMemo(() => {
     const publishedExams = exams.filter(isPublished);
+    let list = [];
     if (hasFullPass) {
-      return publishedExams;
+      list = publishedExams;
+    } else {
+      const grantedExamIds = new Set(
+        grants
+          .filter((g) => g.item_type === 'exam' && g.is_active !== false)
+          .map((g) => g.item_id)
+      );
+      list = publishedExams.filter((e) => grantedExamIds.has(e.id));
     }
-    const grantedExamIds = new Set(
-      grants
-        .filter((g) => g.item_type === 'exam' && g.is_active !== false)
-        .map((g) => g.item_id)
-    );
-    return publishedExams.filter((e) => grantedExamIds.has(e.id));
+    return sortContentItems(list);
   }, [exams, hasFullPass, grants]);
 
-  // Determine Standalone Enrolled Folders (when bought folder directly, not via full exam or full pass)
+  // Determine Standalone Enrolled Folders with natural sorting
   const enrolledStandaloneFolders = useMemo(() => {
     if (hasFullPass) return [];
     const grantedExamIds = new Set(
@@ -129,9 +132,10 @@ export default function StudentPurchases() {
         .map((g) => g.item_id)
     );
 
-    return folders
+    const list = folders
       .filter(isPublished)
       .filter((f) => grantedFolderIds.has(f.id) && !grantedExamIds.has(f.exam_id));
+    return sortContentItems(list);
   }, [folders, hasFullPass, grants]);
 
   // Has Toolbox access
@@ -184,26 +188,29 @@ export default function StudentPurchases() {
   // Current view context
   const currentFolder = folderStack.length > 0 ? folderStack[folderStack.length - 1] : null;
 
-  // Root folders for currently selected exam
+  // Root folders for currently selected exam with natural sorting
   const currentExamRootFolders = useMemo(() => {
     if (!selectedExam) return [];
-    return folders
+    const list = folders
       .filter(isPublished)
       .filter((f) => f.exam_id === selectedExam.id && !f.parent_folder_id && !f.parent_id);
+    return sortContentItems(list);
   }, [folders, selectedExam]);
 
-  // Child folders for currently selected folder
+  // Child folders for currently selected folder with natural sorting
   const currentSubFolders = useMemo(() => {
     if (!currentFolder) return [];
-    return folders
+    const list = folders
       .filter(isPublished)
       .filter((f) => f.parent_folder_id === currentFolder.id || f.parent_id === currentFolder.id);
+    return sortContentItems(list);
   }, [folders, currentFolder]);
 
-  // Chapters directly under currently selected folder
+  // Chapters directly under currently selected folder with natural sorting
   const currentFolderChapters = useMemo(() => {
     if (!currentFolder) return [];
-    return chaptersByFolderId.get(currentFolder.id) || [];
+    const list = chaptersByFolderId.get(currentFolder.id) || [];
+    return sortContentItems(list);
   }, [chaptersByFolderId, currentFolder]);
 
   // Search filter across enrolled courses
@@ -630,7 +637,7 @@ export default function StudentPurchases() {
                           <div className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
                               <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                                {hasFullPass ? 'Full Pass Access' : 'Exam Pass'}
+                                {getExamCategory(exam)}
                               </span>
                               <span className="inline-flex items-center gap-1 text-[11px] font-black text-emerald-500">
                                 <CheckCircle2 size={12} />

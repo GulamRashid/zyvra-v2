@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { contentTables, getContentErrorMessage } from '../lib/content';
+import { contentTables, getContentErrorMessage, sortContentItems } from '../lib/content';
 import { supabase, supabaseConfigurationError } from '../lib/supabase';
 
 export default function useContentCatalog() {
@@ -23,9 +23,9 @@ export default function useContentCatalog() {
       return;
     }
     setCatalog({
-      exams: results[0].data || [],
-      folders: results[1].data || [],
-      chapters: results[2].data || []
+      exams: sortContentItems(results[0].data || []),
+      folders: sortContentItems(results[1].data || []),
+      chapters: sortContentItems(results[2].data || [])
     });
     setLoading(false);
   }, []);
@@ -87,7 +87,11 @@ export default function useContentCatalog() {
       if (!active) return;
       const failed = results.find((result) => result.error);
       if (failed) setError(getContentErrorMessage(failed.error, 'Unable to load content hierarchy.'));
-      else setCatalog({ exams: results[0].data || [], folders: results[1].data || [], chapters: results[2].data || [] });
+      else setCatalog({
+        exams: sortContentItems(results[0].data || []),
+        folders: sortContentItems(results[1].data || []),
+        chapters: sortContentItems(results[2].data || [])
+      });
       setLoading(false);
     };
     load().catch((loadError) => {

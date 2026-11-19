@@ -5,7 +5,7 @@ import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import ContentIcon from '../../components/common/ContentIcon';
 import CheckoutModal from '../../components/common/CheckoutModal';
 import useContentCatalog from '../../hooks/useContentCatalog';
-import { isPublished } from '../../lib/content';
+import { getExamCategory, isPublished, sortContentItems } from '../../lib/content';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 
@@ -87,26 +87,39 @@ export default function ExploreExams() {
     return () => { active = false; };
   }, [supabase, user?.id]);
 
-  // Dynamically derive categories from actual exams in database
+  // Dynamically derive categories and counts using standard exam taxonomy
   const categories = useMemo(() => {
-    const list = ['All'];
-    exams.forEach((exam) => {
-      const cat = exam.category || exam.title;
-      if (cat && !list.includes(cat)) {
-        list.push(cat);
-      }
+    const published = exams.filter(isPublished);
+    const catMap = new Map();
+    catMap.set('All', published.length);
+
+    published.forEach((exam) => {
+      const cat = getExamCategory(exam);
+      catMap.set(cat, (catMap.get(cat) || 0) + 1);
     });
-    return list;
+
+    return Array.from(catMap.entries()).map(([name, count]) => ({
+      name,
+      count
+    }));
   }, [exams]);
 
-  const visibleExams = useMemo(() => exams.filter((exam) => {
-    if (!isPublished(exam)) return false;
-    if (selectedCategory !== 'All') {
-      const matchCat = (exam.category || exam.title || '').toLowerCase() === selectedCategory.toLowerCase();
-      if (!matchCat) return false;
-    }
-    return !search.trim() || `${exam.title} ${exam.slug} ${exam.description || ''}`.toLowerCase().includes(search.trim().toLowerCase());
-  }), [exams, selectedCategory, search]);
+  const visibleExams = useMemo(() => {
+    const filtered = exams.filter((exam) => {
+      if (!isPublished(exam)) return false;
+      if (selectedCategory !== 'All') {
+        const cat = getExamCategory(exam);
+        if (cat.toLowerCase() !== selectedCategory.toLowerCase()) return false;
+      }
+      if (search.trim()) {
+        const q = search.trim().toLowerCase();
+        return `${exam.title} ${exam.slug} ${exam.description || ''} ${getExamCategory(exam)}`.toLowerCase().includes(q);
+      }
+      return true;
+    });
+
+    return sortContentItems(filtered);
+  }, [exams, selectedCategory, search]);
 
   return (
     <div className="min-h-screen dark:bg-[#0B1120] bg-[#f4faf7] dark:text-slate-100 text-slate-900 transition-colors">
@@ -143,21 +156,26 @@ export default function ExploreExams() {
         </div>
 
         {/* Category Filters */}
-        {categories.length > 2 && (
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5" aria-label="Filter by exam category">
+        {categories.length > 1 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5" aria-label="Filter by exam category">
             {categories.map((item) => {
-              const isSelected = selectedCategory === item;
+              const isSelected = selectedCategory === item.name;
               return (
                 <button
-                  key={item}
-                  onClick={() => setSelectedCategory(item)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all min-h-[44px] ${
+                  key={item.name}
+                  onClick={() => setSelectedCategory(item.name)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 min-h-[38px] ${
                     isSelected
-                      ? 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white'
+                      ? 'bg-indigo-600 border border-indigo-400/30 text-white shadow-xs'
                       : 'dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-300 text-slate-700 hover:border-indigo-400'
                   }`}
                 >
-                  {item}
+                  <span>{item.name}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                    isSelected ? 'bg-white/20 text-white' : 'dark:bg-slate-800 bg-slate-100 text-slate-500'
+                  }`}>
+                    {item.count}
+                  </span>
                 </button>
               );
             })}
@@ -269,7 +287,7 @@ export default function ExploreExams() {
                         {exam.title}
                       </h2>
                       <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
-                        {exam.category || 'Exam'}
+                        {getExamCategory(exam)}
                       </span>
                     </div>
 

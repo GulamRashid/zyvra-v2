@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ArrowRight, Atom, BookMarked, BookOpen, Brain, Calculator, ChevronRight, Clock3, Crown, FlaskConical, Folder, Globe2, GraduationCap, Landmark, LockKeyhole, ScrollText } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import useContentCatalog from '../../hooks/useContentCatalog';
-import { getFolderPricing, isPublished } from '../../lib/content';
+import { getFolderPricing, isPublished, sortContentItems } from '../../lib/content';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import CheckoutModal from '../../components/common/CheckoutModal';
 import useContentAccess from '../../hooks/useContentAccess';
@@ -56,7 +56,10 @@ export default function ExamDetail() {
       .catch((err) => console.warn('Could not load full pass config in ExamDetail:', err));
   }, []);
   const exam = useMemo(() => exams.find((item) => item.slug === examSlug && isPublished(item)), [exams, examSlug]);
-  const rootFolders = folders.filter((folder) => folder.exam_id === exam?.id && !folder.parent_folder_id && !folder.parent_id && isPublished(folder));
+  const rootFolders = useMemo(() => {
+    const list = folders.filter((folder) => folder.exam_id === exam?.id && !folder.parent_folder_id && !folder.parent_id && isPublished(folder));
+    return sortContentItems(list);
+  }, [folders, exam?.id]);
   const examFolderIds = new Set(folders.filter((folder) => folder.exam_id === exam?.id && isPublished(folder)).map((folder) => folder.id));
   const Icon = examIcons[exam?.icon] || GraduationCap;
   const examPrice = Number(exam?.price || 0);
