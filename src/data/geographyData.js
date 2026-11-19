@@ -42,6 +42,15 @@ export const RIVERS_DATA = [
       'Devprayag is where Bhagirathi and Alaknanda unite to become Ganga.',
       'World’s largest delta is formed by Ganga and Brahmaputra (Sundarban Delta).'
     ],
+    examFactsHi: [
+      'वर्ष 2008 में भारत की राष्ट्रीय नदी घोषित की गई।',
+      'देवप्रयाग में भागीरथी और अलकनंदा का संगम होकर गंगा बनती है।',
+      'गंगा और ब्रह्मपुत्र मिलकर विश्व का सबसे बड़ा डेल्टा (सुंदरवन डेल्टा) बनाती हैं।'
+    ],
+    damsHi: [
+      'टिहरी बांध (भागीरथी - भारत का सबसे ऊँचा बांध)',
+      'फरक्का बैराज (पश्चिम बंगाल)'
+    ],
     x: 47.3,
     y: 41.7
   },
@@ -61,6 +70,14 @@ export const RIVERS_DATA = [
     examFacts: [
       'Largest tributary of River Ganga in India.',
       'Chambal, Betwa, and Ken are peninsular tributaries that join Yamuna from the south.'
+    ],
+    examFactsHi: [
+      'भारत में गंगा नदी की सबसे बड़ी और मुख्य सहायक नदी।',
+      'चंबल, बेतवा और केन प्रायद्वीपीय नदियां हैं जो दक्षिण से यमुना में मिलती हैं।'
+    ],
+    damsHi: [
+      'लखवार बांध',
+      'हथिनीकुंड बैराज (हरियाणा)'
     ],
     x: 34.0,
     y: 35.4
@@ -82,6 +99,13 @@ export const RIVERS_DATA = [
       'Indus Water Treaty was signed in 1960 between India and Pakistan with World Bank mediation.',
       'Enters India through Ladakh between Ladakh Range and Zanskar Range.'
     ],
+    examFactsHi: [
+      '1960 में विश्व बैंक की मध्यस्थता में भारत और पाकिस्तान के बीच सिंधु जल समझौता हुआ।',
+      'लद्दाख में लद्दाख श्रेणी और जास्कर श्रेणी के मध्य से होकर भारत में प्रवेश करती है।'
+    ],
+    damsHi: [
+      'निमू बाजगो (लद्दाख)'
+    ],
     x: 32.2,
     y: 14.2
   },
@@ -101,6 +125,13 @@ export const RIVERS_DATA = [
     examFacts: [
       'Hosts Majuli, the world’s largest inhabited river island in Assam.',
       'Enters India near Namcha Barwa through a deep gorge as Dihang.'
+    ],
+    examFactsHi: [
+      'असम में विश्व का सबसे बड़ा नदी द्वीप "माजुली" इसी नदी पर स्थित है।',
+      'नामचा बरवा के निकट गहरे गॉर्ज (महाखड्ड) से दिहांग के रूप में भारत में प्रवेश करती है।'
+    ],
+    damsHi: [
+      'रंगा नदी जलविद्युत परियोजना (अरुणाचल प्रदेश)'
     ],
     x: 79.2,
     y: 39.1
@@ -122,6 +153,15 @@ export const RIVERS_DATA = [
       'Longest river of Peninsular India (hence called Dakshin Ganga or Vriddha Ganga).',
       'Second longest river in India after the Ganga.'
     ],
+    examFactsHi: [
+      'प्रायद्वीपीय भारत की सबसे लंबी नदी (इसे दक्षिण गंगा या वृद्ध गंगा भी कहा जाता है)।',
+      'गंगा के बाद भारत की दूसरी सबसे लंबी नदी (1465 किमी)।'
+    ],
+    damsHi: [
+      'पोचमपाद (श्रीराम सागर)',
+      'जायकवाड़ी बांध (महाराष्ट्र)',
+      'पोलावरम परियोजना (आंध्र प्रदेश)'
+    ],
     x: 35.2,
     y: 60.9
   },
@@ -141,6 +181,15 @@ export const RIVERS_DATA = [
     examFacts: [
       'Second largest east-flowing peninsular river.',
       'Krishna-Godavari basin is rich in natural gas (KG-D6).'
+    ],
+    examFactsHi: [
+      'प्रायद्वीपीय भारत की दूसरी सबसे बड़ी पूर्व की ओर बहने वाली नदी।',
+      'कृष्णा-गोदावरी बेसिन (KG-D6) प्राकृतिक गैस भंडार के लिए प्रसिद्ध है।'
+    ],
+    damsHi: [
+      'नागार्जुन सागर बांध (तेलंगाना/आंध्र)',
+      'अलमट्टी बांध (कर्नाटक)',
+      'श्रीशैलम बांध'
     ],
     x: 33.4,
     y: 68.0
@@ -162,6 +211,14 @@ export const RIVERS_DATA = [
       'Perennial river of South India because it gets rain from both South-West and North-East monsoons.',
       'Famous for Shivasamudram Waterfalls (second largest in India).'
     ],
+    examFactsHi: [
+      'दक्षिण भारत की सदानीरा नदी, क्योंकि इसे दक्षिण-पश्चिम और उत्तर-पूर्वी दोनों मानसून से जल मिलता है।',
+      'शिवसमुद्रम जलप्रपात इसी नदी पर स्थित है।'
+    ],
+    damsHi: [
+      'मेट्टूर बांध (तमिलनाडु)',
+      'कृष्णराज सागर बांध (कर्नाटक)'
+    ],
     x: 36.4,
     y: 83.4
   },
@@ -181,6 +238,15 @@ export const RIVERS_DATA = [
     examFacts: [
       'Flows westwards in a Rift Valley between Vindhya and Satpura ranges.',
       'Forms the famous Dhuandhar Waterfalls and Marble Rocks at Bhedaghat (Jabalpur).'
+    ],
+    examFactsHi: [
+      'विंध्य और सतपुड़ा पर्वत श्रेणियों के बीच भ्रंश घाटी (Rift Valley) में पश्चिम की ओर बहती है।',
+      'भेड़ाघाट (जबलपुर) में प्रसिद्ध धुआंधार जलप्रपात व संगमरमर की चट्टानें बनाती है।'
+    ],
+    damsHi: [
+      'सरदार सरोवर बांध (गुजरात)',
+      'इंदिरा सागर बांध (म.प्र.)',
+      'ओंकारेश्वर बांध'
     ],
     x: 34.3,
     y: 49.5
@@ -202,6 +268,14 @@ export const RIVERS_DATA = [
       'Known as the "Twin or Handmaid" of Narmada.',
       'Flows in a rift valley parallel to Narmada, south of Satpura range.'
     ],
+    examFactsHi: [
+      'इसे नर्मदा की "जुड़वां या दासी नदी" (Twin of Narmada) कहा जाता है।',
+      'सतपुड़ा के दक्षिण में नर्मदा के समानांतर भ्रंश घाटी में पश्चिम की ओर बहती है।'
+    ],
+    damsHi: [
+      'उकाई बांध (गुजरात)',
+      'काकरापार परियोजना (गुजरात)'
+    ],
     x: 29.2,
     y: 53.9
   },
@@ -222,6 +296,13 @@ export const RIVERS_DATA = [
       'Historically known as the "Sorrow of Odisha" before the construction of Hirakud Dam.',
       'Its basin is known as the "Rice Bowl of Central India" (Chhattisgarh plain).'
     ],
+    examFactsHi: [
+      'हीराकुंड बांध बनने से पहले इसे "ओडिशा का शोक" कहा जाता था।',
+      'इसका बेसिन (छत्तीसगढ़ मैदान) "मध्य भारत का धान का कटोरा" कहलाता है।'
+    ],
+    damsHi: [
+      'हीराकुंड बांध (ओडिशा - विश्व का सबसे लंबा मिट्टी का बांध)'
+    ],
     x: 52.2,
     y: 55.4
   }
@@ -241,6 +322,10 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Second highest mountain in the world after Mount Everest (8848.86 m).',
       'Highest point of Indian territory claim.'
     ],
+    examFactsHi: [
+      'माउंट एवरेस्ट (8848.86 मी) के बाद विश्व की दूसरी सबसे ऊंची पर्वत चोटी (8611 मी)।',
+      'काराकोरम श्रेणी (लद्दाख) में स्थित भारत की सर्वोच्च चोटी।'
+    ],
     x: 31.3,
     y: 8.6
   },
@@ -258,6 +343,11 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Third highest mountain in the world.',
       'Hosts Khangchendzonga National Park (India’s only UNESCO Mixed World Heritage site).'
     ],
+    examFactsHi: [
+      'भारत की मुख्य भूमि पर स्थित सर्वोच्च पर्वत चोटी (8586 मी, सिक्किम)।',
+      'विश्व की तीसरी सबसे ऊंची पर्वत चोटी।',
+      'कंचनजंघा राष्ट्रीय उद्यान भारत की एकमात्र यूनेस्को मिश्रित विश्व धरोहर (Mixed Heritage) है।'
+    ],
     x: 66.2,
     y: 34.8
   },
@@ -273,6 +363,10 @@ export const MOUNTAINS_PEAKS_DATA = [
     examFacts: [
       'Highest peak located entirely within India without border disputes.',
       'Surrounded by Nanda Devi Biosphere Reserve and Valley of Flowers.'
+    ],
+    examFactsHi: [
+      'पूर्णतः भारतीय सीमा के भीतर स्थित भारत की सबसे ऊंची चोटी (7816 मी, उत्तराखंड)।',
+      'नंदा देवी बायोस्फीयर रिजर्व और फूलों की घाटी (Valley of Flowers) से घिरी हुई है।'
     ],
     x: 41.7,
     y: 26.5
@@ -290,6 +384,10 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Highest mountain peak in South India and the Western Ghats (called "Everest of South India").',
       'Located inside Eravikulam National Park (home to Nilgiri Tahr).'
     ],
+    examFactsHi: [
+      'दक्षिण भारत तथा पश्चिमी घाट की सबसे ऊंची चोटी (2695 मी, इसे "दक्षिण का एवरेस्ट" कहते हैं)।',
+      'इराविकुलम राष्ट्रीय उद्यान (नीलगिरी तहर का प्राकृतिक वास) में स्थित है।'
+    ],
     x: 33.0,
     y: 85.4
   },
@@ -305,6 +403,10 @@ export const MOUNTAINS_PEAKS_DATA = [
     examFacts: [
       'Highest peak of the Nilgiri Hills.',
       'Second highest peak in South India after Anamudi.'
+    ],
+    examFactsHi: [
+      'नीलगिरी पहाड़ियों की सबसे ऊंची चोटी (2637 मी, तमिलनाडु)।',
+      'अनाईमुडी के बाद दक्षिण भारत की दूसरी सबसे ऊंची पर्वत चोटी।'
     ],
     x: 32.0,
     y: 82.0
@@ -322,6 +424,10 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Highest peak of the ancient Aravalli Range (one of the oldest fold mountains in the world).',
       'Located 15 km from Mount Abu hill station.'
     ],
+    examFactsHi: [
+      'विश्व की सबसे प्राचीन वलित पर्वत श्रृंखला "अरावली" की सर्वोच्च चोटी (1722 मी)।',
+      'माउंट आबू हिल स्टेशन (राजस्थान) से 15 किमी दूरी पर स्थित।'
+    ],
     x: 20.2,
     y: 44.0
   },
@@ -337,6 +443,10 @@ export const MOUNTAINS_PEAKS_DATA = [
     examFacts: [
       'Highest point of the Satpura Range and Madhya Pradesh.',
       'Located in Pachmarhi hill station (Queen of Satpura).'
+    ],
+    examFactsHi: [
+      'सतपुड़ा पर्वत श्रेणी तथा मध्य प्रदेश की सबसे ऊंची चोटी (1350 मी)।',
+      'पचमढ़ी हिल स्टेशन ("सतपुड़ा की रानी") में स्थित है।'
     ],
     x: 36.9,
     y: 50.6
@@ -354,6 +464,10 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Highest peak of the Vindhya Range.',
       'Vindhyas act as the traditional geographical divide between Northern and Southern India.'
     ],
+    examFactsHi: [
+      'विंध्याचल पर्वत श्रृंखला की सबसे ऊंची चोटी (752 मी, दमोह, म.प्र.)।',
+      'विंध्य पर्वतमाला उत्तर भारत और दक्षिण भारत के बीच पारंपरिक भौगोलिक विभाजक है।'
+    ],
     x: 41.0,
     y: 47.3
   },
@@ -369,6 +483,10 @@ export const MOUNTAINS_PEAKS_DATA = [
     examFacts: [
       'Highest mountain peak of the Eastern Ghats.',
       'Eastern Ghats are discontinuous and dissected by major east-flowing rivers.'
+    ],
+    examFactsHi: [
+      'पूर्वी घाट (Eastern Ghats) की सर्वोच्च पर्वत चोटी (1680 मी, आंध्र प्रदेश)।',
+      'पूर्वी घाट असतत (कटा-छटा) है जिसे महानदी, गोदावरी व कृष्णा नदियां काटती हैं।'
     ],
     x: 49.9,
     y: 62.8
@@ -389,6 +507,10 @@ export const MOUNTAIN_PASSES_DATA = [
       'Strategic Himalayan pass connecting Kashmir Valley with Ladakh.',
       'Zojila Tunnel (14.2 km) is under construction to provide all-weather connectivity.'
     ],
+    examFactsHi: [
+      'श्रीनगर (कश्मीर घाटी) को कारगिल व लेह (लद्दाख) से जोड़ने वाला सामरिक दर्रा।',
+      'सभी मौसमों में संपर्क हेतु 14.2 किमी लंबी जोजिला सुरंग निर्माणाधीन है।'
+    ],
     x: 28.3,
     y: 13.9
   },
@@ -404,6 +526,10 @@ export const MOUNTAIN_PASSES_DATA = [
     examFacts: [
       'Jawahar Tunnel under this pass was built in 1956.',
       'Recently supplemented by the Banihal Qazigund Road Tunnel.'
+    ],
+    examFactsHi: [
+      'पीर पंजाल श्रेणी में स्थित; इसी के नीचे 1956 में ऐतिहासिक जवाहर सुरंग बनाई गई थी।',
+      'जम्मू को श्रीनगर से जोड़ता है (काजीगुंड-बनिहाल सड़क मार्ग)।'
     ],
     x: 27.4,
     y: 16.5
@@ -421,6 +547,10 @@ export const MOUNTAIN_PASSES_DATA = [
       'Atal Tunnel (9.02 km) under Rohtang Pass is the longest highway single-tube tunnel above 10,000 ft.',
       'Source of the Beas River (Beas Kund is near Rohtang).'
     ],
+    examFactsHi: [
+      '10,000 फीट से अधिक ऊंचाई पर विश्व की सबसे लंबी हाईवे सुरंग "अटल टनल" (9.02 किमी) यहीं स्थित है।',
+      'व्यास नदी का उद्गम (व्यास कुंड) इसी दर्रे के पास स्थित है; मनाली को लाहौल-स्पीति से जोड़ता है।'
+    ],
     x: 33.5,
     y: 20.1
   },
@@ -436,6 +566,10 @@ export const MOUNTAIN_PASSES_DATA = [
     examFacts: [
       'River Sutlej enters India through this pass from Tibet.',
       'One of India’s designated border trade posts with China.'
+    ],
+    examFactsHi: [
+      'सतलुज नदी तिब्बत से इसी दर्रे से होकर भारत (हिमाचल प्रदेश) में प्रवेश करती है।',
+      'भारत-चीन सीमा व्यापार का एक प्रमुख आधिकारिक दर्रा।'
     ],
     x: 38.0,
     y: 21.9
@@ -453,6 +587,10 @@ export const MOUNTAIN_PASSES_DATA = [
       'Part of the historic ancient Silk Route.',
       'One of the three open trading border posts between China and India (reopened in 2006).'
     ],
+    examFactsHi: [
+      'प्राचीन ऐतिहासिक रेशम मार्ग (Silk Route) की एक महत्वपूर्ण शाखा।',
+      'सिक्किम को तिब्बत (चुम्बी घाटी) से जोड़ता है; 2006 में व्यापार हेतु पुनः खोला गया था।'
+    ],
     x: 68.2,
     y: 35.8
   },
@@ -469,6 +607,10 @@ export const MOUNTAIN_PASSES_DATA = [
       'Primary route for Kailash Mansarovar Pilgrimage.',
       'Subject of recent boundary discussions between India and Nepal.'
     ],
+    examFactsHi: [
+      'कैलाश मानसरोवर यात्रा का मुख्य पारंपरिक मार्ग (पिथौरागढ़, उत्तराखंड)।',
+      'भारत, नेपाल और चीन के त्रि-जंक्शन (Tri-junction) के पास स्थित।'
+    ],
     x: 44.9,
     y: 27.0
   },
@@ -483,6 +625,9 @@ export const MOUNTAIN_PASSES_DATA = [
     connectsHi: 'मुंबई को नासिक व कोलकाता से जोड़ता है',
     examFacts: [
       'Key road and railway link carrying the Central Railway between Mumbai and North/East India.'
+    ],
+    examFactsHi: [
+      'मुंबई को नासिक और उत्तर/पूर्वी भारत से जोड़ने वाला प्रमुख पश्चिमी घाट दर्रा (कसारा घाट)।'
     ],
     x: 22.4,
     y: 58.6
@@ -499,6 +644,9 @@ export const MOUNTAIN_PASSES_DATA = [
     examFacts: [
       'Historic mountain passage connecting the Konkan coast to the Deccan Plateau.'
     ],
+    examFactsHi: [
+      'मुंबई को पुणे और दक्षिण भारत से जोड़ने वाला ऐतिहासिक दर्रा (खंडाला घाट)।'
+    ],
     x: 21.9,
     y: 61.3
   },
@@ -514,6 +662,10 @@ export const MOUNTAIN_PASSES_DATA = [
     examFacts: [
       'Major natural depression gap in the Western Ghats between Nilgiri Hills (north) and Annamalai Hills (south).',
       'Facilitates monsoon winds to penetrate into western Tamil Nadu.'
+    ],
+    examFactsHi: [
+      'नीलगिरी और अन्नामलाई पहाड़ियों के बीच पश्चिमी घाट का सबसे बड़ा प्राकृतिक गैप (दरांती)।',
+      'केरल (पलक्कड़) को तमिलनाडु (कोयंबटूर) से जोड़ता है और मानसूनी हवाओं को मार्ग देता है।'
     ],
     x: 31.7,
     y: 83.7
@@ -535,6 +687,11 @@ export const NATIONAL_PARKS_DATA = [
       'First national park to come under Project Tiger initiative in 1973.',
       'Ramganga river flows through this park.'
     ],
+    examFactsHi: [
+      'भारत का प्रथम व सबसे पुराना राष्ट्रीय उद्यान (1936 में हैली नेशनल पार्क के रूप में स्थापित)।',
+      'वर्ष 1973 में प्रोजेक्ट टाइगर (Project Tiger) शुरू करने वाला पहला राष्ट्रीय उद्यान।',
+      'इस उद्यान के बीच से रामगंगा नदी बहती है।'
+    ],
     x: 38.1,
     y: 29.1
   },
@@ -552,6 +709,10 @@ export const NATIONAL_PARKS_DATA = [
       'Hosts roughly two-thirds of the world’s great one-horned rhinoceros population.',
       'Bordered by the Brahmaputra River to the north.'
     ],
+    examFactsHi: [
+      '1985 में यूनेस्को विश्व धरोहर स्थल घोषित; असम में ब्रह्मपुत्र नदी के दक्षिण तट पर स्थित।',
+      'विश्व के लगभग दो-तिहाई एक सींग वाले गैंडों (One-Horned Rhinoceros) का घर।'
+    ],
     x: 81.2,
     y: 38.2
   },
@@ -566,6 +727,10 @@ export const NATIONAL_PARKS_DATA = [
     keySpeciesHi: 'एशियाई शेर (Asiatic Lion)',
     examFacts: [
       'The only natural refuge of the Asiatic Lion (Panthera leo persica) globally.'
+    ],
+    examFactsHi: [
+      'पूरे विश्व में एशियाई शेरों (Asiatic Lions) का एकमात्र प्राकृतिक निवास स्थान।',
+      'गुजरात के काठियावाड़ प्रायद्वीप (जूनागढ़) में शुष्क पर्णपाती वनों में स्थित।'
     ],
     x: 14.2,
     y: 54.5
@@ -584,6 +749,10 @@ export const NATIONAL_PARKS_DATA = [
       'UNESCO World Heritage site and Ramsar Wetland site.',
       'Named after the abundant Sundari mangrove trees (Heritiera fomes).'
     ],
+    examFactsHi: [
+      'विश्व का सबसे बड़ा मैंग्रोव वन और डेल्टा क्षेत्र (रॉयल बंगाल टाइगर का घर)।',
+      'यूनेस्को विश्व धरोहर तथा रामसर आर्द्रभूमि स्थल; सुंदरी वृक्षों की बहुलता के कारण नाम पड़ा।'
+    ],
     x: 68.3,
     y: 52.0
   },
@@ -600,6 +769,10 @@ export const NATIONAL_PARKS_DATA = [
       'Inspiration for Rudyard Kipling’s "The Jungle Book".',
       'First tiger reserve in India to officially introduce a mascot ("Bhoorsingh the Barasingha").'
     ],
+    examFactsHi: [
+      'रुडयार्ड किपलिंग की प्रसिद्ध पुस्तक "द जंगल बुक" की प्रेरणास्थली।',
+      'भारत का पहला टाइगर रिजर्व जिसने अपना आधिकारिक शुभंकर ("भूरसिंह द बारहसिंगा") जारी किया।'
+    ],
     x: 43.6,
     y: 50.9
   },
@@ -614,6 +787,10 @@ export const NATIONAL_PARKS_DATA = [
     keySpeciesHi: 'भारतीय हाथी, बाघ, गौर',
     examFacts: [
       'Forms part of the Nilgiri Biosphere Reserve along with Nagarhole, Wayanad, and Mudumalai.'
+    ],
+    examFactsHi: [
+      'नीलगिरी बायोस्फीयर रिजर्व का प्रमुख हिस्सा (नागरहोल, वायनाड और मुदुमलाई के साथ संलग्न)।',
+      'प्रोजेक्ट टाइगर के तहत कर्नाटक का प्रमुख बाघ अभयारण्य।'
     ],
     x: 31.7,
     y: 81.3
@@ -631,6 +808,10 @@ export const NATIONAL_PARKS_DATA = [
       'Formerly known as the Bharatpur Bird Sanctuary.',
       'Declared UNESCO World Heritage Site and Montreux Record Ramsar site.'
     ],
+    examFactsHi: [
+      'पूर्व में "भरतपुर पक्षी अभयारण्य" के नाम से प्रसिद्ध; यूनेस्को विश्व धरोहर स्थल।',
+      'साइबेरियन क्रेन जैसे दुर्लभ प्रवासी पक्षियों का प्रमुख शीतकालीन बसेरा।'
+    ],
     x: 34.3,
     y: 36.5
   },
@@ -646,6 +827,10 @@ export const NATIONAL_PARKS_DATA = [
     examFacts: [
       'Largest national park in India by area (~4,400 sq km).',
       'Only national park in India north of the Himalayas.'
+    ],
+    examFactsHi: [
+      'क्षेत्रफल की दृष्टि से भारत का सबसे बड़ा राष्ट्रीय उद्यान (~4400 वर्ग किमी, लद्दाख)।',
+      'हिमालय के उत्तर में स्थित तथा हिम तेंदुओं (Snow Leopards) का प्रमुख संरक्षित क्षेत्र।'
     ],
     x: 34.6,
     y: 15.1
@@ -666,6 +851,11 @@ export const LAKES_WATERFALLS_DATA = [
       'First Indian wetland of international importance designated under the Ramsar Convention (1981).',
       'Major wintering ground for migratory birds and home to the endangered Irrawaddy dolphin.'
     ],
+    examFactsHi: [
+      'भारत व एशिया की सबसे बड़ी खारे पानी की लैगून झील (ओडिशा)।',
+      '1981 में रामसर सम्मेलन के तहत अंतरराष्ट्रीय महत्व की पहली भारतीय आर्द्रभूमि।',
+      'संकटापन्न इरावदी डॉल्फिन (Irrawaddy Dolphin) का प्रमुख आवास।'
+    ],
     x: 57.8,
     y: 58.5
   },
@@ -680,6 +870,10 @@ export const LAKES_WATERFALLS_DATA = [
     examFacts: [
       'Largest freshwater lake in India.',
       'Fed by the Jhelum River; formed due to tectonic activity.'
+    ],
+    examFactsHi: [
+      'भारत की सबसे बड़ी मीठे (ताजे) पानी की प्राकृतिक झील (बांदीपोरा, जम्मू-कश्मीर)।',
+      'विवर्तनिक (Tectonic) गतिविधियों से निर्मित; झेलम नदी से जल प्राप्त करती है।'
     ],
     x: 25.5,
     y: 13.7
@@ -696,6 +890,10 @@ export const LAKES_WATERFALLS_DATA = [
       'Hosts Keibul Lamjao National Park - the only floating national park in the world.',
       'Last natural refuge of the endangered Sangai (dancing deer of Manipur).'
     ],
+    examFactsHi: [
+      'विश्व का एकमात्र तैरता हुआ राष्ट्रीय उद्यान "केबुल लामजाओ" (फुमदी) इसी झील पर स्थित है।',
+      'मणिपुर के राज्य पशु व संकटापन्न "संगाई हिरण" (डांसिंग डियर) का अंतिम प्राकृतिक शरणस्थल।'
+    ],
     x: 83.1,
     y: 44.3
   },
@@ -710,6 +908,10 @@ export const LAKES_WATERFALLS_DATA = [
     examFacts: [
       'Longest lake in India (~96.5 km).',
       'Famous for the Nehru Trophy Boat Race (Vallam Kali) at Punnamada.'
+    ],
+    examFactsHi: [
+      'भारत की सबसे लंबी झील (~96.5 किमी, केरल के कोट्टायम व अलप्पुझा में विस्तृत)।',
+      'पुन्नामडा में आयोजित होने वाली प्रसिद्ध नेहरू ट्रॉफी नौका दौड़ (वल्लम कली) का स्थल।'
     ],
     x: 31.0,
     y: 87.0
@@ -726,6 +928,10 @@ export const LAKES_WATERFALLS_DATA = [
       'India’s largest inland saline lake.',
       'Produces a significant percentage of India’s total salt production.'
     ],
+    examFactsHi: [
+      'भारत की सबसे बड़ी अंतःस्थलीय खारे पानी की झील (जयपुर/नागौर, राजस्थान)।',
+      'भारत के कुल नमक उत्पादन का लगभग 8-9% नमक इसी झील से प्राप्त होता है।'
+    ],
     x: 27.0,
     y: 37.3
   },
@@ -740,6 +946,10 @@ export const LAKES_WATERFALLS_DATA = [
     examFacts: [
       'Created by a meteorite impact during the Pleistocene Epoch in basaltic rock.',
       'Declared a Ramsar wetland site in 2020.'
+    ],
+    examFactsHi: [
+      'उल्कापिंड (Meteorite) के पृथ्वी से टकराने से बेसाल्ट चट्टान में निर्मित क्रेटर झील (बुलढाणा, महाराष्ट्र)।',
+      'वर्ष 2020 में रामसर आर्द्रभूमि स्थल का दर्जा प्राप्त हुआ।'
     ],
     x: 31.3,
     y: 57.8
@@ -756,6 +966,10 @@ export const LAKES_WATERFALLS_DATA = [
       'Formed by River Narmada cutting through world-famous white marble rocks.',
       'The mist created looks like smoke, hence named "Dhuandhar" (Smoke cascade).'
     ],
+    examFactsHi: [
+      'नर्मदा नदी द्वारा विश्व प्रसिद्ध सफेद संगमरमर की चट्टानों को काटकर निर्मित (भेड़ाघाट, जबलपुर)।',
+      'गिरते जल से धुंध का फव्वारा बनता है, इसलिए इसे "धुआंधार" कहा जाता है।'
+    ],
     x: 41.2,
     y: 48.6
   },
@@ -770,6 +984,10 @@ export const LAKES_WATERFALLS_DATA = [
     examFacts: [
       'Created by the Sharavathi River dropping 253 m without touching the rockface.',
       'Consists of four distinct cascades: Raja, Roarer, Rocket, and Rani.'
+    ],
+    examFactsHi: [
+      'शरावती नदी द्वारा 253 मीटर की सीधी ऊंचाई से चट्टान को छुए बिना गिरता है (शिमोगा, कर्नाटक)।',
+      'इसे गेरसोप्पा या महात्मा गांधी जलप्रपात भी कहते हैं; इसके चार प्रपात राजा, रोअरर, रॉकेट व रानी हैं।'
     ],
     x: 26.2,
     y: 74.1
@@ -800,6 +1018,11 @@ export const TROPIC_MERIDIAN_DATA = [
       'Ranchi is the only state capital located almost exactly on the Tropic of Cancer.',
       'Divides India into roughly two equal climatic halves (Subtropical in North, Tropical in South).'
     ],
+    examFactsHi: [
+      'माही नदी भारत की एकमात्र ऐसी नदी है जो कर्क रेखा को दो बार काटती है (म.प्र. और गुजरात)।',
+      'राँची (झारखंड) एकमात्र ऐसी राज्य राजधानी है जो लगभग कर्क रेखा पर ही स्थित है।',
+      'भारत को लगभग दो बराबर जलवायु कटिबंधों (उत्तर में उपोष्ण, दक्षिण में उष्ण) में विभाजित करती है।'
+    ],
     x: 49.3,
     y: 47.5
   },
@@ -822,6 +1045,11 @@ export const TROPIC_MERIDIAN_DATA = [
       'The Tropic of Cancer (23.5° N) and IST Meridian (82.5° E) intersect in Koriya district, Chhattisgarh.',
       'IST is exactly 5 hours and 30 minutes ahead of Greenwich Mean Time (GMT).',
       'Time difference between extreme east (Dong, Arunachal Pradesh) and extreme west (Ghuar Mota, Gujarat) is roughly 2 hours (30° of longitude).'
+    ],
+    examFactsHi: [
+      'कर्क रेखा (23.5° N) और 82.5° E मानक समय रेखा छत्तीसगढ़ के कोरिया जिले में एक-दूसरे को काटती हैं।',
+      'भारतीय मानक समय (IST) ग्रीनविच माध्य समय (GMT) से ठीक 5 घंटे 30 मिनट (+5:30) आगे है।',
+      'भारत के सुदूर पूर्वी छोर (डोंग, अरुणाचल) और पश्चिमी छोर (गुहार मोती, गुजरात) में लगभग 2 घंटे (30° देशांतर) का समयांतर है।'
     ],
     x: 49.3,
     y: 47.5

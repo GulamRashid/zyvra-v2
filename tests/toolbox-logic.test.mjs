@@ -364,11 +364,13 @@ test('Geography dataset: Rivers, Mountains, Passes & Parks validation', () => {
   assert.ok(TROPIC_MERIDIAN_DATA.some((t) => t.id === 'tropic-of-cancer'));
   assert.ok(MAP_QUIZ_QUESTIONS.length >= 5);
 
-  // Coordinate boundaries check (0-100% on India bounding box)
-  for (const item of [...RIVERS_DATA, ...MOUNTAINS_PEAKS_DATA, ...MOUNTAIN_PASSES_DATA, ...NATIONAL_PARKS_DATA, ...LAKES_WATERFALLS_DATA]) {
+  // Coordinate boundaries check and bilingual facts validation
+  for (const item of [...RIVERS_DATA, ...MOUNTAINS_PEAKS_DATA, ...MOUNTAIN_PASSES_DATA, ...NATIONAL_PARKS_DATA, ...LAKES_WATERFALLS_DATA, ...TROPIC_MERIDIAN_DATA]) {
     assert.ok(item.x >= 0 && item.x <= 100, `Item ${item.id} x coordinate must be in [0, 100]`);
     assert.ok(item.y >= 0 && item.y <= 100, `Item ${item.id} y coordinate must be in [0, 100]`);
     assert.ok(item.nameEn && item.nameHi, `Item ${item.id} must be bilingual`);
+    assert.ok(item.examFacts && item.examFacts.length > 0, `Item ${item.id} must have English exam facts`);
+    assert.ok(item.examFactsHi && item.examFactsHi.length > 0, `Item ${item.id} must have Hindi exam facts`);
   }
 });
 

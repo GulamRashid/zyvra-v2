@@ -111,7 +111,10 @@ export default function IndiaGeoMap() {
   };
 
   const handleCopyFact = (item) => {
-    const textToCopy = `${isHi ? item.nameHi : item.nameEn} - ${item.examFacts ? item.examFacts[0] : ''}`;
+    const activeFact = isHi
+      ? (item.examFactsHi ? item.examFactsHi[0] : (item.examFacts ? item.examFacts[0] : ''))
+      : (item.examFacts ? item.examFacts[0] : '');
+    const textToCopy = `${isHi ? item.nameHi : item.nameEn} - ${activeFact}`;
     navigator.clipboard?.writeText?.(textToCopy);
     setCopiedId(item.id);
     setTimeout(() => setCopiedId(null), 2000);
@@ -997,7 +1000,7 @@ export default function IndiaGeoMap() {
                   🏗️ {isHi ? 'प्रमुख बांध व परियोजनाएं:' : 'Major Dams & Projects:'}
                 </strong>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {selectedItem.dams.map((dam, idx) => (
+                  {(isHi && selectedItem.damsHi ? selectedItem.damsHi : selectedItem.dams).map((dam, idx) => (
                     <span
                       key={idx}
                       className="px-2 py-0.5 rounded-md text-[11px] font-bold bg-white dark:bg-neutral-800 text-blue-600 dark:text-blue-400 border border-neutral-200 dark:border-neutral-700"
@@ -1011,17 +1014,17 @@ export default function IndiaGeoMap() {
           </div>
 
           {/* 3 Golden Exam Facts (PYQ Highlights) */}
-          {selectedItem.examFacts && selectedItem.examFacts.length > 0 && (
+          {(selectedItem.examFacts || selectedItem.examFactsHi) && (
             <div className="p-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-500/30 space-y-1.5">
               <span className="text-[11px] font-black uppercase tracking-wider text-emerald-700 dark:text-emerald-300 flex items-center gap-1">
                 <BookOpen size={13} />
-                {isHi ? 'परीक्षा में बार-बार पूछे जाने वाले बिंदु (PYQ Golden Points):' : 'High-Yield Exam Points (PYQ):'}
+                {isHi ? 'परीक्षा में बार-बार पूछे जाने वाले महत्वपूर्ण बिंदु (PYQ Golden Points):' : 'High-Yield Exam Points (PYQ Golden Points):'}
               </span>
-              <ul className="space-y-1 text-xs text-neutral-700 dark:text-neutral-300">
-                {selectedItem.examFacts.map((fact, idx) => (
+              <ul className="space-y-1.5 text-xs text-neutral-700 dark:text-neutral-300">
+                {((isHi && selectedItem.examFactsHi) ? selectedItem.examFactsHi : selectedItem.examFacts).map((fact, idx) => (
                   <li key={idx} className="flex items-start gap-1.5">
-                    <span className="text-emerald-500 font-bold">•</span>
-                    <span>{fact}</span>
+                    <span className="text-emerald-500 font-bold leading-relaxed">•</span>
+                    <span className="leading-relaxed">{fact}</span>
                   </li>
                 ))}
               </ul>
