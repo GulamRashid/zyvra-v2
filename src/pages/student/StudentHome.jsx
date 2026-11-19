@@ -312,10 +312,13 @@ export default function StudentHome() {
   const dynamicExams = useMemo(() => {
     const published = exams.filter(isPublished);
     const sorted = sortContentItems(published);
+    const totalFreeCount = chapters.filter((c) => c.access_mode === 'free' && isPublished(c)).length;
+
     return sorted.map((exam) => ({
       id: exam.id,
       title: exam.title,
       category: getExamCategory(exam),
+      freeCount: totalFreeCount,
       subtitle: exam.description || 'Chapter tests & practice questions',
       icon: exam.icon_url || exam.icon || 'GraduationCap',
       badge: exam.icon === 'GraduationCap' ? '🎓' : exam.icon === 'BookOpen' ? '📖' : '🏛️',
@@ -324,7 +327,7 @@ export default function StudentHome() {
       badgeBg: 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30',
       path: `/explore/${exam.slug || exam.id}`
     }));
-  }, [exams]);
+  }, [exams, chapters]);
 
   const shouldShowOnboarding = Boolean(
     user && !guest && profile &&
@@ -699,9 +702,16 @@ export default function StudentHome() {
                     </span>
                   </div>
                   <div>
-                    <h4 className="text-xs sm:text-sm font-extrabold dark:text-white text-slate-900 tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                      {exam.title}
-                    </h4>
+                    <div className="flex items-center justify-between gap-1.5">
+                      <h4 className="text-xs sm:text-sm font-extrabold dark:text-white text-slate-900 tracking-tight group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">
+                        {exam.title}
+                      </h4>
+                      {exam.freeCount > 0 && (
+                        <span className="px-1.5 py-0.2 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black text-[10px] shrink-0 border border-emerald-500/25">
+                          🎁 {exam.freeCount} Free
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[11px] sm:text-xs font-medium dark:text-slate-400 text-slate-600 mt-0.5 line-clamp-2">
                       {exam.subtitle}
                     </p>

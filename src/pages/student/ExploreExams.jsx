@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BookOpen, Folder, GraduationCap, Search } from 'lucide-react';
+import { ArrowRight, BookOpen, Folder, GraduationCap, Search, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import ContentIcon from '../../components/common/ContentIcon';
@@ -268,13 +268,15 @@ export default function ExploreExams() {
           {visibleExams.map((exam) => {
             const examFolders = folders.filter((folder) => folder.exam_id === exam.id && isPublished(folder));
             const folderIds = new Set(examFolders.map((folder) => folder.id));
-            const chapterCount = chapters.filter((chapter) => folderIds.has(chapter.folder_id) && isPublished(chapter)).length;
+            const examChapters = chapters.filter((chapter) => folderIds.has(chapter.folder_id) && isPublished(chapter));
+            const chapterCount = examChapters.length;
+            const freeCount = examChapters.filter((chapter) => chapter.access_mode === 'free').length;
 
             return (
               <Link
                 key={exam.id}
                 to={`/explore/${encodeURIComponent(exam.slug || exam.id)}`}
-                className="group relative p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-xs hover:shadow-md border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/60 dark:hover:border-indigo-500/60 transition-all flex flex-col justify-between space-y-2.5 text-left active:scale-[0.99]"
+                className="group relative p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-xs hover:shadow-md border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/60 dark:hover:border-indigo-500/60 transition-all flex flex-col justify-between space-y-3 text-left active:scale-[0.99]"
               >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl dark:bg-slate-800 bg-indigo-50/80 border dark:border-slate-700 border-indigo-100 flex items-center justify-center text-indigo-500 shrink-0 group-hover:scale-105 transition-transform mt-0.5">
@@ -294,11 +296,27 @@ export default function ExploreExams() {
                     <p className="text-xs dark:text-slate-400 text-slate-600 font-medium line-clamp-2 mt-0.5 leading-snug">
                       {exam.description || 'A structured learning path with topics, practice and tests to help you prepare.'}
                     </p>
+
+                    {/* Free Materials Highlight Pill */}
+                    {freeCount > 0 ? (
+                      <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/15 to-emerald-500/10 dark:from-emerald-950/60 dark:to-teal-950/40 border border-emerald-500/35 text-emerald-700 dark:text-emerald-300 font-extrabold text-[11px] shadow-xs">
+                        <Sparkles size={12} className="text-emerald-500 fill-emerald-500 animate-pulse shrink-0" />
+                        <span>
+                          {language === 'hi'
+                            ? `🎁 ${freeCount} फ्री टेस्ट्स व नोट्स (Free to Practice)`
+                            : `🎁 ${freeCount} Free Tests & Study Materials`}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
+                        <span>✨ Complete Structured Prep</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className="pt-2 border-t dark:border-slate-800 border-slate-100 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2.5 text-[11px] font-semibold dark:text-slate-400 text-slate-500">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold dark:text-slate-400 text-slate-500">
                     <span className="flex items-center gap-1">
                       <Folder size={12} className="text-indigo-400" />
                       <span>{examFolders.length} {language === 'hi' ? 'विषय' : examFolders.length === 1 ? 'folder' : 'folders'}</span>
@@ -308,9 +326,17 @@ export default function ExploreExams() {
                       <BookOpen size={12} className="text-indigo-400" />
                       <span>{chapterCount} {language === 'hi' ? 'अध्याय' : chapterCount === 1 ? 'chapter' : 'chapters'}</span>
                     </span>
+                    {freeCount > 0 && (
+                      <>
+                        <span>•</span>
+                        <span className="flex items-center gap-1 font-black text-emerald-600 dark:text-emerald-400">
+                          <span>🎁 {freeCount} Free</span>
+                        </span>
+                      </>
+                    )}
                   </div>
 
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-indigo-500 group-hover:text-indigo-400 transition-colors">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-indigo-500 group-hover:text-indigo-400 transition-colors shrink-0">
                     <span>{language === 'hi' ? 'सिलेबस देखें' : 'View Syllabus'}</span>
                     <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
                   </span>
