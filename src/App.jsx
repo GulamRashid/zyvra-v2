@@ -105,6 +105,8 @@ function AppRoutes() {
       <Route path="notes" element={<Navigate to="/toolbox" replace />} />
       <Route path="saved" element={<Navigate to="/bookmarks" replace />} />
       <Route path="subscriptions" element={<Navigate to="/purchases" replace />} />
+      <Route path="courses" element={<Navigate to="/purchases" replace />} />
+      <Route path="my-courses" element={<Navigate to="/purchases" replace />} />
       <Route path="purchases" element={<StudentPurchases />} />
       <Route path="bookmarks" element={<StudentBookmarks />} />
       <Route path="notifications" element={<StudentNotifications />} />

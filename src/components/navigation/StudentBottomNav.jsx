@@ -1,18 +1,17 @@
 import { NavLink, useLocation } from 'react-router-dom';
-import { BookOpen, Compass, ClipboardList, Home, User, Wrench } from 'lucide-react';
+import { Compass, GraduationCap, Home, User, Wrench } from 'lucide-react';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 
 const navItems = [
-  { to: '/', key: 'home', label: 'Home', Icon: Home },
-  { to: '/explore', key: 'explore', label: 'Exams', Icon: Compass },
-  { to: '/tests?tab=tests', key: 'tests', label: 'Tests', Icon: ClipboardList },
-  { to: '/tests?tab=subjects', key: 'practice', label: 'Practice', Icon: BookOpen },
-  { to: '/toolbox', key: 'toolbox', label: 'Toolbox', Icon: Wrench },
-  { to: '/profile', key: 'profile', label: 'Profile', Icon: User }
+  { to: '/', key: 'home', labelEn: 'Home', labelHi: 'होम', Icon: Home },
+  { to: '/explore', key: 'explore', labelEn: 'Exams', labelHi: 'परीक्षाएं', Icon: Compass },
+  { to: '/purchases', key: 'purchases', labelEn: 'My Courses', labelHi: 'मेरे कोर्स', Icon: GraduationCap },
+  { to: '/toolbox', key: 'toolbox', labelEn: 'Toolbox', labelHi: 'टूल्स', Icon: Wrench },
+  { to: '/profile', key: 'profile', labelEn: 'Profile', labelHi: 'प्रोफ़ाइल', Icon: User }
 ];
 
 export default function StudentBottomNav() {
-  const { t, language } = useThemeLanguage();
+  const { language } = useThemeLanguage();
   const location = useLocation();
 
   // Hide bottom nav during live quiz attempts to prevent distractions
@@ -21,13 +20,7 @@ export default function StudentBottomNav() {
   }
 
   const getLabel = (item) => {
-    if (item.key === 'home') return t('home') || 'Home';
-    if (item.key === 'explore') return language === 'hi' ? 'परीक्षाएं' : 'Exams';
-    if (item.key === 'tests') return t('tests') || 'Tests';
-    if (item.key === 'practice') return t('practice') || 'Practice';
-    if (item.key === 'toolbox') return t('toolbox') || 'Toolbox';
-    if (item.key === 'profile') return t('profile') || 'Profile';
-    return item.label;
+    return language === 'hi' ? item.labelHi : item.labelEn;
   };
 
   const isItemActive = (item) => {
@@ -36,22 +29,24 @@ export default function StudentBottomNav() {
     }
     if (item.key === 'explore') {
       return location.pathname.startsWith('/explore') ||
-             location.pathname.startsWith('/chapter') ||
-             location.pathname.startsWith('/folder');
+             location.pathname.startsWith('/tests') ||
+             (location.pathname.startsWith('/chapter') && !location.pathname.startsWith('/purchases')) ||
+             (location.pathname.startsWith('/folder') && !location.pathname.startsWith('/purchases'));
     }
-    if (item.key === 'tests' || item.key === 'practice') {
-      if (!location.pathname.startsWith('/tests')) return false;
-      const selectedTab = new URLSearchParams(location.search).get('tab');
-      return item.key === 'tests' ? selectedTab === 'tests' : selectedTab !== 'tests';
+    if (item.key === 'purchases') {
+      return location.pathname.startsWith('/purchases') ||
+             location.pathname.startsWith('/my-courses') ||
+             location.pathname.startsWith('/courses');
+    }
+    if (item.key === 'toolbox') {
+      return location.pathname.startsWith('/toolbox');
     }
     if (item.key === 'profile') {
       return location.pathname.startsWith('/profile') ||
              location.pathname.startsWith('/wallet') ||
-             location.pathname.startsWith('/purchases') ||
              location.pathname.startsWith('/bookmarks') ||
              location.pathname.startsWith('/analytics');
     }
-    if (item.key === 'toolbox') return location.pathname.startsWith('/toolbox');
     return false;
   };
 
@@ -60,7 +55,7 @@ export default function StudentBottomNav() {
       className="student-bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden dark:bg-[#0B1120]/95 bg-white/95 backdrop-blur-xl border-t dark:border-slate-800 border-slate-200 transition-all duration-300 pb-[env(safe-area-inset-bottom,0px)]"
       aria-label="Student Mobile Navigation"
     >
-      <div className="max-w-xl mx-auto px-1 py-1 sm:py-1.5 grid grid-cols-6 gap-0.5 sm:gap-1">
+      <div className="max-w-xl mx-auto px-1.5 py-1 sm:py-1.5 grid grid-cols-5 gap-1">
         {navItems.map((item) => {
           const active = isItemActive(item);
           const Icon = item.Icon;
@@ -70,14 +65,14 @@ export default function StudentBottomNav() {
             <NavLink
               key={item.key}
               to={item.to}
-              className={`flex min-h-[48px] flex-col items-center justify-center rounded-xl px-0.5 py-1 text-[9px] sm:text-[10px] font-semibold transition-all touch-manipulation ${
+              className={`flex min-h-[50px] flex-col items-center justify-center rounded-2xl px-1 py-1 text-[10px] font-bold transition-all touch-manipulation ${
                 active
-                  ? 'bg-indigo-600 text-white shadow-sm font-bold scale-[1.02]'
+                  ? 'bg-indigo-600 text-white shadow-sm scale-[1.02]'
                   : 'text-slate-500 hover:bg-slate-100 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-indigo-300'
               }`}
               aria-current={active ? 'page' : undefined}
             >
-              <Icon size={17} strokeWidth={active ? 2.3 : 1.8} className="mb-0.5 shrink-0" />
+              <Icon size={19} strokeWidth={active ? 2.3 : 1.8} className="mb-0.5 shrink-0" />
               <span className="truncate max-w-full leading-tight text-center tracking-tight">{label}</span>
             </NavLink>
           );

@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell, ChartNoAxesColumn, ChevronRight, ClipboardList,
   Compass, Home, Menu, Settings, Wrench, X,
-  Shield, LogOut, Flame, ShoppingBag, Bookmark
+  Shield, LogOut, Flame, ShoppingBag, Bookmark, GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
@@ -15,8 +15,8 @@ import StudentBottomNav from '../navigation/StudentBottomNav';
 const sections = [
   { to: '/', label: 'Home', key: 'home', Icon: Home },
   { to: '/explore', label: 'Explore Exams', key: 'explore', Icon: Compass },
+  { to: '/purchases', label: 'My Courses', key: 'purchases', Icon: GraduationCap },
   { to: '/tests', label: 'Practice & Tests', key: 'tests', Icon: ClipboardList },
-  { to: '/purchases', label: 'My Purchases', key: 'purchases', Icon: ShoppingBag },
   { to: '/bookmarks', label: 'Saved Bookmarks', key: 'bookmarks', Icon: Bookmark },
   { to: '/analytics', label: 'Performance & Analytics', Icon: ChartNoAxesColumn },
   { to: '/toolbox', label: 'Study Toolbox', key: 'toolbox', Icon: Wrench },
