@@ -273,12 +273,24 @@ export default function AuthPage() {
     const cleanEmail = email.trim().toLowerCase();
     setBusy(true);
     try {
-      const { data: authData, error: authError } = await supabase.auth.verifyOtp({
+      let authRes = await supabase.auth.verifyOtp({
         email: cleanEmail,
         token,
         type: mode === 'recovery' ? 'recovery' : 'email'
       });
-      if (authError) throw authError;
+
+      // Fallback: If verifying as 'email' fails on signup, retry as 'signup' type
+      if (authRes.error && mode === 'signup') {
+        const retry = await supabase.auth.verifyOtp({
+          email: cleanEmail,
+          token,
+          type: 'signup'
+        });
+        if (!retry.error) authRes = retry;
+      }
+
+      if (authRes.error) throw authRes.error;
+      const authData = authRes.data;
 
       if (authData?.user) {
         if (mode === 'recovery') {

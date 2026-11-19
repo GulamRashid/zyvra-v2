@@ -18,19 +18,13 @@ import { sanitizeLiveQuestion } from '../../lib/tests';
 import { prefetchLiveQuiz } from '../../lib/prefetchLiveQuiz';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 
-const tabs = [
-  { id: 'tests', label: 'tests', icon: CheckCircle2 },
-  { id: 'practice', label: 'questionPractice', icon: Play },
-  { id: 'notes', label: 'notesPdfs', icon: FileText }
-];
-
 export default function ChapterDetail() {
   const { chapterId } = useParams();
   const location = useLocation();
   const { exams, folders, chapters, loading, error } = useContentCatalog();
   const { user } = useAuth();
   const { t, language } = useThemeLanguage();
-  const [activeTab, setActiveTab] = useState('tests');
+  const [activeTab, setActiveTab] = useState('practice');
   const [notice, setNotice] = useState('');
   const [chapterTests, setChapterTests] = useState([]);
   const [testAttempts, setTestAttempts] = useState({});
@@ -48,6 +42,35 @@ export default function ChapterDetail() {
   const [bookmarkBusy, setBookmarkBusy] = useState('');
   const [reader, setReader] = useState(null);
   const [readerLoading, setReaderLoading] = useState('');
+
+  const practiceSets = useMemo(() => {
+    return chapterTests.filter((t) => t.solution_mode === 'immediate');
+  }, [chapterTests]);
+
+  const mockTests = useMemo(() => {
+    return chapterTests.filter((t) => t.solution_mode !== 'immediate');
+  }, [chapterTests]);
+
+  const tabsList = useMemo(() => [
+    {
+      id: 'practice',
+      label: language === 'hi' ? 'अभ्यास सेट्स' : 'Practice Sets',
+      count: practiceSets.length || (practiceQuestionsCount > 0 ? 1 : 0),
+      icon: Sparkles
+    },
+    {
+      id: 'tests',
+      label: language === 'hi' ? 'मॉक टेस्ट' : 'Mock Tests',
+      count: mockTests.length,
+      icon: Clock3
+    },
+    {
+      id: 'notes',
+      label: language === 'hi' ? 'नोट्स एवं PDF' : 'Notes & PDFs',
+      count: resources.length,
+      icon: FileText
+    }
+  ], [language, practiceSets.length, practiceQuestionsCount, mockTests.length, resources.length]);
 
   const [checkoutItem, setCheckoutItem] = useState(null);
   const [accessRefreshKey, setAccessRefreshKey] = useState(0);
@@ -278,7 +301,7 @@ export default function ChapterDetail() {
         return;
       }
       const { data, error: loadError } = await supabase.from('tests')
-        .select('id,title,instructions,pattern,duration_minutes,attempt_limit,coin_reward_enabled,status')
+        .select('id,title,instructions,pattern,duration_minutes,attempt_limit,coin_reward_enabled,status,solution_mode')
         .eq('chapter_id', chapter.id)
         .in('status', ['published', 'live', 'available'])
         .order('created_at', { ascending: true });
@@ -463,7 +486,7 @@ export default function ChapterDetail() {
               role="tablist"
               aria-label={t('chapterContent')}
             >
-              {tabs.map(({ id, label, icon: Icon }) => {
+              {tabsList.map(({ id, label, count, icon: Icon }) => {
                 const isActive = activeTab === id;
                 return (
                   <button
@@ -478,7 +501,16 @@ export default function ChapterDetail() {
                     }`}
                   >
                     <Icon size={15} />
-                    <span>{t(label)}</span>
+                    <span>{label}</span>
+                    {typeof count === 'number' && (
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        isActive
+                          ? 'bg-white/20 text-white'
+                          : 'dark:bg-slate-800 bg-slate-200/80 dark:text-slate-300 text-slate-600'
+                      }`}>
+                        {count}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -533,24 +565,172 @@ export default function ChapterDetail() {
               </section>
             )}
 
-            {/* Tab 1: Tests */}
-            {activeTab === 'tests' && (
+            {/* Tab 1: Practice Sets */}
+            {activeTab === 'practice' && (
               <section className="space-y-3">
                 <div className="flex items-center justify-between px-1">
                   <div>
                     <div className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider">
-                      {t('checkUnderstanding')}
+                      {language === 'hi' ? 'अपनी गति से सीखें और अभ्यास करें' : 'Learn & Practice at your own pace'}
                     </div>
-                    <h2 className="text-base font-black dark:text-white text-slate-900">{t('chapterTests')}</h2>
+                    <h2 className="text-base font-black dark:text-white text-slate-900">
+                      {language === 'hi' ? 'अध्याय अभ्यास सेट्स' : 'Chapter Practice Sets'}
+                    </h2>
                   </div>
                   <span className="text-xs font-bold dark:text-slate-300 text-slate-700">
-                    {chapterTests.length} {t('available')}
+                    {practiceSets.length > 0 ? `${practiceSets.length} ${language === 'hi' ? 'सेट्स उपलब्ध' : 'Sets Available'}` : ''}
+                  </span>
+                </div>
+
+                {!hasPractice ? (
+                  <div className="p-8 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-2">
+                    <Sparkles size={24} className="mx-auto text-emerald-500 opacity-60" />
+                    <strong className="block text-sm dark:text-white text-slate-900">{t('practiceUnavailable')}</strong>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{t('chooseAnotherTab')}</span>
+                  </div>
+                ) : accessLoading ? (
+                  <p className="text-xs dark:text-slate-300 text-slate-600 font-medium">{t('checkingAccess')}</p>
+                ) : isLocked ? (
+                  <div className="p-8 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-2">
+                    <LockKeyhole size={24} className="mx-auto text-amber-500 opacity-60" />
+                    <strong className="block text-sm dark:text-white text-slate-900">{language === 'hi' ? 'अभ्यास अनलॉक करें' : 'Unlock Practice'}</strong>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{t('freePreviewsNotes')}</span>
+                  </div>
+                ) : testsLoading ? (
+                  <p className="text-xs dark:text-slate-300 text-slate-600 font-medium">{language === 'hi' ? 'अभ्यास सेट्स लोड हो रहे हैं...' : 'Loading practice sets...'}</p>
+                ) : practiceSets.length > 0 ? (
+                  practiceSets.map((test) => {
+                    const pausedInfo = resumeAttempts[test.id];
+                    const hasIncomplete = Boolean(pausedInfo);
+
+                    return (
+                      <div
+                        key={test.id}
+                        className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-emerald-500/20 border-emerald-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 hover:border-emerald-500/40 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl dark:bg-emerald-500/10 bg-emerald-50 border dark:border-emerald-500/30 border-emerald-200 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                            <Sparkles size={20} />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block">
+                                {test.title}
+                              </strong>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/40">
+                                {language === 'hi' ? '⚡ तुरंत समाधान' : '⚡ Instant Solution'}
+                              </span>
+                            </div>
+                            <span className="text-xs dark:text-slate-400 text-slate-500">
+                              {language === 'hi' ? '20 प्रश्न • असीमित अभ्यास • नो टाइमर' : '20 Questions • Untimed Practice'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <Link
+                          className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 min-h-[44px] transition-all ${
+                            hasIncomplete
+                              ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                              : 'bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-sm'
+                          }`}
+                          onClick={(event) => {
+                            if (!user) {
+                              event.preventDefault();
+                              setNotice(t('signInToStartTest'));
+                              return;
+                            }
+                            sessionStorage.setItem('last_quiz_return_url', location.pathname);
+                          }}
+                          onMouseEnter={warmQuiz}
+                          onTouchStart={warmQuiz}
+                          to={!user ? '#' : `/quiz/${test.id}`}
+                          state={{ returnTo: location.pathname, autoResume: hasIncomplete }}
+                        >
+                          <span>
+                            {hasIncomplete
+                              ? (language === 'hi' ? 'अभ्यास जारी रखें' : 'Resume Practice')
+                              : (language === 'hi' ? 'अभ्यास शुरू करें' : 'Start Practice')}
+                          </span>
+                          <Play size={13} />
+                        </Link>
+                      </div>
+                    );
+                  })
+                ) : practiceQuestionsCount > 0 ? (
+                  <div className="p-5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-lg shrink-0">
+                        <Sparkles size={20} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm sm:text-base font-black dark:text-white text-slate-900">
+                          {chapter.subject || t('chapter')} {t('questionPractice')}
+                        </h3>
+                        <p className="text-xs dark:text-slate-400 text-slate-600">
+                          {t('reviewKeyConcepts')}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-sm dark:text-slate-400 text-slate-600 flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <CheckCircle2 size={13} className="text-emerald-500" />
+                        <span>{practiceQuestionsCount > 0 ? `${practiceQuestionsCount} ${t('topicQuestions')}` : t('topicQuestions')}</span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock3 size={13} className="text-emerald-500" />
+                        <span>{t('ownPace')}</span>
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <BookOpen size={13} className="text-emerald-500" />
+                        <span>{t('reviewExplanations')}</span>
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black flex items-center justify-center gap-2 min-h-[44px] shadow-sm"
+                      disabled={practiceLoading}
+                      onClick={handleStartPractice}
+                    >
+                      {practiceLoading ? <LoaderCircle className="spin" size={15} /> : <Play size={15} />}
+                      <span>{t('startPractice')}</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-8 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-2">
+                    <Sparkles size={24} className="mx-auto text-emerald-500 opacity-60" />
+                    <strong className="block text-sm dark:text-white text-slate-900">
+                      {language === 'hi' ? 'जल्द आ रहा है: अभ्यास सेट्स' : 'Coming Soon: Practice Sets'}
+                    </strong>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {language === 'hi' ? 'इस अध्याय के अभ्यास प्रश्न जल्द ही जोड़े जाएँगे।' : 'Practice questions for this chapter will be added soon.'}
+                    </span>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Tab 2: Mock Tests */}
+            {activeTab === 'tests' && (
+              <section className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-indigo-500 tracking-wider">
+                      {language === 'hi' ? 'परीक्षा हॉल जैसा अनुभव' : 'Timed Exam Simulation'}
+                    </div>
+                    <h2 className="text-base font-black dark:text-white text-slate-900">
+                      {language === 'hi' ? 'अध्याय मॉक टेस्ट' : 'Chapter Mock Tests'}
+                    </h2>
+                  </div>
+                  <span className="text-xs font-bold dark:text-slate-300 text-slate-700">
+                    {mockTests.length} {language === 'hi' ? 'टेस्ट उपलब्ध' : 'Tests Available'}
                   </span>
                 </div>
 
                 {!hasTests ? (
                   <div className="p-8 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-2">
-                    <CheckCircle2 size={24} className="mx-auto text-emerald-500 opacity-60" />
+                    <Clock3 size={24} className="mx-auto text-indigo-400 opacity-60" />
                     <strong className="block text-sm dark:text-white text-slate-900">{t('testsUnavailable')}</strong>
                     <span className="text-xs text-slate-500 dark:text-slate-400">{t('chooseAnotherTab')}</span>
                   </div>
@@ -570,14 +750,18 @@ export default function ChapterDetail() {
                   <div className="p-3 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border border-rose-300 text-rose-700 text-xs font-bold">
                     {testsError}
                   </div>
-                ) : !chapterTests.length ? (
+                ) : !mockTests.length ? (
                   <div className="p-8 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-2">
-                    <CheckCircle2 size={24} className="mx-auto text-emerald-500 opacity-60" />
-                    <strong className="block text-sm dark:text-white text-slate-900">{t('noPublishedTests')}</strong>
-                    <span className="text-xs text-slate-500 dark:text-slate-400">{t('checkBackPractice')}</span>
+                    <Clock3 size={24} className="mx-auto text-indigo-400 opacity-60" />
+                    <strong className="block text-sm dark:text-white text-slate-900">
+                      {language === 'hi' ? 'अभी कोई टाइम्ड मॉक टेस्ट निर्धारित नहीं है' : 'No timed mock tests scheduled yet'}
+                    </strong>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">
+                      {language === 'hi' ? 'प्रश्नों को तुरंत हल करने के लिए "अभ्यास सेट्स" टैब देखें।' : 'Check the "Practice Sets" tab to practice with instant solutions.'}
+                    </span>
                   </div>
                 ) : (
-                  chapterTests.map((test) => {
+                  mockTests.map((test) => {
                     const attempts = testAttempts[test.id] || 0;
                     const limit = Number(test.attempt_limit || 1);
                     const pausedInfo = resumeAttempts[test.id];
@@ -590,14 +774,19 @@ export default function ChapterDetail() {
                         className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                            <CheckCircle2 size={18} />
+                          <div className="w-10 h-10 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                            <Clock3 size={20} />
                           </div>
                           <div>
-                            <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block">
-                              {test.title}
-                            </strong>
-                            <span className="text-sm dark:text-slate-400 text-slate-500">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block">
+                                {test.title}
+                              </strong>
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-950/60 text-indigo-800 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/40">
+                                {language === 'hi' ? 'टाइम्ड टेस्ट' : 'Timed Mock'}
+                              </span>
+                            </div>
+                            <span className="text-xs dark:text-slate-400 text-slate-500">
                               {test.duration_minutes} {language === 'hi' ? 'मिनट' : 'min'} • {attempts}/{limit}{' '}
                               {t('attemptsUsed')}
                             </span>
@@ -632,50 +821,6 @@ export default function ChapterDetail() {
                     );
                   })
                 )}
-              </section>
-            )}
-
-            {/* Tab 2: Question Practice */}
-            {activeTab === 'practice' && (
-              <section className="p-5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-lg shrink-0">
-                    <Sparkles size={20} />
-                  </div>
-                  <div>
-                    <h3 className="text-sm sm:text-base font-black dark:text-white text-slate-900">
-                      {chapter.subject || t('chapter')} {t('questionPractice')}
-                    </h3>
-                    <p className="text-xs dark:text-slate-400 text-slate-600">
-                      {t('reviewKeyConcepts')}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 text-sm dark:text-slate-400 text-slate-600 flex-wrap">
-                  <span className="flex items-center gap-1">
-                    <CheckCircle2 size={13} className="text-emerald-500" />
-                    <span>{practiceQuestionsCount > 0 ? `${practiceQuestionsCount} ${t('topicQuestions')}` : t('topicQuestions')}</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock3 size={13} className="text-emerald-500" />
-                    <span>{t('ownPace')}</span>
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <BookOpen size={13} className="text-emerald-500" />
-                    <span>{t('reviewExplanations')}</span>
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white text-sm font-black flex items-center justify-center gap-2 min-h-[44px] shadow-glowIndigo"
-                  disabled={practiceLoading}
-                  onClick={handleStartPractice}
-                >
-                  {practiceLoading ? <LoaderCircle className="spin" size={15} /> : <Play size={15} />}
-                  <span>{t('startPractice')}</span>
-                </button>
               </section>
             )}
 
