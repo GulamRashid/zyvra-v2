@@ -784,82 +784,57 @@ export default function IndiaGeoMap() {
 
                 {/* ================= PHYSICAL GEOGRAPHIC ARCS ================= */}
                 {layerPhysical && (
-                  <g id="physical-regions-layer" opacity={isLight ? '0.75' : '0.6'}>
+                  <g id="physical-regions-layer" opacity={isLight ? '0.4' : '0.35'}>
                     {/* Himalayan Arc */}
                     <path
                       d={PHYSICAL_REGIONS_PATHS[0].d}
                       fill="none"
-                      stroke={isLight ? '#475569' : '#94a3b8'}
-                      strokeWidth="5.5"
+                      stroke={isLight ? '#64748b' : '#94a3b8'}
+                      strokeWidth="2.4"
                       strokeLinecap="round"
-                      strokeDasharray="7,4"
+                      strokeDasharray="5,4"
                     />
-                    <text
-                      x="280"
-                      y="170"
-                      fill={isLight ? '#1e293b' : '#cbd5e1'}
-                      fontSize="9.5"
-                      fontWeight="900"
-                    >
-                      Himalayan Arc (हिमालय)
-                    </text>
+                    {activeCategory === 'mountains' && (
+                      <text
+                        x="280"
+                        y="155"
+                        fill={isLight ? '#334155' : '#cbd5e1'}
+                        fontSize="9"
+                        fontWeight="900"
+                      >
+                        Himalayan Crest (हिमालय)
+                      </text>
+                    )}
 
                     {/* Western Ghats */}
                     <path
                       d={PHYSICAL_REGIONS_PATHS[1].d}
                       fill="none"
                       stroke={isLight ? '#15803d' : '#10b981'}
-                      strokeWidth="4"
+                      strokeWidth="2.2"
                       strokeLinecap="round"
-                      strokeDasharray="5,2"
+                      strokeDasharray="4,3"
                     />
-                    <text
-                      x="135"
-                      y="550"
-                      fill={isLight ? '#15803d' : '#34d399'}
-                      fontSize="8.5"
-                      fontWeight="black"
-                      transform="rotate(75 135 550)"
-                    >
-                      Western Ghats (सह्याद्रि)
-                    </text>
 
                     {/* Eastern Ghats */}
                     <path
                       d={PHYSICAL_REGIONS_PATHS[2].d}
                       fill="none"
                       stroke={isLight ? '#0f766e' : '#14b8a6'}
-                      strokeWidth="3.2"
+                      strokeWidth="2.2"
                       strokeLinecap="round"
-                      strokeDasharray="6,3"
+                      strokeDasharray="5,3"
                     />
-                    <text
-                      x="350"
-                      y="540"
-                      fill={isLight ? '#0f766e' : '#2dd4bf'}
-                      fontSize="8.5"
-                      fontWeight="bold"
-                    >
-                      Eastern Ghats
-                    </text>
 
                     {/* Aravalli Range */}
                     <path
                       d={PHYSICAL_REGIONS_PATHS[3].d}
                       fill="none"
                       stroke={isLight ? '#b45309' : '#d97706'}
-                      strokeWidth="3"
+                      strokeWidth="2.2"
                       strokeLinecap="round"
+                      strokeDasharray="4,3"
                     />
-                    <text
-                      x="160"
-                      y="315"
-                      fill={isLight ? '#b45309' : '#fbbf24'}
-                      fontSize="8.5"
-                      fontWeight="bold"
-                    >
-                      Aravalli
-                    </text>
                   </g>
                 )}
 
@@ -872,98 +847,13 @@ export default function IndiaGeoMap() {
                         d={river.d}
                         fill="none"
                         stroke={isLight ? (river.id === 'brahmaputra' ? '#0891b2' : '#0284c7') : river.color}
-                        strokeWidth={isLight ? '2.4' : '1.8'}
+                        strokeWidth={isLight ? '2.2' : '1.8'}
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         opacity={isLight ? '0.95' : '0.85'}
                         filter={isLight ? 'url(#riverGlowLight)' : 'url(#riverGlowDark)'}
                       />
                     ))}
-                    {/* River labels with background legibility stroke */}
-                    <text
-                      x="345"
-                      y="325"
-                      fill={isLight ? '#0369a1' : '#38bdf8'}
-                      stroke={isLight ? '#ffffff' : 'none'}
-                      strokeWidth={isLight ? '0.8' : '0'}
-                      paintOrder="stroke fill"
-                      fontSize="9"
-                      fontWeight="black"
-                    >
-                      Ganga
-                    </text>
-                    <text
-                      x="560"
-                      y="310"
-                      fill={isLight ? '#0891b2' : '#06b6d4'}
-                      stroke={isLight ? '#ffffff' : 'none'}
-                      strokeWidth={isLight ? '0.8' : '0'}
-                      paintOrder="stroke fill"
-                      fontSize="9"
-                      fontWeight="black"
-                    >
-                      Brahmaputra
-                    </text>
-                    <text
-                      x="210"
-                      y="105"
-                      fill={isLight ? '#0369a1' : '#38bdf8'}
-                      stroke={isLight ? '#ffffff' : 'none'}
-                      strokeWidth={isLight ? '0.8' : '0'}
-                      paintOrder="stroke fill"
-                      fontSize="9"
-                      fontWeight="black"
-                    >
-                      Indus
-                    </text>
-                    <text
-                      x="220"
-                      y="415"
-                      fill={isLight ? '#0369a1' : '#38bdf8'}
-                      stroke={isLight ? '#ffffff' : 'none'}
-                      strokeWidth={isLight ? '0.8' : '0'}
-                      paintOrder="stroke fill"
-                      fontSize="8.5"
-                      fontWeight="bold"
-                    >
-                      Narmada
-                    </text>
-                    <text
-                      x="240"
-                      y="490"
-                      fill={isLight ? '#0369a1' : '#38bdf8'}
-                      stroke={isLight ? '#ffffff' : 'none'}
-                      strokeWidth={isLight ? '0.8' : '0'}
-                      paintOrder="stroke fill"
-                      fontSize="8.5"
-                      fontWeight="bold"
-                    >
-                      Godavari
-                    </text>
-                    <text
-                      x="250"
-                      y="555"
-                      fill={isLight ? '#0369a1' : '#38bdf8'}
-                      stroke={isLight ? '#ffffff' : 'none'}
-                      strokeWidth={isLight ? '0.8' : '0'}
-                      paintOrder="stroke fill"
-                      fontSize="8.5"
-                      fontWeight="bold"
-                    >
-                      Krishna
-                    </text>
-                    <text
-                      x="245"
-                      y="675"
-                      fill={isLight ? '#0369a1' : '#38bdf8'}
-                      stroke={isLight ? '#ffffff' : 'none'}
-                      strokeWidth={isLight ? '0.8' : '0'}
-                      paintOrder="stroke fill"
-                      fontSize="8.5"
-                      fontWeight="bold"
-                    >
-                      Kaveri
-                    </text>
                   </g>
                 )}
 
@@ -977,31 +867,19 @@ export default function IndiaGeoMap() {
                       x2="615"
                       y2="380"
                       stroke={isLight ? '#e11d48' : '#f43f5e'}
-                      strokeWidth={isLight ? '2.0' : '1.4'}
-                      strokeDasharray="7,4"
-                      opacity="0.95"
+                      strokeWidth={isLight ? '1.5' : '1.2'}
+                      strokeDasharray="5,4"
+                      opacity="0.9"
                     />
-                    {isLight ? (
-                      <g>
-                        <rect
-                          x="35"
-                          y="362"
-                          width="225"
-                          height="18"
-                          rx="4"
-                          fill="#ffe4e6"
-                          stroke="#fda4af"
-                          strokeWidth="0.8"
-                        />
-                        <text x="40" y="375" fill="#be123c" fontSize="9.5" fontWeight="black">
-                          23.5° N (कर्क रेखा / Tropic of Cancer)
-                        </text>
-                      </g>
-                    ) : (
-                      <text x="38" y="374" fill="#fb7185" fontSize="9.5" fontWeight="black">
-                        23.5° N (कर्क रेखा / Tropic of Cancer)
-                      </text>
-                    )}
+                    <text
+                      x="38"
+                      y="374"
+                      fill={isLight ? '#be123c' : '#fb7185'}
+                      fontSize="9"
+                      fontWeight="black"
+                    >
+                      23.5° N (कर्क रेखा)
+                    </text>
 
                     {/* IST Meridian (82.5° E) */}
                     <line
@@ -1010,72 +888,52 @@ export default function IndiaGeoMap() {
                       x2="345"
                       y2="670"
                       stroke={isLight ? '#7e22ce' : '#a855f7'}
-                      strokeWidth={isLight ? '2.0' : '1.4'}
-                      strokeDasharray="7,4"
-                      opacity="0.95"
+                      strokeWidth={isLight ? '1.5' : '1.2'}
+                      strokeDasharray="5,4"
+                      opacity="0.9"
                     />
-                    {isLight ? (
-                      <g>
-                        <rect
-                          x="348"
-                          y="46"
-                          width="160"
-                          height="18"
-                          rx="4"
-                          fill="#f3e8ff"
-                          stroke="#d8b4fe"
-                          strokeWidth="0.8"
-                        />
-                        <text x="354" y="59" fill="#6b21a8" fontSize="9.5" fontWeight="black">
-                          82.5° E (IST / मानक समय)
-                        </text>
-                      </g>
-                    ) : (
-                      <text x="350" y="60" fill="#c084fc" fontSize="9.5" fontWeight="black">
-                        82.5° E (IST / मानक समय)
-                      </text>
-                    )}
+                    <text
+                      x="348"
+                      y="42"
+                      fill={isLight ? '#6b21a8' : '#c084fc'}
+                      fontSize="9"
+                      fontWeight="black"
+                    >
+                      82.5° E (IST)
+                    </text>
 
                     {/* Intersection Point: Koriya, Chhattisgarh (345, 380) */}
                     <circle
                       cx="345"
                       cy="380"
-                      r="5.5"
+                      r="4.5"
                       fill="#f59e0b"
-                      stroke={isLight ? '#78350f' : '#ffffff'}
-                      strokeWidth="1.8"
+                      stroke="#ffffff"
+                      strokeWidth="1.5"
                       filter="url(#beaconGlow)"
                     />
-                    <circle
-                      cx="345"
-                      cy="380"
-                      r="10"
-                      fill="none"
-                      stroke="#f59e0b"
-                      strokeWidth="1"
-                      strokeDasharray="2,2"
-                      opacity="0.8"
-                    />
-                    {isLight ? (
+                    {activeCategory === 'meridians' && (
                       <g>
                         <rect
-                          x="356"
-                          y="378"
-                          width="125"
+                          x="355"
+                          y="372"
+                          width="110"
                           height="16"
                           rx="4"
-                          fill="#fef3c7"
-                          stroke="#fcd34d"
+                          fill={isLight ? '#fef3c7' : '#78350f'}
+                          stroke="#f59e0b"
                           strokeWidth="0.8"
                         />
-                        <text x="360" y="390" fill="#92400e" fontSize="8.5" fontWeight="black">
-                          Koriya (प्रतिच्छेदन)
+                        <text
+                          x="360"
+                          y="384"
+                          fill={isLight ? '#92400e' : '#fef3c7'}
+                          fontSize="8.5"
+                          fontWeight="black"
+                        >
+                          Koriya (कोरिया)
                         </text>
                       </g>
-                    ) : (
-                      <text x="354" y="394" fill="#fbbf24" fontSize="8.5" fontWeight="black">
-                        Koriya (प्रतिच्छेदन)
-                      </text>
                     )}
                   </g>
                 )}
@@ -1090,37 +948,43 @@ export default function IndiaGeoMap() {
                     type="button"
                     onClick={() => handleSelect(item)}
                     style={{ left: `${item.x}%`, top: `${item.y}%` }}
-                    className={`absolute -translate-x-1/2 -translate-y-1/2 group transition-all duration-200 z-10 ${
-                      isSelected ? 'scale-125 z-20' : 'hover:scale-115'
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 group transition-all duration-150 z-20 ${
+                      isSelected ? 'z-30 scale-110' : 'hover:scale-110'
                     }`}
                   >
                     {/* Pulsing ring around active item */}
                     {isSelected && (
-                      <span className="absolute -inset-1.5 rounded-full bg-emerald-400/60 animate-ping pointer-events-none" />
+                      <span className="absolute -inset-2 rounded-full bg-emerald-500/40 animate-ping pointer-events-none" />
                     )}
 
                     {/* Pin Icon Badge */}
                     <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-black shadow-md ${
+                      className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-transform shadow-md ${
                         isSelected
-                          ? 'bg-neutral-900 text-white border-white scale-110 shadow-emerald-500/50'
-                          : getPinColor()
+                          ? 'bg-gradient-to-tr from-emerald-600 to-teal-500 text-white border-white ring-4 ring-emerald-400/60 scale-115 shadow-emerald-600/50'
+                          : isLight
+                          ? `${getPinColor()} border-white shadow-slate-900/15`
+                          : `${getPinColor()} border-neutral-900 shadow-black/40`
                       }`}
                     >
-                      {activeCategory === 'rivers' && <Waves size={11} />}
-                      {activeCategory === 'mountains' && <Mountain size={11} />}
-                      {activeCategory === 'passes' && <Compass size={11} />}
-                      {activeCategory === 'parks' && <Trees size={11} />}
-                      {activeCategory === 'lakes' && <Droplets size={11} />}
-                      {activeCategory === 'meridians' && <Globe size={11} />}
+                      {activeCategory === 'rivers' && <Waves size={13} className="text-white drop-shadow-xs" />}
+                      {activeCategory === 'mountains' && <Mountain size={13} className="text-white drop-shadow-xs" />}
+                      {activeCategory === 'passes' && <Compass size={13} className="text-white drop-shadow-xs" />}
+                      {activeCategory === 'parks' && <Trees size={13} className="text-white drop-shadow-xs" />}
+                      {activeCategory === 'lakes' && <Droplets size={13} className="text-white drop-shadow-xs" />}
+                      {activeCategory === 'meridians' && <Globe size={13} className="text-white drop-shadow-xs" />}
                     </div>
 
-                    {/* Compact Label */}
+                    {/* Pin Label: High-contrast, clean & legible on mobile/desktop */}
                     <span
-                      className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 px-1.5 py-0.5 rounded text-[9px] font-bold whitespace-nowrap shadow-md pointer-events-none transition-all ${
+                      className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 whitespace-nowrap pointer-events-none transition-all ${
                         isSelected
-                          ? 'bg-neutral-900 text-white opacity-100 z-30'
-                          : 'bg-neutral-900/90 text-neutral-200 opacity-0 group-hover:opacity-100'
+                          ? isLight
+                            ? 'z-40 px-2 py-0.5 rounded-lg text-xs font-black bg-emerald-600 text-white border-2 border-white shadow-xl'
+                            : 'z-40 px-2 py-0.5 rounded-lg text-xs font-black bg-emerald-500 text-neutral-950 border-2 border-white shadow-xl'
+                          : isLight
+                          ? 'z-10 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-white/95 text-slate-800 border border-slate-300 shadow-xs'
+                          : 'z-10 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-slate-900/90 text-slate-200 border border-slate-700 shadow-xs'
                       }`}
                     >
                       {isHi ? item.nameHi.split(' ')[0] : item.nameEn.split(' ')[0]}

@@ -495,94 +495,94 @@ export const RIVERS_SVG_PATHS = [
   {
     id: 'ganga',
     name: 'Ganga',
-    color: '#38bdf8',
-    d: 'M 272 208 Q 300 270 331 334 T 406 350 T 472 418'
+    color: '#0284c7',
+    d: 'M 270 205 C 275 235 295 290 331 334 C 365 350 400 340 430 350 C 455 360 465 375 480 420'
   },
   {
     id: 'yamuna',
     name: 'Yamuna',
-    color: '#0284c7',
-    d: 'M 260 210 Q 238 275 272 320 T 331 334'
+    color: '#0369a1',
+    d: 'M 260 205 C 245 235 232 255 245 290 C 260 315 290 330 331 334'
   },
   {
     id: 'brahmaputra',
     name: 'Brahmaputra',
-    color: '#06b6d4',
-    d: 'M 645 220 Q 580 295 530 318 T 476 422'
+    color: '#0891b2',
+    d: 'M 645 210 C 625 240 600 270 560 295 C 530 315 500 325 485 410'
   },
   {
     id: 'indus',
     name: 'Indus',
-    color: '#38bdf8',
-    d: 'M 252 80 Q 225 110 185 140'
+    color: '#0284c7',
+    d: 'M 252 75 C 235 95 210 115 180 135'
   },
   {
     id: 'narmada',
     name: 'Narmada',
-    color: '#0ea5e9',
-    d: 'M 330 405 Q 260 410 142 435'
+    color: '#0284c7',
+    d: 'M 338 400 C 295 390 240 402 195 412 C 165 418 150 422 142 428'
   },
   {
     id: 'tapti',
     name: 'Tapti',
-    color: '#0ea5e9',
-    d: 'M 265 425 Q 200 432 148 448'
+    color: '#0284c7',
+    d: 'M 275 418 C 235 422 190 430 146 442'
   },
   {
     id: 'godavari',
     name: 'Godavari',
-    color: '#38bdf8',
-    d: 'M 157 468 Q 246 480 349 538'
+    color: '#0284c7',
+    d: 'M 158 465 C 190 475 255 495 310 520 C 330 530 340 540 348 545'
   },
   {
     id: 'krishna',
     name: 'Krishna',
-    color: '#0284c7',
-    d: 'M 160 515 Q 235 540 348 588'
+    color: '#0369a1',
+    d: 'M 162 510 C 185 530 235 555 280 565 C 310 572 328 576 338 580'
   },
   {
     id: 'kaveri',
     name: 'Kaveri',
-    color: '#38bdf8',
-    d: 'M 198 642 Q 255 660 310 684'
+    color: '#0284c7',
+    d: 'M 196 638 C 225 648 255 658 285 672 C 298 676 308 678 315 680'
   },
   {
     id: 'mahanadi',
     name: 'Mahanadi',
-    color: '#06b6d4',
-    d: 'M 332 444 Q 380 448 428 460'
+    color: '#0891b2',
+    d: 'M 330 442 C 360 438 395 442 428 458'
   }
 ];
 
 export const PHYSICAL_REGIONS_PATHS = [
   {
     id: 'himalayas',
-    nameEn: 'Himalayan Arc',
-    nameHi: 'हिमालयी चाप',
-    d: 'M 165 110 Q 280 180 470 278 T 645 210'
+    nameEn: 'Himalayan Crest',
+    nameHi: 'हिमालयी पर्वतमाला',
+    d: 'M 190 70 C 240 120 310 160 380 200 C 440 235 500 245 560 235 C 600 225 630 205 650 190'
   },
   {
     id: 'western_ghats',
     nameEn: 'Western Ghats (Sahyadri)',
     nameHi: 'पश्चिमी घाट (सह्याद्रि)',
-    d: 'M 152 460 Q 185 570 225 675'
+    d: 'M 155 450 C 175 520 195 600 220 670'
   },
   {
     id: 'eastern_ghats',
     nameEn: 'Eastern Ghats',
-    nameHi: 'पूर्वी घाट (महेंद्रगिरि)',
-    d: 'M 420 460 Q 350 540 280 635'
+    nameHi: 'पूर्वी घाट',
+    d: 'M 425 450 C 370 510 320 570 280 630'
   },
   {
     id: 'aravalli',
     nameEn: 'Aravalli Range',
     nameHi: 'अरावली पर्वतमाला',
-    d: 'M 138 355 Q 185 305 228 255'
+    d: 'M 140 350 C 175 305 210 260 230 240'
   },
   {
     id: 'vindhya_satpura',
     nameEn: 'Vindhya & Satpura',
     nameHi: 'विंध्य व सतपुड़ा',
-    d: 'M 148 420 Q 250 400 350 405'
+    d: 'M 160 410 C 230 395 300 395 345 400'
   }
 ];
