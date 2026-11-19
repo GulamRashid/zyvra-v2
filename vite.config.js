@@ -25,7 +25,7 @@ export default defineConfig({
         globIgnores: ['logo.png'],
         cleanupOutdatedCaches: true,
         clientsClaim: true,
-        skipWaiting: false
+        skipWaiting: true
       }
     })
   ],

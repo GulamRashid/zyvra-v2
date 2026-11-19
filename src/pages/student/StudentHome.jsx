@@ -7,7 +7,6 @@ import {
   Compass,
   Flame,
   GraduationCap,
-  MessageCircle,
   Play,
   Target,
   Trophy,
@@ -101,12 +100,12 @@ const quickActionTiles = [
     iconBg: 'dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-400 text-emerald-700'
   },
   {
-    id: 'my-courses',
-    titleEn: 'My Courses',
-    titleHi: 'माई कोर्सेस',
-    subtitle: 'Unlocked content',
-    path: '/purchases',
-    icon: GraduationCap,
+    id: 'practice',
+    titleEn: 'Practice',
+    titleHi: 'अभ्यास',
+    subtitle: 'Chapter practice',
+    path: '/tests',
+    icon: BookOpen,
     bg: 'dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-200 text-slate-800',
     iconBg: 'dark:bg-purple-500/20 bg-purple-100 dark:text-purple-400 text-purple-700'
   }
