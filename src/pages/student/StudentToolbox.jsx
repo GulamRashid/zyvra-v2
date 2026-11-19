@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, Binary, Bookmark, BookOpen, Brain, Calculator, CalendarDays, ChevronRight,
-  Clock3, Compass, Dices, Heart, Landmark, ListChecks, LockKeyhole, Percent, Search,
+  ArrowLeft, Binary, Bookmark, BookOpen, Brain, Calculator, Calendar, CalendarDays, ChevronRight,
+  Clock, Clock3, Compass, Dices, Heart, Landmark, ListChecks, LockKeyhole, Percent, Search,
   Scale, Shapes, Sigma, StickyNote, Superscript, Target, TrendingUp, Wrench, Zap
 } from 'lucide-react';
 import CheckoutModal from '../../components/common/CheckoutModal';
@@ -18,6 +18,8 @@ import AlphabetPositions from '../../components/toolbox/reasoning/AlphabetPositi
 import BloodRelations from '../../components/toolbox/reasoning/BloodRelations';
 import DirectionCompass from '../../components/toolbox/reasoning/DirectionCompass';
 import DiceRules from '../../components/toolbox/reasoning/DiceRules';
+import ClockMirrorTool from '../../components/toolbox/reasoning/ClockMirrorTool';
+import CalendarDayTool from '../../components/toolbox/reasoning/CalendarDayTool';
 import ConstitutionArticles from '../../components/toolbox/gs/ConstitutionArticles';
 import NegativeMarkingSimulator from '../../components/toolbox/productivity/NegativeMarkingSimulator';
 import StickyNotes from '../../components/toolbox/productivity/StickyNotes';
@@ -55,6 +57,8 @@ const CATEGORY_TOOLS = {
     { id: 'interest-calculator', titleKey: 'tbInterest', subtitleKey: 'tbInterestDesc', Icon: Percent, accessKey: 'math-shortcuts' }
   ],
   reasoning: [
+    { id: 'clock-mirror', titleKey: 'tbClockMirror', subtitleKey: 'tbClockMirrorDesc', Icon: Clock, accessKey: 'formula-sheet' },
+    { id: 'calendar-day', titleKey: 'tbCalendarDay', subtitleKey: 'tbCalendarDayDesc', Icon: Calendar, accessKey: 'formula-sheet' },
     { id: 'alphabet-positions', titleKey: 'tbAlphabet', subtitleKey: 'tbAlphabetDesc', Icon: Binary, accessKey: null, isFree: true },
     { id: 'blood-relations', titleKey: 'tbBlood', subtitleKey: 'tbBloodDesc', Icon: Brain, accessKey: 'formula-sheet' },
     { id: 'direction-compass', titleKey: 'tbDirectionTool', subtitleKey: 'tbDirectionDesc', Icon: Compass, accessKey: null, isFree: true },
@@ -97,7 +101,9 @@ export default function StudentToolbox() {
     pomodoro: true,
     'math-shortcuts': true,
     'polity-articles': true,
-    'formula-sheet': true
+    'formula-sheet': true,
+    'clock-mirror': true,
+    'calendar-day': true
   });
   const [toolPricing, setToolPricing] = useState({});
   const [comboPricing, setComboPricing] = useState({ price: 0, validity_days: 30 });
@@ -487,6 +493,8 @@ export default function StudentToolbox() {
     if (activeTool === 'unit-converter') return <UnitConverter />;
     if (activeTool === 'profit-loss') return <ProfitLossCalculator />;
     if (activeTool === 'interest-calculator') return <InterestCalculator />;
+    if (activeTool === 'clock-mirror') return <ClockMirrorTool />;
+    if (activeTool === 'calendar-day') return <CalendarDayTool />;
     if (activeTool === 'alphabet-positions') return <AlphabetPositions />;
     if (activeTool === 'blood-relations') return <BloodRelations />;
     if (activeTool === 'direction-compass') return <DirectionCompass />;

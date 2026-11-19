@@ -99,6 +99,32 @@ const DEFAULT_SYSTEM_TOOLS = [
     active: true,
     popular: true,
     order: 6
+  },
+  {
+    id: 'clock-mirror',
+    name: 'Clock, Mirror & Water Image Solver',
+    category: 'Reasoning',
+    iconName: 'Clock',
+    iconChar: '⏰',
+    accessType: 'free',
+    purchaseType: 'Always Free',
+    price: 0,
+    active: true,
+    popular: true,
+    order: 7
+  },
+  {
+    id: 'calendar-day',
+    name: 'Calendar & Day Calculation Engine',
+    category: 'Reasoning',
+    iconName: 'Calendar',
+    iconChar: '📅',
+    accessType: 'free',
+    purchaseType: 'Always Free',
+    price: 0,
+    active: true,
+    popular: true,
+    order: 8
   }
 ];
 
@@ -175,7 +201,7 @@ export default function AdminTools() {
           name: item.name || item.title || 'Untitled Tool',
           category: item.category || 'General',
           iconName: item.icon || 'Wrench',
-          iconChar: item.id === 'flashcards' ? '🗂️' : item.id === 'mistake-notebook' ? '📓' : item.id === 'polity-articles' ? '🏛️' : item.icon === 'Clock' ? '⏱️' : item.icon === 'Calculator' ? '🧮' : item.icon === 'Brain' ? '🧠' : item.icon === 'BookOpen' ? '📖' : '🔧',
+          iconChar: item.id === 'clock-mirror' ? '⏰' : item.id === 'calendar-day' ? '📅' : item.id === 'flashcards' ? '🗂️' : item.id === 'mistake-notebook' ? '📓' : item.id === 'polity-articles' ? '🏛️' : item.icon === 'Clock' ? '⏱️' : item.icon === 'Calculator' ? '🧮' : item.icon === 'Brain' ? '🧠' : item.icon === 'BookOpen' ? '📖' : '🔧',
           accessType: ['paid', 'premium'].includes(String(item.access_type || item.accessType || (item.price > 0 ? 'paid' : 'free')).toLowerCase()) ? 'paid' : 'free',
           purchaseType: item.purchaseType || (item.price > 0 ? 'Single Purchase' : 'Always Free'),
           price: Number(item.price) || 0,
