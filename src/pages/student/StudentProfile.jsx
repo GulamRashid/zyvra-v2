@@ -1343,10 +1343,10 @@ export default function StudentProfile() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                    Official Contact & WhatsApp Help
+                    Official Support & Email Desk
                   </span>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
-                    zyvra.education@gmail.com एवं WhatsApp सहायता
+                    zyvra.education@gmail.com एवं सहायता केंद्र
                   </span>
                 </div>
               </div>
@@ -1797,16 +1797,6 @@ export default function StudentProfile() {
                 >
                   <Mail size={18} className="shrink-0" />
                   <span>Email: zyvra.education@gmail.com</span>
-                </a>
-
-                <a
-                  href="https://wa.me/919876543210?text=Namaste%20Zyvra%20Support,%20mujhe%20madad%20chahiye."
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2.5 text-emerald-500 font-bold hover:underline"
-                >
-                  <MessageCircle size={18} className="shrink-0" />
-                  <span>WhatsApp Chat Support: +91 98765 43210</span>
                 </a>
 
                 <div className="flex items-center gap-2.5 text-slate-400 text-[11px] pt-1 border-t dark:border-slate-800 border-slate-200">
