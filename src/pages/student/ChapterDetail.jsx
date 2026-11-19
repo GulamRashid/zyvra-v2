@@ -480,7 +480,7 @@ export default function ChapterDetail() {
               </div>
             </section>
 
-            {/* Tab Bar */}
+            {/* Tab Bar with Distinct Color Identity for Test vs Practice vs Notes */}
             <div
               className="flex items-center gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 shadow-sm"
               role="tablist"
@@ -488,16 +488,25 @@ export default function ChapterDetail() {
             >
               {tabsList.map(({ id, label, count, icon: Icon }) => {
                 const isActive = activeTab === id;
+                let activeStyle = 'bg-indigo-600 text-white shadow-sm border-indigo-400/30';
+                if (id === 'practice') {
+                  activeStyle = 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm border-emerald-400/30';
+                } else if (id === 'tests') {
+                  activeStyle = 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm border-indigo-400/30';
+                } else if (id === 'notes') {
+                  activeStyle = 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-sm border-amber-400/30';
+                }
+
                 return (
                   <button
                     key={id}
                     role="tab"
                     aria-selected={isActive}
                     onClick={() => setActiveTab(id)}
-                    className={`flex-1 py-2 sm:py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all min-h-[44px] ${
+                    className={`flex-1 py-2 sm:py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all min-h-[44px] border ${
                       isActive
-                        ? 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white shadow-glowIndigo'
-                        : 'dark:text-slate-400 text-slate-600 hover:text-black dark:hover:text-white'
+                        ? activeStyle
+                        : 'border-transparent dark:text-slate-400 text-slate-600 hover:text-black dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
                     }`}
                   >
                     <Icon size={15} />
@@ -514,6 +523,35 @@ export default function ChapterDetail() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Clear Mode Explainer Banner */}
+            <div className={`p-3 rounded-2xl border text-xs flex items-center gap-2.5 ${
+              activeTab === 'practice'
+                ? 'dark:bg-emerald-950/30 bg-emerald-50/80 border-emerald-500/30 text-emerald-800 dark:text-emerald-200'
+                : activeTab === 'tests'
+                ? 'dark:bg-indigo-950/30 bg-indigo-50/80 border-indigo-500/30 text-indigo-800 dark:text-indigo-200'
+                : 'dark:bg-amber-950/30 bg-amber-50/80 border-amber-500/30 text-amber-800 dark:text-amber-200'
+            }`}>
+              <div className="shrink-0 text-lg">
+                {activeTab === 'practice' ? '🎯' : activeTab === 'tests' ? '⏱️' : '📄'}
+              </div>
+              <div className="min-w-0">
+                <span className="font-black block uppercase tracking-wider text-[10px]">
+                  {activeTab === 'practice'
+                    ? (language === 'hi' ? 'सेल्फ-पेस्ड प्रैक्टिस मोड (Practice Mode)' : 'Self-Paced Practice Mode')
+                    : activeTab === 'tests'
+                    ? (language === 'hi' ? 'टाइम-बाउंड मॉक टेस्ट मोड (Real Exam Mode)' : 'Timed Exam Simulation Mode')
+                    : (language === 'hi' ? 'रिवीजन नोट्स एवं PDF मोड (Study Handouts)' : 'Revision Notes & Handouts')}
+                </span>
+                <span className="text-[11px] opacity-90 block mt-0.5">
+                  {activeTab === 'practice'
+                    ? (language === 'hi' ? 'हर सवाल का तुरंत समाधान देखें। कोई टाइमर का दबाव नहीं, गहरी समझ बनाएं।' : 'Instant solutions after every question. No timer stress — learn with deep concept clarity.')
+                    : activeTab === 'tests'
+                    ? (language === 'hi' ? 'परीक्षा हॉल जैसे टाइमर और नेगेटिव मार्किंग के साथ टेस्ट दें और अपनी रैंक देखें।' : 'Timed countdown, negative marking, and detailed rank analytics after submission.')
+                    : (language === 'hi' ? 'परीक्षा से पहले त्वरित रिवीजन के लिए महत्वपूर्ण सूत्र, तथ्य और PDF नोट्स पढ़ें।' : 'Key formulas, facts and PDF notes for rapid revision before the exam.')}
+                </span>
+              </div>
             </div>
 
             {notice && (

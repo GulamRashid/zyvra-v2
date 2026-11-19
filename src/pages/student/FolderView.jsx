@@ -241,104 +241,151 @@ export default function FolderView() {
               </div>
             )}
 
-            {/* Child Folders & Chapters List */}
-            <div className="space-y-2.5">
-              {childFolders.map((child) => {
-                const childPricing = getFolderPricing(child, folders);
-                const count = chapters.filter((chapter) => chapter.folder_id === child.id && isPublished(chapter)).length;
-                const childStatus = ['coming-soon', 'coming_soon'].includes(String(child.status || '').toLowerCase());
-                const isChildUnlocked = isCurrentFolderUnlocked || childPricing.amount <= 0 || isFolderUnlocked(child.id, folders, purchasedFolderIds) || accessByKey[`folder:${child.id}`] === true;
+            {/* Child Folders Section */}
+            {childFolders.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 flex items-center gap-1.5 uppercase tracking-wider text-indigo-500">
+                    <Folder size={14} />
+                    <span>{language === 'hi' ? 'उप-विषय एवं सेक्शन्स' : 'Sub-Folders & Subjects'} ({childFolders.length})</span>
+                  </h3>
+                </div>
 
-                return (
-                  <article
-                    key={child.id}
-                    className="p-3 sm:p-3.5 rounded-xl dark:bg-[#1E293B]/85 bg-white shadow-xs border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 transition-all space-y-1.5"
-                  >
-                    <Link to={`/folder/${child.id}`} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-lg dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                          <ContentIcon icon={child.icon_url || child.icon} className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fallback={Folder} />
-                        </div>
-                        <div className="min-w-0">
-                          <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                            {child.title}
-                          </strong>
-                          <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
-                            {child.description || `${count} ${count === 1 ? 'अध्याय' : 'अध्याय'}`}
-                          </span>
-                        </div>
-                      </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {childFolders.map((child) => {
+                    const childPricing = getFolderPricing(child, folders);
+                    const count = chapters.filter((chapter) => chapter.folder_id === child.id && isPublished(chapter)).length;
+                    const childStatus = ['coming-soon', 'coming_soon'].includes(String(child.status || '').toLowerCase());
+                    const isChildUnlocked = isCurrentFolderUnlocked || childPricing.amount <= 0 || isFolderUnlocked(child.id, folders, purchasedFolderIds) || accessByKey[`folder:${child.id}`] === true;
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <AccessBadge label={childStatus ? 'Coming Soon' : childPricing.amount ? (accessLoading ? 'Checking…' : isChildUnlocked ? 'Purchased' : 'Paid') : 'Free'} />
-                        <ChevronRight size={15} className="text-slate-400 dark:text-slate-500" />
-                      </div>
-                    </Link>
-
-                    {childPricing.amount > 0 && !accessLoading && !accessError && !isChildUnlocked && (
-                      <div className="pt-2 border-t dark:border-slate-700/40 border-slate-100 flex justify-end">
-                        <button
-                          type="button"
-                          className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[44px]"
-                          onClick={() => setCheckoutItem({ itemType: 'folder', itemId: child.id, itemTitle: child.title, tier: 'Folder Bundle', basePrice: childPricing.amount })}
-                        >
-                          <span>Buy bundle · ₹{childPricing.amount.toLocaleString('en-IN')}</span>
-                          <ArrowRight size={13} />
-                        </button>
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
-
-              {folderChapters.map((chapter) => {
-                const access = getChapterAccess(chapter, folder, folders);
-                const isChapterUnlocked = isCurrentFolderUnlocked || access.amount <= 0 || accessByKey[`chapter:${chapter.id}`] === true;
-
-                return (
-                  <article
-                    key={chapter.id}
-                    className="p-3 sm:p-3.5 rounded-xl dark:bg-[#1E293B]/85 bg-white shadow-xs border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 transition-all space-y-1.5"
-                  >
-                    <Link to={`/chapter/${chapter.id}`} className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div className="w-8 h-8 rounded-lg dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                          <BookOpen size={16} />
-                        </div>
-                        <div className="min-w-0">
-                          <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                            {chapter.title}
-                          </strong>
-                          <div className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-500 flex items-center gap-1.5 mt-0.5">
-                            <span className="font-semibold text-indigo-600 dark:text-indigo-400">{chapter.subject || 'General'}</span>
-                            <span>•</span>
-                            <span><Clock3 size={11} className="inline mr-0.5" />{chapter.estimated_study_time_minutes || '—'} min</span>
+                    return (
+                      <article
+                        key={child.id}
+                        className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-xs border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 transition-all flex flex-col justify-between space-y-2 group"
+                      >
+                        <Link to={`/folder/${child.id}`} className="flex items-start justify-between gap-2.5">
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform mt-0.5">
+                              <ContentIcon icon={child.icon_url || child.icon} className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fallback={Folder} />
+                            </div>
+                            <div className="min-w-0">
+                              <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate group-hover:text-indigo-400 transition-colors">
+                                {child.title}
+                              </strong>
+                              <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate mt-0.5">
+                                {child.description || `${count} ${count === 1 ? 'अध्याय' : 'अध्याय'}`}
+                              </span>
+                            </div>
                           </div>
-                        </div>
-                      </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <AccessBadge label={access.amount > 0 ? (accessLoading ? (language === 'hi' ? 'जाँच जारी है…' : 'Checking…') : isChapterUnlocked ? (language === 'hi' ? 'अनलॉक किया हुआ' : 'Purchased') : access.label) : access.label} />
-                        <ArrowRight size={15} className="text-slate-400 dark:text-slate-500" />
-                      </div>
-                    </Link>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <AccessBadge label={childStatus ? 'Coming Soon' : childPricing.amount ? (accessLoading ? 'Checking…' : isChildUnlocked ? 'Purchased' : 'Paid') : 'Free'} />
+                            <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                          </div>
+                        </Link>
 
-                    {access.amount > 0 && !isChapterUnlocked && (
-                      <div className="pt-2 border-t dark:border-slate-700/40 border-slate-100 flex justify-end">
-                        <button
-                          type="button"
-                          className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[44px]"
-                          onClick={() => setCheckoutItem({ itemType: 'chapter', itemId: chapter.id, itemTitle: chapter.title, tier: 'Chapter', basePrice: access.amount })}
-                        >
-                          <span>{language === 'hi' ? 'अध्याय खरीदें' : 'Buy chapter'} · ₹{access.amount.toLocaleString('en-IN')}</span>
-                          <ArrowRight size={13} />
-                        </button>
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
-            </div>
+                        {childPricing.amount > 0 && !accessLoading && !accessError && !isChildUnlocked && (
+                          <div className="pt-2 border-t dark:border-slate-700/40 border-slate-100 flex justify-end">
+                            <button
+                              type="button"
+                              className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[38px]"
+                              onClick={() => setCheckoutItem({ itemType: 'folder', itemId: child.id, itemTitle: child.title, tier: 'Folder Bundle', basePrice: childPricing.amount })}
+                            >
+                              <span>Buy bundle · ₹{childPricing.amount.toLocaleString('en-IN')}</span>
+                              <ArrowRight size={13} />
+                            </button>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Chapter Modules Section with Clear Separation */}
+            {folderChapters.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 flex items-center gap-1.5 uppercase tracking-wider text-indigo-500">
+                    <BookOpen size={14} />
+                    <span>{language === 'hi' ? 'अध्याय, प्रैक्टिस एवं टेस्ट सामग्री' : 'Chapters, Practice & Mock Tests'} ({folderChapters.length})</span>
+                  </h3>
+                </div>
+
+                <div className="space-y-2.5">
+                  {folderChapters.map((chapter) => {
+                    const access = getChapterAccess(chapter, folder, folders);
+                    const isChapterUnlocked = isCurrentFolderUnlocked || access.amount <= 0 || accessByKey[`chapter:${chapter.id}`] === true;
+                    const isFree = chapter.access_mode === 'free';
+
+                    return (
+                      <article
+                        key={chapter.id}
+                        className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-xs border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 transition-all space-y-2 group"
+                      >
+                        <Link to={`/chapter/${chapter.id}`} className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform mt-0.5">
+                              <BookOpen size={16} />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate group-hover:text-indigo-400 transition-colors">
+                                  {chapter.title}
+                                </strong>
+                                {isFree && (
+                                  <span className="px-2 py-0.2 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black text-[10px] shrink-0 border border-emerald-500/30">
+                                    🎁 Free
+                                  </span>
+                                )}
+                              </div>
+
+                              <div className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                <span className="font-semibold text-indigo-600 dark:text-indigo-400">{chapter.subject || 'General'}</span>
+                                <span>•</span>
+                                <span><Clock3 size={11} className="inline mr-0.5" />{chapter.estimated_study_time_minutes || '—'} min</span>
+                              </div>
+
+                              {/* Clear Content Mode Badges */}
+                              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                  <span>🎯 Practice</span>
+                                </span>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                                  <span>⏱️ Mock Test</span>
+                                </span>
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                  <span>📄 Notes & PDF</span>
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 mt-0.5">
+                            <AccessBadge label={access.amount > 0 ? (accessLoading ? (language === 'hi' ? 'जाँच जारी है…' : 'Checking…') : isChapterUnlocked ? (language === 'hi' ? 'अनलॉक किया हुआ' : 'Purchased') : access.label) : access.label} />
+                            <ArrowRight size={15} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                          </div>
+                        </Link>
+
+                        {access.amount > 0 && !isChapterUnlocked && (
+                          <div className="pt-2 border-t dark:border-slate-700/40 border-slate-100 flex justify-end">
+                            <button
+                              type="button"
+                              className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[38px]"
+                              onClick={() => setCheckoutItem({ itemType: 'chapter', itemId: chapter.id, itemTitle: chapter.title, tier: 'Chapter', basePrice: access.amount })}
+                            >
+                              <span>{language === 'hi' ? 'अध्याय खरीदें' : 'Buy chapter'} · ₹{access.amount.toLocaleString('en-IN')}</span>
+                              <ArrowRight size={13} />
+                            </button>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {parent && (
               <div className="pt-2">

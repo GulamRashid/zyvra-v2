@@ -447,14 +447,14 @@ export default function TestHub() {
           </div>
         )}
 
-        {/* Navigation Tabs (Subjects | Chapters | Tests | Custom) */}
+        {/* Navigation Tabs with Distinct Section Separation (Practice vs Mock Tests vs Custom) */}
         <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/90 bg-white border dark:border-slate-700/60 border-slate-200 backdrop-blur-md overflow-x-auto shadow-sm">
           <button
             type="button"
             onClick={() => navigate('/tests?tab=subjects', { replace: true })}
-            className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
+            className={`flex-1 min-w-[75px] sm:min-w-[90px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'subjects'
-                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+                ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
@@ -465,41 +465,76 @@ export default function TestHub() {
           <button
             type="button"
             onClick={() => navigate('/tests?tab=chapters', { replace: true })}
-            className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
+            className={`flex-1 min-w-[75px] sm:min-w-[90px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'chapters'
-                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <BookOpen size={14} />
-            <span>{language === 'hi' ? 'अध्याय' : 'Chapters'}</span>
+            <span>{language === 'hi' ? '🎯 अभ्यास' : '🎯 Practice'}</span>
           </button>
 
           <button
             type="button"
             onClick={() => navigate('/tests?tab=tests', { replace: true })}
-            className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
+            className={`flex-1 min-w-[75px] sm:min-w-[90px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'tests'
-                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+                ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Target size={14} />
-            <span>{language === 'hi' ? 'मॉक टेस्ट' : 'Tests'}</span>
+            <span>{language === 'hi' ? '⏱️ मॉक टेस्ट' : '⏱️ Mock Tests'}</span>
           </button>
 
           <button
             type="button"
             onClick={() => navigate('/tests?tab=custom', { replace: true })}
-            className={`flex-1 min-w-[70px] sm:min-w-[85px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
+            className={`flex-1 min-w-[75px] sm:min-w-[90px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'custom'
-                ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <SlidersHorizontal size={14} />
             <span>{language === 'hi' ? 'कस्टम' : 'Custom'}</span>
           </button>
+        </div>
+
+        {/* Clear Mode Context Banner */}
+        <div className={`p-2.5 sm:p-3 rounded-2xl border text-xs flex items-center gap-2.5 shadow-xs ${
+          activeTab === 'chapters'
+            ? 'dark:bg-emerald-950/30 bg-emerald-50/80 border-emerald-500/30 text-emerald-800 dark:text-emerald-200'
+            : activeTab === 'tests'
+            ? 'dark:bg-indigo-950/30 bg-indigo-50/80 border-indigo-500/30 text-indigo-800 dark:text-indigo-200'
+            : activeTab === 'custom'
+            ? 'dark:bg-purple-950/30 bg-purple-50/80 border-purple-500/30 text-purple-800 dark:text-purple-200'
+            : 'dark:bg-slate-900/40 bg-slate-100/80 border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300'
+        }`}>
+          <div className="shrink-0 text-base">
+            {activeTab === 'chapters' ? '🎯' : activeTab === 'tests' ? '⏱️' : activeTab === 'custom' ? '🛠️' : '📁'}
+          </div>
+          <div className="min-w-0">
+            <span className="font-black block uppercase tracking-wider text-[10px]">
+              {activeTab === 'chapters'
+                ? (language === 'hi' ? 'अध्याय-वार अभ्यास (Self-Paced Practice)' : 'Chapter-Wise Practice')
+                : activeTab === 'tests'
+                ? (language === 'hi' ? 'रियल एग्जाम टाइम-बाउंड मॉक टेस्ट (Timed Simulation)' : 'Timed Mock Test Simulation')
+                : activeTab === 'custom'
+                ? (language === 'hi' ? 'कस्टम टेस्ट जनरेटर (Personalized Test Builder)' : 'Custom Test Builder')
+                : (language === 'hi' ? 'विषय-वार अध्ययन संरचना (Subject Hierarchy)' : 'Subject Learning Hierarchy')}
+            </span>
+            <span className="text-[11px] opacity-90 block mt-0.5 truncate">
+              {activeTab === 'chapters'
+                ? (language === 'hi' ? 'अपनी गति से सीखें, हर सवाल का विस्तृत समाधान तुरंत देखें।' : 'Learn at your own pace with instant step-by-step solutions.')
+                : activeTab === 'tests'
+                ? (language === 'hi' ? 'परीक्षा हॉल जैसे टाइमर और नेगेटिव मार्किंग के साथ वास्तविक मूल्यांकन करें।' : 'Real timed environment with negative marking and instant rank analysis.')
+                : activeTab === 'custom'
+                ? (language === 'hi' ? 'अपनी पसंद के विषय, प्रश्न संख्या और समय चुनकर अपना खुद का टेस्ट बनाएं।' : 'Choose subjects, questions and duration to generate your custom test.')
+                : (language === 'hi' ? 'कक्षा और विषय चुनकर अपनी अध्ययन सामग्री ब्राउज़ करें।' : 'Browse your syllabus topics grouped by subject and level.')}
+            </span>
+          </div>
         </div>
 
         {/* ======================================================== */}
