@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { AlertTriangle, Archive, ArrowDownToLine, ArrowLeft, BookOpen, Check, ChevronRight, CircleDollarSign, Clock3, Copy, FileText, Folder, FolderOpen, GraduationCap, Layers3, Pencil, Plus, Search, Trash2, Upload, RefreshCw, X } from 'lucide-react';
+import { AlertTriangle, Archive, ArrowDownToLine, ArrowLeft, BookOpen, Check, CheckCircle, ChevronRight, CircleDollarSign, Clock3, Copy, Eye, FileText, Folder, FolderOpen, GraduationCap, Layers3, Lightbulb, Pencil, Plus, Search, Trash2, Upload, RefreshCw, X } from 'lucide-react';
 import useContentCatalog from '../../hooks/useContentCatalog';
-import { getContentErrorMessage, getFolderPath, getFolderPricing, slugify } from '../../lib/content';
+import { getContentErrorMessage, getFolderPath, getFolderPricing, slugify, sanitizeDocumentInputUrl, formatDocumentEmbedUrl } from '../../lib/content';
 import { supabase } from '../../lib/supabase';
 import SvgIconUploader from '../../components/common/SvgIconUploader';
 import ContentIcon, { isIconUrl } from '../../components/common/ContentIcon';
 import UploadGuide from '../../components/common/UploadGuide';
 import { uploadAsset, formatBytes } from '../../lib/storage';
+import PdfReaderModal from '../../components/common/PdfReaderModal';
 
 const initialForm = { title: '', slug: '', description: '', icon: 'BookOpen', icon_url: '', display_order: 0, status: 'published', exam_id: '', parent_folder_id: '', allow_tests: true, allow_practice: true, allow_notes: true, pricing_mode: 'free', price: '', subject: '', estimated_study_time_minutes: 20, access_mode: 'inherit' };
 
@@ -89,12 +90,16 @@ function ResourceManagerModal({ chapter, onClose }) {
   const [busy, setBusy] = useState(false);
   const [fileUploading, setFileUploading] = useState(false);
   const [error, setError] = useState('');
+  const [urlNotice, setUrlNotice] = useState('');
+  const [previewResource, setPreviewResource] = useState(null);
+  const [showGuide, setShowGuide] = useState(false);
   const fileInputRef = useRef(null);
 
   const handlePdfUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setError('');
+    setUrlNotice('');
     setFileUploading(true);
     try {
       const result = await uploadAsset(file, {
@@ -108,11 +113,29 @@ function ResourceManagerModal({ chapter, onClose }) {
         file_size: formatBytes(result.size),
         title: current.title || file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ')
       }));
+      setUrlNotice('✓ Document uploaded to Zyvra Fast CDN storage successfully!');
     } catch (uploadErr) {
       setError(uploadErr.message || 'File upload failed.');
     } finally {
       setFileUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const handleUrlChange = (e) => {
+    const raw = e.target.value;
+    const sanitized = sanitizeDocumentInputUrl(raw);
+    const isDrive = raw.includes('drive.google.com');
+    const wasConverted = isDrive && sanitized !== raw;
+
+    setValues((current) => ({ ...current, file_url: sanitized }));
+
+    if (wasConverted || (isDrive && sanitized.includes('/preview'))) {
+      setUrlNotice('✓ Google Drive link converted to Direct In-App Preview for students!');
+    } else if (raw.includes('dropbox.com')) {
+      setUrlNotice('✓ Dropbox direct view link prepared.');
+    } else {
+      setUrlNotice('');
     }
   };
 
@@ -130,6 +153,7 @@ function ResourceManagerModal({ chapter, onClose }) {
 
   const edit = (resource) => {
     setEditing(resource);
+    setUrlNotice('');
     setValues({
       title: resource.title || '',
       resource_type: normalizeResourceType(resource.resource_type || 'pdf'),
@@ -143,6 +167,7 @@ function ResourceManagerModal({ chapter, onClose }) {
   };
   const reset = () => {
     setEditing(null);
+    setUrlNotice('');
     setValues({ title: '', resource_type: 'pdf', file_url: '', file_size: '', page_count: '', is_downloadable: false, is_free_preview: false, status: 'published' });
   };
   const save = async (event) => {
@@ -202,49 +227,272 @@ function ResourceManagerModal({ chapter, onClose }) {
     }
   };
 
-  return <div className="modal-backdrop" role="presentation"><section className="content-dialog resource-manager-dialog" role="dialog" aria-modal="true" aria-labelledby="resource-manager-title">
-    <button className="modal-close" type="button" aria-label="Close resource manager" onClick={onClose}><X size={18} /></button>
-    <div className="eyebrow">CHAPTER RESOURCES</div><h2 id="resource-manager-title">Manage resources</h2><p className="dialog-intro">{chapter.title} · Link notes, PDFs and revision sheets.</p>
-    {loading ? <p className="field-hint">Loading resources…</p> : resources.length ? <div className="resource-admin-list">{resources.map((resource) => <div className="resource-admin-row" key={resource.id}><FileText size={17} /><span><strong>{resource.title}</strong><small>{formatResourceType(resource.resource_type)} · {resource.file_size || 'Size not set'} · {resource.status || 'published'}</small></span><button type="button" className="icon-button" aria-label={`Edit ${resource.title}`} onClick={() => edit(resource)}><Pencil size={15} /></button><button type="button" className="icon-button" aria-label={`Archive ${resource.title}`} onClick={() => archive(resource)}><Archive size={15} /></button></div>)}</div> : <div className="empty-content"><FileText size={20} /><strong>No resources linked yet.</strong><span>Add the first PDF or revision sheet below.</span></div>}
-    <form className="resource-admin-form" onSubmit={save} noValidate>
-      <div className="resource-admin-form-heading"><h3>{editing ? 'Edit resource' : 'Add a resource'}</h3>{editing && <button className="text-button" type="button" onClick={reset}>Cancel edit</button>}</div>
-      <div className="content-form-row"><label className="field-label">Title <input className="text-input" value={values.title} onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))} required minLength="2" maxLength="120" placeholder="e.g. Fundamental Rights — Quick Notes" /></label><label className="field-label">File type<select className="text-input" value={values.resource_type} onChange={(event) => setValues((current) => ({ ...current, resource_type: event.target.value }))}><option value="pdf">PDF</option><option value="formula_sheet">Formula Sheet</option><option value="revision_sheet">Revision Sheet</option><option value="notes">Notes</option></select></label></div>
-      <div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-          <label className="field-label" style={{ marginBottom: 0 }}>Document URL or storage path</label>
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept=".pdf,.doc,.docx"
-            onChange={handlePdfUpload}
-            style={{ display: 'none' }}
-          />
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="content-dialog resource-manager-dialog" role="dialog" aria-modal="true" aria-labelledby="resource-manager-title">
+        <button className="modal-close" type="button" aria-label="Close resource manager" onClick={onClose}><X size={18} /></button>
+        <div className="eyebrow">CHAPTER RESOURCES & NOTES</div>
+        <h2 id="resource-manager-title">Manage Study Notes & PDFs</h2>
+        <p className="dialog-intro">{chapter.title} · Direct PDF upload, Google Drive links and revision notes.</p>
+
+        {loading ? (
+          <p className="field-hint">Loading resources…</p>
+        ) : resources.length ? (
+          <div className="resource-admin-list">
+            {resources.map((resource) => (
+              <div className="resource-admin-row" key={resource.id}>
+                <FileText size={17} />
+                <span>
+                  <strong>{resource.title}</strong>
+                  <small>{formatResourceType(resource.resource_type)} · {resource.file_size || 'Size not set'} · {resource.status || 'published'}</small>
+                </span>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={`Preview ${resource.title}`}
+                  title="Test View in Student PDF Reader"
+                  onClick={() => setPreviewResource({ resource, url: resource.file_url || resource.url })}
+                >
+                  <Eye size={15} />
+                </button>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={`Edit ${resource.title}`}
+                  title="Edit resource"
+                  onClick={() => edit(resource)}
+                >
+                  <Pencil size={15} />
+                </button>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={`Archive ${resource.title}`}
+                  title="Archive resource"
+                  onClick={() => archive(resource)}
+                >
+                  <Archive size={15} />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-content">
+            <FileText size={20} />
+            <strong>No resources linked yet.</strong>
+            <span>Upload a PDF or paste a Google Drive link below.</span>
+          </div>
+        )}
+
+        {/* Admin Guide Accordion */}
+        <div className="my-2 p-2.5 rounded-xl border border-indigo-500/30 bg-indigo-950/20 text-xs">
           <button
             type="button"
-            className="text-button"
-            disabled={fileUploading}
-            onClick={() => fileInputRef.current?.click()}
-            style={{ fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            onClick={() => setShowGuide(!showGuide)}
+            className="w-full flex items-center justify-between text-left font-bold text-indigo-300 hover:text-indigo-200"
           >
-            {fileUploading ? <RefreshCw size={12} className="animate-spin" /> : <Upload size={12} />}
-            <span>{fileUploading ? 'Uploading document…' : 'Upload Document'}</span>
+            <span className="flex items-center gap-1.5">
+              <Lightbulb size={14} className="text-amber-400" />
+              <span>PDF Kahan Upload Karein & Direct Link Kaise Banayein?</span>
+            </span>
+            <span className="text-[11px] underline text-amber-400">
+              {showGuide ? 'Hide Guide ▲' : 'Read Guide ▼'}
+            </span>
           </button>
+
+          {showGuide && (
+            <div className="mt-2 space-y-2 text-[11px] text-slate-300 border-t border-indigo-500/20 pt-2 leading-relaxed">
+              <div className="p-2 rounded-lg bg-emerald-950/40 border border-emerald-500/30">
+                <strong className="text-emerald-400 block mb-0.5">📁 Option 1: Direct 1-Click Upload (Sabse Aasan & Best):</strong>
+                <span>Neeche <strong>"Upload Document"</strong> button par click karein aur apne PC/Phone se PDF select karein. Ye Zyvra ke fast CDN me upload hokar automatically direct streaming URL bana dega. (Up to 25 MB).</span>
+              </div>
+              <div className="p-2 rounded-lg bg-amber-950/40 border border-amber-500/30">
+                <strong className="text-amber-400 block mb-0.5">☁️ Option 2: Free Google Drive (15 GB Free — Unlimited PDFs):</strong>
+                <ol className="list-decimal list-inside space-y-1 text-slate-300">
+                  <li>Google Drive par apni PDF file upload karein.</li>
+                  <li>File par 3-dot / Share dabayein aur General Access me <strong>"Anyone with the link" (कोई भी देख सकता है)</strong> select karein.</li>
+                  <li>"Copy link" karke neeche URL box me paste kar dein. Zyvra ise turant Direct In-App Preview link me auto-convert kar dega!</li>
+                </ol>
+              </div>
+              <div className="p-2 rounded-lg bg-sky-950/40 border border-sky-500/30">
+                <strong className="text-sky-400 block mb-0.5">🌐 Option 3: Dropbox, Cloudinary, AWS S3:</strong>
+                <span>Kisi bhi public file server ka direct link paste karein aur "Test Preview" daba kar check karein.</span>
+              </div>
+            </div>
+          )}
         </div>
-        <input className="text-input" value={values.file_url} onChange={(event) => setValues((current) => ({ ...current, file_url: event.target.value }))} required placeholder="https://… or storage/object/path.pdf" />
-        <UploadGuide
-          formats=".pdf (recommended), .docx"
-          dimensions="A4 / Standard Multi-page Document"
-          maxSize="Max 25 MB"
-          notes="Uploaded documents are stored in secure CDN storage for fast student reading."
-        />
-      </div>
-      <div className="content-form-row"><label className="field-label">File size <input className="text-input" value={values.file_size} onChange={(event) => setValues((current) => ({ ...current, file_size: event.target.value }))} placeholder="e.g. 2.4 MB" /></label><label className="field-label">Page count <input className="text-input" type="number" min="1" step="1" value={values.page_count} onChange={(event) => setValues((current) => ({ ...current, page_count: event.target.value }))} placeholder="Optional" /></label></div>
-      <div className="content-switches"><label className="content-switch"><input type="checkbox" checked={values.is_free_preview} onChange={(event) => setValues((current) => ({ ...current, is_free_preview: event.target.checked }))} /><span>Free preview</span></label><label className="content-switch"><input type="checkbox" checked={values.is_downloadable} onChange={(event) => setValues((current) => ({ ...current, is_downloadable: event.target.checked }))} /><span>Allow downloads</span></label></div>
-      <label className="field-label">Status<select className="text-input" value={values.status} onChange={(event) => setValues((current) => ({ ...current, status: event.target.value }))}><option value="published">Published</option><option value="draft">Draft</option></select></label>
-      {error && <div className="feedback error-feedback">{error}</div>}
-      <div className="modal-actions"><button type="button" className="button button-outline" onClick={onClose}>Close</button><button type="submit" className="button button-gold" disabled={busy}>{busy ? 'Saving…' : editing ? 'Save resource' : <><ArrowDownToLine size={15} /> Add resource</>}</button></div>
-    </form>
-  </section></div>;
+
+        <form className="resource-admin-form" onSubmit={save} noValidate>
+          <div className="resource-admin-form-heading">
+            <h3>{editing ? 'Edit resource' : 'Add a resource'}</h3>
+            {editing && <button className="text-button" type="button" onClick={reset}>Cancel edit</button>}
+          </div>
+
+          <div className="content-form-row">
+            <label className="field-label">
+              Title
+              <input
+                className="text-input"
+                value={values.title}
+                onChange={(event) => setValues((current) => ({ ...current, title: event.target.value }))}
+                required
+                minLength="2"
+                maxLength="120"
+                placeholder="e.g. Fundamental Rights — Quick Notes"
+              />
+            </label>
+            <label className="field-label">
+              File type
+              <select
+                className="text-input"
+                value={values.resource_type}
+                onChange={(event) => setValues((current) => ({ ...current, resource_type: event.target.value }))}
+              >
+                <option value="pdf">PDF</option>
+                <option value="formula_sheet">Formula Sheet</option>
+                <option value="revision_sheet">Revision Sheet</option>
+                <option value="notes">Notes</option>
+              </select>
+            </label>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+              <label className="field-label" style={{ marginBottom: 0 }}>Document URL or Direct Upload</label>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept=".pdf,.doc,.docx"
+                onChange={handlePdfUpload}
+                style={{ display: 'none' }}
+              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {values.file_url && (
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => setPreviewResource({
+                      resource: { title: values.title || 'Document Preview', page_count: values.page_count, file_size: values.file_size },
+                      url: values.file_url
+                    })}
+                    style={{ fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#818cf8' }}
+                  >
+                    <Eye size={12} />
+                    <span>Test Preview</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="text-button"
+                  disabled={fileUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{ fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}
+                >
+                  {fileUploading ? <RefreshCw size={12} className="animate-spin" /> : <Upload size={12} />}
+                  <span>{fileUploading ? 'Uploading to CDN…' : '📁 Upload PDF to CDN'}</span>
+                </button>
+              </div>
+            </div>
+
+            <input
+              className="text-input"
+              value={values.file_url}
+              onChange={handleUrlChange}
+              required
+              placeholder="Paste Google Drive link or https://… direct PDF URL"
+            />
+
+            {urlNotice && (
+              <p className="text-[11px] font-semibold text-emerald-400 mt-1 flex items-center gap-1">
+                <CheckCircle size={12} />
+                <span>{urlNotice}</span>
+              </p>
+            )}
+
+            <UploadGuide
+              formats=".pdf (recommended), .docx"
+              dimensions="A4 / Multi-page Document"
+              maxSize="Max 25 MB (or unlimited via Google Drive)"
+              notes="Uploaded documents stream instantly in the student full-screen rotating reader."
+            />
+          </div>
+
+          <div className="content-form-row">
+            <label className="field-label">
+              File size
+              <input
+                className="text-input"
+                value={values.file_size}
+                onChange={(event) => setValues((current) => ({ ...current, file_size: event.target.value }))}
+                placeholder="e.g. 2.4 MB"
+              />
+            </label>
+            <label className="field-label">
+              Page count
+              <input
+                className="text-input"
+                type="number"
+                min="1"
+                step="1"
+                value={values.page_count}
+                onChange={(event) => setValues((current) => ({ ...current, page_count: event.target.value }))}
+                placeholder="e.g. 18"
+              />
+            </label>
+          </div>
+
+          <div className="content-switches">
+            <label className="content-switch">
+              <input
+                type="checkbox"
+                checked={values.is_free_preview}
+                onChange={(event) => setValues((current) => ({ ...current, is_free_preview: event.target.checked }))}
+              />
+              <span>Free preview</span>
+            </label>
+            <label className="content-switch">
+              <input
+                type="checkbox"
+                checked={values.is_downloadable}
+                onChange={(event) => setValues((current) => ({ ...current, is_downloadable: event.target.checked }))}
+              />
+              <span>Allow downloads</span>
+            </label>
+          </div>
+
+          <label className="field-label">
+            Status
+            <select
+              className="text-input"
+              value={values.status}
+              onChange={(event) => setValues((current) => ({ ...current, status: event.target.value }))}
+            >
+              <option value="published">Published</option>
+              <option value="draft">Draft</option>
+            </select>
+          </label>
+
+          {error && <div className="feedback error-feedback">{error}</div>}
+
+          <div className="modal-actions">
+            <button type="button" className="button button-outline" onClick={onClose}>Close</button>
+            <button type="submit" className="button button-gold" disabled={busy}>
+              {busy ? 'Saving…' : editing ? 'Save resource' : <><ArrowDownToLine size={15} /> Add resource</>}
+            </button>
+          </div>
+        </form>
+
+        {/* Live Admin Reader Preview Modal */}
+        {previewResource && (
+          <PdfReaderModal
+            resource={previewResource.resource}
+            url={previewResource.url}
+            onClose={() => setPreviewResource(null)}
+          />
+        )}
+      </section>
+    </div>
+  );
 }
 
 function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, defaultParentId, onClose, onSaved }) {

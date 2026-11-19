@@ -6,7 +6,9 @@ import {
   getFolderPricing,
   getChapterAccess,
   slugify,
-  getFolderPath
+  getFolderPath,
+  formatDocumentEmbedUrl,
+  sanitizeDocumentInputUrl
 } from '../src/lib/content.js';
 
 test('slugify: creates clean URL-safe slugs with unicode normalization', () => {
@@ -87,4 +89,37 @@ test('getFolderPath: avoids infinite loops on circular references', () => {
   assert.ok(Array.isArray(path));
   assert.ok(path.length <= 2, 'Circular reference must be guarded by visited Set');
 });
+
+test('formatDocumentEmbedUrl & sanitizeDocumentInputUrl: handles Google Drive, Dropbox, and direct PDFs', () => {
+  // 1. Google Drive view link -> /preview
+  const driveUrl = 'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view?usp=sharing';
+  const driveResult = formatDocumentEmbedUrl(driveUrl);
+  assert.equal(driveResult.type, 'gdrive');
+  assert.equal(driveResult.isGoogleDrive, true);
+  assert.equal(driveResult.embedUrl, 'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/preview');
+  assert.equal(driveResult.fileId, '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms');
+
+  // Test admin input sanitizer
+  assert.equal(sanitizeDocumentInputUrl(driveUrl), 'https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/preview');
+
+  // 2. Google Drive open?id= link
+  const driveOpenUrl = 'https://drive.google.com/open?id=1AbCdEfGhIjKlMnOp';
+  assert.equal(sanitizeDocumentInputUrl(driveOpenUrl), 'https://drive.google.com/file/d/1AbCdEfGhIjKlMnOp/preview');
+
+  // 3. Dropbox link ?dl=0 -> ?raw=1
+  const dropboxUrl = 'https://www.dropbox.com/s/xyz123/polity_notes.pdf?dl=0';
+  const dropboxResult = formatDocumentEmbedUrl(dropboxUrl);
+  assert.equal(dropboxResult.type, 'dropbox');
+  assert.equal(dropboxResult.embedUrl, 'https://www.dropbox.com/s/xyz123/polity_notes.pdf?raw=1');
+  assert.equal(sanitizeDocumentInputUrl(dropboxUrl), 'https://www.dropbox.com/s/xyz123/polity_notes.pdf?raw=1');
+
+  // 4. Direct Supabase Storage / PDF link
+  const supabasePdf = 'https://zyvra.supabase.co/storage/v1/object/public/app-assets/resources/ncert_history_class_6.pdf';
+  const directResult = formatDocumentEmbedUrl(supabasePdf);
+  assert.equal(directResult.type, 'pdf');
+  assert.equal(directResult.embedUrl, supabasePdf);
+  assert.ok(directResult.googleDocsViewerUrl.includes('docs.google.com/viewer?url='));
+  assert.equal(sanitizeDocumentInputUrl(supabasePdf), supabasePdf);
+});
+
 

@@ -170,3 +170,111 @@ export function sortContentItems(items) {
     return titleA.localeCompare(titleB, undefined, { numeric: true, sensitivity: 'base' });
   });
 }
+
+/**
+ * Sanitizes and formats document URLs for in-app viewing.
+ * Auto-converts Google Drive sharing links to embeddable preview links,
+ * handles Dropbox raw links, and generates Google Docs Viewer fallbacks.
+ *
+ * @param {string} rawUrl
+ * @returns {{
+ *   type: 'gdrive' | 'dropbox' | 'gdocs' | 'pdf' | 'generic',
+ *   embedUrl: string,
+ *   directUrl: string,
+ *   googleDocsViewerUrl: string,
+ *   isGoogleDrive: boolean,
+ *   fileId?: string
+ * }}
+ */
+export function formatDocumentEmbedUrl(rawUrl) {
+  if (!rawUrl || typeof rawUrl !== 'string') {
+    return {
+      type: 'generic',
+      embedUrl: '',
+      directUrl: '',
+      googleDocsViewerUrl: '',
+      isGoogleDrive: false
+    };
+  }
+
+  const url = rawUrl.trim();
+
+  // 1. Google Drive URLs
+  // Handles:
+  // - https://drive.google.com/file/d/1XyZ_123-abc/view?usp=sharing
+  // - https://drive.google.com/file/d/1XyZ_123-abc/view
+  // - https://drive.google.com/file/d/1XyZ_123-abc/edit
+  // - https://drive.google.com/open?id=1XyZ_123-abc
+  // - https://drive.google.com/uc?id=1XyZ_123-abc
+  // - https://drive.google.com/file/d/1XyZ_123-abc/preview
+  const gdriveRegex = /(?:drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?id=))([a-zA-Z0-9_-]+)/;
+  const gdriveMatch = url.match(gdriveRegex);
+  if (gdriveMatch && gdriveMatch[1]) {
+    const fileId = gdriveMatch[1];
+    const previewUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+    const directDownloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+    return {
+      type: 'gdrive',
+      embedUrl: previewUrl,
+      directUrl: directDownloadUrl,
+      googleDocsViewerUrl: `https://docs.google.com/viewer?url=${encodeURIComponent(previewUrl)}&embedded=true`,
+      isGoogleDrive: true,
+      fileId
+    };
+  }
+
+  // 2. Google Docs / Sheets / Slides publish URLs
+  if (url.includes('docs.google.com')) {
+    const embedUrl = url.replace(/\/edit(\?.*)?$/, '/preview');
+    return {
+      type: 'gdocs',
+      embedUrl,
+      directUrl: url,
+      googleDocsViewerUrl: embedUrl,
+      isGoogleDrive: true
+    };
+  }
+
+  // 3. Dropbox links
+  if (url.includes('dropbox.com')) {
+    const cleanDrop = url.replace('?dl=0', '?raw=1').replace('&dl=0', '&raw=1');
+    const rawDrop = cleanDrop.includes('?raw=1') || cleanDrop.includes('&raw=1')
+      ? cleanDrop
+      : `${cleanDrop}${cleanDrop.includes('?') ? '&' : '?'}raw=1`;
+    return {
+      type: 'dropbox',
+      embedUrl: rawDrop,
+      directUrl: rawDrop,
+      googleDocsViewerUrl: `https://docs.google.com/viewer?url=${encodeURIComponent(rawDrop)}&embedded=true`,
+      isGoogleDrive: false
+    };
+  }
+
+  // 4. Direct PDF URLs or Supabase Storage links
+  const isPdf = /\.pdf(\?.*)?$/i.test(url) || url.includes('/storage/v1/object/public/');
+  return {
+    type: isPdf ? 'pdf' : 'generic',
+    embedUrl: url,
+    directUrl: url,
+    googleDocsViewerUrl: `https://docs.google.com/viewer?url=${encodeURIComponent(url)}&embedded=true`,
+    isGoogleDrive: false
+  };
+}
+
+/**
+ * Sanitizes input URL for admin pasting.
+ * If user pastes a Google Drive view link, it automatically converts to preview link.
+ */
+export function sanitizeDocumentInputUrl(input) {
+  if (!input || typeof input !== 'string') return '';
+  const trimmed = input.trim();
+  const formatted = formatDocumentEmbedUrl(trimmed);
+  if (formatted.isGoogleDrive && formatted.embedUrl) {
+    return formatted.embedUrl;
+  }
+  if (formatted.type === 'dropbox') {
+    return formatted.embedUrl;
+  }
+  return trimmed;
+}
+
