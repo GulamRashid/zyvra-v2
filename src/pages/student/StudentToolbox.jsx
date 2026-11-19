@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Binary, Bookmark, BookOpen, Brain, Calculator, CalendarDays, ChevronRight,
   Clock3, Compass, Dices, Heart, Landmark, ListChecks, LockKeyhole, Percent, Search,
-  Scale, Shapes, Sigma, StickyNote, Superscript, Target, TrendingUp, Wrench
+  Scale, Shapes, Sigma, StickyNote, Superscript, Target, TrendingUp, Wrench, Zap
 } from 'lucide-react';
 import CheckoutModal from '../../components/common/CheckoutModal';
 import SmartCalculator from '../../components/toolbox/math/SmartCalculator';
@@ -13,6 +13,7 @@ import MathFormulaHub from '../../components/toolbox/math/MathFormulaHub';
 import UnitConverter from '../../components/toolbox/math/UnitConverter';
 import ProfitLossCalculator from '../../components/toolbox/math/ProfitLossCalculator';
 import InterestCalculator from '../../components/toolbox/math/InterestCalculator';
+import SpeedMathTricks from '../../components/toolbox/math/SpeedMathTricks';
 import AlphabetPositions from '../../components/toolbox/reasoning/AlphabetPositions';
 import BloodRelations from '../../components/toolbox/reasoning/BloodRelations';
 import DirectionCompass from '../../components/toolbox/reasoning/DirectionCompass';
@@ -44,6 +45,7 @@ const CATEGORY_CONFIG = [
 
 const CATEGORY_TOOLS = {
   math: [
+    { id: 'speed-math-tricks', titleKey: 'tbSpeedMath', subtitleKey: 'tbSpeedMathDesc', Icon: Zap, accessKey: 'math-shortcuts' },
     { id: 'calculator', titleKey: 'tbCalculator', subtitleKey: 'tbCalculatorDesc', Icon: Calculator, accessKey: null, isFree: true },
     { id: 'fraction-converter', titleKey: 'tbFraction', subtitleKey: 'tbFractionDesc', Icon: Percent, accessKey: null, isFree: true },
     { id: 'powers-roots', titleKey: 'tbSquares', subtitleKey: 'tbSquaresDesc', Icon: Superscript, accessKey: null, isFree: true },
@@ -477,6 +479,7 @@ export default function StudentToolbox() {
   );
 
   const renderActiveTool = () => {
+    if (activeTool === 'speed-math-tricks') return <SpeedMathTricks />;
     if (activeTool === 'calculator') return <SmartCalculator />;
     if (activeTool === 'fraction-converter') return <FractionConverter />;
     if (activeTool === 'powers-roots') return <SquaresCubes />;
