@@ -168,6 +168,15 @@ export default function StudentProfile() {
       setDailyTarget(Number(profile.daily_goal_target || 50));
       if (profile.referral_code) {
         setCurrentReferralCode(profile.referral_code);
+      } else if (user && supabase) {
+        ensureReferralCode(supabase, user.id)
+          .then((code) => {
+            if (code) {
+              setCurrentReferralCode(code);
+              if (refreshAccount) refreshAccount();
+            }
+          })
+          .catch((err) => console.warn('Could not auto-generate referral code on profile:', err));
       }
     }
   }, [profile]);
@@ -1635,14 +1644,31 @@ export default function StudentProfile() {
                 <span className="font-mono text-base font-black dark:text-amber-300 text-amber-700 tracking-wider">
                   {referralCode || 'Generating code...'}
                 </span>
-                <button
-                  type="button"
-                  onClick={handleCopyReferral}
-                  disabled={!referralCode}
-                  className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black inline-flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
-                >
-                  {copiedCode ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy Code</>}
-                </button>
+                {referralCode ? (
+                  <button
+                    type="button"
+                    onClick={handleCopyReferral}
+                    className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black inline-flex items-center gap-1.5 transition-all active:scale-95"
+                  >
+                    {copiedCode ? <><Check size={14} /> Copied!</> : <><Copy size={14} /> Copy Code</>}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (user && supabase) {
+                        const code = await ensureReferralCode(supabase, user.id);
+                        if (code) {
+                          setCurrentReferralCode(code);
+                          if (refreshAccount) refreshAccount();
+                        }
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 text-xs font-bold"
+                  >
+                    Get Code
+                  </button>
+                )}
               </div>
             </div>
 

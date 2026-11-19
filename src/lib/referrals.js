@@ -93,16 +93,35 @@ export async function ensureReferralCode(supabase, userId, existingCode = null) 
       const { data: rpcCode, error: rpcError } = await supabase.rpc('ensure_user_referral_code', {
         p_user_id: userId
       });
-      if (!rpcError && rpcCode) {
-        return rpcCode;
+      if (!rpcError && rpcCode && String(rpcCode).trim()) {
+        return String(rpcCode).trim().toUpperCase();
       }
     } catch {
       // RPC not yet migrated in database
     }
 
-    // 2. Client-side direct UPDATE on profiles.referral_code is not permitted by RLS.
-    // Return null safely without throwing or triggering unauthorized database errors.
-    console.warn('ensureReferralCode: Server RPC ensure_user_referral_code not yet available. Direct update skipped.');
+    // 2. Try API fallback via /api/update-profile
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (token) {
+        const res = await fetch('/api/update-profile', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ ensure_referral_code: true })
+        });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data?.referral_code) {
+          return String(data.referral_code).trim().toUpperCase();
+        }
+      }
+    } catch (apiErr) {
+      console.warn('API ensure_referral_code fallback failed:', apiErr);
+    }
+
     return null;
   } catch (err) {
     console.error('ensureReferralCode error:', err);
@@ -117,35 +136,56 @@ export async function processReferralAward(supabase, newUserId, refCode) {
     const cleanCode = String(refCode).trim().toUpperCase();
     if (!cleanCode) return null;
 
-    // Referral awards must be performed atomically by the database RPC. A client-side
-    // fallback can split the referral, wallet and ledger writes or award coins twice.
-    let response;
+    let response = null;
+
+    // 1. Try client-side RPC
     try {
       response = await supabase.rpc('claim_referral_code', { p_ref_code: cleanCode });
     } catch (error) {
-      console.warn('Referral claim could not reach the server:', error);
-      return { success: false, retryable: true };
+      console.warn('Referral claim client RPC exception:', error);
+      response = null;
     }
 
-    if (response.error) {
-      console.warn('Referral claim RPC failed:', response.error.message);
-      return { success: false, retryable: true };
-    }
-
-    const rpcResult = response.data;
-    if (!rpcResult || typeof rpcResult !== 'object') {
-      return { success: false, retryable: true };
-    }
-    if (rpcResult.success) {
+    if (response && !response.error && response.data?.success) {
       if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
         window.dispatchEvent(new window.CustomEvent('zyvra:coins-updated'));
       }
-      return { ...rpcResult, retryable: false };
+      return { ...response.data, retryable: false };
     }
 
-    // A business rejection (invalid/self/already claimed/paused) is final. An RPC
-    // error above is retryable and callers should keep the referral code for later.
-    return { ...rpcResult, retryable: false };
+    // If business rejection (self-referral or already referred), don't retry
+    if (response?.data?.already_referred || response?.data?.error === 'You cannot refer yourself.') {
+      return { ...response.data, retryable: false };
+    }
+
+    // 2. Try server-side API endpoint fallback
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (token) {
+        const res = await fetch('/api/claim-referral', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ referral_code: cleanCode })
+        });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data?.success) {
+          if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
+            window.dispatchEvent(new window.CustomEvent('zyvra:coins-updated'));
+          }
+          return { ...data, retryable: false };
+        } else if (data?.already_referred || data?.error === 'You cannot refer yourself.') {
+          return { ...data, retryable: false };
+        }
+      }
+    } catch (apiErr) {
+      console.warn('API claim-referral fallback error:', apiErr);
+    }
+
+    return response?.data || { success: false, retryable: true };
   } catch (err) {
     console.error('processReferralAward error:', err);
     return { success: false, retryable: true };

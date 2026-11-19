@@ -95,10 +95,13 @@ export function AuthProvider({ children }) {
       });
     }
 
-    const savedRef = sessionStorage.getItem('zyvra_ref_code');
+    const savedRef = sessionStorage.getItem('zyvra_ref_code') || localStorage.getItem('zyvra_ref_code');
     if (savedRef) {
       processReferralAward(supabase, userId, savedRef).then((result) => {
-        if (result && !result.retryable) sessionStorage.removeItem('zyvra_ref_code');
+        if (result && !result.retryable) {
+          sessionStorage.removeItem('zyvra_ref_code');
+          localStorage.removeItem('zyvra_ref_code');
+        }
       });
     }
     if (profileResult?.data?.theme) {

@@ -142,6 +142,21 @@ function RouteStatePreserver() {
   }, [location.pathname, navigate, user]);
 
   useEffect(() => {
+    // Automatically capture and persist referral code from any page URL
+    try {
+      const searchParams = new URLSearchParams(location.search);
+      const refParam = searchParams.get('ref');
+      if (refParam && String(refParam).trim()) {
+        const cleanRef = String(refParam).trim().toUpperCase();
+        sessionStorage.setItem('zyvra_ref_code', cleanRef);
+        localStorage.setItem('zyvra_ref_code', cleanRef);
+      }
+    } catch {
+      // ignore
+    }
+  }, [location.search]);
+
+  useEffect(() => {
     const fullPath = location.pathname + location.search;
     if (fullPath.startsWith('/auth') || fullPath === '/landing') return;
     try {

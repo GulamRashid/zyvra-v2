@@ -101,8 +101,14 @@ export default function AuthPage() {
 
   const [refCode, setRefCode] = useState(() => {
     try {
-      const code = searchParams.get('ref') || sessionStorage.getItem('zyvra_ref_code') || '';
-      if (code) sessionStorage.setItem('zyvra_ref_code', code);
+      const code = searchParams.get('ref') ||
+        sessionStorage.getItem('zyvra_ref_code') ||
+        localStorage.getItem('zyvra_ref_code') ||
+        '';
+      if (code) {
+        sessionStorage.setItem('zyvra_ref_code', code);
+        localStorage.setItem('zyvra_ref_code', code);
+      }
       return code.trim().toUpperCase();
     } catch {
       return '';
@@ -128,6 +134,7 @@ export default function AuthPage() {
       setMode('signup');
       try {
         sessionStorage.setItem('zyvra_ref_code', cleaned);
+        localStorage.setItem('zyvra_ref_code', cleaned);
       } catch {
         // ignore
       }
@@ -311,7 +318,10 @@ export default function AuthPage() {
         }
         if ((mode === 'signup' || mode === 'otp') && refCode) {
           const referralResult = await processReferralAward(supabase, authData.user.id, refCode);
-          if (referralResult && !referralResult.retryable) sessionStorage.removeItem('zyvra_ref_code');
+          if (referralResult && !referralResult.retryable) {
+            sessionStorage.removeItem('zyvra_ref_code');
+            localStorage.removeItem('zyvra_ref_code');
+          }
         }
         navigate(destination, { replace: true });
       }
@@ -913,39 +923,70 @@ export default function AuthPage() {
                     </label>
                   )}
 
-                  {!refCode && (
-                    showReferralInput ? (
-                      <label className="field-label">
-                        <div className="flex justify-between items-center">
-                          <span>{language === 'hi' ? 'रेफरल कोड (वैकल्पिक)' : 'Referral code (Optional)'}</span>
-                          <button
-                            type="button"
-                            className="text-xs text-muted hover:underline"
-                            onClick={() => { setShowReferralInput(false); setRefCode(''); }}
-                          >
-                            {language === 'hi' ? 'हटाएं' : 'Cancel'}
-                          </button>
+                  {refCode ? (
+                    <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-2.5">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-500 flex items-center justify-center text-base shrink-0">
+                          🎁
                         </div>
-                        <div className="input-with-icon">
-                          <Gift size={17} />
-                          <input
-                            className="text-input uppercase"
-                            value={refCode}
-                            onChange={(event) => setRefCode(event.target.value.trim().toUpperCase())}
-                            placeholder="e.g. ZYVRA100"
-                            autoComplete="off"
-                          />
+                        <div className="min-w-0">
+                          <div className="text-xs font-black text-emerald-600 dark:text-emerald-400 truncate">
+                            {language === 'hi' ? `रेफरल कोड लागू: ${refCode}` : `Referral Code: ${refCode}`}
+                          </div>
+                          <div className="text-[10px] text-emerald-700/80 dark:text-emerald-300/80 font-medium truncate">
+                            {language === 'hi' ? '✓ साइन-अप पर आपको फ्री बोनस सिक्के मिलेंगे!' : '✓ Free bonus coins will be credited on sign-up!'}
+                          </div>
                         </div>
-                      </label>
-                    ) : (
+                      </div>
                       <button
                         type="button"
-                        className="referral-toggle-btn"
-                        onClick={() => setShowReferralInput(true)}
+                        className="text-xs text-slate-400 hover:text-rose-500 font-bold px-2 py-1 shrink-0"
+                        title={language === 'hi' ? 'हटाएं' : 'Remove'}
+                        onClick={() => {
+                          setRefCode('');
+                          setShowReferralInput(false);
+                          try {
+                            sessionStorage.removeItem('zyvra_ref_code');
+                            localStorage.removeItem('zyvra_ref_code');
+                          } catch {
+                            // ignore
+                          }
+                        }}
                       >
-                        <Gift size={13} /> {language === 'hi' ? '+ रेफरल कोड है?' : '+ Have a referral code?'}
+                        ✕
                       </button>
-                    )
+                    </div>
+                  ) : showReferralInput ? (
+                    <label className="field-label">
+                      <div className="flex justify-between items-center">
+                        <span>{language === 'hi' ? 'रेफरल कोड (वैकल्पिक)' : 'Referral code (Optional)'}</span>
+                        <button
+                          type="button"
+                          className="text-xs text-muted hover:underline"
+                          onClick={() => { setShowReferralInput(false); setRefCode(''); }}
+                        >
+                          {language === 'hi' ? 'हटाएं' : 'Cancel'}
+                        </button>
+                      </div>
+                      <div className="input-with-icon">
+                        <Gift size={17} />
+                        <input
+                          className="text-input uppercase font-mono tracking-wider"
+                          value={refCode}
+                          onChange={(event) => setRefCode(event.target.value.trim().toUpperCase())}
+                          placeholder="e.g. ZYVABC"
+                          autoComplete="off"
+                        />
+                      </div>
+                    </label>
+                  ) : (
+                    <button
+                      type="button"
+                      className="referral-toggle-btn"
+                      onClick={() => setShowReferralInput(true)}
+                    >
+                      <Gift size={13} /> {language === 'hi' ? '+ रेफरल कोड है?' : '+ Have a referral code?'}
+                    </button>
                   )}
 
                   <p className="field-hint">

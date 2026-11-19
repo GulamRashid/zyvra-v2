@@ -60,6 +60,48 @@ export async function handleUpdateProfile(req, res) {
     const user = userData.user;
     const body = await parseRequestBody(req);
 
+    // If request is purely to ensure or fetch a referral code
+    if (body.ensure_referral_code) {
+      const adminClient = getPaymentAdminClient();
+      const { data: prof } = await adminClient
+        .from('profiles')
+        .select('referral_code')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (prof?.referral_code && prof.referral_code.trim()) {
+        return respond(200, {
+          success: true,
+          referral_code: prof.referral_code.trim().toUpperCase()
+        });
+      }
+
+      const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+      let candidate = '';
+      for (let attempt = 0; attempt < 25; attempt++) {
+        candidate = 'ZYV';
+        for (let i = 0; i < 3; i++) {
+          candidate += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        const { data: existing } = await adminClient
+          .from('profiles')
+          .select('id')
+          .eq('referral_code', candidate)
+          .maybeSingle();
+        if (!existing) break;
+      }
+
+      await adminClient
+        .from('profiles')
+        .update({ referral_code: candidate, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+
+      return respond(200, {
+        success: true,
+        referral_code: candidate
+      });
+    }
+
     // Validate and sanitize fields
     const updates = {};
     let metadataUpdates = null;

@@ -8,18 +8,20 @@ export default function ShareAndEarnCard({ className = '' }) {
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [referrals, setReferrals] = useState([]);
-  const [code, setCode] = useState(String(profile?.referral_code || user?.referral_code || 'Z-INVITE'));
+  const [code, setCode] = useState(String(profile?.referral_code || user?.referral_code || ''));
   const [generating, setGenerating] = useState(false);
   const [settings, setSettings] = useState({ enabled: true, referrerCoins: 50, referredCoins: 20 });
 
   useEffect(() => {
     const existing = profile?.referral_code || (user?.referral_code || '');
-    if (existing && existing !== 'Z-INVITE') {
+    if (existing) {
       setCode(existing);
     } else if (user?.id && supabase) {
+      setGenerating(true);
       ensureReferralCode(supabase, user.id).then((generated) => {
         if (generated) setCode(generated);
-      }).catch((err) => console.warn('Could not auto-generate referral code:', err));
+      }).catch((err) => console.warn('Could not auto-generate referral code:', err))
+      .finally(() => setGenerating(false));
     }
   }, [profile?.referral_code, user?.referral_code, user?.id, supabase]);
 
@@ -44,28 +46,25 @@ export default function ShareAndEarnCard({ className = '' }) {
     return () => { active = false; };
   }, [supabase, user?.id]);
 
-  const activeCode = String(code || profile?.referral_code || user?.referral_code || 'Z-INVITE');
-  const hasRealCode = Boolean((code && code !== 'Z-INVITE') || profile?.referral_code || user?.referral_code);
+  const activeCode = String(code || profile?.referral_code || user?.referral_code || '');
+  const hasRealCode = Boolean(code || profile?.referral_code || user?.referral_code);
 
   const handleGenerateCode = async () => {
-    if (!user?.id || !supabase) {
-      setCode('Z-INVITE');
-      return;
-    }
+    if (!user?.id || !supabase) return;
     setGenerating(true);
     try {
       const generated = await ensureReferralCode(supabase, user.id);
-      setCode(generated || 'Z-INVITE');
+      if (generated) setCode(generated);
     } catch (error) {
       console.warn('Could not generate referral code:', error);
-      setCode('Z-INVITE');
     } finally {
       setGenerating(false);
     }
   };
 
   const shareUrl = useMemo(() => {
-    const base = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://zyvra-v2.vercel.app';
+    if (!activeCode) return '';
+    const base = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://zyvra.in';
     return `${base}/auth?ref=${activeCode}`;
   }, [activeCode]);
 
@@ -161,17 +160,18 @@ export default function ShareAndEarnCard({ className = '' }) {
             </span>
             <div className="flex items-center gap-2 mt-0.5">
               <strong className="font-mono text-base font-black dark:text-amber-400 text-amber-600 tracking-wider">
-                {activeCode}
+                {activeCode || (generating ? 'Generating...' : 'Loading code...')}
               </strong>
-              <button
-                type="button"
-                className="w-7 h-7 rounded-lg dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white transition-colors"
-                onClick={copyCodeOnly}
-                title="Copy code"
-              >
-                {copiedCode ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-              </button>
-              {!hasRealCode && (
+              {hasRealCode ? (
+                <button
+                  type="button"
+                  className="w-7 h-7 rounded-lg dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white transition-colors"
+                  onClick={copyCodeOnly}
+                  title="Copy code"
+                >
+                  {copiedCode ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                </button>
+              ) : (
                 <button
                   type="button"
                   className="px-2 py-1 rounded-lg bg-amber-400 text-black text-[11px] font-black shadow-glowGold flex items-center gap-1"
