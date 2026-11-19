@@ -326,6 +326,7 @@ export default function LiveQuiz() {
   const [remaining, setRemaining] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [submitFailed, setSubmitFailed] = useState(false);
   const [pausing, setPausing] = useState(false);
   const [pauseError, setPauseError] = useState('');
   const [error, setError] = useState(null);
@@ -517,7 +518,10 @@ export default function LiveQuiz() {
     };
   }, [attemptId, testId, user?.id, currentIndex, responses, visitedQuestions, remaining, language, testPhase, violationCount]);
 
-  // Dual Persistence: Instant LocalStorage Snapshot + Supabase Cloud Upsert
+  // Ref for debouncing cloud sync to avoid network congestion during rapid option selections
+  const cloudSyncTimeoutRef = useRef(null);
+
+  // Dual Persistence: Instant LocalStorage Snapshot + Debounced Supabase Cloud Upsert
   const saveProgressSnapshot = useCallback((overrides = {}, syncCloud = true) => {
     const cur = stateRef.current;
     const uid = cur.userId;
@@ -565,7 +569,7 @@ export default function LiveQuiz() {
       updatedAt: new Date().toISOString()
     };
 
-    // 1. Instant synchronous dual localStorage persistence
+    // 1. Instant synchronous dual localStorage persistence (0ms overhead)
     try {
       localStorage.setItem(`zyvra_test_progress_${uid}_${tId}`, JSON.stringify(snapshot));
       localStorage.setItem(`zyvra-paused-attempt-${uid}-${tId}`, JSON.stringify(snapshot));
@@ -576,33 +580,45 @@ export default function LiveQuiz() {
       console.warn('LocalStorage save failed:', storageErr);
     }
 
-    // 2. Supabase Cloud Sync
+    // 2. Supabase Cloud Sync (Immediate on pause/unload, debounced during rapid question selection)
     if (syncCloud && supabase && activeAttId) {
-      const cloudPayload = {
-        status: overrides.status || 'paused',
-        remaining_seconds: remSecs,
-        current_question_index: currIdx,
-        state_json: snapshot,
-        updated_at: new Date().toISOString()
+      const isImmediate = overrides.status === 'paused' || syncCloud === 'immediate';
+
+      const performCloudSync = () => {
+        const cloudPayload = {
+          status: overrides.status || 'paused',
+          remaining_seconds: remSecs,
+          current_question_index: currIdx,
+          state_json: snapshot,
+          updated_at: new Date().toISOString()
+        };
+        if (overrides.status === 'paused') {
+          cloudPayload.paused_at = new Date().toISOString();
+        }
+        supabase
+          .rpc('save_test_attempt_progress', {
+            p_attempt_id: activeAttId,
+            p_status: cloudPayload.status,
+            p_remaining_seconds: cloudPayload.remaining_seconds,
+            p_current_question_index: cloudPayload.current_question_index,
+            p_state_json: cloudPayload.state_json,
+            p_violation_count: snapshot.violationCount
+          })
+          .then(({ error: syncErr }) => {
+            if (syncErr) {
+              console.warn('Database attempt update error:', syncErr?.message || syncErr);
+            }
+          })
+          .catch((e) => console.warn('Cloud sync error:', e));
       };
-      if (overrides.status === 'paused') {
-        cloudPayload.paused_at = new Date().toISOString();
+
+      if (isImmediate) {
+        if (cloudSyncTimeoutRef.current) clearTimeout(cloudSyncTimeoutRef.current);
+        performCloudSync();
+      } else {
+        if (cloudSyncTimeoutRef.current) clearTimeout(cloudSyncTimeoutRef.current);
+        cloudSyncTimeoutRef.current = setTimeout(performCloudSync, 1800);
       }
-      supabase
-        .rpc('save_test_attempt_progress', {
-          p_attempt_id: activeAttId,
-          p_status: cloudPayload.status,
-          p_remaining_seconds: cloudPayload.remaining_seconds,
-          p_current_question_index: cloudPayload.current_question_index,
-          p_state_json: cloudPayload.state_json,
-          p_violation_count: snapshot.violationCount
-        })
-        .then(({ error: syncErr }) => {
-          if (syncErr) {
-            console.warn('Database attempt update error:', syncErr?.message || syncErr);
-          }
-        })
-        .catch((e) => console.warn('Cloud sync error:', e));
     }
 
     return snapshot;
@@ -663,21 +679,42 @@ export default function LiveQuiz() {
       }
 
       const cachedQuiz = readQuizCache(user.id, testId);
-      let testData;
+      let testData = null;
+      let totalCount = 0;
+      let latestAttempt = null;
 
-      // 1. Fetch test metadata, falling back to the last verified local cache.
+      // 1. Concurrently fetch test metadata, question count, and latest attempt in parallel
       try {
-        const testResult = await supabase
-          .from('tests')
-          .select('id,title,chapter_id,instructions,pattern,duration_minutes,attempt_limit,positive_marks,negative_marks,mandatory_option_e_penalty,coin_reward_enabled,solution_mode,status')
-          .eq('id', testId)
-          .maybeSingle();
-        if (testResult.error) throw testResult.error;
-        testData = testResult.data;
-      } catch (metadataError) {
-        if (!cachedQuiz?.test) throw metadataError;
+        const [testResult, countResult, attemptResult] = await Promise.all([
+          supabase
+            .from('tests')
+            .select('id,title,chapter_id,instructions,pattern,duration_minutes,attempt_limit,positive_marks,negative_marks,mandatory_option_e_penalty,coin_reward_enabled,solution_mode,status')
+            .eq('id', testId)
+            .maybeSingle(),
+          supabase
+            .from('test_questions')
+            .select('id', { count: 'exact', head: true })
+            .eq('test_id', testId),
+          supabase
+            .from('test_attempts')
+            .select('id, test_id, user_id, status, started_at, completed_at, remaining_seconds, current_question_index, state_json, paused_at, created_at, updated_at')
+            .eq('user_id', user.id)
+            .eq('test_id', testId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+        ]);
+
+        if (testResult.error && !cachedQuiz?.test) throw testResult.error;
+        testData = testResult.data || cachedQuiz?.test;
+        totalCount = countResult?.count || 0;
+        if (attemptResult?.data?.length > 0) {
+          latestAttempt = attemptResult.data[0];
+        }
+      } catch (loadError) {
+        if (!cachedQuiz?.test) throw loadError;
         testData = cachedQuiz.test;
       }
+
       if (!testData || !['published', 'live', 'available'].includes(String(testData.status).toLowerCase())) {
         setError({
           message: 'This test is not currently available.',
@@ -687,34 +724,9 @@ export default function LiveQuiz() {
         return;
       }
 
-      // 2. Fetch question count
-      const { count: qCount } = await supabase
-        .from('test_questions')
-        .select('id', { count: 'exact', head: true })
-        .eq('test_id', testId);
-
-      const totalCount = qCount || 0;
       if (active) {
         setTest(testData);
         setTotalQuestionCount(totalCount);
-      }
-
-      // 3. Check for existing attempt
-      let latestAttempt = null;
-      try {
-        const attemptResult = await supabase
-          .from('test_attempts')
-          .select('id, test_id, user_id, status, started_at, completed_at, remaining_seconds, current_question_index, state_json, paused_at, created_at, updated_at')
-          .eq('user_id', user.id)
-          .eq('test_id', testId)
-          .order('created_at', { ascending: false })
-          .limit(1);
-        if (attemptResult.error) throw attemptResult.error;
-        if (attemptResult.data?.length > 0) {
-          latestAttempt = attemptResult.data[0];
-        }
-      } catch (attemptError) {
-        console.warn('Unable to check cloud attempt state; using local quiz state:', attemptError);
       }
 
       // If the most recent attempt is already completed or submitted, redirect immediately to result
@@ -1138,7 +1150,7 @@ export default function LiveQuiz() {
     return undefined;
   }, [language, question, currentIndex, translatedData]);
 
-  // Local storage auto-save on state change
+  // Local storage auto-save on state change (throttled to user actions; NOT on 1s timer ticks)
   useEffect(() => {
     if (!attemptId) return;
     try {
@@ -1149,41 +1161,92 @@ export default function LiveQuiz() {
           responses,
           visitedQuestions: Array.from(visitedQuestions),
           currentIndex,
-          remaining,
+          remaining: stateRef.current.remaining,
           updatedAt: Date.now()
         })
       );
     } catch (storageError) {
       console.error('Unable to save in-progress responses locally:', storageError);
     }
-  }, [attemptId, responses, visitedQuestions, currentIndex, remaining]);
+  }, [attemptId, responses, visitedQuestions, currentIndex]);
 
-  // Submit test
+  // Submit test with multi-tier network resilience and retry
   const submit = useCallback(async (expired = false) => {
     if (submitLock.current || !attemptId || !supabase) return;
     submitLock.current = true;
     setSubmitting(true);
+    setSubmitFailed(false);
     setError(null);
     setConfirmSubmit(false);
     setShowPauseModal(false);
     if (expired) setTimeExpired(true);
 
+    if (cloudSyncTimeoutRef.current) {
+      clearTimeout(cloudSyncTimeoutRef.current);
+    }
+
+    const curResponses = stateRef.current.responses || responses;
     const p_responses = questions.map((q) => ({
       question_id: q.id,
-      selected_option: lockedAnswersRef.current.get(q.id) || responses[q.id]?.selected_option || null,
-      marked_for_review: Boolean(responses[q.id]?.marked_for_review),
+      selected_option: lockedAnswersRef.current.get(q.id) || curResponses[q.id]?.selected_option || null,
+      marked_for_review: Boolean(curResponses[q.id]?.marked_for_review),
       time_spent_seconds: timeSpentRef.current[q.id] || 0
     }));
 
+    // Synchronously back up submission payload in localStorage
     try {
       localStorage.setItem(`zyvra_attempt_timespent_${attemptId}`, JSON.stringify(timeSpentRef.current));
-      const { error: submitError } = await supabase.rpc('submit_test_attempt', {
-        p_attempt_id: attemptId,
-        p_responses
-      });
+      localStorage.setItem(`zyvra_submitted_backup_${attemptId}`, JSON.stringify(p_responses));
+    } catch { /* storage fallback */ }
 
-      if (submitError) throw submitError;
+    let submitSuccess = false;
+    let lastError = null;
 
+    // Retry loop: up to 2 attempts for transient connection drops
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const { error: submitError } = await supabase.rpc('submit_test_attempt', {
+          p_attempt_id: attemptId,
+          p_responses
+        });
+
+        if (!submitError) {
+          submitSuccess = true;
+          break;
+        }
+
+        // If RPC indicates attempt is already completed or primary key duplicate, treat as fulfilled
+        const errMsg = String(submitError?.message || '').toLowerCase();
+        if (errMsg.includes('completed') || errMsg.includes('already submitted') || submitError.code === '23505') {
+          submitSuccess = true;
+          break;
+        }
+        lastError = submitError;
+      } catch (networkErr) {
+        lastError = networkErr;
+      }
+
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+
+    // Verify against server state if RPC reported an error
+    if (!submitSuccess) {
+      try {
+        const { data: verified } = await supabase
+          .from('test_attempts')
+          .select('id, status, completed_at')
+          .eq('id', attemptId)
+          .maybeSingle();
+
+        if (verified && (verified.completed_at || ['completed', 'submitted'].includes(String(verified.status).toLowerCase()))) {
+          submitSuccess = true;
+        }
+      } catch { /* ignore verification fallback error */ }
+    }
+
+    if (submitSuccess) {
       if (user) {
         sessionStorage.removeItem(`zyvra-active-attempt-${user.id}-${testId}`);
         localStorage.removeItem(`zyvra-paused-attempt-${user.id}-${testId}`);
@@ -1200,15 +1263,16 @@ export default function LiveQuiz() {
       }
 
       navigate(`/quiz/result/${attemptId}`, { replace: true, state: { returnTo } });
-    } catch (submitError) {
+    } else {
       submitLock.current = false;
       setSubmitting(false);
+      setSubmitFailed(true);
       setError({
-        message: submitError?.message || 'Your responses could not be submitted. Please retry while this attempt is active.',
-        technical: submitError?.message || (typeof submitError === 'object' ? JSON.stringify(submitError) : String(submitError))
+        message: lastError?.message || 'Unable to submit your responses due to a network connection issue. Your answers are safely preserved on this device.',
+        technical: lastError?.message || (typeof lastError === 'object' ? JSON.stringify(lastError) : String(lastError))
       });
     }
-  }, [attemptId, supabase, questions, responses, user, testId, navigate, returnTo, refreshAccount]);
+  }, [attemptId, supabase, questions, user, testId, navigate, returnTo, refreshAccount]);
 
   // Countdown timer effect
   useEffect(() => {
@@ -3134,11 +3198,54 @@ export default function LiveQuiz() {
         </div>
       )}
 
-      {/* Fullscreen Submitting Overlay */}
-      {submitting && (
-        <div className="quiz-submitting-overlay">
-          <div className="quiz-submit-spinner" />
-          <span>Submitting your responses securely…</span>
+      {/* Fullscreen Submitting Overlay & Resilient Retry Modal */}
+      {(submitting || submitFailed) && (
+        <div className="fixed inset-0 z-[120] bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-in fade-in duration-200">
+          {submitting ? (
+            <div className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-slate-900 border border-indigo-500/30 shadow-2xl text-center max-w-xs">
+              <div className="w-12 h-12 rounded-full border-4 border-indigo-500 border-t-transparent animate-spin" />
+              <strong className="text-white text-base">Submitting Responses…</strong>
+              <span className="text-slate-400 text-xs leading-relaxed">
+                {language === 'hi'
+                  ? 'आपके उत्तर सर्वर पर सुरक्षित सबमिट किए जा रहे हैं...'
+                  : 'Securing your answers and evaluating results...'}
+              </span>
+            </div>
+          ) : (
+            <div className="max-w-md w-full bg-slate-900 border border-rose-500/40 rounded-3xl p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95">
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto text-2xl">
+                ⚠️
+              </div>
+              <h3 className="text-white font-bold text-base">
+                {language === 'hi' ? 'सबमिशन में रुकावट आई' : 'Submission Interrupted'}
+              </h3>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                {error?.message || (language === 'hi'
+                  ? 'नेटवर्क धीमा होने के कारण सबमिशन पूरा नहीं हो सका। चिंता न करें, आपके सभी उत्तर सुरक्षित हैं।'
+                  : 'Network connection dropped while sending your answers. All your answers are safely preserved on this device.')}
+              </p>
+              <div className="flex flex-col gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => submit(false)}
+                  className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  <RefreshCw size={15} />
+                  <span>{language === 'hi' ? 'पुनः प्रयास करें (Retry Submission)' : 'Retry Submission Now'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSubmitFailed(false);
+                    setError(null);
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+                >
+                  {language === 'hi' ? 'टेस्ट पर वापस जाएं' : 'Return to Test'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </main>
