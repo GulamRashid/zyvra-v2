@@ -1304,7 +1304,34 @@ export default function StudentProfile() {
               </div>
             )}
 
-            {/* Help & 24x7 Student Support */}
+            {/* 1. Direct Live AI & Admin Support Chat */}
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('zyvra:open-support-chat'))}
+              className="w-full flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group text-left border-b dark:border-slate-800/60 border-slate-100"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/15 text-indigo-500 flex items-center justify-center shrink-0 shadow-xs">
+                  <MessageCircle size={18} />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
+                      Help Desk & AI Support Chat
+                    </span>
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 shrink-0">
+                      ⚡ 24×7 Active
+                    </span>
+                  </div>
+                  <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
+                    कोर्स, टेस्ट अनलॉक, पेमेंट या कॉइन सहायता के लिए तुरंत चैट करें
+                  </span>
+                </div>
+              </div>
+              <ChevronRight size={16} className="text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all" />
+            </button>
+
+            {/* 2. Official Contact & Support Info Modal */}
             <button
               type="button"
               onClick={() => setSupportModalOpen(true)}
@@ -1316,10 +1343,10 @@ export default function StudentProfile() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                    Help & 24×7 Student Support
+                    Official Contact & WhatsApp Help
                   </span>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
-                    WhatsApp सहायता, टेस्ट संबंधी समस्या या पूछताछ
+                    zyvra.education@gmail.com एवं WhatsApp सहायता
                   </span>
                 </div>
               </div>

@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell, ChartNoAxesColumn, ChevronRight, ClipboardList,
   Compass, Home, Menu, Settings, Wrench, X,
-  Shield, LogOut, Flame, ShoppingBag, Bookmark, GraduationCap, MessageCircle
+  Shield, LogOut, Flame, ShoppingBag, Bookmark, GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
@@ -80,21 +80,6 @@ export default function StudentLayout() {
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <button
-            type="button"
-            onClick={() => {
-              closeDrawer();
-              window.dispatchEvent(new CustomEvent('zyvra:open-support-chat'));
-            }}
-            className="w-full mb-3 py-2 px-3 rounded-xl bg-indigo-600/15 border border-indigo-500/30 hover:bg-indigo-600/25 text-indigo-400 font-bold text-xs flex items-center justify-between transition-colors text-left"
-          >
-            <div className="flex items-center gap-2">
-              <MessageCircle size={15} />
-              <span>{language === 'hi' ? 'सपोर्ट चैट (Help Desk)' : 'Support Live Chat'}</span>
-            </div>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          </button>
-
           <div className="focus-card border border-indigo-500/20 bg-slate-800/80 rounded-xl p-3">
             <span className="focus-mark text-indigo-400">✦</span>
             <strong className="text-[var(--text)] text-sm block mt-1">Focus, deliberate practice, results.</strong>

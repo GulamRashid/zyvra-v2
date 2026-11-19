@@ -10,6 +10,102 @@ function getBearerToken(req) {
   return authorization.trim().match(/^Bearer\s+(.+)$/i)?.[1]?.trim() || null;
 }
 
+// AI Bot Knowledge Base & Auto-Responder
+function generateBotReply(userMessage) {
+  const text = String(userMessage || '').toLowerCase();
+
+  // 1. Payment / Unlock / Money cut
+  if (/payment|paisa|paise|kata|cut|debit|unlock|unlocked|order|active nahi|activate|kharida|buy|purchas/i.test(text)) {
+    return {
+      reply: 'Agar aapka payment cut ho gaya hai to chinta na karein! Bank payment verification me aamtaur par 1-2 minute lagte hain.\n\n👉 Kadam 1: Niche navigation me "🎓 My Courses" (मेरे कोर्सेज) page par jayein aur upar "रिफ्रेश (Refresh)" button dabayein.\n👉 Kadam 2: Agar fir bhi pass activate na dikhe, to kripya apna Razorpay Order ID ya payment screenshot detail yahan likhein.\n\n✅ Maine aapki request Admin team ko bhi alert kar di hai.',
+      needs_admin: true
+    };
+  }
+
+  // 2. Where are my bought courses/folders
+  if (/kahan|folder|course|subject|syllabus|mila nahi|show nahi|access/i.test(text)) {
+    return {
+      reply: 'Aapke sabhi kharide hue exams aur subject folders bottom navigation me "🎓 My Courses" (या /purchases) me uplabdh hain.\n\n👉 Wahan course card par click karne par uske andar ke sabhi Main Subjects (folders), sub-folders aur practice tests krambaddh roop me mil jayenge!',
+      needs_admin: false
+    };
+  }
+
+  // 3. Coins / Rewards / Referral
+  if (/coin|coins|sikke|point|refer|referral|bonus|redeem|discount/i.test(text)) {
+    return {
+      reply: 'Zyvra Coins ke baare me jankari:\n\n🪙 Coins kaise kamayein:\n1. Doston ko apna referral code share karein (50 Coins per friend signup).\n2. Mock tests me 70%+ score karein.\n\n💰 Coins kaise use karein:\nCheckout ke waqt 10 Coins = ₹1 ka instant discount milta hai!\nApna coin balance aap "Wallet" tab me dekh sakte hain.',
+      needs_admin: false
+    };
+  }
+
+  // 4. Validity / Expiry / Full Pass
+  if (/validity|expire|expiry|valid|saal|year|renew|full pass|pass/i.test(text)) {
+    return {
+      reply: 'Zyvra Pass & Validity jankari:\n\n⭐ All-Access Full Pass: 365 din (1 saal) ke liye sabhi exams, mock test series aur 6 pro revision tools unlimited unlock rehte hain.\n⭐ Single Subject Folders: Course validity tak hamesha accessible rehte hain.\nAapki exact validity aapke Profile card me Digital ID ke sath likhi hoti hai.',
+      needs_admin: false
+    };
+  }
+
+  // 5. Test series / Questions / Scorecard / Solution
+  if (/test|mock|quiz|score|marks|rank|solution|answer|submit/i.test(text)) {
+    return {
+      reply: 'Mock Tests aur Test Series jankari:\n\n📝 Test submit karte hi aapko turant detail Scorecard, All-India Rank, Percentile aur Solution Explanation milta hai.\n📝 Agar test ke dauran app band ho jaye to Homepage par "Resume" button se wahi se continue kar sakte hain.',
+      needs_admin: false
+    };
+  }
+
+  // 6. Request for human / admin help
+  if (/admin|human|insan|agent|baat|help|sahayata|call|madad|urgent|problem/i.test(text)) {
+    return {
+      reply: 'Bilkul! Aapka chat ticket humne Admin Help Desk ko prioritize kar diya hai 🚀.\n\nAdmin jald hi aapse yahan connect karenge. Kripya apna sawal aur order/contact detail niche likh dein.',
+      needs_admin: true
+    };
+  }
+
+  // Default general fallback
+  return {
+    reply: 'Namaste! Maine aapka sandesh note kar liya hai aur hamari support team ko forward kar diya hai 🚀.\n\nAgar kisi specific test, payment ya course ke baare me sawal hai, to thoda vistar se likhein taaki hum turant madad kar sakein.',
+    needs_admin: true
+  };
+}
+
+// Storage helpers using public.platform_settings (always available)
+async function getChatStore(adminClient, userId) {
+  const storeKey = `support_chat:${userId}`;
+  const { data } = await adminClient
+    .from('platform_settings')
+    .select('value, setting_value')
+    .or(`key.eq.${storeKey},setting_key.eq.${storeKey}`)
+    .maybeSingle();
+
+  const record = data?.setting_value || data?.value;
+  if (record && typeof record === 'object' && record.thread) {
+    return record;
+  }
+  return null;
+}
+
+async function saveChatStore(adminClient, userId, storeData) {
+  const storeKey = `support_chat:${userId}`;
+  const payload = {
+    key: storeKey,
+    setting_key: storeKey,
+    value: storeData,
+    setting_value: storeData,
+    updated_at: new Date().toISOString()
+  };
+
+  const { error } = await adminClient
+    .from('platform_settings')
+    .upsert(payload, { onConflict: 'setting_key' });
+
+  if (error) {
+    await adminClient
+      .from('platform_settings')
+      .upsert(payload, { onConflict: 'key' });
+  }
+}
+
 export async function handleSupportChat(req, res) {
   const isWebStandard = typeof res === 'undefined' || typeof res?.status !== 'function';
   const respond = (status, payload) => {
@@ -63,185 +159,219 @@ export async function handleSupportChat(req, res) {
     const body = await parseRequestBody(req);
     const action = body.action || 'get_thread';
 
+    /* ============================================================ */
+    /* ACTION 1: GET THREAD & MESSAGES                             */
+    /* ============================================================ */
     if (action === 'get_thread') {
-      // If student: get or create user's thread
+      // STUDENT VIEW
       if (!isAdmin) {
-        let { data: thread } = await adminClient
-          .from('support_threads')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        let store = await getChatStore(adminClient, user.id);
 
-        if (!thread) {
+        if (!store) {
           const userName = profile?.full_name || user.user_metadata?.full_name || 'Student';
           const userEmail = profile?.email || user.email || '';
-          const { data: newThread, error: createErr } = await adminClient
-            .from('support_threads')
-            .insert({
+          store = {
+            thread: {
+              id: user.id,
               user_id: user.id,
               user_name: userName,
               user_email: userEmail,
-              status: 'open'
-            })
-            .select('*')
-            .single();
-
-          if (createErr && createErr.code !== '23505') {
-            throw createErr;
-          }
-          thread = newThread;
-        }
-
-        const { data: messages } = await adminClient
-          .from('support_messages')
-          .select('*')
-          .eq('thread_id', thread.id)
-          .order('created_at', { ascending: true });
-
-        // Mark user unread as 0 since user viewed them
-        if (thread.unread_user_count > 0) {
-          await adminClient
-            .from('support_threads')
-            .update({ unread_user_count: 0 })
-            .eq('id', thread.id);
+              status: 'open',
+              last_message: 'Chat initialized with Zyvra AI Assistant',
+              last_message_at: new Date().toISOString(),
+              unread_admin_count: 0,
+              unread_user_count: 0,
+              needs_admin: false,
+              created_at: new Date().toISOString()
+            },
+            messages: [
+              {
+                id: `welcome-${Date.now()}`,
+                sender_role: 'bot',
+                sender_name: 'Zyvra AI Sahayak 🤖',
+                message: `Namaste ${userName.split(' ')[0]}! Main Zyvra AI Sahayak hoon 🤖.\nAapki kya madad kar sakta hoon? Kripya apna sawal likhein ya niche diye gaye vishay par tap karein.`,
+                created_at: new Date().toISOString()
+              }
+            ]
+          };
+          await saveChatStore(adminClient, user.id, store);
+        } else if (store.thread.unread_user_count > 0) {
+          store.thread.unread_user_count = 0;
+          await saveChatStore(adminClient, user.id, store);
         }
 
         return respond(200, {
           success: true,
-          thread,
-          messages: messages || []
+          thread: store.thread,
+          messages: store.messages || []
         });
       }
 
-      // If admin: return all threads or specific thread
-      const threadId = body.thread_id;
-      if (threadId) {
-        const { data: thread } = await adminClient
-          .from('support_threads')
-          .select('*')
-          .eq('id', threadId)
-          .maybeSingle();
-
-        const { data: messages } = await adminClient
-          .from('support_messages')
-          .select('*')
-          .eq('thread_id', threadId)
-          .order('created_at', { ascending: true });
-
-        // Mark admin unread as 0
-        if (thread?.unread_admin_count > 0) {
-          await adminClient
-            .from('support_threads')
-            .update({ unread_admin_count: 0 })
-            .eq('id', threadId);
+      // ADMIN VIEW: Specific Thread
+      const targetUserId = body.thread_id || body.user_id;
+      if (targetUserId) {
+        const store = await getChatStore(adminClient, targetUserId);
+        if (store) {
+          if (store.thread.unread_admin_count > 0) {
+            store.thread.unread_admin_count = 0;
+            await saveChatStore(adminClient, targetUserId, store);
+          }
+          return respond(200, {
+            success: true,
+            thread: store.thread,
+            messages: store.messages || []
+          });
         }
-
-        return respond(200, { success: true, thread, messages: messages || [] });
+        return respond(404, { error: 'Conversation not found.' });
       }
 
-      // List all threads for admin
-      const { data: threads } = await adminClient
-        .from('support_threads')
+      // ADMIN VIEW: List All Student Conversations
+      const { data: rows } = await adminClient
+        .from('platform_settings')
         .select('*')
-        .order('last_message_at', { ascending: false });
+        .or('key.ilike.support_chat:%,setting_key.ilike.support_chat:%')
+        .order('updated_at', { ascending: false });
 
-      return respond(200, { success: true, threads: threads || [] });
+      const threads = (rows || [])
+        .map((r) => (r.setting_value || r.value)?.thread)
+        .filter(Boolean)
+        .sort((a, b) => new Date(b.last_message_at || 0) - new Date(a.last_message_at || 0));
+
+      return respond(200, { success: true, threads });
     }
 
+    /* ============================================================ */
+    /* ACTION 2: SEND MESSAGE                                      */
+    /* ============================================================ */
     if (action === 'send_message') {
       const rawMsg = String(body.message || '').trim();
       if (!rawMsg) {
         return respond(400, { error: 'Message cannot be empty.' });
       }
 
-      let threadId = body.thread_id;
-      let senderRole = isAdmin ? 'admin' : 'user';
-      let senderName = profile?.full_name || (isAdmin ? 'Zyvra Support' : 'Student');
-
-      // If student and threadId not specified, lookup or create thread
-      if (!isAdmin) {
-        let { data: thread } = await adminClient
-          .from('support_threads')
-          .select('id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (!thread) {
-          const userName = profile?.full_name || user.user_metadata?.full_name || 'Student';
-          const userEmail = profile?.email || user.email || '';
-          const { data: newThread } = await adminClient
-            .from('support_threads')
-            .insert({
-              user_id: user.id,
-              user_name: userName,
-              user_email: userEmail,
-              status: 'open'
-            })
-            .select('id')
-            .single();
-          thread = newThread;
+      // If ADMIN is sending reply to a student
+      if (isAdmin) {
+        const targetUserId = body.thread_id || body.user_id;
+        if (!targetUserId) {
+          return respond(400, { error: 'Target user ID / thread ID is required.' });
         }
-        threadId = thread.id;
-      }
 
-      if (!threadId) {
-        return respond(400, { error: 'Thread ID is required.' });
-      }
+        let store = await getChatStore(adminClient, targetUserId);
+        if (!store) {
+          return respond(404, { error: 'Target thread not found.' });
+        }
 
-      // Insert message
-      const { data: newMsg, error: msgErr } = await adminClient
-        .from('support_messages')
-        .insert({
-          thread_id: threadId,
+        const now = new Date().toISOString();
+        const adminMsg = {
+          id: `msg-${Date.now()}`,
           sender_id: user.id,
-          sender_role: senderRole,
-          sender_name: senderName,
-          message: rawMsg
-        })
-        .select('*')
-        .single();
+          sender_role: 'admin',
+          sender_name: profile?.full_name || 'Zyvra Support Team',
+          message: rawMsg,
+          created_at: now
+        };
 
-      if (msgErr) throw msgErr;
+        store.messages = [...(store.messages || []), adminMsg];
+        store.thread.last_message = `Admin: ${rawMsg.slice(0, 80)}`;
+        store.thread.last_message_at = now;
+        store.thread.unread_user_count = (store.thread.unread_user_count || 0) + 1;
+        store.thread.unread_admin_count = 0;
+        store.thread.needs_admin = false; // Admin responded
 
-      // Update thread last message and counts
+        await saveChatStore(adminClient, targetUserId, store);
+
+        return respond(200, {
+          success: true,
+          message: adminMsg,
+          thread: store.thread
+        });
+      }
+
+      // If STUDENT is sending a message
+      let store = await getChatStore(adminClient, user.id);
+      const userName = profile?.full_name || user.user_metadata?.full_name || 'Student';
+      const userEmail = profile?.email || user.email || '';
+
+      if (!store) {
+        store = {
+          thread: {
+            id: user.id,
+            user_id: user.id,
+            user_name: userName,
+            user_email: userEmail,
+            status: 'open',
+            unread_admin_count: 0,
+            unread_user_count: 0,
+            created_at: new Date().toISOString()
+          },
+          messages: []
+        };
+      }
+
       const now = new Date().toISOString();
-      const updatePayload = {
-        last_message: rawMsg.slice(0, 150),
-        last_message_at: now,
-        updated_at: now
+      const userMsg = {
+        id: `msg-${Date.now()}`,
+        sender_id: user.id,
+        sender_role: 'user',
+        sender_name: userName,
+        message: rawMsg,
+        created_at: now
       };
 
-      if (isAdmin) {
-        updatePayload.unread_user_count = 1; // user has new unread
-        updatePayload.unread_admin_count = 0;
-      } else {
-        updatePayload.unread_admin_count = 1; // admin has new unread
-        updatePayload.status = 'open'; // reopen if resolved
-      }
+      store.messages = [...(store.messages || []), userMsg];
 
-      await adminClient
-        .from('support_threads')
-        .update(updatePayload)
-        .eq('id', threadId);
+      // Auto Bot Analysis & Instant Response
+      const botResult = generateBotReply(rawMsg);
+      const botMsg = {
+        id: `bot-${Date.now() + 1}`,
+        sender_role: 'bot',
+        sender_name: 'Zyvra AI Sahayak 🤖',
+        message: botResult.reply,
+        created_at: new Date(Date.now() + 1000).toISOString()
+      };
+
+      store.messages.push(botMsg);
+
+      // Update thread status
+      store.thread.last_message = rawMsg.slice(0, 100);
+      store.thread.last_message_at = now;
+      store.thread.status = 'open';
+      store.thread.needs_admin = botResult.needs_admin;
+      store.thread.unread_admin_count = (store.thread.unread_admin_count || 0) + 1;
+      store.thread.user_name = userName;
+      store.thread.user_email = userEmail;
+
+      await saveChatStore(adminClient, user.id, store);
 
       return respond(200, {
         success: true,
-        message: newMsg
+        message: userMsg,
+        bot_reply: botMsg,
+        thread: store.thread
       });
     }
 
+    /* ============================================================ */
+    /* ACTION 3: UPDATE STATUS (ADMIN ONLY)                        */
+    /* ============================================================ */
     if (action === 'update_status' && isAdmin) {
-      const threadId = body.thread_id;
+      const targetUserId = body.thread_id || body.user_id;
       const status = body.status || 'resolved';
-      if (!threadId) {
-        return respond(400, { error: 'Thread ID is required.' });
+      if (!targetUserId) {
+        return respond(400, { error: 'Thread ID / user ID is required.' });
       }
-      await adminClient
-        .from('support_threads')
-        .update({ status, updated_at: new Date().toISOString() })
-        .eq('id', threadId);
 
-      return respond(200, { success: true, status });
+      const store = await getChatStore(adminClient, targetUserId);
+      if (store) {
+        store.thread.status = status;
+        if (status === 'resolved') {
+          store.thread.needs_admin = false;
+          store.thread.unread_admin_count = 0;
+        }
+        await saveChatStore(adminClient, targetUserId, store);
+        return respond(200, { success: true, status });
+      }
+      return respond(404, { error: 'Thread not found.' });
     }
 
     return respond(400, { error: 'Invalid action.' });

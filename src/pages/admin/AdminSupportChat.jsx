@@ -383,9 +383,24 @@ export default function AdminSupportChat() {
                         <span className="text-[10px] text-slate-400 shrink-0">{timeStr}</span>
                       </div>
 
-                      <p className="text-[11px] text-slate-400 truncate mt-0.5">
-                        {thread.user_email || 'No email'}
-                      </p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <p className="text-[11px] text-slate-400 truncate flex-1">
+                          {thread.user_email || 'No email'}
+                        </p>
+                        {thread.needs_admin ? (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500/15 text-rose-500 border border-rose-500/30 shrink-0 animate-pulse">
+                            🔴 Needs Admin
+                          </span>
+                        ) : thread.status === 'open' ? (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-500/15 text-purple-400 border border-purple-500/30 shrink-0">
+                            🤖 Bot Handled
+                          </span>
+                        ) : (
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+                            ✓ Resolved
+                          </span>
+                        )}
+                      </div>
 
                       <div className="flex items-center justify-between gap-2 mt-1">
                         <p className={`text-[11px] truncate ${hasUnread ? 'font-bold text-slate-900 dark:text-white' : 'text-slate-500'}`}>
@@ -505,6 +520,7 @@ export default function AdminSupportChat() {
                 ) : (
                   messages.map((msg, index) => {
                     const isAdmin = msg.sender_role === 'admin';
+                    const isBot = msg.sender_role === 'bot';
                     const timeStr = msg.created_at
                       ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                       : '';
@@ -515,18 +531,28 @@ export default function AdminSupportChat() {
                         className={`flex flex-col ${isAdmin ? 'items-end' : 'items-start'} space-y-1`}
                       >
                         <div
-                          className={`max-w-[80%] rounded-2xl px-4 py-2.5 text-xs font-medium leading-relaxed shadow-xs ${
+                          className={`max-w-[82%] rounded-2xl px-4 py-2.5 text-xs font-medium leading-relaxed shadow-xs ${
                             isAdmin
-                              ? 'bg-indigo-600 text-white rounded-br-xs'
+                              ? 'bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-br-xs'
+                              : isBot
+                              ? 'dark:bg-purple-950/30 bg-purple-50 dark:text-purple-100 text-purple-900 border-2 dark:border-purple-500/40 border-purple-200 rounded-bl-xs'
                               : 'dark:bg-slate-900 bg-white dark:text-slate-100 text-slate-800 border dark:border-slate-800 border-slate-200 rounded-bl-xs'
                           }`}
                         >
                           <span
-                            className={`text-[9px] uppercase font-black tracking-wider block mb-0.5 ${
-                              isAdmin ? 'text-indigo-200' : 'text-indigo-500'
+                            className={`text-[9px] uppercase font-black tracking-wider block mb-1 ${
+                              isAdmin
+                                ? 'text-indigo-200'
+                                : isBot
+                                ? 'text-purple-400'
+                                : 'text-indigo-500'
                             }`}
                           >
-                            {isAdmin ? 'Zyvra Support Team' : selectedThread.user_name || 'Student'}
+                            {isAdmin
+                              ? 'Zyvra Support Team (You)'
+                              : isBot
+                              ? '🤖 Zyvra AI Sahayak (Auto-Response)'
+                              : selectedThread.user_name || 'Student'}
                           </span>
                           <p className="whitespace-pre-wrap break-words">{msg.message}</p>
                         </div>
