@@ -134,10 +134,10 @@ export default function AuthPage() {
     }
   }, [searchParams]);
 
-  // Redirect if already authenticated and MFA is complete
+  // Redirect if already authenticated and MFA is complete (skips when user is actively in 'verify' or 'mfa' flow)
   useEffect(() => {
     let active = true;
-    if (!loading && user && step !== 'mfa') {
+    if (!loading && user && step !== 'mfa' && step !== 'verify') {
       if (supabase?.auth?.mfa) {
         supabase.auth.mfa.getAuthenticatorAssuranceLevel().then(({ data: aal, error: aalErr }) => {
           if (!active) return;
@@ -297,6 +297,7 @@ export default function AuthPage() {
           const { error: passwordError } = await supabase.auth.updateUser({ password });
           if (passwordError) throw passwordError;
           setMessage(language === 'hi' ? 'आपका पासवर्ड रीसेट हो गया है। आप लॉगिन हो चुके हैं।' : 'Your password has been reset. You are now signed in.');
+          setTimeout(() => navigate(destination, { replace: true }), 1200);
           return;
         }
         if (mode === 'signup' && password) {
@@ -312,13 +313,14 @@ export default function AuthPage() {
           const referralResult = await processReferralAward(supabase, authData.user.id, refCode);
           if (referralResult && !referralResult.retryable) sessionStorage.removeItem('zyvra_ref_code');
         }
+        navigate(destination, { replace: true });
       }
     } catch (authError) {
       setError(formatAuthError(authError, language));
     } finally {
       setBusy(false);
     }
-  }, [supabase, configurationError, otp, mode, password, passwordConfirm, email, language, refCode]);
+  }, [supabase, configurationError, otp, mode, password, passwordConfirm, email, language, refCode, destination, navigate]);
 
   // 2FA TOTP verification
   const handleVerifyMfa = useCallback(async (event) => {
