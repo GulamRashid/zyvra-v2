@@ -6,10 +6,13 @@ import {
   ChevronRight,
   Compass,
   Flame,
+  GraduationCap,
+  MessageCircle,
   Play,
   Target,
   Trophy,
   WalletCards,
+  Wrench,
   X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -68,24 +71,14 @@ function loadSavedChapter(userId) {
 // Quick Action 4-Tile Row with bilingual support
 const quickActionTiles = [
   {
-    id: 'mock',
-    titleEn: 'Mock Test',
-    titleHi: 'मॉक टेस्ट',
-    subtitle: 'Full length',
-    path: '/tests?tab=tests',
-    icon: Target,
-    bg: 'dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-200 text-slate-800',
-    iconBg: 'dark:bg-indigo-500/20 bg-indigo-100 dark:text-indigo-400 text-indigo-700'
-  },
-  {
     id: 'leaderboard',
     titleEn: 'Ranks',
-    titleHi: 'रैंकिंग',
+    titleHi: 'लीडरबोर्ड',
     subtitle: 'Top ranks',
     path: '/analytics',
     icon: Trophy,
     bg: 'dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-200 text-slate-800',
-    iconBg: 'dark:bg-indigo-500/20 bg-indigo-100 dark:text-indigo-400 text-indigo-700'
+    iconBg: 'dark:bg-amber-500/20 bg-amber-100 dark:text-amber-400 text-amber-700'
   },
   {
     id: 'bookmarks',
@@ -95,17 +88,28 @@ const quickActionTiles = [
     path: '/bookmarks',
     icon: Bookmark,
     bg: 'dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-200 text-slate-800',
-    iconBg: 'dark:bg-amber-500/20 bg-amber-100 dark:text-amber-400 text-amber-700'
+    iconBg: 'dark:bg-indigo-500/20 bg-indigo-100 dark:text-indigo-400 text-indigo-700'
   },
   {
     id: 'wallet',
     titleEn: 'Wallet',
-    titleHi: 'वॉलेट',
+    titleHi: 'सिक्के / वॉलेट',
     subtitle: 'Your coins',
     path: '/wallet',
     icon: WalletCards,
     bg: 'dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-200 text-slate-800',
-    iconBg: 'dark:bg-amber-500/20 bg-amber-100 dark:text-amber-400 text-amber-700'
+    iconBg: 'dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-400 text-emerald-700'
+  },
+  {
+    id: 'support',
+    titleEn: 'Help Chat',
+    titleHi: 'सहायता चैट',
+    subtitle: 'Live support',
+    isAction: true,
+    action: () => window.dispatchEvent(new CustomEvent('zyvra:open-support-chat')),
+    icon: MessageCircle,
+    bg: 'dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-200 text-slate-800',
+    iconBg: 'dark:bg-cyan-500/20 bg-cyan-100 dark:text-cyan-400 text-cyan-700'
   }
 ];
 
@@ -436,86 +440,129 @@ export default function StudentHome() {
           )}
         </section>
 
-        {/* Core 3-Track Study Action Cards (Eliminates Exams vs Tests vs Practice Confusion) */}
-        <section className="order-1 grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        {/* Primary 4-Track Study Gateways (Clear, Intuitive, No Confusing Duplicates) */}
+        <section className="order-1 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+          {/* 1. My Courses Gateway */}
+          <Link
+            to="/purchases"
+            className="p-3 sm:p-4 rounded-2xl dark:bg-gradient-to-br dark:from-indigo-950/40 dark:to-slate-900 bg-gradient-to-br from-indigo-50/90 to-white border dark:border-indigo-500/30 border-indigo-200/90 hover:border-indigo-500 flex flex-col justify-between gap-2.5 transition-all shadow-xs group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <GraduationCap size={19} />
+              </div>
+              <ArrowRight size={14} className="text-indigo-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight">
+                {language === 'hi' ? 'मेरे कोर्सेज' : 'My Courses'}
+              </h4>
+              <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium truncate mt-0.5">
+                {language === 'hi' ? 'खरीदे गए विषय व पास' : 'Enrolled & unlocked'}
+              </p>
+            </div>
+          </Link>
+
+          {/* 2. Mock Tests Gateway */}
           <Link
             to="/tests?tab=tests"
-            className="p-3 sm:p-3.5 rounded-2xl dark:bg-gradient-to-br dark:from-indigo-950/40 dark:to-slate-900 bg-gradient-to-br from-indigo-50/90 to-white border dark:border-indigo-500/30 border-indigo-200/90 hover:border-indigo-500 flex items-center justify-between gap-3 transition-all shadow-xs group"
+            className="p-3 sm:p-4 rounded-2xl dark:bg-gradient-to-br dark:from-emerald-950/40 dark:to-slate-900 bg-gradient-to-br from-emerald-50/90 to-white border dark:border-emerald-500/30 border-emerald-200/90 hover:border-emerald-500 flex flex-col justify-between gap-2.5 transition-all shadow-xs group"
           >
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                <Target size={18} />
+            <div className="flex items-center justify-between">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Target size={19} />
               </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                  {language === 'hi' ? 'पूर्ण मॉक टेस्ट' : 'Full Mock Tests'}
-                </h4>
-                <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium">
-                  {language === 'hi' ? 'परीक्षा पैटर्न व टाइमर' : 'Real timed exam mocks'}
-                </p>
-              </div>
+              <ArrowRight size={14} className="text-emerald-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
             </div>
-            <ArrowRight size={15} className="text-indigo-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
+            <div>
+              <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">
+                {language === 'hi' ? 'मॉक टेस्ट्स' : 'Mock Tests'}
+              </h4>
+              <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium truncate mt-0.5">
+                {language === 'hi' ? 'फुल टेस्ट्स व टाइमर' : 'Real timed exam mocks'}
+              </p>
+            </div>
           </Link>
 
-          <Link
-            to="/tests?tab=subjects"
-            className="p-3 sm:p-3.5 rounded-2xl dark:bg-gradient-to-br dark:from-emerald-950/40 dark:to-slate-900 bg-gradient-to-br from-emerald-50/90 to-white border dark:border-emerald-500/30 border-emerald-200/90 hover:border-emerald-500 flex items-center justify-between gap-3 transition-all shadow-xs group"
-          >
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                <BookOpen size={18} />
-              </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                  {language === 'hi' ? 'विषयवार अभ्यास' : 'Chapter Practice'}
-                </h4>
-                <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium">
-                  {language === 'hi' ? 'चैप्टर व टॉपिक प्रश्न' : 'Topic & chapter questions'}
-                </p>
-              </div>
-            </div>
-            <ArrowRight size={15} className="text-emerald-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
-          </Link>
-
+          {/* 3. Explore Syllabus Gateway */}
           <Link
             to="/explore"
-            className="p-3 sm:p-3.5 rounded-2xl dark:bg-gradient-to-br dark:from-amber-950/40 dark:to-slate-900 bg-gradient-to-br from-amber-50/90 to-white border dark:border-amber-500/30 border-amber-200/90 hover:border-amber-500 flex items-center justify-between gap-3 transition-all shadow-xs group"
+            className="p-3 sm:p-4 rounded-2xl dark:bg-gradient-to-br dark:from-amber-950/40 dark:to-slate-900 bg-gradient-to-br from-amber-50/90 to-white border dark:border-amber-500/30 border-amber-200/90 hover:border-amber-500 flex flex-col justify-between gap-2.5 transition-all shadow-xs group"
           >
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-sm">
-                <Compass size={18} />
+            <div className="flex items-center justify-between">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Compass size={19} />
               </div>
-              <div>
-                <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-                  {language === 'hi' ? 'पूरा सिलेबस' : 'Explore Syllabus'}
-                </h4>
-                <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium">
-                  {language === 'hi' ? 'सभी परीक्षाओं के फ़ोल्डर्स' : 'All exam folders & notes'}
-                </p>
-              </div>
+              <ArrowRight size={14} className="text-amber-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
             </div>
-            <ArrowRight size={15} className="text-amber-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
+            <div>
+              <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors leading-tight">
+                {language === 'hi' ? 'पूरा सिलेबस' : 'Explore Exams'}
+              </h4>
+              <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium truncate mt-0.5">
+                {language === 'hi' ? 'सभी परीक्षाओं के फोल्डर्स' : 'All syllabus & notes'}
+              </p>
+            </div>
+          </Link>
+
+          {/* 4. Study Toolbox Gateway */}
+          <Link
+            to="/toolbox"
+            className="p-3 sm:p-4 rounded-2xl dark:bg-gradient-to-br dark:from-cyan-950/40 dark:to-slate-900 bg-gradient-to-br from-cyan-50/90 to-white border dark:border-cyan-500/30 border-cyan-200/90 hover:border-cyan-500 flex flex-col justify-between gap-2.5 transition-all shadow-xs group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-600 text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Wrench size={19} />
+              </div>
+              <ArrowRight size={14} className="text-cyan-500 group-hover:translate-x-0.5 transition-transform shrink-0" />
+            </div>
+            <div>
+              <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors leading-tight">
+                {language === 'hi' ? 'स्टडी टूल्स' : 'Study Toolbox'}
+              </h4>
+              <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium truncate mt-0.5">
+                {language === 'hi' ? 'नोट्स, फॉर्मूला व टाइमर' : 'Notes, formulas & timer'}
+              </p>
+            </div>
           </Link>
         </section>
 
-        {/* Quick Action 4-Tile Row */}
+        {/* Quick Utility 4-Tile Row */}
         <section className="order-2">
           <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
             {quickActionTiles.map((tile) => {
               const Icon = tile.icon;
-              return (
-                <Link
-                  key={tile.id}
-                  to={tile.path}
-                  className={`flex flex-col items-center justify-center p-2.5 sm:p-4 rounded-2xl border transition-colors text-center group min-h-[64px] ${tile.bg}`}
-                >
-                  <div className={`w-8 h-8 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center mb-1 sm:mb-1.5 shrink-0 ${tile.iconBg}`}>
+              const content = (
+                <>
+                  <div className={`w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center mb-1 sm:mb-1.5 shrink-0 ${tile.iconBg}`}>
                     <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <span className="min-h-[1.75rem] text-[11px] sm:text-xs font-bold dark:text-white text-slate-800 tracking-tight leading-tight line-clamp-2">
                     {language === 'hi' ? tile.titleHi : tile.titleEn}
                   </span>
+                </>
+              );
+
+              if (tile.isAction) {
+                return (
+                  <button
+                    key={tile.id}
+                    type="button"
+                    onClick={tile.action}
+                    className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-2xl border transition-colors text-center group min-h-[64px] active:scale-95 ${tile.bg}`}
+                  >
+                    {content}
+                  </button>
+                );
+              }
+
+              return (
+                <Link
+                  key={tile.id}
+                  to={tile.path}
+                  className={`flex flex-col items-center justify-center p-2 sm:p-3 rounded-2xl border transition-colors text-center group min-h-[64px] active:scale-95 ${tile.bg}`}
+                >
+                  {content}
                 </Link>
               );
             })}

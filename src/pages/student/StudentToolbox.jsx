@@ -339,13 +339,8 @@ export default function StudentToolbox() {
     setCurrentView('active-tool');
   };
   const goBack = () => {
-    if (currentView === 'active-tool') {
-      setActiveTool(null);
-      setCurrentView('category-menu');
-    } else if (currentView === 'category-menu') {
-      setActiveCategory(null);
-      setCurrentView('main-menu');
-    }
+    setActiveTool(null);
+    setCurrentView('main-menu');
   };
   const handleUnlockTool = (toolId, price) => {
     const tool = Object.values(CATEGORY_TOOLS).flat().find((item) => item.id === toolId);
@@ -806,7 +801,7 @@ export default function StudentToolbox() {
                       {/* Subject Header */}
                       <button
                         type="button"
-                        onClick={() => openCategory(category.id)}
+                        onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}
                         className={`w-full p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left ${category.color || ''}`}
                       >
                         <div className="flex items-center gap-3">
@@ -824,14 +819,16 @@ export default function StudentToolbox() {
                         </div>
 
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold dark:text-indigo-400 text-indigo-600">{language === 'hi' ? 'खोलें' : 'Open'}</span>
-                          <ChevronRight size={16} className="text-slate-400 dark:text-slate-500" />
+                          <span className="text-xs font-bold dark:text-indigo-400 text-indigo-600">
+                            {activeCategory === category.id ? (language === 'hi' ? 'सभी देखें' : 'Show All') : (language === 'hi' ? 'खोलें' : 'Expand')}
+                          </span>
+                          <ChevronRight size={16} className={`text-slate-400 dark:text-slate-500 transition-transform ${activeCategory === category.id ? 'rotate-90' : ''}`} />
                         </div>
                       </button>
 
-                      {/* Preview of first 3 tools */}
-                      <div className="px-3.5 pb-3 pt-1 border-t dark:border-slate-700/40 border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {tools.slice(0, 4).map((tool) => {
+                      {/* All tools in category */}
+                      <div className="px-3.5 pb-3.5 pt-1 border-t dark:border-slate-700/40 border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {tools.map((tool) => {
                           const locked = isToolLocked(tool);
                           const ToolIcon = tool.Icon;
 
