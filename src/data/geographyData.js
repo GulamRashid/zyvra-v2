@@ -2,7 +2,7 @@
  * Comprehensive, exam-oriented Indian Geography dataset
  * Includes Rivers, Mountains & Peaks, Mountain Passes, National Parks,
  * Lakes & Waterfalls, Tropic of Cancer, and Rapid Map Quiz.
- * Position coordinates (x, y) represent percentage [0-100] on the standard India map viewBox.
+ * Position coordinates (x, y) represent percentage [0-100] on the calibrated India map viewBox (700x800).
  */
 
 export const GEO_CATEGORIES = [
@@ -17,9 +17,9 @@ export const GEO_CATEGORIES = [
 export const REGIONS_FILTER = [
   { id: 'all', labelEn: 'All India', labelHi: 'सम्पूर्ण भारत' },
   { id: 'north', labelEn: 'North (Himalayas)', labelHi: 'उत्तर (हिमालयी क्षेत्र)', bounds: { minY: 0, maxY: 35 } },
-  { id: 'central', labelEn: 'Central & Plains', labelHi: 'मध्य व गंगा मैदान', bounds: { minY: 32, maxY: 60, minX: 25, maxX: 70 } },
-  { id: 'south', labelEn: 'Peninsular South', labelHi: 'दक्षिण भारत (प्रायद्वीप)', bounds: { minY: 60, maxY: 100 } },
-  { id: 'east_ne', labelEn: 'North-East & East', labelHi: 'पूर्वोत्तर व पूर्व', bounds: { minX: 68, maxX: 100, minY: 20, maxY: 60 } },
+  { id: 'central', labelEn: 'Central & Plains', labelHi: 'मध्य व गंगा मैदान', bounds: { minY: 32, maxY: 65, minX: 25, maxX: 75 } },
+  { id: 'south', labelEn: 'Peninsular South', labelHi: 'दक्षिण भारत (प्रायद्वीप)', bounds: { minY: 65, maxY: 100 } },
+  { id: 'east_ne', labelEn: 'North-East & East', labelHi: 'पूर्वोत्तर व पूर्व', bounds: { minX: 60, maxX: 100, minY: 20, maxY: 65 } },
   { id: 'west', labelEn: 'West (Desert & Coast)', labelHi: 'पश्चिम (थार व तटीय)', bounds: { minX: 0, maxX: 38, minY: 30, maxY: 70 } }
 ];
 
@@ -42,8 +42,8 @@ export const RIVERS_DATA = [
       'Devprayag is where Bhagirathi and Alaknanda unite to become Ganga.',
       'World’s largest delta is formed by Ganga and Brahmaputra (Sundarban Delta).'
     ],
-    x: 48,
-    y: 35
+    x: 47.3,
+    y: 41.7
   },
   {
     id: 'yamuna',
@@ -62,8 +62,8 @@ export const RIVERS_DATA = [
       'Largest tributary of River Ganga in India.',
       'Chambal, Betwa, and Ken are peninsular tributaries that join Yamuna from the south.'
     ],
-    x: 42,
-    y: 38
+    x: 34.0,
+    y: 35.4
   },
   {
     id: 'indus',
@@ -82,8 +82,8 @@ export const RIVERS_DATA = [
       'Indus Water Treaty was signed in 1960 between India and Pakistan with World Bank mediation.',
       'Enters India through Ladakh between Ladakh Range and Zanskar Range.'
     ],
-    x: 28,
-    y: 18
+    x: 32.2,
+    y: 14.2
   },
   {
     id: 'brahmaputra',
@@ -102,8 +102,8 @@ export const RIVERS_DATA = [
       'Hosts Majuli, the world’s largest inhabited river island in Assam.',
       'Enters India near Namcha Barwa through a deep gorge as Dihang.'
     ],
-    x: 82,
-    y: 32
+    x: 79.2,
+    y: 39.1
   },
   {
     id: 'godavari',
@@ -122,8 +122,8 @@ export const RIVERS_DATA = [
       'Longest river of Peninsular India (hence called Dakshin Ganga or Vriddha Ganga).',
       'Second longest river in India after the Ganga.'
     ],
-    x: 44,
-    y: 62
+    x: 35.2,
+    y: 60.9
   },
   {
     id: 'krishna',
@@ -142,8 +142,8 @@ export const RIVERS_DATA = [
       'Second largest east-flowing peninsular river.',
       'Krishna-Godavari basin is rich in natural gas (KG-D6).'
     ],
-    x: 43,
-    y: 70
+    x: 33.4,
+    y: 68.0
   },
   {
     id: 'kaveri',
@@ -162,8 +162,8 @@ export const RIVERS_DATA = [
       'Perennial river of South India because it gets rain from both South-West and North-East monsoons.',
       'Famous for Shivasamudram Waterfalls (second largest in India).'
     ],
-    x: 41,
-    y: 82
+    x: 36.4,
+    y: 83.4
   },
   {
     id: 'narmada',
@@ -182,8 +182,8 @@ export const RIVERS_DATA = [
       'Flows westwards in a Rift Valley between Vindhya and Satpura ranges.',
       'Forms the famous Dhuandhar Waterfalls and Marble Rocks at Bhedaghat (Jabalpur).'
     ],
-    x: 35,
-    y: 52
+    x: 34.3,
+    y: 49.5
   },
   {
     id: 'tapti',
@@ -202,8 +202,8 @@ export const RIVERS_DATA = [
       'Known as the "Twin or Handmaid" of Narmada.',
       'Flows in a rift valley parallel to Narmada, south of Satpura range.'
     ],
-    x: 36,
-    y: 55
+    x: 29.2,
+    y: 53.9
   },
   {
     id: 'mahanadi',
@@ -222,8 +222,8 @@ export const RIVERS_DATA = [
       'Historically known as the "Sorrow of Odisha" before the construction of Hirakud Dam.',
       'Its basin is known as the "Rice Bowl of Central India" (Chhattisgarh plain).'
     ],
-    x: 58,
-    y: 56
+    x: 52.2,
+    y: 55.4
   }
 ];
 
@@ -241,8 +241,8 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Second highest mountain in the world after Mount Everest (8848.86 m).',
       'Highest point of Indian territory claim.'
     ],
-    x: 29,
-    y: 12
+    x: 31.3,
+    y: 8.6
   },
   {
     id: 'kanchenjunga',
@@ -258,8 +258,8 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Third highest mountain in the world.',
       'Hosts Khangchendzonga National Park (India’s only UNESCO Mixed World Heritage site).'
     ],
-    x: 69,
-    y: 35
+    x: 66.2,
+    y: 34.8
   },
   {
     id: 'nanda-devi',
@@ -274,8 +274,8 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Highest peak located entirely within India without border disputes.',
       'Surrounded by Nanda Devi Biosphere Reserve and Valley of Flowers.'
     ],
-    x: 43,
-    y: 28
+    x: 41.7,
+    y: 26.5
   },
   {
     id: 'anamudi',
@@ -290,8 +290,8 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Highest mountain peak in South India and the Western Ghats (called "Everest of South India").',
       'Located inside Eravikulam National Park (home to Nilgiri Tahr).'
     ],
-    x: 39,
-    y: 86
+    x: 33.0,
+    y: 85.4
   },
   {
     id: 'doddabetta',
@@ -306,8 +306,8 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Highest peak of the Nilgiri Hills.',
       'Second highest peak in South India after Anamudi.'
     ],
-    x: 41,
-    y: 84
+    x: 32.0,
+    y: 82.0
   },
   {
     id: 'guru-shikhar',
@@ -322,8 +322,8 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Highest peak of the ancient Aravalli Range (one of the oldest fold mountains in the world).',
       'Located 15 km from Mount Abu hill station.'
     ],
-    x: 30,
-    y: 45
+    x: 20.2,
+    y: 44.0
   },
   {
     id: 'dhupgarh',
@@ -338,8 +338,8 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Highest point of the Satpura Range and Madhya Pradesh.',
       'Located in Pachmarhi hill station (Queen of Satpura).'
     ],
-    x: 43,
-    y: 53
+    x: 36.9,
+    y: 50.6
   },
   {
     id: 'sadbhawna-shikhar',
@@ -354,8 +354,8 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Highest peak of the Vindhya Range.',
       'Vindhyas act as the traditional geographical divide between Northern and Southern India.'
     ],
-    x: 46,
-    y: 49
+    x: 41.0,
+    y: 47.3
   },
   {
     id: 'aroma-konda',
@@ -370,8 +370,8 @@ export const MOUNTAINS_PEAKS_DATA = [
       'Highest mountain peak of the Eastern Ghats.',
       'Eastern Ghats are discontinuous and dissected by major east-flowing rivers.'
     ],
-    x: 54,
-    y: 65
+    x: 49.9,
+    y: 62.8
   }
 ];
 
@@ -389,8 +389,8 @@ export const MOUNTAIN_PASSES_DATA = [
       'Strategic Himalayan pass connecting Kashmir Valley with Ladakh.',
       'Zojila Tunnel (14.2 km) is under construction to provide all-weather connectivity.'
     ],
-    x: 31,
-    y: 19
+    x: 28.3,
+    y: 13.9
   },
   {
     id: 'banihal-pass',
@@ -405,8 +405,8 @@ export const MOUNTAIN_PASSES_DATA = [
       'Jawahar Tunnel under this pass was built in 1956.',
       'Recently supplemented by the Banihal Qazigund Road Tunnel.'
     ],
-    x: 30,
-    y: 22
+    x: 27.4,
+    y: 16.5
   },
   {
     id: 'rohtang-pass',
@@ -421,8 +421,8 @@ export const MOUNTAIN_PASSES_DATA = [
       'Atal Tunnel (9.02 km) under Rohtang Pass is the longest highway single-tube tunnel above 10,000 ft.',
       'Source of the Beas River (Beas Kund is near Rohtang).'
     ],
-    x: 35,
-    y: 24
+    x: 33.5,
+    y: 20.1
   },
   {
     id: 'shipki-la',
@@ -437,8 +437,8 @@ export const MOUNTAIN_PASSES_DATA = [
       'River Sutlej enters India through this pass from Tibet.',
       'One of India’s designated border trade posts with China.'
     ],
-    x: 38,
-    y: 26
+    x: 38.0,
+    y: 21.9
   },
   {
     id: 'nathu-la',
@@ -453,8 +453,8 @@ export const MOUNTAIN_PASSES_DATA = [
       'Part of the historic ancient Silk Route.',
       'One of the three open trading border posts between China and India (reopened in 2006).'
     ],
-    x: 70,
-    y: 35
+    x: 68.2,
+    y: 35.8
   },
   {
     id: 'lipulekh',
@@ -469,8 +469,8 @@ export const MOUNTAIN_PASSES_DATA = [
       'Primary route for Kailash Mansarovar Pilgrimage.',
       'Subject of recent boundary discussions between India and Nepal.'
     ],
-    x: 45,
-    y: 30
+    x: 44.9,
+    y: 27.0
   },
   {
     id: 'thal-ghat',
@@ -484,8 +484,8 @@ export const MOUNTAIN_PASSES_DATA = [
     examFacts: [
       'Key road and railway link carrying the Central Railway between Mumbai and North/East India.'
     ],
-    x: 34,
-    y: 61
+    x: 22.4,
+    y: 58.6
   },
   {
     id: 'bhor-ghat',
@@ -499,8 +499,8 @@ export const MOUNTAIN_PASSES_DATA = [
     examFacts: [
       'Historic mountain passage connecting the Konkan coast to the Deccan Plateau.'
     ],
-    x: 35,
-    y: 64
+    x: 21.9,
+    y: 61.3
   },
   {
     id: 'pal-ghat',
@@ -515,8 +515,8 @@ export const MOUNTAIN_PASSES_DATA = [
       'Major natural depression gap in the Western Ghats between Nilgiri Hills (north) and Annamalai Hills (south).',
       'Facilitates monsoon winds to penetrate into western Tamil Nadu.'
     ],
-    x: 40,
-    y: 84
+    x: 31.7,
+    y: 83.7
   }
 ];
 
@@ -535,8 +535,8 @@ export const NATIONAL_PARKS_DATA = [
       'First national park to come under Project Tiger initiative in 1973.',
       'Ramganga river flows through this park.'
     ],
-    x: 42,
-    y: 31
+    x: 38.1,
+    y: 29.1
   },
   {
     id: 'kaziranga',
@@ -552,8 +552,8 @@ export const NATIONAL_PARKS_DATA = [
       'Hosts roughly two-thirds of the world’s great one-horned rhinoceros population.',
       'Bordered by the Brahmaputra River to the north.'
     ],
-    x: 84,
-    y: 36
+    x: 81.2,
+    y: 38.2
   },
   {
     id: 'gir',
@@ -567,8 +567,8 @@ export const NATIONAL_PARKS_DATA = [
     examFacts: [
       'The only natural refuge of the Asiatic Lion (Panthera leo persica) globally.'
     ],
-    x: 24,
-    y: 53
+    x: 14.2,
+    y: 54.5
   },
   {
     id: 'sundarbans',
@@ -584,8 +584,8 @@ export const NATIONAL_PARKS_DATA = [
       'UNESCO World Heritage site and Ramsar Wetland site.',
       'Named after the abundant Sundari mangrove trees (Heritiera fomes).'
     ],
-    x: 68,
-    y: 49
+    x: 68.3,
+    y: 52.0
   },
   {
     id: 'kanha',
@@ -600,8 +600,8 @@ export const NATIONAL_PARKS_DATA = [
       'Inspiration for Rudyard Kipling’s "The Jungle Book".',
       'First tiger reserve in India to officially introduce a mascot ("Bhoorsingh the Barasingha").'
     ],
-    x: 48,
-    y: 52
+    x: 43.6,
+    y: 50.9
   },
   {
     id: 'bandipur',
@@ -615,8 +615,8 @@ export const NATIONAL_PARKS_DATA = [
     examFacts: [
       'Forms part of the Nilgiri Biosphere Reserve along with Nagarhole, Wayanad, and Mudumalai.'
     ],
-    x: 40,
-    y: 81
+    x: 31.7,
+    y: 81.3
   },
   {
     id: 'keoladeo',
@@ -631,8 +631,8 @@ export const NATIONAL_PARKS_DATA = [
       'Formerly known as the Bharatpur Bird Sanctuary.',
       'Declared UNESCO World Heritage Site and Montreux Record Ramsar site.'
     ],
-    x: 39,
-    y: 40
+    x: 34.3,
+    y: 36.5
   },
   {
     id: 'hemis',
@@ -647,8 +647,8 @@ export const NATIONAL_PARKS_DATA = [
       'Largest national park in India by area (~4,400 sq km).',
       'Only national park in India north of the Himalayas.'
     ],
-    x: 33,
-    y: 15
+    x: 34.6,
+    y: 15.1
   }
 ];
 
@@ -666,8 +666,8 @@ export const LAKES_WATERFALLS_DATA = [
       'First Indian wetland of international importance designated under the Ramsar Convention (1981).',
       'Major wintering ground for migratory birds and home to the endangered Irrawaddy dolphin.'
     ],
-    x: 62,
-    y: 58
+    x: 57.8,
+    y: 58.5
   },
   {
     id: 'wular-lake',
@@ -681,8 +681,8 @@ export const LAKES_WATERFALLS_DATA = [
       'Largest freshwater lake in India.',
       'Fed by the Jhelum River; formed due to tectonic activity.'
     ],
-    x: 29,
-    y: 18
+    x: 25.5,
+    y: 13.7
   },
   {
     id: 'loktak-lake',
@@ -696,8 +696,8 @@ export const LAKES_WATERFALLS_DATA = [
       'Hosts Keibul Lamjao National Park - the only floating national park in the world.',
       'Last natural refuge of the endangered Sangai (dancing deer of Manipur).'
     ],
-    x: 87,
-    y: 43
+    x: 83.1,
+    y: 44.3
   },
   {
     id: 'vembanaad-lake',
@@ -711,8 +711,8 @@ export const LAKES_WATERFALLS_DATA = [
       'Longest lake in India (~96.5 km).',
       'Famous for the Nehru Trophy Boat Race (Vallam Kali) at Punnamada.'
     ],
-    x: 39,
-    y: 89
+    x: 31.0,
+    y: 87.0
   },
   {
     id: 'sambhar-lake',
@@ -726,8 +726,8 @@ export const LAKES_WATERFALLS_DATA = [
       'India’s largest inland saline lake.',
       'Produces a significant percentage of India’s total salt production.'
     ],
-    x: 33,
-    y: 42
+    x: 27.0,
+    y: 37.3
   },
   {
     id: 'lonar-lake',
@@ -741,8 +741,8 @@ export const LAKES_WATERFALLS_DATA = [
       'Created by a meteorite impact during the Pleistocene Epoch in basaltic rock.',
       'Declared a Ramsar wetland site in 2020.'
     ],
-    x: 39,
-    y: 59
+    x: 31.3,
+    y: 57.8
   },
   {
     id: 'dhuandhar-falls',
@@ -756,8 +756,8 @@ export const LAKES_WATERFALLS_DATA = [
       'Formed by River Narmada cutting through world-famous white marble rocks.',
       'The mist created looks like smoke, hence named "Dhuandhar" (Smoke cascade).'
     ],
-    x: 45,
-    y: 51
+    x: 41.2,
+    y: 48.6
   },
   {
     id: 'jog-falls',
@@ -771,8 +771,8 @@ export const LAKES_WATERFALLS_DATA = [
       'Created by the Sharavathi River dropping 253 m without touching the rockface.',
       'Consists of four distinct cascades: Raja, Roarer, Rocket, and Rani.'
     ],
-    x: 36,
-    y: 73
+    x: 26.2,
+    y: 74.1
   }
 ];
 
@@ -800,8 +800,8 @@ export const TROPIC_MERIDIAN_DATA = [
       'Ranchi is the only state capital located almost exactly on the Tropic of Cancer.',
       'Divides India into roughly two equal climatic halves (Subtropical in North, Tropical in South).'
     ],
-    x: 50,
-    y: 47
+    x: 49.3,
+    y: 47.5
   },
   {
     id: 'indian-standard-meridian',
@@ -823,8 +823,8 @@ export const TROPIC_MERIDIAN_DATA = [
       'IST is exactly 5 hours and 30 minutes ahead of Greenwich Mean Time (GMT).',
       'Time difference between extreme east (Dong, Arunachal Pradesh) and extreme west (Ghuar Mota, Gujarat) is roughly 2 hours (30° of longitude).'
     ],
-    x: 55,
-    y: 50
+    x: 49.3,
+    y: 47.5
   }
 ];
 

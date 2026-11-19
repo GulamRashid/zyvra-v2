@@ -2,13 +2,17 @@ import { useState, useMemo } from 'react';
 import {
   MapPin, Waves, Mountain, Compass, Trees, Droplets, Globe, Search,
   ZoomIn, ZoomOut, RotateCcw, Sparkles, BookOpen, X, HelpCircle,
-  CheckCircle2, AlertCircle, ArrowRight, Share2, Copy, Check
+  CheckCircle2, AlertCircle, ArrowRight, Share2, Copy, Check,
+  Layers, Eye, EyeOff, Info
 } from 'lucide-react';
 import {
   GEO_CATEGORIES, REGIONS_FILTER, RIVERS_DATA, MOUNTAINS_PEAKS_DATA,
   MOUNTAIN_PASSES_DATA, NATIONAL_PARKS_DATA, LAKES_WATERFALLS_DATA,
   TROPIC_MERIDIAN_DATA, MAP_QUIZ_QUESTIONS
 } from '../../../data/geographyData';
+import {
+  MAP_VIEWBOX, INDIA_STATES, SRI_LANKA_PATH, RIVERS_SVG_PATHS, PHYSICAL_REGIONS_PATHS
+} from '../../../data/indiaMapPaths';
 import { useThemeLanguage } from '../../../context/ThemeLanguageContext';
 
 export default function IndiaGeoMap() {
@@ -22,6 +26,15 @@ export default function IndiaGeoMap() {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [activeTabMode, setActiveTabMode] = useState('map'); // 'map' | 'list' | 'quiz'
   const [copiedId, setCopiedId] = useState(null);
+
+  // State interaction & Layer Visibility
+  const [hoveredState, setHoveredState] = useState(null);
+  const [selectedState, setSelectedState] = useState(null);
+  const [layerStates, setLayerStates] = useState(true);
+  const [layerRivers, setLayerRivers] = useState(true);
+  const [layerPhysical, setLayerPhysical] = useState(true);
+  const [layerLines, setLayerLines] = useState(true);
+  const [showLayerMenu, setShowLayerMenu] = useState(false);
 
   // Quiz State
   const [quizIndex, setQuizIndex] = useState(0);
@@ -76,8 +89,22 @@ export default function IndiaGeoMap() {
       );
     }
 
+    // If a state is selected on the map, prioritize or filter items related to it
+    if (selectedState) {
+      const stNameEn = selectedState.nameEn.toLowerCase();
+      const stNameHi = selectedState.nameHi.toLowerCase();
+      const stateMatches = items.filter((item) =>
+        (item.stateEn && item.stateEn.toLowerCase().includes(stNameEn)) ||
+        (item.stateHi && item.stateHi.toLowerCase().includes(stNameHi)) ||
+        (item.states && Array.isArray(item.states) && item.states.some((s) => (typeof s === 'string' ? s.toLowerCase().includes(stNameEn) : false)))
+      );
+      if (stateMatches.length > 0) {
+        return stateMatches;
+      }
+    }
+
     return items;
-  }, [currentDataset, selectedRegion, searchQuery]);
+  }, [currentDataset, selectedRegion, searchQuery, selectedState]);
 
   const handleSelect = (item) => {
     setSelectedItem(item);
@@ -140,7 +167,7 @@ export default function IndiaGeoMap() {
             {isHi ? 'सामान्य अध्ययन भूगोल टूल' : 'General Studies Geography Engine'}
           </div>
           <h3 className="text-lg font-black text-neutral-900 dark:text-white">
-            {isHi ? 'भारत का भूगोल एवं मानचित्र (India Geo-Map Explorer)' : 'India Geography & Interactive Map Explorer'}
+            {isHi ? 'भारत का सम्पूर्ण भूगोल एवं मानचित्र' : 'India Geography & High-Precision Map Explorer'}
           </h3>
         </div>
 
@@ -230,9 +257,12 @@ export default function IndiaGeoMap() {
                 <button
                   key={reg.id}
                   type="button"
-                  onClick={() => setSelectedRegion(reg.id)}
+                  onClick={() => {
+                    setSelectedRegion(reg.id);
+                    setSelectedState(null);
+                  }}
                   className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold whitespace-nowrap transition-all ${
-                    selectedRegion === reg.id
+                    selectedRegion === reg.id && !selectedState
                       ? 'bg-emerald-600 text-white'
                       : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white'
                   }`}
@@ -269,33 +299,117 @@ export default function IndiaGeoMap() {
       {/* ================= VIEW 1: INTERACTIVE MAP ================= */}
       {activeTabMode === 'map' && (
         <div className="space-y-4">
-          <div className="relative overflow-hidden rounded-2xl bg-neutral-950 border border-neutral-800 p-2 sm:p-4 min-h-[420px] flex items-center justify-center">
-            {/* Zoom Controls */}
-            <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5 bg-neutral-900/90 backdrop-blur-md p-1 rounded-xl border border-neutral-700 shadow-md">
-              <button
-                type="button"
-                onClick={zoomIn}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-white hover:bg-neutral-800 transition-colors"
-                title="Zoom In"
-              >
-                <ZoomIn size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={zoomOut}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-white hover:bg-neutral-800 transition-colors"
-                title="Zoom Out"
-              >
-                <ZoomOut size={16} />
-              </button>
-              <button
-                type="button"
-                onClick={resetZoom}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
-                title="Reset Zoom"
-              >
-                <RotateCcw size={14} />
-              </button>
+          <div className="relative overflow-hidden rounded-2xl bg-neutral-950 border border-neutral-800 p-2 sm:p-4 min-h-[460px] flex items-center justify-center">
+            {/* Top Bar Status: Hovered / Selected State Notification */}
+            <div className="absolute top-3 left-3 z-20 max-w-[260px] sm:max-w-[340px] pointer-events-none">
+              {(hoveredState || selectedState) ? (
+                <div className="bg-neutral-900/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-emerald-500/40 text-xs shadow-lg animate-fadeIn">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span className="font-black text-white">
+                      {isHi ? (hoveredState || selectedState).nameHi : (hoveredState || selectedState).nameEn}
+                    </span>
+                    <span className="text-[10px] px-1.5 py-0.2 rounded bg-neutral-800 text-neutral-300 font-bold">
+                      {(hoveredState || selectedState).isUt ? (isHi ? 'केंद्रशासित' : 'UT') : (isHi ? 'राज्य' : 'State')}
+                    </span>
+                  </div>
+                  <div className="text-[10px] text-neutral-400 mt-0.5">
+                    {isHi ? 'राजधानी:' : 'Capital:'} <span className="text-emerald-300 font-bold">{isHi ? (hoveredState || selectedState).capHi : (hoveredState || selectedState).capEn}</span>
+                  </div>
+                </div>
+              ) : selectedItem ? (
+                <div className="hidden sm:flex items-center gap-1.5 bg-neutral-900/80 backdrop-blur-md px-2.5 py-1 rounded-lg border border-neutral-800 text-[11px] text-neutral-300">
+                  <Sparkles size={12} className="text-emerald-400" />
+                  <span>{isHi ? 'सक्रिय:' : 'Active:'} <strong>{isHi ? selectedItem.nameHi : selectedItem.nameEn}</strong></span>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Top Right Controls: Zoom & Layers */}
+            <div className="absolute top-3 right-3 z-20 flex flex-col gap-1.5">
+              {/* Zoom Controls */}
+              <div className="flex flex-col gap-1 bg-neutral-900/90 backdrop-blur-md p-1 rounded-xl border border-neutral-700 shadow-md">
+                <button
+                  type="button"
+                  onClick={zoomIn}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white hover:bg-neutral-800 transition-colors"
+                  title="Zoom In"
+                >
+                  <ZoomIn size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={zoomOut}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-white hover:bg-neutral-800 transition-colors"
+                  title="Zoom Out"
+                >
+                  <ZoomOut size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={resetZoom}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-800 transition-colors"
+                  title="Reset Zoom"
+                >
+                  <RotateCcw size={13} />
+                </button>
+              </div>
+
+              {/* Layer Toggles Dropdown Button */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowLayerMenu(!showLayerMenu)}
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center transition-colors border shadow-md ${
+                    showLayerMenu
+                      ? 'bg-emerald-600 border-emerald-500 text-white'
+                      : 'bg-neutral-900/90 border-neutral-700 text-neutral-300 hover:text-white hover:bg-neutral-800'
+                  }`}
+                  title="Toggle Map Layers"
+                >
+                  <Layers size={15} />
+                </button>
+
+                {showLayerMenu && (
+                  <div className="absolute right-0 top-10 w-44 bg-neutral-900/95 backdrop-blur-md border border-neutral-700 rounded-xl p-2 shadow-2xl z-30 space-y-1 text-xs">
+                    <div className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider px-2 py-0.5 border-b border-neutral-800">
+                      {isHi ? 'मानचित्र परतें (Layers)' : 'Map Layers'}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setLayerStates(!layerStates)}
+                      className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left text-neutral-300 hover:bg-neutral-800"
+                    >
+                      <span>{isHi ? 'राज्य सीमाएं' : 'State Borders'}</span>
+                      {layerStates ? <Eye size={13} className="text-emerald-400" /> : <EyeOff size={13} className="text-neutral-500" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLayerRivers(!layerRivers)}
+                      className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left text-neutral-300 hover:bg-neutral-800"
+                    >
+                      <span>{isHi ? 'नदियाँ' : 'Rivers'}</span>
+                      {layerRivers ? <Eye size={13} className="text-blue-400" /> : <EyeOff size={13} className="text-neutral-500" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLayerPhysical(!layerPhysical)}
+                      className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left text-neutral-300 hover:bg-neutral-800"
+                    >
+                      <span>{isHi ? 'पर्वतमाला' : 'Mountain Arcs'}</span>
+                      {layerPhysical ? <Eye size={13} className="text-amber-400" /> : <EyeOff size={13} className="text-neutral-500" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLayerLines(!layerLines)}
+                      className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-left text-neutral-300 hover:bg-neutral-800"
+                    >
+                      <span>{isHi ? 'कर्क व 82.5° रेखा' : 'Tropic & IST'}</span>
+                      {layerLines ? <Eye size={13} className="text-rose-400" /> : <EyeOff size={13} className="text-neutral-500" />}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Map Legend (Bottom Left) */}
@@ -309,139 +423,279 @@ export default function IndiaGeoMap() {
               <span className="flex items-center gap-1 text-rose-400 font-bold">
                 <span className="w-2 h-0.5 bg-rose-500" /> 23.5° N
               </span>
+              <span className="flex items-center gap-1 text-purple-400 font-bold">
+                <span className="w-0.5 h-2 bg-purple-500" /> 82.5° E
+              </span>
             </div>
 
             {/* Map Canvas with transform scale */}
             <div
-              className="relative w-full max-w-[460px] aspect-[4/4.6] transition-transform duration-300 ease-out select-none"
+              className="relative w-full max-w-[480px] aspect-[700/800] transition-transform duration-300 ease-out select-none"
               style={{ transform: `scale(${zoomLevel})` }}
             >
-              {/* Scalable Vector SVG Map of India */}
+              {/* Scalable Vector SVG Map of India (ViewBox: 0 0 700 800) */}
               <svg
-                viewBox="0 0 100 115"
+                viewBox={MAP_VIEWBOX}
                 className="w-full h-full drop-shadow-2xl"
                 xmlns="http://www.w3.org/2000/svg"
               >
-                {/* Background Water (Arabian Sea, Bay of Bengal, Indian Ocean) */}
-                <rect x="0" y="0" width="100" height="115" fill="#090d16" rx="6" />
+                <defs>
+                  {/* Ocean Gradient */}
+                  <linearGradient id="oceanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#060914" />
+                    <stop offset="50%" stopColor="#080e1e" />
+                    <stop offset="100%" stopColor="#050811" />
+                  </linearGradient>
 
-                {/* Ocean Waves Accent Lines */}
-                <path d="M 5 95 Q 15 90 25 95 T 45 95" fill="none" stroke="#172554" strokeWidth="0.4" strokeDasharray="1,1" />
-                <path d="M 65 95 Q 75 90 85 95 T 95 95" fill="none" stroke="#172554" strokeWidth="0.4" strokeDasharray="1,1" />
-                <text x="10" y="76" fill="#1e3a8a" fontSize="3" fontWeight="bold">Arabian Sea</text>
-                <text x="68" y="76" fill="#1e3a8a" fontSize="3" fontWeight="bold">Bay of Bengal</text>
-                <text x="35" y="110" fill="#1e3a8a" fontSize="2.8" fontWeight="bold">Indian Ocean</text>
+                  {/* River Glow Filter */}
+                  <filter id="riverGlow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feDropShadow dx="0" dy="0" stdDeviation="1.5" floodColor="#38bdf8" floodOpacity="0.7" />
+                  </filter>
 
-                {/* India Landmass Vector Polygon */}
+                  {/* Beacon Glow */}
+                  <filter id="beaconGlow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feDropShadow dx="0" dy="0" stdDeviation="3" floodColor="#fbbf24" floodOpacity="0.8" />
+                  </filter>
+                </defs>
+
+                {/* Ocean Background */}
+                <rect x="0" y="0" width="700" height="800" fill="url(#oceanGrad)" rx="14" />
+
+                {/* Graticule Latitude & Longitude Grid Lines */}
+                <g stroke="#1e293b" strokeWidth="0.5" strokeDasharray="3,3" opacity="0.6">
+                  {/* Latitudes: 10°N, 20°N, 30°N */}
+                  <line x1="30" y1="688" x2="670" y2="688" />
+                  <line x1="30" y1="461" x2="670" y2="461" />
+                  <line x1="30" y1="221" x2="670" y2="221" />
+
+                  {/* Longitudes: 72°E, 80°E, 88°E */}
+                  <line x1="125" y1="30" x2="125" y2="770" />
+                  <line x1="292" y1="30" x2="292" y2="770" />
+                  <line x1="460" y1="30" x2="460" y2="770" />
+                  <line x1="627" y1="30" x2="627" y2="770" />
+                </g>
+
+                {/* Ocean Water Names */}
+                <text x="60" y="580" fill="#1e3a8a" fontSize="12" fontWeight="bold" letterSpacing="1">
+                  Arabian Sea
+                </text>
+                <text x="60" y="595" fill="#172554" fontSize="10" fontWeight="bold">
+                  (अरब सागर)
+                </text>
+
+                <text x="470" y="540" fill="#1e3a8a" fontSize="12" fontWeight="bold" letterSpacing="1">
+                  Bay of Bengal
+                </text>
+                <text x="470" y="555" fill="#172554" fontSize="10" fontWeight="bold">
+                  (बंगाल की खाड़ी)
+                </text>
+
+                <text x="260" y="785" fill="#1e3a8a" fontSize="11" fontWeight="bold" letterSpacing="2">
+                  INDIAN OCEAN (हिन्द महासागर)
+                </text>
+
+                <text x="590" y="660" fill="#172554" fontSize="9" fontWeight="bold">
+                  Andaman Sea
+                </text>
+
+                <text x="130" y="705" fill="#172554" fontSize="9" fontWeight="bold">
+                  Lakshadweep Sea
+                </text>
+
+                {/* Neighboring Country: Sri Lanka */}
                 <path
-                  d="
-                    M 28 8
-                    L 34 11 L 38 18 L 46 25 L 53 28 L 65 31 L 70 34 L 75 30 L 88 30 L 92 36 L 85 40 L 78 40 L 72 45 L 68 53
-                    L 63 60 L 58 70 L 51 83 L 42 98 L 38 88 L 34 76 L 31 66 L 24 58 L 22 50 L 26 44 L 28 35 L 24 28 L 26 18 Z
-                  "
-                  fill="#172033"
+                  d={SRI_LANKA_PATH}
+                  fill="#0f172a"
                   stroke="#334155"
-                  strokeWidth="0.9"
+                  strokeWidth="0.8"
+                  opacity="0.8"
                 />
+                <text x="296" y="746" fill="#475569" fontSize="8" fontWeight="bold">
+                  Sri Lanka
+                </text>
 
-                {/* Tropic of Cancer Line (23.5° N) across India */}
-                <line
-                  x1="18"
-                  y1="47"
-                  x2="90"
-                  y2="47"
-                  stroke="#f43f5e"
-                  strokeWidth="0.6"
-                  strokeDasharray="2,1.5"
-                  opacity="0.85"
-                />
-                <text x="3" y="48" fill="#fb7185" fontSize="2.2" fontWeight="bold">23.5° N</text>
+                {/* ================= ALL 37 STATES & UNION TERRITORIES ================= */}
+                <g id="india-states-layer">
+                  {INDIA_STATES.map((state) => {
+                    const isHovered = hoveredState?.id === state.id;
+                    const isSelected = selectedState?.id === state.id;
 
-                {/* IST Meridian Line (82.5° E) passing through India */}
-                <line
-                  x1="55"
-                  y1="16"
-                  x2="55"
-                  y2="88"
-                  stroke="#a855f7"
-                  strokeWidth="0.6"
-                  strokeDasharray="2,1.5"
-                  opacity="0.75"
-                />
-                <text x="56" y="22" fill="#c084fc" fontSize="2.2" fontWeight="bold">82.5° E (IST)</text>
+                    let fillColor = '#111b2b';
+                    let strokeColor = layerStates ? '#2d3b55' : 'transparent';
+                    let strokeW = '0.7';
 
-                {/* Intersection Point of Tropic of Cancer and IST (Koriya, Chhattisgarh) */}
-                <circle cx="55" cy="47" r="1.2" fill="#fbbf24" stroke="#d97706" strokeWidth="0.4" />
-                <text x="57" y="46" fill="#fbbf24" fontSize="2" fontWeight="bold">Koriya (Intersection)</text>
+                    if (isSelected) {
+                      fillColor = '#065f46';
+                      strokeColor = '#34d399';
+                      strokeW = '1.6';
+                    } else if (isHovered) {
+                      fillColor = '#1e324d';
+                      strokeColor = '#38bdf8';
+                      strokeW = '1.3';
+                    }
 
-                {/* Regional Geographic Features */}
-                {/* Himalayan Arc */}
-                <path
-                  d="M 28 15 Q 50 25 72 34"
-                  fill="none"
-                  stroke="#64748b"
-                  strokeWidth="2.8"
-                  strokeLinecap="round"
-                  opacity="0.35"
-                />
+                    return (
+                      <path
+                        key={state.id}
+                        d={state.d}
+                        fill={fillColor}
+                        stroke={strokeColor}
+                        strokeWidth={strokeW}
+                        className="cursor-pointer transition-colors duration-150"
+                        onMouseEnter={() => setHoveredState(state)}
+                        onMouseLeave={() => setHoveredState(null)}
+                        onClick={() => setSelectedState(isSelected ? null : state)}
+                      >
+                        <title>{isHi ? state.nameHi : state.nameEn} ({isHi ? state.capHi : state.capEn})</title>
+                      </path>
+                    );
+                  })}
+                </g>
 
-                {/* Western Ghats Strip */}
-                <path
-                  d="M 33 62 Q 36 78 40 88"
-                  fill="none"
-                  stroke="#10b981"
-                  strokeWidth="1.4"
-                  opacity="0.4"
-                />
+                {/* ================= PHYSICAL GEOGRAPHIC ARCS ================= */}
+                {layerPhysical && (
+                  <g id="physical-regions-layer" opacity="0.6">
+                    {/* Himalayan Arc */}
+                    <path
+                      d={PHYSICAL_REGIONS_PATHS[0].d}
+                      fill="none"
+                      stroke="#94a3b8"
+                      strokeWidth="5"
+                      strokeLinecap="round"
+                      strokeDasharray="6,4"
+                    />
+                    <text x="280" y="170" fill="#94a3b8" fontSize="9" fontWeight="bold">
+                      Himalayan Arc (हिमालय)
+                    </text>
 
-                {/* Eastern Ghats Broken Strip */}
-                <path
-                  d="M 64 56 Q 56 68 50 78"
-                  fill="none"
-                  stroke="#059669"
-                  strokeWidth="1.1"
-                  strokeDasharray="2,1"
-                  opacity="0.35"
-                />
+                    {/* Western Ghats */}
+                    <path
+                      d={PHYSICAL_REGIONS_PATHS[1].d}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="3.5"
+                      strokeLinecap="round"
+                      strokeDasharray="4,2"
+                    />
+                    <text x="135" y="550" fill="#10b981" fontSize="8" fontWeight="bold" transform="rotate(75 135 550)">
+                      Western Ghats (सह्याद्रि)
+                    </text>
 
-                {/* Ganga River Path */}
-                <path
-                  d="M 44 28 Q 50 36 68 50"
-                  fill="none"
-                  stroke="#38bdf8"
-                  strokeWidth="0.7"
-                  opacity="0.7"
-                />
+                    {/* Eastern Ghats */}
+                    <path
+                      d={PHYSICAL_REGIONS_PATHS[2].d}
+                      fill="none"
+                      stroke="#14b8a6"
+                      strokeWidth="2.8"
+                      strokeLinecap="round"
+                      strokeDasharray="5,3"
+                    />
+                    <text x="350" y="540" fill="#14b8a6" fontSize="8" fontWeight="bold">
+                      Eastern Ghats
+                    </text>
 
-                {/* Brahmaputra River Path */}
-                <path
-                  d="M 88 31 Q 80 34 72 42"
-                  fill="none"
-                  stroke="#38bdf8"
-                  strokeWidth="0.6"
-                  opacity="0.7"
-                />
+                    {/* Aravalli Range */}
+                    <path
+                      d={PHYSICAL_REGIONS_PATHS[3].d}
+                      fill="none"
+                      stroke="#d97706"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    />
+                    <text x="160" y="315" fill="#d97706" fontSize="8" fontWeight="bold">
+                      Aravalli
+                    </text>
+                  </g>
+                )}
 
-                {/* Narmada Rift Line */}
-                <path
-                  d="M 50 51 L 28 53"
-                  fill="none"
-                  stroke="#38bdf8"
-                  strokeWidth="0.6"
-                  opacity="0.6"
-                />
+                {/* ================= RIVER VECTOR PATHS ================= */}
+                {layerRivers && (
+                  <g id="rivers-layer">
+                    {RIVERS_SVG_PATHS.map((river) => (
+                      <path
+                        key={river.id}
+                        d={river.d}
+                        fill="none"
+                        stroke={river.color}
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity="0.85"
+                        filter="url(#riverGlow)"
+                      />
+                    ))}
+                    {/* River labels */}
+                    <text x="345" y="325" fill="#38bdf8" fontSize="8.5" fontWeight="black">Ganga</text>
+                    <text x="560" y="310" fill="#06b6d4" fontSize="8.5" fontWeight="black">Brahmaputra</text>
+                    <text x="210" y="105" fill="#38bdf8" fontSize="8.5" fontWeight="black">Indus</text>
+                    <text x="220" y="415" fill="#38bdf8" fontSize="8" fontWeight="bold">Narmada</text>
+                    <text x="240" y="490" fill="#38bdf8" fontSize="8" fontWeight="bold">Godavari</text>
+                    <text x="250" y="555" fill="#38bdf8" fontSize="8" fontWeight="bold">Krishna</text>
+                    <text x="245" y="675" fill="#38bdf8" fontSize="8" fontWeight="bold">Kaveri</text>
+                  </g>
+                )}
 
-                {/* Godavari Basin Curve */}
-                <path
-                  d="M 35 60 Q 48 62 60 67"
-                  fill="none"
-                  stroke="#38bdf8"
-                  strokeWidth="0.6"
-                  opacity="0.6"
-                />
+                {/* ================= TROPIC OF CANCER & IST MERIDIAN ================= */}
+                {layerLines && (
+                  <g id="graticule-lines-layer">
+                    {/* Tropic of Cancer (23.5° N) */}
+                    <line
+                      x1="35"
+                      y1="380"
+                      x2="615"
+                      y2="380"
+                      stroke="#f43f5e"
+                      strokeWidth="1.4"
+                      strokeDasharray="6,4"
+                      opacity="0.9"
+                    />
+                    <text x="38" y="374" fill="#fb7185" fontSize="9.5" fontWeight="black">
+                      23.5° N (कर्क रेखा / Tropic of Cancer)
+                    </text>
+
+                    {/* IST Meridian (82.5° E) */}
+                    <line
+                      x1="345"
+                      y1="45"
+                      x2="345"
+                      y2="670"
+                      stroke="#a855f7"
+                      strokeWidth="1.4"
+                      strokeDasharray="6,4"
+                      opacity="0.9"
+                    />
+                    <text x="350" y="60" fill="#c084fc" fontSize="9.5" fontWeight="black">
+                      82.5° E (IST / मानक समय)
+                    </text>
+
+                    {/* Intersection Point: Koriya, Chhattisgarh (345, 380) */}
+                    <circle
+                      cx="345"
+                      cy="380"
+                      r="4.5"
+                      fill="#fbbf24"
+                      stroke="#d97706"
+                      strokeWidth="1.5"
+                      filter="url(#beaconGlow)"
+                    />
+                    <circle
+                      cx="345"
+                      cy="380"
+                      r="9"
+                      fill="none"
+                      stroke="#fbbf24"
+                      strokeWidth="0.8"
+                      strokeDasharray="2,2"
+                      opacity="0.8"
+                    />
+                    <text x="354" y="394" fill="#fbbf24" fontSize="8.5" fontWeight="black">
+                      Koriya (प्रतिच्छेदन)
+                    </text>
+                  </g>
+                )}
               </svg>
 
-              {/* Pins rendered on top based on (x%, y%) coordinates */}
+              {/* Pins rendered on top based on calibrated (x%, y%) coordinates */}
               {filteredItems.map((item) => {
                 const isSelected = selectedItem?.id === item.id;
                 return (
@@ -456,14 +710,14 @@ export default function IndiaGeoMap() {
                   >
                     {/* Pulsing ring around active item */}
                     {isSelected && (
-                      <span className="absolute -inset-1.5 rounded-full bg-emerald-400/40 animate-ping pointer-events-none" />
+                      <span className="absolute -inset-1.5 rounded-full bg-emerald-400/50 animate-ping pointer-events-none" />
                     )}
 
                     {/* Pin Icon Badge */}
                     <div
                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-xs font-black shadow-md ${
                         isSelected
-                          ? 'bg-white text-neutral-900 border-white scale-110 shadow-white/40'
+                          ? 'bg-white text-neutral-900 border-white scale-110 shadow-white/50'
                           : getPinColor()
                       }`}
                     >
