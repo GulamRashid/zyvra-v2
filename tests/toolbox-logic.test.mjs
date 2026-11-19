@@ -326,7 +326,10 @@ import {
   RIVERS_DATA,
   MOUNTAINS_PEAKS_DATA,
   MOUNTAIN_PASSES_DATA,
-  NATIONAL_PARKS_DATA
+  NATIONAL_PARKS_DATA,
+  LAKES_WATERFALLS_DATA,
+  TROPIC_MERIDIAN_DATA,
+  MAP_QUIZ_QUESTIONS
 } from '../src/data/geographyData.js';
 
 test('Geography dataset: Rivers, Mountains, Passes & Parks validation', () => {
@@ -353,8 +356,16 @@ test('Geography dataset: Rivers, Mountains, Passes & Parks validation', () => {
   assert.ok(NATIONAL_PARKS_DATA.some((p) => p.id === 'jim-corbett'));
   assert.ok(NATIONAL_PARKS_DATA.some((p) => p.id === 'kaziranga'));
 
+  // Lakes & Falls checks
+  assert.ok(LAKES_WATERFALLS_DATA.some((l) => l.id === 'chilika-lake'));
+  assert.ok(LAKES_WATERFALLS_DATA.some((l) => l.id === 'loktak-lake'));
+
+  // Tropic & Quiz checks
+  assert.ok(TROPIC_MERIDIAN_DATA.some((t) => t.id === 'tropic-of-cancer'));
+  assert.ok(MAP_QUIZ_QUESTIONS.length >= 5);
+
   // Coordinate boundaries check (0-100% on India bounding box)
-  for (const item of [...RIVERS_DATA, ...MOUNTAINS_PEAKS_DATA, ...MOUNTAIN_PASSES_DATA, ...NATIONAL_PARKS_DATA]) {
+  for (const item of [...RIVERS_DATA, ...MOUNTAINS_PEAKS_DATA, ...MOUNTAIN_PASSES_DATA, ...NATIONAL_PARKS_DATA, ...LAKES_WATERFALLS_DATA]) {
     assert.ok(item.x >= 0 && item.x <= 100, `Item ${item.id} x coordinate must be in [0, 100]`);
     assert.ok(item.y >= 0 && item.y <= 100, `Item ${item.id} y coordinate must be in [0, 100]`);
     assert.ok(item.nameEn && item.nameHi, `Item ${item.id} must be bilingual`);

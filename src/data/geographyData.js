@@ -1,14 +1,26 @@
 /**
  * Comprehensive, exam-oriented Indian Geography dataset
- * Includes Rivers, Mountains & Peaks, Mountain Passes, and National Parks
+ * Includes Rivers, Mountains & Peaks, Mountain Passes, National Parks,
+ * Lakes & Waterfalls, Tropic of Cancer, and Rapid Map Quiz.
  * Position coordinates (x, y) represent percentage [0-100] on the standard India map viewBox.
  */
 
 export const GEO_CATEGORIES = [
-  { id: 'rivers', labelEn: 'Rivers & Dams', labelHi: 'नदियाँ व प्रमुख बांध', icon: 'Waves' },
+  { id: 'rivers', labelEn: 'Rivers & Dams', labelHi: 'नदियाँ व बांध', icon: 'Waves' },
   { id: 'mountains', labelEn: 'Peaks & Ranges', labelHi: 'पर्वत व चोटियाँ', icon: 'Mountain' },
   { id: 'passes', labelEn: 'Mountain Passes', labelHi: 'महत्वपूर्ण दर्रे', icon: 'Compass' },
-  { id: 'parks', labelEn: 'National Parks', labelHi: 'राष्ट्रीय उद्यान', icon: 'Trees' }
+  { id: 'parks', labelEn: 'National Parks', labelHi: 'राष्ट्रीय उद्यान', icon: 'Trees' },
+  { id: 'lakes', labelEn: 'Lakes & Falls', labelHi: 'झीलें व जलप्रपात', icon: 'Droplets' },
+  { id: 'meridians', labelEn: 'Tropic & IST', labelHi: 'कर्क रेखा व 82.5°E', icon: 'Globe' }
+];
+
+export const REGIONS_FILTER = [
+  { id: 'all', labelEn: 'All India', labelHi: 'सम्पूर्ण भारत' },
+  { id: 'north', labelEn: 'North (Himalayas)', labelHi: 'उत्तर (हिमालयी क्षेत्र)', bounds: { minY: 0, maxY: 35 } },
+  { id: 'central', labelEn: 'Central & Plains', labelHi: 'मध्य व गंगा मैदान', bounds: { minY: 32, maxY: 60, minX: 25, maxX: 70 } },
+  { id: 'south', labelEn: 'Peninsular South', labelHi: 'दक्षिण भारत (प्रायद्वीप)', bounds: { minY: 60, maxY: 100 } },
+  { id: 'east_ne', labelEn: 'North-East & East', labelHi: 'पूर्वोत्तर व पूर्व', bounds: { minX: 68, maxX: 100, minY: 20, maxY: 60 } },
+  { id: 'west', labelEn: 'West (Desert & Coast)', labelHi: 'पश्चिम (थार व तटीय)', bounds: { minX: 0, maxX: 38, minY: 30, maxY: 70 } }
 ];
 
 export const RIVERS_DATA = [
@@ -637,5 +649,234 @@ export const NATIONAL_PARKS_DATA = [
     ],
     x: 33,
     y: 15
+  }
+];
+
+export const LAKES_WATERFALLS_DATA = [
+  {
+    id: 'chilika-lake',
+    nameEn: 'Chilika Lake',
+    nameHi: 'चिल्का झील',
+    stateEn: 'Puri, Khordha & Ganjam, Odisha',
+    stateHi: 'ओडिशा',
+    typeEn: 'Brackish Water Lagoon (Ramsar Site)',
+    typeHi: 'खारे पानी की लैगून झील (रामसर स्थल)',
+    examFacts: [
+      'Largest brackish water lagoon in India and Asia.',
+      'First Indian wetland of international importance designated under the Ramsar Convention (1981).',
+      'Major wintering ground for migratory birds and home to the endangered Irrawaddy dolphin.'
+    ],
+    x: 62,
+    y: 58
+  },
+  {
+    id: 'wular-lake',
+    nameEn: 'Wular Lake',
+    nameHi: 'वुलर झील',
+    stateEn: 'Bandipora, Jammu & Kashmir',
+    stateHi: 'जम्मू व कश्मीर',
+    typeEn: 'Freshwater Tectonic Lake',
+    typeHi: 'मीठे पानी की टेक्टॉनिक झील',
+    examFacts: [
+      'Largest freshwater lake in India.',
+      'Fed by the Jhelum River; formed due to tectonic activity.'
+    ],
+    x: 29,
+    y: 18
+  },
+  {
+    id: 'loktak-lake',
+    nameEn: 'Loktak Lake',
+    nameHi: 'लोकटक झील',
+    stateEn: 'Moirang, Bishnupur, Manipur',
+    stateHi: 'मणिपुर',
+    typeEn: 'Freshwater Lake with Floating Phumdis',
+    typeHi: 'तैरते हुए फुमदी (Phumdis) युक्त मीठे पानी की झील',
+    examFacts: [
+      'Hosts Keibul Lamjao National Park - the only floating national park in the world.',
+      'Last natural refuge of the endangered Sangai (dancing deer of Manipur).'
+    ],
+    x: 87,
+    y: 43
+  },
+  {
+    id: 'vembanaad-lake',
+    nameEn: 'Vembanad Lake',
+    nameHi: 'वेम्बनाड झील',
+    stateEn: 'Kottayam & Alappuzha, Kerala',
+    stateHi: 'केरल',
+    typeEn: 'Brackish Wetland Lagoon',
+    typeHi: 'कयाल (लैगून) आर्द्रभूमि',
+    examFacts: [
+      'Longest lake in India (~96.5 km).',
+      'Famous for the Nehru Trophy Boat Race (Vallam Kali) at Punnamada.'
+    ],
+    x: 39,
+    y: 89
+  },
+  {
+    id: 'sambhar-lake',
+    nameEn: 'Sambhar Salt Lake',
+    nameHi: 'सांभर झील',
+    stateEn: 'Jaipur & Nagaur, Rajasthan',
+    stateHi: 'राजस्थान',
+    typeEn: 'Inland Salt Lake',
+    typeHi: 'अंतःस्थलीय खारे पानी की झील',
+    examFacts: [
+      'India’s largest inland saline lake.',
+      'Produces a significant percentage of India’s total salt production.'
+    ],
+    x: 33,
+    y: 42
+  },
+  {
+    id: 'lonar-lake',
+    nameEn: 'Lonar Crater Lake',
+    nameHi: 'लोनार झील',
+    stateEn: 'Buldhana, Maharashtra',
+    stateHi: 'महाराष्ट्र',
+    typeEn: 'Meteorite Impact Crater (Saline & Alkaline)',
+    typeHi: 'उल्कापिंड टकराव क्रेटर झील',
+    examFacts: [
+      'Created by a meteorite impact during the Pleistocene Epoch in basaltic rock.',
+      'Declared a Ramsar wetland site in 2020.'
+    ],
+    x: 39,
+    y: 59
+  },
+  {
+    id: 'dhuandhar-falls',
+    nameEn: 'Dhuandhar Falls (Marble Rocks)',
+    nameHi: 'धुआंधार जलप्रपात',
+    stateEn: 'Bhedaghat, Jabalpur, Madhya Pradesh',
+    stateHi: 'जबलपुर, मध्य प्रदेश',
+    typeEn: 'Narmada River Waterfall',
+    typeHi: 'नर्मदा नदी का जलप्रपात',
+    examFacts: [
+      'Formed by River Narmada cutting through world-famous white marble rocks.',
+      'The mist created looks like smoke, hence named "Dhuandhar" (Smoke cascade).'
+    ],
+    x: 45,
+    y: 51
+  },
+  {
+    id: 'jog-falls',
+    nameEn: 'Jog Falls (Gerosoppa)',
+    nameHi: 'जोग / गरसोप्पा जलप्रपात',
+    stateEn: 'Shimoga, Karnataka',
+    stateHi: 'कर्नाटक',
+    typeEn: 'Sharavathi River Waterfall (253 m)',
+    typeHi: 'शरावती नदी पर जलप्रपात',
+    examFacts: [
+      'Created by the Sharavathi River dropping 253 m without touching the rockface.',
+      'Consists of four distinct cascades: Raja, Roarer, Rocket, and Rani.'
+    ],
+    x: 36,
+    y: 73
+  }
+];
+
+export const TROPIC_MERIDIAN_DATA = [
+  {
+    id: 'tropic-of-cancer',
+    nameEn: 'Tropic of Cancer (23.5° N Latitude)',
+    nameHi: 'कर्क रेखा (23.5° N अक्षांश)',
+    descriptionEn: 'Passes through 8 Indian States from West to East:',
+    descriptionHi: 'पश्चिम से पूर्व भारत के 8 राज्यों से होकर गुजरती है:',
+    states: [
+      { en: 'Gujarat', hi: 'गुजरात' },
+      { en: 'Rajasthan (Banswara & Dungarpur)', hi: 'राजस्थान (बांसवाड़ा व डूंगरपुर)' },
+      { en: 'Madhya Pradesh (Longest stretch)', hi: 'मध्य प्रदेश (सर्वाधिक लम्बाई)' },
+      { en: 'Chhattisgarh', hi: 'छत्तीसगढ़' },
+      { en: 'Jharkhand (Ranchi is closest city)', hi: 'झारखंड (राँची निकटतम राजधानी)' },
+      { en: 'West Bengal', hi: 'पश्चिम बंगाल' },
+      { en: 'Tripura (Udaipur)', hi: 'त्रिपुरा' },
+      { en: 'Mizoram (Champhai)', hi: 'मिजोरम' }
+    ],
+    mnemonicEn: 'Mnemonic: Mi-Tra Par Gam-Chha Jhar (Mizoram, Tripura, W.Bengal, Rajasthan, Gujarat, MP, Chhattisgarh, Jharkhand)',
+    mnemonicHi: 'याद रखने की ट्रिक: "मित्र पर गमछा झार" (मि-मिजोरम, त्र-त्रिपुरा, प-प.बंगाल, र-राजस्थान, ग-गुजरात, म-म.प्र., छा-छत्तीसगढ़, झार-झारखंड)',
+    examFacts: [
+      'Mahi River is the ONLY river in India that cuts the Tropic of Cancer twice (in MP and Gujarat).',
+      'Ranchi is the only state capital located almost exactly on the Tropic of Cancer.',
+      'Divides India into roughly two equal climatic halves (Subtropical in North, Tropical in South).'
+    ],
+    x: 50,
+    y: 47
+  },
+  {
+    id: 'indian-standard-meridian',
+    nameEn: 'Indian Standard Time (82.5° E Longitude)',
+    nameHi: 'भारतीय मानक समय रेखा (82.5° E देशान्तर)',
+    descriptionEn: 'Standard meridian of India passing through 5 states (UTC +5:30):',
+    descriptionHi: 'भारत की मानक याम्योत्तर रेखा, जो 5 राज्यों से गुजरती है (UTC +5:30):',
+    states: [
+      { en: 'Uttar Pradesh (Mirzapur / Shankargarh, Prayagraj)', hi: 'उत्तर प्रदेश (मिर्जापुर / शंकरगढ़, प्रयागराज)' },
+      { en: 'Madhya Pradesh', hi: 'मध्य प्रदेश' },
+      { en: 'Chhattisgarh', hi: 'छत्तीसगढ़' },
+      { en: 'Odisha', hi: 'ओडिशा' },
+      { en: 'Andhra Pradesh', hi: 'आंध्र प्रदेश' }
+    ],
+    mnemonicEn: 'Mnemonic: "UP-MP-CH-OD-AP" (North to South sequence)',
+    mnemonicHi: 'क्रम (उत्तर से दक्षिण): उत्तर प्रदेश ➔ मध्य प्रदेश ➔ छत्तीसगढ़ ➔ ओडिशा ➔ आंध्र प्रदेश',
+    examFacts: [
+      'The Tropic of Cancer (23.5° N) and IST Meridian (82.5° E) intersect in Koriya district, Chhattisgarh.',
+      'IST is exactly 5 hours and 30 minutes ahead of Greenwich Mean Time (GMT).',
+      'Time difference between extreme east (Dong, Arunachal Pradesh) and extreme west (Ghuar Mota, Gujarat) is roughly 2 hours (30° of longitude).'
+    ],
+    x: 55,
+    y: 50
+  }
+];
+
+export const MAP_QUIZ_QUESTIONS = [
+  {
+    id: 'q1',
+    questionEn: 'Which is the only river in India that cuts the Tropic of Cancer twice?',
+    questionHi: 'भारत की एकमात्र ऐसी कौन सी नदी है जो कर्क रेखा को दो बार काटती है?',
+    optionsEn: ['Narmada River', 'Mahi River', 'Chambal River', 'Sabarmati River'],
+    optionsHi: ['नर्मदा नदी', 'माही नदी', 'चंबल नदी', 'साबरमती नदी'],
+    correctIndex: 1,
+    explanationEn: 'Mahi River rises in Madhya Pradesh, crosses into Rajasthan and then enters Gujarat, cutting the Tropic of Cancer twice.',
+    explanationHi: 'माही नदी मध्य प्रदेश के धार जिले से निकलकर राजस्थान और फिर गुजरात में बहते हुए कर्क रेखा को दो बार पार करती है।'
+  },
+  {
+    id: 'q2',
+    questionEn: 'Which mountain peak is the highest in South India?',
+    questionHi: 'दक्षिण भारत की सबसे ऊंची पर्वत चोटी कौन सी है?',
+    optionsEn: ['Doddabetta', 'Anamudi', 'Guru Shikhar', 'Kalsubai'],
+    optionsHi: ['दोद्दाबेट्टा', 'अनाईमुडी', 'गुरु शिखर', 'कलसूबाई'],
+    correctIndex: 1,
+    explanationEn: 'Anamudi (2,695 m) in the Annamalai Hills (Kerala) is the highest peak in South India and the Western Ghats.',
+    explanationHi: 'अनाईमुडी (2695 मी) केरल के इदुक्की जिले में अन्नामलाई पर्वत पर स्थित दक्षिण भारत व पश्चिमी घाट की सर्वोच्च चोटी है।'
+  },
+  {
+    id: 'q3',
+    questionEn: 'Through which mountain pass does the historic Atal Tunnel pass?',
+    questionHi: 'प्रसिद्ध अटल सुरंग (Atal Tunnel) किस हिमालयी दर्रे के नीचे स्थित है?',
+    optionsEn: ['Zoji La Pass', 'Rohtang Pass', 'Shipki La Pass', 'Nathu La Pass'],
+    optionsHi: ['जोजिला दर्रा', 'रोहतांग दर्रा', 'शिपकी ला दर्रा', 'नाथू ला दर्रा'],
+    correctIndex: 1,
+    explanationEn: 'Atal Tunnel (9.02 km) is built under the Rohtang Pass on the Leh-Manali Highway in Himachal Pradesh.',
+    explanationHi: 'अटल सुरंग (9.02 किमी) हिमाचल प्रदेश में पीर पंजाल पर्वत श्रेणी के रोहतांग दर्रे के नीचे बनाई गई है।'
+  },
+  {
+    id: 'q4',
+    questionEn: 'Where do the Tropic of Cancer (23.5° N) and IST Meridian (82.5° E) intersect in India?',
+    questionHi: 'भारत में कर्क रेखा और 82.5° E भारतीय मानक समय रेखा एक-दूसरे को कहाँ काटती हैं?',
+    optionsEn: ['Jabalpur (MP)', 'Koriya (Chhattisgarh)', 'Ranchi (Jharkhand)', 'Mirzapur (UP)'],
+    optionsHi: ['जबलपुर (मध्य प्रदेश)', 'कोरिया (छत्तीसगढ़)', 'राँची (झारखंड)', 'मिर्जापुर (उत्तर प्रदेश)'],
+    correctIndex: 1,
+    explanationEn: 'The intersection point of 23.5° N (Tropic of Cancer) and 82.5° E (IST meridian) lies in Koriya district, Chhattisgarh.',
+    explanationHi: 'कर्क रेखा और भारतीय मानक समय रेखा (82.5° E) का मिलन बिंदु छत्तीसगढ़ के कोरिया / सूरजपुर जिले में है।'
+  },
+  {
+    id: 'q5',
+    questionEn: 'Which is the world’s only floating national park?',
+    questionHi: 'विश्व का एकमात्र तैरता हुआ राष्ट्रीय उद्यान कौन सा है?',
+    optionsEn: ['Sundarbans', 'Keibul Lamjao (Loktak)', 'Kaziranga', 'Hemis'],
+    optionsHi: ['सुंदरबन', 'केइबुल लामजाओ (लोकटक)', 'काजीरंगा', 'हेमिस'],
+    correctIndex: 1,
+    explanationEn: 'Keibul Lamjao National Park on Loktak Lake in Manipur is the world’s only floating sanctuary, home to the dancing deer (Sangai).',
+    explanationHi: 'मणिपुर की लोकटक झील पर स्थित केइबुल लामजाओ विश्व का एकमात्र तैरता हुआ नेशनल पार्क है, जो संगाई हिरण का घर है।'
   }
 ];
