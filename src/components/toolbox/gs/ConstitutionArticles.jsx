@@ -33,14 +33,14 @@ export default function ConstitutionArticles() {
   const filteredAmendments = useMemo(() => {
     if (!normalizedQuery) return MAJOR_AMENDMENTS;
     return MAJOR_AMENDMENTS.filter((item) =>
-      `${item.number} ${item.year} ${item.title} ${item.title_hi || ''} ${item.detail}`.toLowerCase().includes(normalizedQuery)
+      `${item.number} ${item.year} ${item.title} ${item.title_hi || ''} ${item.detail} ${item.detail_hi || ''}`.toLowerCase().includes(normalizedQuery)
     );
   }, [normalizedQuery]);
 
   const filteredCases = useMemo(() => {
     if (!normalizedQuery) return LANDMARK_CASES;
     return LANDMARK_CASES.filter((item) =>
-      `${item.name} ${item.year} ${item.significance} ${item.detail}`.toLowerCase().includes(normalizedQuery)
+      `${item.name} ${item.year} ${item.significance} ${item.significance_hi || ''} ${item.detail} ${item.detail_hi || ''}`.toLowerCase().includes(normalizedQuery)
     );
   }, [normalizedQuery]);
 
@@ -220,15 +220,17 @@ export default function ConstitutionArticles() {
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="px-2.5 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 font-black text-xs">
-                  {item.number} Amendment ({item.year})
+                  {item.number} {isHindi ? 'संशोधन' : 'Amendment'} ({item.year})
                 </span>
-                <span className="text-[11px] font-bold text-slate-400">Constitution of India</span>
+                <span className="text-[11px] font-bold text-slate-400">
+                  {isHindi ? 'भारत का संविधान' : 'Constitution of India'}
+                </span>
               </div>
               <h4 className="text-sm font-black dark:text-white text-slate-900">
                 {isHindi ? (item.title_hi || item.title) : item.title}
               </h4>
               <p className="text-xs sm:text-sm leading-relaxed dark:text-slate-300 text-slate-700">
-                {item.detail}
+                {isHindi ? (item.detail_hi || item.detail) : item.detail}
               </p>
             </article>
           ))}
@@ -252,12 +254,14 @@ export default function ConstitutionArticles() {
               </div>
               <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 dark:text-emerald-400">
                 <Sparkles size={13} />
-                <span>{item.significance}</span>
+                <span>{isHindi ? (item.significance_hi || item.significance) : item.significance}</span>
               </div>
               <p className="text-xs leading-relaxed dark:text-slate-300 text-slate-700">
-                {item.detail}
+                {isHindi ? (item.detail_hi || item.detail) : item.detail}
               </p>
-              <small className="block text-[10px] text-slate-400">Bench: {item.bench}</small>
+              <small className="block text-[10px] text-slate-400">
+                {isHindi ? `पीठ: ${item.bench}` : `Bench: ${item.bench}`}
+              </small>
             </article>
           ))}
         </div>

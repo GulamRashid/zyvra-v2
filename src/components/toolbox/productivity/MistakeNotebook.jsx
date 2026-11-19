@@ -11,6 +11,7 @@ function localDate(value = new Date()) {
 
 export default function MistakeNotebook({ isPremium = false, onUnlock = null }) {
   const { t, language } = useThemeLanguage();
+  const isHindi = language === 'hi';
   const [items, setItems, syncState] = useStudentToolboxData('mistakes', []);
   const [topic, setTopic] = useState('');
   const [mistake, setMistake] = useState('');
@@ -100,19 +101,19 @@ export default function MistakeNotebook({ isPremium = false, onUnlock = null }) 
         <div className="flex items-center justify-between gap-2 rounded-2xl bg-gradient-to-r from-amber-500/15 via-indigo-500/10 to-transparent p-3.5 border border-amber-500/30">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-500 dark:text-amber-400">
             <Sparkles size={16} />
-            <span>Pro Mistake Vault Active</span>
+            <span>{isHindi ? 'प्रो मिस्टेक वॉल्ट सक्रिय' : 'Pro Mistake Vault Active'}</span>
           </div>
           <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-            {items.length} / {PRO_MISTAKES_LIMIT} saved
+            {items.length} / {PRO_MISTAKES_LIMIT} {isHindi ? 'सहेजे गए' : 'saved'}
           </span>
         </div>
       ) : (
         <div className="rounded-2xl dark:bg-slate-800/80 bg-slate-100 p-3.5 border dark:border-slate-700/60 border-slate-200 space-y-2.5">
           <div className="flex items-center justify-between text-xs font-bold">
             <span className="dark:text-slate-300 text-slate-700 flex items-center gap-1.5">
-              <span>🎯 Free Tier Quota:</span>
+              <span>{isHindi ? '🎯 फ्री कोटा:' : '🎯 Free Tier Quota:'}</span>
               <strong className="text-indigo-600 dark:text-indigo-400">
-                {items.length} / {FREE_MISTAKES_LIMIT} Mistakes
+                {items.length} / {FREE_MISTAKES_LIMIT} {isHindi ? 'गलतियां' : 'Mistakes'}
               </strong>
             </span>
             {onUnlock && (
@@ -122,7 +123,7 @@ export default function MistakeNotebook({ isPremium = false, onUnlock = null }) 
                 className="text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 font-black"
               >
                 <Zap size={13} />
-                <span>Unlock Unlimited</span>
+                <span>{isHindi ? 'अनलॉक करें' : 'Unlock Unlimited'}</span>
               </button>
             )}
           </div>
@@ -137,7 +138,9 @@ export default function MistakeNotebook({ isPremium = false, onUnlock = null }) 
           {isLimitReached && (
             <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <span className="text-amber-600 dark:text-amber-300 font-semibold">
-                Free limit reached (5/5). Upgrade to save unlimited test errors!
+                {isHindi
+                  ? 'फ्री सीमा पूरी (5/5)। असीमित टेस्ट गलतियां सहेजने के लिए अपग्रेड करें!'
+                  : 'Free limit reached (5/5). Upgrade to save unlimited test errors!'}
               </span>
               {onUnlock && (
                 <button
@@ -145,7 +148,7 @@ export default function MistakeNotebook({ isPremium = false, onUnlock = null }) 
                   onClick={onUnlock}
                   className="w-full sm:w-auto px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shrink-0 text-center"
                 >
-                  Upgrade
+                  {isHindi ? 'अपग्रेड करें' : 'Upgrade'}
                 </button>
               )}
             </div>

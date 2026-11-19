@@ -5,7 +5,8 @@ import useStudentToolboxData from '../../../hooks/useStudentToolboxData';
 import { FREE_FLASHCARDS_LIMIT, PRO_FLASHCARDS_LIMIT } from '../../../lib/studentToolbox';
 
 export default function Flashcards({ isPremium = false, onUnlock = null }) {
-  const { t } = useThemeLanguage();
+  const { t, language } = useThemeLanguage();
+  const isHindi = language === 'hi';
   const [cards, setCards, syncState] = useStudentToolboxData('flashcards', []);
   const [front, setFront] = useState('');
   const [back, setBack] = useState('');
@@ -84,19 +85,19 @@ export default function Flashcards({ isPremium = false, onUnlock = null }) {
         <div className="flex items-center justify-between gap-2 rounded-2xl bg-gradient-to-r from-amber-500/15 via-indigo-500/10 to-transparent p-3.5 border border-amber-500/30">
           <div className="flex items-center gap-2 text-xs font-bold text-amber-500 dark:text-amber-400">
             <Sparkles size={16} />
-            <span>Pro Flashcards Active</span>
+            <span>{isHindi ? 'प्रो फ्लैशकार्ड्स सक्रिय' : 'Pro Flashcards Active'}</span>
           </div>
           <span className="text-xs font-extrabold text-slate-600 dark:text-slate-300">
-            {cards.length} / {PRO_FLASHCARDS_LIMIT} cards
+            {cards.length} / {PRO_FLASHCARDS_LIMIT} {isHindi ? 'कार्ड' : 'cards'}
           </span>
         </div>
       ) : (
         <div className="rounded-2xl dark:bg-slate-800/80 bg-slate-100 p-3.5 border dark:border-slate-700/60 border-slate-200 space-y-2.5">
           <div className="flex items-center justify-between text-xs font-bold">
             <span className="dark:text-slate-300 text-slate-700 flex items-center gap-1.5">
-              <span>🎯 Free Tier Quota:</span>
+              <span>{isHindi ? '🎯 फ्री कोटा:' : '🎯 Free Tier Quota:'}</span>
               <strong className="text-indigo-600 dark:text-indigo-400">
-                {cards.length} / {FREE_FLASHCARDS_LIMIT} Cards
+                {cards.length} / {FREE_FLASHCARDS_LIMIT} {isHindi ? 'कार्ड' : 'Cards'}
               </strong>
             </span>
             {onUnlock && (
@@ -106,7 +107,7 @@ export default function Flashcards({ isPremium = false, onUnlock = null }) {
                 className="text-amber-600 dark:text-amber-400 hover:underline flex items-center gap-1 font-black"
               >
                 <Zap size={13} />
-                <span>Unlock Unlimited</span>
+                <span>{isHindi ? 'अनलॉक करें' : 'Unlock Unlimited'}</span>
               </button>
             )}
           </div>
@@ -121,7 +122,9 @@ export default function Flashcards({ isPremium = false, onUnlock = null }) {
           {isLimitReached && (
             <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
               <span className="text-amber-600 dark:text-amber-300 font-semibold">
-                Free card limit reached (10/10). Upgrade for unlimited active recall cards!
+                {isHindi
+                  ? 'फ्री कार्ड सीमा पूरी (10/10)। असीमित एक्टिव रिकॉल कार्ड्स के लिए अपग्रेड करें!'
+                  : 'Free card limit reached (10/10). Upgrade for unlimited active recall cards!'}
               </span>
               {onUnlock && (
                 <button
@@ -129,7 +132,7 @@ export default function Flashcards({ isPremium = false, onUnlock = null }) {
                   onClick={onUnlock}
                   className="w-full sm:w-auto px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shrink-0 text-center"
                 >
-                  Upgrade
+                  {isHindi ? 'अपग्रेड करें' : 'Upgrade'}
                 </button>
               )}
             </div>

@@ -615,84 +615,96 @@ export const MAJOR_AMENDMENTS = [
     year: '1951',
     title: 'Land Reforms & 9th Schedule',
     title_hi: 'भूमि सुधार और 9वीं अनुसूची',
-    detail: 'Added Ninth Schedule to protect land reform laws from judicial review; placed reasonable restrictions on free speech.'
+    detail: 'Added Ninth Schedule to protect land reform laws from judicial review; placed reasonable restrictions on free speech.',
+    detail_hi: 'भूमि सुधार कानूनों को न्यायिक समीक्षा से संरक्षण देने हेतु 9वीं अनुसूची जोड़ी; वाक् एवं अभिव्यक्ति की स्वतंत्रता पर उचित प्रतिबंध लगाए।'
   },
   {
     number: '7th',
     year: '1956',
     title: 'State Reorganisation Act',
     title_hi: 'राज्य पुनर्गठन अधिनियम',
-    detail: 'Reorganised Indian states on linguistic basis (Fazal Ali Commission); abolished Part A, B, C, D state classifications.'
+    detail: 'Reorganised Indian states on linguistic basis (Fazal Ali Commission); abolished Part A, B, C, D state classifications.',
+    detail_hi: 'भाषाई आधार पर भारतीय राज्यों का पुनर्गठन (फ़ज़ल अली आयोग); भाग A, B, C, D के पुराने राज्य वर्गीकरण को समाप्त किया।'
   },
   {
     number: '42nd',
     year: '1976',
     title: '"Mini-Constitution" (Swaran Singh Committee)',
     title_hi: '"लघु संविधान" (42वां संशोधन)',
-    detail: 'Added Socialist, Secular, Integrity to Preamble; added Fundamental Duties (Part IVA); added Art 39A, 43A, 48A; curtailed judicial review.'
+    detail: 'Added Socialist, Secular, Integrity to Preamble; added Fundamental Duties (Part IVA); added Art 39A, 43A, 48A; curtailed judicial review.',
+    detail_hi: 'प्रस्तावना में "समाजवादी, पंथनिरपेक्ष, अखंडता" जोड़े; मूल कर्तव्य (भाग IVA) जोड़े; अनुच्छेद 39A, 43A, 48A जोड़े; इसे लघु संविधान कहा जाता है।'
   },
   {
     number: '44th',
     year: '1978',
     title: 'Restoration of Civil Liberties & Removal of Property Right',
     title_hi: 'नागरिक अधिकारों की बहाली और संपत्ति का अधिकार विधिक बनाया',
-    detail: 'Replaced "Internal Disturbance" with "Armed Rebellion" in Art 352; removed Right to Property from Fundamental Rights (made legal right under Art 300A); Art 20 & 21 cannot be suspended during Emergency.'
+    detail: 'Replaced "Internal Disturbance" with "Armed Rebellion" in Art 352; removed Right to Property from Fundamental Rights (made legal right under Art 300A); Art 20 & 21 cannot be suspended during Emergency.',
+    detail_hi: 'अनुच्छेद 352 में "आंतरिक अशांति" की जगह "सशस्त्र विद्रोह" किया; संपत्ति के अधिकार को मूल अधिकार से हटाकर विधिक अधिकार (अनुच्छेद 300A) बनाया; आपातकाल में भी अनु. 20 व 21 निलंबित नहीं होंगे।'
   },
   {
     number: '52nd',
     year: '1985',
     title: 'Anti-Defection Law (10th Schedule)',
     title_hi: 'दलबदल विरोधी कानून (10वीं अनुसूची)',
-    detail: 'Added Tenth Schedule providing disqualification of MPs/MLAs for defection to stop political corruption.'
+    detail: 'Added Tenth Schedule providing disqualification of MPs/MLAs for defection to stop political corruption.',
+    detail_hi: 'राजनीतिक दलबदल पर रोक लगाने हेतु 10वीं अनुसूची जोड़ी, जिसके तहत सांसदों और विधायकों की अयोग्यता के कड़े प्रावधान हैं।'
   },
   {
     number: '61st',
     year: '1988',
     title: 'Lowering Voting Age from 21 to 18',
     title_hi: 'मतदान आयु 21 वर्ष से घटाकर 18 वर्ष',
-    detail: 'Amended Article 326 to expand democratic participation for youth in Lok Sabha and Assembly elections.'
+    detail: 'Amended Article 326 to expand democratic participation for youth in Lok Sabha and Assembly elections.',
+    detail_hi: 'अनुच्छेद 326 में संशोधन कर लोकसभा और विधानसभा चुनावों में मतदान की न्यूनतम आयु 21 वर्ष से घटाकर 18 वर्ष की गई।'
   },
   {
     number: '73rd',
     year: '1992',
     title: 'Panchayati Raj Constitutional Status',
     title_hi: 'पंचायती राज को संवैधानिक दर्जा (11वीं अनुसूची)',
-    detail: 'Added Part IX and 11th Schedule containing 29 functional items for rural local self-governance.'
+    detail: 'Added Part IX and 11th Schedule containing 29 functional items for rural local self-governance.',
+    detail_hi: 'पंचायती राज संस्थाओं को संवैधानिक दर्जा मिला; भाग IX और 29 कार्यात्मक विषयों वाली 11वीं अनुसूची संविधान में जोड़ी गई।'
   },
   {
     number: '74th',
     year: '1992',
     title: 'Urban Local Bodies / Municipalities',
     title_hi: 'नगरपालिका और शहरी निकाय (12वीं अनुसूची)',
-    detail: 'Added Part IXA and 12th Schedule containing 18 functional items for urban local self-government.'
+    detail: 'Added Part IXA and 12th Schedule containing 18 functional items for urban local self-government.',
+    detail_hi: 'शहरी स्थानीय स्वशासन और नगरपालिकाओं को संवैधानिक दर्जा; भाग IXA और 18 कार्यात्मक विषयों वाली 12वीं अनुसूची जोड़ी गई।'
   },
   {
     number: '86th',
     year: '2002',
     title: 'Right to Education as Fundamental Right',
     title_hi: 'शिक्षा का अधिकार मूल अधिकार बना',
-    detail: 'Inserted Article 21A for free/compulsory education (6-14 years); amended Art 45; added 11th Fundamental Duty in Art 51A(k).'
+    detail: 'Inserted Article 21A for free/compulsory education (6-14 years); amended Art 45; added 11th Fundamental Duty in Art 51A(k).',
+    detail_hi: '6 से 14 वर्ष के बच्चों के लिए निःशुल्क व अनिवार्य शिक्षा हेतु अनुच्छेद 21A जोड़ा; अनुच्छेद 51A(k) के तहत 11वां मूल कर्तव्य जोड़ा गया।'
   },
   {
     number: '101st',
     year: '2016',
     title: 'Goods and Services Tax (GST)',
     title_hi: 'वस्तु एवं सेवा कर (GST)',
-    detail: 'Introduced unified nationwide indirect tax regime; added Article 246A, 269A, and 279A (GST Council).'
+    detail: 'Introduced unified nationwide indirect tax regime; added Article 246A, 269A, and 279A (GST Council).',
+    detail_hi: 'देशव्यापी एकीकृत अप्रत्यक्ष कर व्यवस्था (GST) लागू की गई; अनुच्छेद 246A, 269A और 279A (GST परिषद) जोड़े गए।'
   },
   {
     number: '103rd',
     year: '2019',
     title: '10% EWS Reservation',
     title_hi: 'आर्थिक रूप से कमजोर वर्ग (EWS) को 10% आरक्षण',
-    detail: 'Amended Article 15(6) and 16(6) to permit up to 10% reservation for Economically Weaker Sections in admissions and jobs.'
+    detail: 'Amended Article 15(6) and 16(6) to permit up to 10% reservation for Economically Weaker Sections in admissions and jobs.',
+    detail_hi: 'अनुच्छेद 15(6) और 16(6) जोड़कर सामान्य वर्ग के आर्थिक रूप से कमजोर नागरिकों (EWS) को दाखिले और नौकरियों में 10% आरक्षण दिया गया।'
   },
   {
     number: '106th',
     year: '2023',
     title: 'Nari Shakti Vandan Adhiniyam (Women\'s Reservation)',
     title_hi: 'नारी शक्ति वंदन अधिनियम (महिलाओं को 33% आरक्षण)',
-    detail: 'Reserves one-third (33%) of all seats in Lok Sabha and State Legislative Assemblies for women for a period of 15 years.'
+    detail: 'Reserves one-third (33%) of all seats in Lok Sabha and State Legislative Assemblies for women for a period of 15 years.',
+    detail_hi: 'लोकसभा और सभी राज्य विधानसभाओं में महिलाओं के लिए 15 वर्ष की अवधि हेतु एक-तिहाई (33%) सीटें आरक्षित की गईं।'
   }
 ];
 
@@ -702,42 +714,72 @@ export const LANDMARK_CASES = [
     year: '1973',
     bench: '13-Judge Bench (Largest in SC history, 7:6 verdict)',
     significance: 'Basic Structure Doctrine (मूल ढांचा सिद्धांत)',
-    detail: 'Parliament has wide amending power under Article 368, but it cannot alter or destroy the "Basic Structure" of the Constitution.'
+    significance_hi: 'संविधान का मूल ढांचा सिद्धांत (Basic Structure Doctrine)',
+    detail: 'Parliament has wide amending power under Article 368, but it cannot alter or destroy the "Basic Structure" of the Constitution.',
+    detail_hi: 'संसद को अनुच्छेद 368 के तहत संविधान संशोधन की व्यापक शक्ति है, परंतु वह संविधान के "मूल ढांचे" को नष्ट या समाप्त नहीं कर सकती।'
   },
   {
     name: 'Minerva Mills v. Union of India',
     year: '1980',
     bench: '5-Judge Bench',
     significance: 'Balance between Fundamental Rights and DPSP',
-    detail: 'The Indian Constitution is founded on the bedrock of the balance between Part III (Fundamental Rights) and Part IV (DPSP).'
+    significance_hi: 'मूल अधिकारों और नीति निदेशक तत्वों (DPSP) में संतुलन',
+    detail: 'The Indian Constitution is founded on the bedrock of the balance between Part III (Fundamental Rights) and Part IV (DPSP).',
+    detail_hi: 'भारतीय संविधान भाग III (मूल अधिकार) और भाग IV (नीति निदेशक तत्व) के बीच संतुलन की आधारशिला पर टिका है; मूल अधिकारों का हनन नहीं किया जा सकता।'
   },
   {
     name: 'Maneka Gandhi v. Union of India',
     year: '1978',
     bench: '7-Judge Bench',
     significance: 'Procedure Established by Law ➔ Due Process of Law',
-    detail: 'Expanded Article 21; procedure depriving personal liberty must be "just, fair, and reasonable", not arbitrary.'
+    significance_hi: 'विधि द्वारा स्थापित प्रक्रिया ➔ विधि की सम्यक प्रक्रिया (Due Process)',
+    detail: 'Expanded Article 21; procedure depriving personal liberty must be "just, fair, and reasonable", not arbitrary.',
+    detail_hi: 'अनुच्छेद 21 का दायरा व्यापक किया; व्यक्तिगत स्वतंत्रता छीनने वाली कोई भी कानूनी प्रक्रिया केवल औपचारिक नहीं बल्कि "न्यायोचित, निष्पक्ष और उचित" होनी चाहिए।'
   },
   {
     name: 'S.R. Bommai v. Union of India',
     year: '1994',
     bench: '9-Judge Bench',
     significance: 'Federalism and Safeguards against Art 356 misuse',
-    detail: 'President’s Rule under Article 356 is subject to judicial review; Secularism and Federalism are basic features.'
+    significance_hi: 'संघवाद की रक्षा और अनुच्छेद 356 (राष्ट्रपति शासन) के दुरुपयोग पर रोक',
+    detail: 'President’s Rule under Article 356 is subject to judicial review; Secularism and Federalism are basic features.',
+    detail_hi: 'अनुच्छेद 356 के तहत राष्ट्रपति शासन लगाना न्यायिक समीक्षा के अधीन है; धर्मनिरपेक्षता और संघवाद संविधान के मूल ढांचे का अभिन्न अंग हैं।'
   },
   {
     name: 'Indra Sawhney v. Union of India',
     year: '1992',
     bench: '9-Judge Bench (Mandal Commission Case)',
     significance: '50% Reservation Cap & Creamy Layer',
-    detail: 'Upheld 27% OBC reservation; introduced "Creamy Layer" exclusion; capped total reservation at 50%.'
+    significance_hi: 'मंडल आयोग वाद: 50% आरक्षण सीमा और क्रीमी लेयर नियम',
+    detail: 'Upheld 27% OBC reservation; introduced "Creamy Layer" exclusion; capped total reservation at 50%.',
+    detail_hi: 'OBC के लिए 27% आरक्षण को वैध ठहराया; क्रीमी लेयर को आरक्षण के दायरे से बाहर किया और कुल सामान्य आरक्षण की ऊपरी सीमा 50% तय की।'
   },
   {
     name: 'K.S. Puttaswamy v. Union of India',
     year: '2017',
     bench: '9-Judge Bench (Unanimous 9:0)',
     significance: 'Right to Privacy is Fundamental Right',
-    detail: 'Right to Privacy is an intrinsic part of the right to life and personal liberty under Article 21.'
+    significance_hi: 'निजता का अधिकार (Right to Privacy) एक मूल अधिकार है',
+    detail: 'Right to Privacy is an intrinsic part of the right to life and personal liberty under Article 21.',
+    detail_hi: 'सर्वोच्च न्यायालय की 9 जजों की सर्वसम्मत पीठ ने फैसला दिया कि निजता का अधिकार अनुच्छेद 21 के तहत जीवन और व्यक्तिगत स्वतंत्रता का मौलिक अधिकार है।'
+  },
+  {
+    name: 'Vishaka v. State of Rajasthan',
+    year: '1997',
+    bench: '3-Judge Bench (CJI J.S. Verma)',
+    significance: 'Vishaka Guidelines for Workplace Sexual Harassment',
+    significance_hi: 'विशाखा दिशा-निर्देश: कार्यस्थल पर महिलाओं का यौन उत्पीड़न से संरक्षण',
+    detail: 'Laid down binding guidelines to protect women at workplaces, which later formed the basis of the POSH Act, 2013.',
+    detail_hi: 'कार्यस्थल पर महिलाओं की सुरक्षा हेतु ऐतिहासिक विशाखा गाइडलाइंस जारी कीं, जो बाद में 2013 के POSH अधिनियम का आधार बनीं।'
+  },
+  {
+    name: 'Navtej Singh Johar v. Union of India',
+    year: '2018',
+    bench: '5-Judge Constitution Bench (Unanimous)',
+    significance: 'Decriminalisation of Section 377 IPC',
+    significance_hi: 'आईपीसी धारा 377 का गैर-अपराधीकरण और समानता का अधिकार',
+    detail: 'Decriminalised consensual adult same-sex relations under Section 377, upholding equality (Art 14) and dignity (Art 21).',
+    detail_hi: 'वयस्कों के बीच सहमति से बनाए गए संबंधों को धारा 377 के तहत अपराध की श्रेणी से बाहर कर समानता (अनु. 14) और गरिमा (अनु. 21) की पुष्टि की।'
   }
 ];
 

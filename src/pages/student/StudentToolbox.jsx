@@ -547,14 +547,16 @@ export default function StudentToolbox() {
                     🧰
                   </div>
                   <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                    Zyvra Study Suite
+                    {language === 'hi' ? 'ज़ीव्रा स्टडी सूट' : 'Zyvra Study Suite'}
                   </span>
                 </div>
                 <h1 className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
-                  Study Toolbox
+                  {language === 'hi' ? 'अध्ययन टूलबॉक्स' : 'Study Toolbox'}
                 </h1>
                 <p className="text-xs dark:text-slate-300 text-slate-600 font-medium">
-                  Smart utilities, calculators & quick reference tools for exam success
+                  {language === 'hi'
+                    ? 'परीक्षा में सफलता हेतु स्मार्ट टूल्स, कैलकुलेटर, संविधान वॉल्ट और रिवीजन टूल्स'
+                    : 'Smart utilities, calculators & quick reference tools for exam success'}
                 </p>
               </div>
 
@@ -566,19 +568,25 @@ export default function StudentToolbox() {
                       onClick={openFullPassCheckout}
                       className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-[11px] shadow-glowGold transition-transform active:scale-95"
                     >
-                      🌟 Full Pass · ₹{fullPassPricing.price}
+                      🌟 {language === 'hi' ? 'फुल पास' : 'Full Pass'} · ₹{fullPassPricing.price}
                     </button>
-                    <span className="text-[10px] font-semibold dark:text-slate-300 text-slate-600">Includes {fullPassPricing.included_exam_titles.slice(0, 3).join(', ') || 'no exams'}{fullPassPricing.included_exam_titles.length > 3 ? ` +${fullPassPricing.included_exam_titles.length - 3}` : ''}{fullPassPricing.included_tool_titles.length ? ` · ${fullPassPricing.included_tool_titles.slice(0, 2).join(', ')}${fullPassPricing.included_tool_titles.length > 2 ? ` +${fullPassPricing.included_tool_titles.length - 2}` : ''}` : ''}</span>
+                    <span className="text-[10px] font-semibold dark:text-slate-300 text-slate-600">
+                      {language === 'hi' ? 'शामिल:' : 'Includes'} {fullPassPricing.included_exam_titles.slice(0, 3).join(', ') || (language === 'hi' ? 'कोई परीक्षा नहीं' : 'no exams')}{fullPassPricing.included_exam_titles.length > 3 ? ` +${fullPassPricing.included_exam_titles.length - 3}` : ''}{fullPassPricing.included_tool_titles.length ? ` · ${fullPassPricing.included_tool_titles.slice(0, 2).join(', ')}${fullPassPricing.included_tool_titles.length > 2 ? ` +${fullPassPricing.included_tool_titles.length - 2}` : ''}` : ''}
+                    </span>
                   </div>
                 )}
-                {toolAccess.__full_pass && <span className="px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 text-[10px] font-black">Full Pass active</span>}
+                {toolAccess.__full_pass && (
+                  <span className="px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 text-[10px] font-black">
+                    {language === 'hi' ? 'फुल पास सक्रिय' : 'Full Pass active'}
+                  </span>
+                )}
                 {comboPricing.price > 0 && !toolAccess.__combo && !toolAccess.__full_pass && (
                   <button
                     type="button"
                     onClick={openComboCheckout}
                     className="px-3 py-1.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-black text-[10px] transition-transform active:scale-95"
                   >
-                    ⚡ Toolbox only · ₹{comboPricing.price}
+                    ⚡ {language === 'hi' ? 'केवल टूलबॉक्स' : 'Toolbox only'} · ₹{comboPricing.price}
                   </button>
                 )}
               </div>
@@ -586,7 +594,10 @@ export default function StudentToolbox() {
 
             {/* Quick capability badges */}
             <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-3 text-[11px] font-bold">
-              {['✓ Calculate', '✓ Convert', '✓ Revise', '✓ Memorize', '✓ Focus Timer'].map((pill, idx) => (
+              {(language === 'hi'
+                ? ['✓ गणना (Calculate)', '✓ रूपांतरण (Convert)', '✓ संविधान (Polity)', '✓ दोहराव (Revise)', '✓ फोकस टाइमर (Focus)']
+                : ['✓ Calculate', '✓ Convert', '✓ Revise', '✓ Memorize', '✓ Focus Timer']
+              ).map((pill, idx) => (
                 <span
                   key={idx}
                   className="px-2.5 py-1 rounded-full dark:bg-slate-800/80 bg-white/90 border dark:border-slate-700/40 border-slate-200 dark:text-slate-200 text-slate-800 whitespace-nowrap shadow-xs"
