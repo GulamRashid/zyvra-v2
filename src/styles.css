@@ -85,14 +85,14 @@ body.light {
 }
 
 /* Light mode primary headings and titles: #0F172A (Slate 900) */
-body.light h1,
-body.light h2,
-body.light h3,
-body.light h4,
-body.light h5,
-body.light h6,
-body.light strong,
-body.light b,
+body.light h1:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light h2:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light h3:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light h4:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light h5:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light h6:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light strong:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light b:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
 body.light .card-heading h3,
 body.light .section-heading h2,
 body.light .quiz-question-text,
@@ -249,12 +249,12 @@ body.light .quiz-option.selected .quiz-option-letter {
 }
 
 /* Headings and primary titles */
-body.light h1.text-white,
-body.light h2.text-white,
-body.light h3.text-white,
-body.light h4.text-white,
-body.light strong.text-white,
-body.light .text-white:not(button):not(.button):not([class*="bg-emerald-5"]):not([class*="bg-emerald-6"]):not([class*="bg-emerald-7"]):not([class*="bg-rose"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-yellow"]):not([class*="bg-blue"]):not([class*="bg-indigo"]):not([class*="bg-black"]):not([class*="badge"]):not(.mockup-phone-frame *) {
+body.light h1.text-white:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light h2.text-white:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light h3.text-white:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light h4.text-white:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light strong.text-white:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light .text-white:not(button):not(.button):not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *):not([class*="bg-emerald-5"]):not([class*="bg-emerald-6"]):not([class*="bg-emerald-7"]):not([class*="bg-rose"]):not([class*="bg-red"]):not([class*="bg-amber"]):not([class*="bg-yellow"]):not([class*="bg-blue"]):not([class*="bg-indigo"]):not([class*="bg-black"]):not([class*="badge"]):not(.mockup-phone-frame *) {
   color: #0F172A !important;
 }
 

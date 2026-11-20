@@ -464,15 +464,16 @@ export default function AuthPage() {
       }
 
       // 2. Sign in on this device now that slot is open
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password
       });
 
       if (signInError) throw signInError;
 
-      // Close modal on success
+      // Close modal on success & proceed to app
       setDeviceConflictModal(false);
+      navigate(destination, { replace: true });
     } catch (err) {
       setTakeoverError(formatAuthError(err, language));
     } finally {
@@ -1231,10 +1232,10 @@ export default function AuthPage() {
               📱
             </div>
             <div className="space-y-1">
-              <h3 className="text-white font-black text-base">
+              <div role="heading" aria-level="3" className="text-white font-black text-base" style={{ color: '#ffffff' }}>
                 {language === 'hi' ? 'खाता अन्य डिवाइस पर सक्रिय है' : 'Account Active on Other Devices'}
-              </h3>
-              <p className="text-slate-300 text-xs leading-relaxed">
+              </div>
+              <p className="text-slate-300 text-xs leading-relaxed" style={{ color: '#cbd5e1' }}>
                 {language === 'hi'
                   ? 'आपका Zyvra खाता पहले से दूसरे डिवाइस पर लॉग इन है। जैसे ही आप यहाँ लॉग इन करेंगे, आपके पुराने डिवाइस से खाता स्वतः लॉग आउट हो जाएगा।'
                   : 'Your Zyvra account is currently signed in on other devices. Logging in here will automatically sign out your oldest device.'}

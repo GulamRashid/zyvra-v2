@@ -42,6 +42,7 @@ export default function QuizResult() {
   const location = useLocation();
   const { user, supabase, refreshAccount } = useAuth();
   const { language: appLanguage } = useThemeLanguage();
+  const [language, setLanguage] = useState(appLanguage || 'en');
 
   const rawReturn = location.state?.returnTo || sessionStorage.getItem('last_quiz_return_url');
   const returnTo = (rawReturn && !rawReturn.startsWith('/quiz/')) ? rawReturn : '/tests';
@@ -313,9 +314,6 @@ export default function QuizResult() {
       console.warn('Unable to toggle bookmark:', e);
     }
   };
-
-  // Language for solutions: 'en' | 'hi'
-  const [language, setLanguage] = useState(appLanguage || 'en');
 
   // Peer Benchmarking Stats
   const [peerStats, setPeerStats] = useState(null);
