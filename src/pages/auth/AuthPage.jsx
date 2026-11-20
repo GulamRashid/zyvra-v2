@@ -428,8 +428,10 @@ export default function AuthPage() {
         }
       }
     } catch (authError) {
+      console.log('[AuthPage Catch]', authError?.message, authError);
       const detail = authError?.message || (typeof authError === 'object' ? JSON.stringify(authError) : String(authError));
       if (/two devices|already signed in|already active/i.test(detail)) {
+        console.log('[AuthPage] Setting deviceConflictModal to true!');
         setDeviceConflictModal(true);
         setError('');
         return;

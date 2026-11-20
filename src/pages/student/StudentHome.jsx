@@ -143,7 +143,7 @@ export default function StudentHome() {
       try {
         let attemptsQuery = supabase
           .from('test_attempts')
-          .select('id, test_id, score, total_questions, status, started_at, completed_at, submitted_at, finished_at')
+          .select('id, test_id, score, total_questions, status, started_at, completed_at, submitted_at')
           .order('started_at', { ascending: false });
 
         if (user?.id) {
