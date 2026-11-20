@@ -376,8 +376,10 @@ export default function ZyvraAiGuruModal({
         return;
       }
 
+      const UtteranceClass = typeof window !== 'undefined' ? (window.SpeechSynthesisUtterance || globalThis.SpeechSynthesisUtterance) : null;
+      if (!UtteranceClass) return;
       const sentenceText = sentences[currentSentenceIdx];
-      const utterance = new SpeechSynthesisUtterance(sentenceText);
+      const utterance = new UtteranceClass(sentenceText);
 
       if (chosenVoice) {
         utterance.voice = chosenVoice;

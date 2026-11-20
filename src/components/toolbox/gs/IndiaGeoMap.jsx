@@ -104,7 +104,7 @@ export default function IndiaGeoMap() {
       items = items.filter((item) =>
         item.nameEn.toLowerCase().includes(q) ||
         item.nameHi.toLowerCase().includes(q) ||
-        (item.states && (Array.isArray(item.states) ? item.states.some((s) => (typeof s === 'string' ? s.toLowerCase() : s.en?.toLowerCase()).includes(q)) : false)) ||
+        (item.states && (Array.isArray(item.states) ? item.states.some((s) => (typeof s === 'string' ? s.toLowerCase() : (s?.en?.toLowerCase() || '')).includes(q)) : false)) ||
         (item.stateEn && item.stateEn.toLowerCase().includes(q)) ||
         (item.stateHi && item.stateHi.toLowerCase().includes(q))
       );

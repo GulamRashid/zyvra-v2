@@ -1331,7 +1331,11 @@ export default function StudentProfile() {
             {/* 1. Direct Live AI & Admin Support Chat */}
             <button
               type="button"
-              onClick={() => window.dispatchEvent(new CustomEvent('zyvra:open-support-chat'))}
+              onClick={() => {
+                if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
+                  window.dispatchEvent(new window.CustomEvent('zyvra:open-support-chat'));
+                }
+              }}
               className="w-full flex items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group text-left border-b dark:border-slate-800/60 border-slate-100"
             >
               <div className="flex items-center gap-3 min-w-0">
@@ -1806,7 +1810,9 @@ export default function StudentProfile() {
                 type="button"
                 onClick={() => {
                   setSupportModalOpen(false);
-                  window.dispatchEvent(new CustomEvent('zyvra:open-support-chat'));
+                  if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
+                    window.dispatchEvent(new window.CustomEvent('zyvra:open-support-chat'));
+                  }
                 }}
                 className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
               >

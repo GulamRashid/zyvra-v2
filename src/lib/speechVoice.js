@@ -43,16 +43,17 @@ export function prepareSpeechText(rawText) {
   s = s.replace(/\^2/g, ' स्क्वायर ');
   s = s.replace(/\^3/g, ' क्यूब ');
 
-  // 3. Remove all Unicode emojis and pictographs (⚡, 🏔️, 📖, ⚠️, 📌, etc.)
+  // 3. Remove all Unicode emojis and pictographs
   try {
-    s = s.replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}\u200d\ufe0f]/gu, '');
+    s = s.replace(/[\p{Extended_Pictographic}\p{Emoji_Presentation}]/gu, '');
   } catch {
     // Fallback regex if unicode property escapes are restricted
-    s = s.replace(/[\uD83C-\uDBFF\uDC00-\uDFFF]+/g, '');
+    s = s.replace(/(?:[\uD83C-\uDBFF][\uDC00-\uDFFF])+/g, '');
   }
+  s = s.replaceAll('\u200d', '').replaceAll('\ufe0f', '');
 
   // 4. Remove special decorative symbols, bullets, hashes, asterisks
-  s = s.replace(/[✦★⚡⚠️📌🚀🏔️📖💡•–—_`~|]/g, ' ');
+  s = s.replace(/[✦★•–—_`~|]/g, ' ');
   s = s.replace(/^#+\s+/gm, '');
   s = s.replace(/\*+/g, '');
   s = s.replace(/\$+/g, '');

@@ -225,6 +225,29 @@ export default function QuestionPracticeModal({
     currentQ ? getResolvedOptionEntries(currentQ) : []
   ), [currentQ]);
 
+  const practiceStats = useMemo(() => {
+    let correct = 0;
+    let wrong = 0;
+    safeQuestions.forEach((q, idx) => {
+      const qId = String(q.id || idx);
+      const sel = selectedOptions[qId];
+      if (sel) {
+        const ans = normalizeCorrectAnswer(
+          q.correct_answer ?? q.correct_option ?? q.answer ?? extraAnswerMap[qId],
+          q.options
+        );
+        if (ans && String(sel).trim().toUpperCase() === ans) {
+          correct += 1;
+        } else if (ans) {
+          wrong += 1;
+        }
+      }
+    });
+    const answered = Object.keys(selectedOptions).length;
+    const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
+    return { correct, wrong, answered, total: safeQuestions.length, accuracy };
+  }, [safeQuestions, selectedOptions, extraAnswerMap]);
+
   if (!currentQ) return null;
 
   // Resolve question text bilingual
@@ -286,29 +309,6 @@ export default function QuestionPracticeModal({
   };
 
   const answeredCount = Object.keys(selectedOptions).length;
-
-  const practiceStats = useMemo(() => {
-    let correct = 0;
-    let wrong = 0;
-    safeQuestions.forEach((q, idx) => {
-      const qId = String(q.id || idx);
-      const sel = selectedOptions[qId];
-      if (sel) {
-        const ans = normalizeCorrectAnswer(
-          q.correct_answer ?? q.correct_option ?? q.answer ?? extraAnswerMap[qId],
-          q.options
-        );
-        if (ans && String(sel).trim().toUpperCase() === ans) {
-          correct += 1;
-        } else if (ans) {
-          wrong += 1;
-        }
-      }
-    });
-    const answered = Object.keys(selectedOptions).length;
-    const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0;
-    return { correct, wrong, answered, total: safeQuestions.length, accuracy };
-  }, [safeQuestions, selectedOptions, extraAnswerMap]);
 
   return (
     <div

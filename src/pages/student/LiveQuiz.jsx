@@ -20,6 +20,7 @@ import {
   LockKeyhole,
   Pause,
   Play,
+  RefreshCw,
   RotateCcw,
   Target,
   Maximize2,

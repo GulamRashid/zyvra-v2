@@ -214,7 +214,9 @@ export default function QuizResult() {
       ? `सवाल नंबर ${idx + 1}. ${qText}. आपका उत्तर था ${chosenKey ? `विकल्प ${chosenKey}` : 'छोड़ा गया'}. सही उत्तर है विकल्प ${correctKey}. मुख्य बिंदु: ${cleanExpl}`
       : `Question ${idx + 1}. ${qText}. Your selection was ${chosenKey ? `Option ${chosenKey}` : 'Skipped'}. The correct answer is Option ${correctKey}. Explanation: ${cleanExpl}`;
 
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    const UtteranceClass = typeof window !== 'undefined' ? (window.SpeechSynthesisUtterance || globalThis.SpeechSynthesisUtterance) : null;
+    if (!UtteranceClass) return;
+    const utterance = new UtteranceClass(textToSpeak);
     utterance.lang = language === 'hi' ? 'hi-IN' : 'en-US';
     utterance.rate = 0.95;
 

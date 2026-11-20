@@ -15,8 +15,12 @@ const FALLBACK_B64_KEY = 'QVEuQWI4Uk42SUdXV0ZQMUhUS0ltT21UMzNRUGU2Um82eGM2bnV6ci
 
 const decodeBase64 = (str) => {
   try {
-    if (typeof atob === 'function') return atob(str);
-    if (typeof Buffer !== 'undefined') return Buffer.from(str, 'base64').toString('utf8');
+    if (typeof globalThis !== 'undefined' && typeof globalThis.atob === 'function') {
+      return globalThis.atob(str);
+    }
+    if (typeof globalThis !== 'undefined' && typeof globalThis.Buffer !== 'undefined') {
+      return globalThis.Buffer.from(str, 'base64').toString('utf8');
+    }
   } catch {
     return '';
   }
@@ -27,8 +31,8 @@ const getEnvApiKey = () => {
   if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) {
     return import.meta.env.VITE_GEMINI_API_KEY;
   }
-  if (typeof process !== 'undefined' && process.env?.VITE_GEMINI_API_KEY) {
-    return process.env.VITE_GEMINI_API_KEY;
+  if (typeof globalThis !== 'undefined' && globalThis.process?.env?.VITE_GEMINI_API_KEY) {
+    return globalThis.process.env.VITE_GEMINI_API_KEY;
   }
   return decodeBase64(FALLBACK_B64_KEY);
 };
@@ -432,13 +436,15 @@ export async function streamZyvraAiGuru({
         throw new Error(errMsg);
       }
 
-      if (!response.body || !response.body.getReader) {
-        // Fallback if ReadableStream is not available
+      const DecoderClass = typeof globalThis !== 'undefined' ? (globalThis.TextDecoder || window.TextDecoder) : null;
+      const decoder = DecoderClass ? new DecoderClass('utf-8') : null;
+
+      if (!response.body || !response.body.getReader || !decoder) {
+        // Fallback if ReadableStream or TextDecoder is not available
         return await queryZyvraAiGuru({ prompt, context, conversationHistory, config });
       }
 
       const reader = response.body.getReader();
-      const decoder = new TextDecoder('utf-8');
       let accumulatedText = '';
       let buffer = '';
 
