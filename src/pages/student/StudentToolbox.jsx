@@ -30,6 +30,7 @@ import ExamCountdown from '../../components/toolbox/productivity/ExamCountdown';
 import Flashcards from '../../components/toolbox/productivity/Flashcards';
 import MistakeNotebook from '../../components/toolbox/productivity/MistakeNotebook';
 import ToolUnlockModal from '../../components/toolbox/ToolUnlockModal';
+import ZyvraAiGuruModal from '../../components/toolbox/ai/ZyvraAiGuruModal';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
@@ -68,6 +69,7 @@ const CATEGORY_TOOLS = {
     { id: 'reasoning-formulas', titleKey: 'tbReasoningFormulas', subtitleKey: 'tbReasoningFormulasDesc', Icon: Sigma, accessKey: 'formula-sheet' }
   ],
   productivity: [
+    { id: 'zyvra-ai-guru', titleKey: 'tbAiGuru', subtitleKey: 'tbAiGuruDesc', Icon: Sparkles, accessKey: null, isFree: true },
     { id: 'risk-simulator', titleKey: 'tbRiskSimulator', subtitleKey: 'tbRiskSimulatorDesc', Icon: Target, accessKey: null, isFree: true },
     { id: 'pomodoro', titleKey: 'tbPomodoro', subtitleKey: 'tbPomodoroDesc', Icon: Clock3, accessKey: null, isFree: true },
     { id: 'sticky-notes', titleKey: 'tbStickyNotes', subtitleKey: 'tbStickyNotesDesc', Icon: StickyNote, accessKey: null, isFree: true },
@@ -504,6 +506,7 @@ export default function StudentToolbox() {
     if (activeTool === 'blood-relations') return <BloodRelations />;
     if (activeTool === 'direction-compass') return <DirectionCompass />;
     if (activeTool === 'dice-rules') return <DiceRules />;
+    if (activeTool === 'zyvra-ai-guru') return <ZyvraAiGuruModal isOpen={true} onClose={goBack} />;
     if (activeTool === 'risk-simulator') return <NegativeMarkingSimulator />;
     if (activeTool === 'geo-map-explorer') return <IndiaGeoMap />;
     if (activeTool === 'constitution-articles') return <ConstitutionArticles />;
@@ -764,6 +767,7 @@ export default function StudentToolbox() {
 
               <div className="grid grid-cols-3 sm:grid-cols-6 min-w-0 gap-1.5 sm:gap-2">
                 {[
+                  { id: 'zyvra-ai-guru', cat: 'productivity', label: language === 'hi' ? 'AI गुरु डाउट' : 'AI Doubt Guru', icon: Sparkles, color: 'text-amber-500' },
                   { id: 'risk-simulator', cat: 'productivity', label: language === 'hi' ? 'रिस्क कैलकुलेटर' : 'Risk Simulator', icon: Target, color: 'text-amber-500' },
                   { id: 'mistake-notebook', cat: 'revision', label: language === 'hi' ? 'गलती नोटबुक' : 'Mistake Vault', icon: ListChecks, color: 'text-indigo-500' },
                   { id: 'constitution-articles', cat: 'general-studies', label: language === 'hi' ? 'संविधान अनुच्छेद' : 'Polity Vault', icon: Landmark, color: 'text-emerald-500' },

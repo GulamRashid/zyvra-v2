@@ -2,11 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle, ArrowLeft, ArrowRight, BarChart3, Bookmark, BookOpen,
   Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
-  CircleX, Filter, Lightbulb, MinusCircle, Plus, RotateCcw, Share2, Target, Trophy
+  CircleX, Filter, Lightbulb, MinusCircle, Plus, RotateCcw, Share2, Sparkles, Target, Trophy
 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import QuestionFormatter from '../../components/common/QuestionFormatter';
+import ZyvraAiGuruModal from '../../components/toolbox/ai/ZyvraAiGuruModal';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
@@ -59,6 +60,33 @@ export default function QuizResult() {
 
   // Solution Explanation Collapsible
   const [explanationExpanded, setExplanationExpanded] = useState(true);
+
+  // Zyvra AI Guru Modal State
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiContext, setAiContext] = useState('');
+
+  const openAiForQuestion = (solItem) => {
+    if (!solItem) return;
+    const q = solItem.question || solItem;
+    const qText = language === 'hi' ? (q.question_text_hi || q.question_text) : (q.question_text || q.question_text_hi);
+    const optionsList = getOptionEntries(q.options || solItem.options);
+    const optionsStr = optionsList.map(([k, v]) => {
+      const val = typeof v === 'object' ? (language === 'hi' ? v.hi || v.text_hi || v.en || v.text : v.en || v.text) : v;
+      return `${k}. ${val}`;
+    }).join('\n');
+    const correctKey = normalizeCorrectAnswer(solItem.correct_answer || q.correct_answer, q.options || solItem.options);
+    const studentSel = solItem.student_selected || solItem.selected_option || 'None';
+    
+    const contextStr = `Exam: ${result?.test_title || 'Mock Test'}\nQuestion:\n${qText}\n\nOptions:\n${optionsStr}\n\nCorrect Answer: Option ${correctKey}\nStudent Answer: Option ${studentSel}`;
+    const promptStr = language === 'hi'
+      ? 'कृपया इस प्रश्न का सही उत्तर, इसके पीछे का कॉन्सेप्ट और इसे परीक्षा में तेज़ी से हल करने की शॉर्टकट ट्रिक समझाएं।'
+      : `Please explain the concept and shortcut trick for this question, and clarify why Option ${correctKey} is correct.`;
+
+    setAiContext(contextStr);
+    setAiPrompt(promptStr);
+    setAiModalOpen(true);
+  };
 
   // Bookmark state
   const [bookmarked, setBookmarked] = useState(() => {
@@ -993,13 +1021,27 @@ export default function QuizResult() {
                     {/* Header */}
                     <div
                       onClick={() => setExplanationExpanded(!explanationExpanded)}
-                      className="flex items-center justify-between cursor-pointer select-none"
+                      className="flex items-center justify-between cursor-pointer select-none flex-wrap gap-2"
                     >
                       <div className="flex items-center gap-2 text-sm sm:text-base font-black dark:text-amber-300 text-amber-700">
                         <Lightbulb size={18} className="text-amber-500" />
                         <span>{language === 'hi' ? 'व्याख्या (Explanation)' : 'Detailed Explanation'}</span>
                       </div>
-                      {explanationExpanded ? <ChevronUp size={18} className="dark:text-slate-400 text-slate-600" /> : <ChevronDown size={18} className="dark:text-slate-400 text-slate-600" />}
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openAiForQuestion(currentSolution);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-bold text-amber-600 dark:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 transition-all active:scale-95 cursor-pointer shadow-xs"
+                          title="Ask Zyvra AI Guru for deep explanation or shortcut"
+                        >
+                          <Sparkles size={12} className="text-amber-500" />
+                          <span>{language === 'hi' ? 'AI से समझें' : 'Explain with AI'}</span>
+                        </button>
+                        {explanationExpanded ? <ChevronUp size={18} className="dark:text-slate-400 text-slate-600" /> : <ChevronDown size={18} className="dark:text-slate-400 text-slate-600" />}
+                      </div>
                     </div>
 
                     {explanationExpanded && currentParsed && (
@@ -1231,6 +1273,15 @@ export default function QuizResult() {
           <span>{toastMessage.text}</span>
         </aside>
       )}
+
+      {/* Zyvra AI Guru Doubt Modal */}
+      <ZyvraAiGuruModal
+        isOpen={aiModalOpen}
+        onClose={() => setAiModalOpen(false)}
+        initialPrompt={aiPrompt}
+        initialContext={aiContext}
+        examTitle={result?.test_title}
+      />
     </div>
   );
 }

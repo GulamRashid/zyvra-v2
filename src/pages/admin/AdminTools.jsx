@@ -12,11 +12,13 @@ import {
   RefreshCw,
   Save,
   Search,
+  Sparkles,
   Unlock,
   Wrench
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import { getAiConfig, saveAiConfig, DEFAULT_AI_CONFIG } from '../../lib/gemini';
 
 // Canonical fallback tools if platform_settings has not been populated yet
 const DEFAULT_SYSTEM_TOOLS = [
@@ -177,6 +179,26 @@ export default function AdminTools() {
   const [statusMessage, setStatusMessage] = useState({ text: '', type: '' });
 
 
+  // Zyvra AI Guru Configuration State
+  const [aiConfig, setAiConfig] = useState(DEFAULT_AI_CONFIG);
+  const [savingAi, setSavingAi] = useState(false);
+  const [aiSaveFeedback, setAiSaveFeedback] = useState('');
+
+  const handleSaveAiConfig = async () => {
+    setSavingAi(true);
+    setAiSaveFeedback('');
+    try {
+      await saveAiConfig(supabase, aiConfig);
+      setAiSaveFeedback('AI Guru settings saved successfully!');
+      setTimeout(() => setAiSaveFeedback(''), 3000);
+    } catch (err) {
+      console.error('Failed to save AI config:', err);
+      setAiSaveFeedback('Error saving AI settings');
+    } finally {
+      setSavingAi(false);
+    }
+  };
+
   // Fetch real tools from Supabase platform_settings
   const fetchToolsConfig = useCallback(async () => {
     if (!supabase) {
@@ -206,6 +228,7 @@ export default function AdminTools() {
       setToolboxPricing({ tools: pricing.tools || {}, combo: pricing.combo || { price: 0, validity_days: 30 } });
       setBundlePrice(Math.max(0, Number(pricing.combo?.price) || 0));
       setBundleValidityDays(Math.min(3650, Math.max(1, Number(pricing.combo?.validity_days) || 30)));
+      getAiConfig(supabase).then((cfg) => { if (cfg) setAiConfig(cfg); }).catch(() => {});
 
       if (!error && data?.setting_value && Array.isArray(data.setting_value) && data.setting_value.length > 0) {
         // Map database setting to UI model
@@ -783,6 +806,92 @@ export default function AdminTools() {
                 <label className="text-[10px] font-bold text-slate-300">Validity (days)<input type="number" min="1" max="3650" value={bundleValidityDays} onChange={(e) => setBundleValidityDays(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>
               </div>
               <button type="button" disabled={saving} onClick={saveBundlePricing} className="w-full py-2 rounded-lg bg-amber-400 text-slate-950 text-xs font-black disabled:opacity-50">Save bundle price</button>
+
+              {/* Zyvra AI Guru Controls & Quotas */}
+              <div className="pt-2 border-t border-slate-700/60 mt-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                    <Sparkles size={12} />
+                    <span>Zyvra AI Guru Controls</span>
+                  </h4>
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(aiConfig?.enabled)}
+                      onChange={(e) => setAiConfig((c) => ({ ...c, enabled: e.target.checked }))}
+                      className="accent-amber-400"
+                    />
+                    <span>{aiConfig?.enabled ? 'Active (ON)' : 'Disabled'}</span>
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <label className="text-[10px] font-bold text-slate-300">
+                    Free Qs / day
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={aiConfig?.freeQuestionsPerDay ?? 3}
+                      onChange={(e) => setAiConfig((c) => ({ ...c, freeQuestionsPerDay: Math.max(0, Number(e.target.value) || 0) }))}
+                      className="mt-1 w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-bold"
+                    />
+                  </label>
+
+                  <label className="text-[10px] font-bold text-slate-300">
+                    Coins / extra Q
+                    <input
+                      type="number"
+                      min="0"
+                      max="50"
+                      value={aiConfig?.coinsPerQuestion ?? 2}
+                      onChange={(e) => setAiConfig((c) => ({ ...c, coinsPerQuestion: Math.max(0, Number(e.target.value) || 0) }))}
+                      className="mt-1 w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-bold"
+                    />
+                  </label>
+
+                  <label className="text-[10px] font-bold text-slate-300">
+                    Pass user limit
+                    <input
+                      type="number"
+                      min="1"
+                      max="500"
+                      value={aiConfig?.passUserDailyLimit ?? 50}
+                      onChange={(e) => setAiConfig((c) => ({ ...c, passUserDailyLimit: Math.max(1, Number(e.target.value) || 1) }))}
+                      className="mt-1 w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-bold"
+                    />
+                  </label>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-300 block mb-1">
+                    AI System Prompt / Exam Guidelines
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={aiConfig?.systemPrompt || ''}
+                    onChange={(e) => setAiConfig((c) => ({ ...c, systemPrompt: e.target.value }))}
+                    className="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-[10px] leading-relaxed resize-none focus:outline-none focus:border-amber-400"
+                    placeholder="Customize Zyvra AI Guru persona and rules..."
+                  />
+                </div>
+
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    disabled={savingAi}
+                    onClick={handleSaveAiConfig}
+                    className="flex-1 py-2 rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white text-xs font-black shadow-md disabled:opacity-50 transition-all"
+                  >
+                    {savingAi ? 'Saving AI...' : 'Save AI Guru Controls'}
+                  </button>
+                </div>
+                {aiSaveFeedback && (
+                  <p className="text-[10px] font-bold text-emerald-400 text-center animate-pulse">
+                    {aiSaveFeedback}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
