@@ -386,8 +386,19 @@ export default function LiveQuiz() {
     return new URLSearchParams(location.search).get('mode') === 'mistakes_only' || location.state?.mode === 'mistakes_only';
   }, [location.search, location.state]);
 
-  // Guesswork Risk Analyzer State
-  const [guessedQuestions, setGuessedQuestions] = useState(new Set());
+  // Guesswork Risk Analyzer State with Session Persistence
+  const [guessedQuestions, setGuessedQuestions] = useState(() => {
+    try {
+      if (typeof window !== 'undefined' && testId) {
+        const cached = sessionStorage.getItem(`zyvra_active_guesses_${testId}`);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed)) return new Set(parsed);
+        }
+      }
+    } catch {}
+    return new Set();
+  });
 
   const toggleGuess = useCallback((qId) => {
     if (!qId) return;
@@ -395,9 +406,14 @@ export default function LiveQuiz() {
       const next = new Set(prev);
       if (next.has(qId)) next.delete(qId);
       else next.add(qId);
+      try {
+        if (testId) {
+          sessionStorage.setItem(`zyvra_active_guesses_${testId}`, JSON.stringify(Array.from(next)));
+        }
+      } catch {}
       return next;
     });
-  }, []);
+  }, [testId]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -1345,6 +1361,9 @@ export default function LiveQuiz() {
           }
           if (guessArray.length > 0) {
             sessionStorage.setItem(`zyvra_guesses_${attemptId}`, JSON.stringify(guessArray));
+          }
+          if (testId) {
+            sessionStorage.removeItem(`zyvra_active_guesses_${testId}`);
           }
         } catch {}
       }

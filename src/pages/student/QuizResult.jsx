@@ -247,6 +247,15 @@ export default function QuizResult() {
     setWalkmanOpen(false);
   };
 
+  // Clean up any ongoing TTS speech on component unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
   const openAiForQuestion = (solItem) => {
     if (!solItem) return;
     const q = solItem.question || solItem;
@@ -619,11 +628,10 @@ export default function QuizResult() {
     });
 
     if (wrongList.length > 0) {
-      wrongList.slice(0, 10).forEach(async (item, idx) => {
+      const toSave = wrongList.slice(0, 10);
+      Promise.all(toSave.map(async (item, idx) => {
         const question = item.question || item;
         const qId = String(question.id || item.question_id || `q-${idx}`);
-        if (mistakeSavedIds.has(qId)) return;
-
         const selected = item.student_selected ?? item.selected_option ?? null;
         const rawCorrect = item.correct_answer ?? item.answer_key ?? null;
         const correctKey = normalizeCorrectAnswer(rawCorrect, question.options);
@@ -638,10 +646,12 @@ export default function QuizResult() {
           testTitle: result?.test_title || 'Mock Test'
         }).catch(() => {});
 
-        setMistakeSavedIds((prev) => new Set([...prev, qId]));
+        return qId;
+      })).then((savedIds) => {
+        setMistakeSavedIds((prev) => new Set([...prev, ...savedIds.filter(Boolean)]));
       });
     }
-  }, [solutions, user?.id, result, mistakeSavedIds]);
+  }, [solutions, user?.id, result]);
 
   // Topic Analysis Aggregate: Real Question Grouping by Tags/Subject/Topic
   const topicAnalysis = useMemo(() => {
