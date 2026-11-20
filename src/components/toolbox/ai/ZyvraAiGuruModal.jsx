@@ -16,7 +16,7 @@ import {
   VolumeX,
   X
 } from 'lucide-react';
-import MathRenderer from '../../common/MathRenderer';
+import AiMessageRenderer from './AiMessageRenderer';
 import { useAuth } from '../../../context/AuthContext';
 import { useThemeLanguage } from '../../../context/ThemeLanguageContext';
 import {
@@ -27,6 +27,11 @@ import {
   incrementDailyAiUsage,
   queryZyvraAiGuru
 } from '../../../lib/gemini';
+import {
+  pickBestVoice,
+  prepareSpeechText,
+  splitIntoSentences
+} from '../../../lib/speechVoice';
 
 export default function ZyvraAiGuruModal({
   isOpen,
@@ -46,15 +51,44 @@ export default function ZyvraAiGuruModal({
   const [copiedIndex, setCopiedIndex] = useState(null);
   const [speakingIndex, setSpeakingIndex] = useState(null);
 
+  // Available OS Voices for Speech Synthesis
+  const [voices, setVoices] = useState([]);
+  const speakingQueueRef = useRef({ active: false, stopFn: null });
+
   // Speech Recognition (Voice Input) state
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
-  const [voiceLang, setVoiceLang] = useState(() => (language === 'hi' ? 'hi-IN' : 'en-IN'));
+  // Default to Hindi ('hi-IN') for Indian competitive exam aspirants
+  const [voiceLang, setVoiceLang] = useState('hi-IN');
   const recognitionRef = useRef(null);
+  const baseTextRef = useRef('');
   const chatScrollRef = useRef(null);
   const inputRef = useRef(null);
 
   const isHi = language === 'hi';
+
+  // Load voices dynamically on mount
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    const loadVoices = () => {
+      try {
+        const v = window.speechSynthesis.getVoices();
+        if (v && v.length > 0) setVoices(v);
+      } catch {
+        // ignore
+      }
+    };
+
+    loadVoices();
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+
+    return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.onvoiceschanged = null;
+      }
+    };
+  }, []);
 
   // Load config on mount
   useEffect(() => {
@@ -75,33 +109,40 @@ export default function ZyvraAiGuruModal({
     refreshQuota();
   }, [refreshQuota]);
 
-  // Initialize Speech Recognition
+  // Initialize Speech Recognition with accurate interim/final accumulation
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
         setSpeechSupported(true);
         const recognition = new SpeechRecognition();
-        recognition.continuous = false;
+        recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = voiceLang;
 
         recognition.onresult = (event) => {
-          let transcript = '';
+          let finalTranscript = '';
+          let interimTranscript = '';
+
           for (let i = 0; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript;
+            const result = event.results[i];
+            if (result.isFinal) {
+              finalTranscript += result[0].transcript;
+            } else {
+              interimTranscript += result[0].transcript;
+            }
           }
-          if (transcript) {
-            setInputText((prev) => {
-              const trimmed = prev.trim();
-              return trimmed ? `${trimmed} ${transcript}` : transcript;
-            });
-          }
+
+          const currentSessionSpeech = (finalTranscript + (interimTranscript ? ' ' + interimTranscript : '')).trim();
+          const base = baseTextRef.current.trim();
+          setInputText(base ? `${base} ${currentSessionSpeech}` : currentSessionSpeech);
         };
 
         recognition.onerror = (e) => {
-          console.warn('Speech recognition error:', e.error);
-          setIsListening(false);
+          console.warn('Speech recognition warning:', e.error);
+          if (e.error !== 'no-speech') {
+            setIsListening(false);
+          }
         };
 
         recognition.onend = () => {
@@ -113,14 +154,18 @@ export default function ZyvraAiGuruModal({
     }
   }, [voiceLang]);
 
-  // Handle voice toggle
+  // Toggle voice recognition safely
   const toggleListening = () => {
     if (!speechSupported || !recognitionRef.current) return;
+
     if (isListening) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch { /* ignore */ }
       setIsListening(false);
     } else {
       try {
+        baseTextRef.current = inputText;
         recognitionRef.current.lang = voiceLang;
         recognitionRef.current.start();
         setIsListening(true);
@@ -148,7 +193,16 @@ export default function ZyvraAiGuruModal({
     }
   }, [messages, loading]);
 
-  // Close modal on ESC key
+  // Cleanup speech on unmount or ESC key
+  const handleClose = () => {
+    if (isListening && recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch { /* ignore */ }
+      setIsListening(false);
+    }
+    stopSpeaking();
+    onClose();
+  };
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e) => {
@@ -158,22 +212,17 @@ export default function ZyvraAiGuruModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  const handleClose = () => {
-    if (isListening && recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    }
-    if (window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      setSpeakingIndex(null);
-    }
-    onClose();
-  };
-
   // Send message
   const handleSend = async (overridePrompt = null) => {
     const textToSend = (overridePrompt || inputText).trim();
     if (!textToSend || loading) return;
+
+    // Stop listening if speaking
+    if (isListening && recognitionRef.current) {
+      try { recognitionRef.current.stop(); } catch { /* ignore */ }
+      setIsListening(false);
+    }
+    stopSpeaking();
 
     setErrorMsg('');
 
@@ -188,6 +237,7 @@ export default function ZyvraAiGuruModal({
     const nextMessages = [...messages, userMessage];
     setMessages(nextMessages);
     setInputText('');
+    baseTextRef.current = '';
     setLoading(true);
 
     try {
@@ -220,12 +270,12 @@ export default function ZyvraAiGuruModal({
         }
       }
 
-      setMessages((prev) => [
-        ...prev,
+      setMessages([
+        ...nextMessages,
         {
           role: 'model',
           text: response.text,
-          modelUsed: response.modelUsed,
+          model: response.model,
           timestamp: Date.now()
         }
       ]);
@@ -247,26 +297,80 @@ export default function ZyvraAiGuruModal({
     setTimeout(() => setCopiedIndex(null), 2000);
   };
 
-  // Text-to-speech audio reader
+  // Stop currently playing speech
+  const stopSpeaking = () => {
+    speakingQueueRef.current.active = false;
+    if (speakingQueueRef.current.stopFn) {
+      speakingQueueRef.current.stopFn();
+      speakingQueueRef.current.stopFn = null;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    setSpeakingIndex(null);
+  };
+
+  // Refined natural audio reader with feeling, natural pauses, and emoji-free speech
   const handleSpeak = (text, idx) => {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
     if (speakingIndex === idx) {
-      window.speechSynthesis.cancel();
-      setSpeakingIndex(null);
+      stopSpeaking();
       return;
     }
 
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text.replace(/[*#$`]/g, ''));
-    utterance.lang = voiceLang;
-    utterance.rate = 1.0;
+    stopSpeaking();
 
-    utterance.onend = () => setSpeakingIndex(null);
-    utterance.onerror = () => setSpeakingIndex(null);
+    // 1. Clean the text (no emojis, no asterisks, friendly math phrases)
+    const cleanSpeech = prepareSpeechText(text);
+    if (!cleanSpeech) return;
 
+    // 2. Split into sentence chunks for natural breathing cadence & zero timeouts
+    const sentences = splitIntoSentences(cleanSpeech);
+    if (sentences.length === 0) return;
+
+    // 3. Find the best human voice
+    const chosenVoice = pickBestVoice(voices, voiceLang);
+
+    speakingQueueRef.current.active = true;
     setSpeakingIndex(idx);
-    window.speechSynthesis.speak(utterance);
+
+    let currentSentenceIdx = 0;
+
+    const speakNextSentence = () => {
+      if (!speakingQueueRef.current.active || currentSentenceIdx >= sentences.length) {
+        stopSpeaking();
+        return;
+      }
+
+      const sentenceText = sentences[currentSentenceIdx];
+      const utterance = new SpeechSynthesisUtterance(sentenceText);
+
+      if (chosenVoice) {
+        utterance.voice = chosenVoice;
+      }
+      utterance.lang = chosenVoice?.lang || voiceLang;
+      // Pacing for warm, clear teacher explanation
+      utterance.rate = 0.94;
+      utterance.pitch = 1.02;
+
+      utterance.onend = () => {
+        currentSentenceIdx++;
+        // Small 120ms human pause between sentences for emotional resonance
+        setTimeout(() => {
+          speakNextSentence();
+        }, 120);
+      };
+
+      utterance.onerror = (e) => {
+        console.warn('Speech chunk error:', e);
+        stopSpeaking();
+      };
+
+      window.speechSynthesis.speak(utterance);
+    };
+
+    speakNextSentence();
   };
 
   if (!isOpen) return null;
@@ -280,7 +384,7 @@ export default function ZyvraAiGuruModal({
     {
       labelHi: '📖 स्टेप-बाय-स्टेप कॉन्सेप्ट',
       labelEn: '📖 Step-by-Step Concept',
-      prompt: 'Kripya iska foundational concept aasan bhasha me samjhaiye.'
+      prompt: 'Kripya iska foundational concept saral bhasha me step-by-step samjhaiye.'
     },
     {
       labelHi: '⚠️ सामान्य गलतियाँ (Pitfalls)',
@@ -339,12 +443,15 @@ export default function ZyvraAiGuruModal({
             {/* Language Switcher for Voice & Text */}
             <button
               type="button"
-              onClick={() => setVoiceLang((prev) => (prev === 'hi-IN' ? 'en-IN' : 'hi-IN'))}
-              className="px-2.5 py-1 rounded-xl text-xs font-black dark:bg-slate-800 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 border dark:border-slate-700 border-slate-200 transition-colors flex items-center gap-1"
-              title="Change language"
+              onClick={() => {
+                setVoiceLang((prev) => (prev === 'hi-IN' ? 'en-IN' : 'hi-IN'));
+                stopSpeaking();
+              }}
+              className="px-2.5 py-1 rounded-xl text-xs font-black dark:bg-slate-800 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 border dark:border-slate-700 border-slate-200 transition-colors flex items-center gap-1.5"
+              title={voiceLang === 'hi-IN' ? 'Switch to English' : 'हिंदी पर स्विच करें'}
             >
-              <Globe size={12} className="text-indigo-400" />
-              <span>{voiceLang === 'hi-IN' ? 'हिन्दी' : 'EN'}</span>
+              <Globe size={13} className="text-indigo-400" />
+              <span>{voiceLang === 'hi-IN' ? '🇮🇳 हिन्दी' : '🇬🇧 EN'}</span>
             </button>
 
             {/* Close Button */}
@@ -405,21 +512,23 @@ export default function ZyvraAiGuruModal({
                   {msg.text}
                 </div>
               ) : (
-                <div className="max-w-[92%] space-y-2">
+                <div className="max-w-[95%] sm:max-w-[90%] space-y-2">
                   <div className="flex items-center gap-2 text-[10px] font-bold text-amber-500 uppercase tracking-wider">
                     <Sparkles size={11} />
                     <span>Zyvra AI Guru</span>
                   </div>
-                  <div className="rounded-2xl rounded-tl-sm p-4 text-xs sm:text-sm leading-relaxed dark:bg-slate-900/70 bg-slate-50 border dark:border-slate-800 border-slate-200 text-slate-800 dark:text-slate-200 shadow-xs whitespace-pre-wrap">
-                    <MathRenderer content={msg.text} />
+
+                  {/* Refined rich typography message body */}
+                  <div className="rounded-2xl rounded-tl-sm p-4 text-xs sm:text-sm leading-relaxed dark:bg-slate-900/70 bg-slate-50 border dark:border-slate-800 border-slate-200 text-slate-800 dark:text-slate-200 shadow-xs">
+                    <AiMessageRenderer content={msg.text} />
                   </div>
 
-                  {/* Micro Actions: Copy & Listen */}
+                  {/* Micro Actions: Copy & Expressive Listen */}
                   <div className="flex items-center gap-2 pt-1 pl-1">
                     <button
                       type="button"
                       onClick={() => handleCopy(msg.text, idx)}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                      className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
                       title="Copy explanation"
                     >
                       {copiedIndex === idx ? (
@@ -438,18 +547,22 @@ export default function ZyvraAiGuruModal({
                     <button
                       type="button"
                       onClick={() => handleSpeak(msg.text, idx)}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-amber-500 transition-colors ml-2"
-                      title="Listen aloud"
+                      className={`inline-flex items-center gap-1 text-[11px] font-bold transition-all px-2.5 py-1 rounded-lg ${
+                        speakingIndex === idx
+                          ? 'bg-amber-500 text-white shadow-xs animate-pulse'
+                          : 'text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                      }`}
+                      title={speakingIndex === idx ? 'आवाज़ रोकें (Stop audio)' : 'स्पष्ट आवाज़ में सुनें (Listen aloud)'}
                     >
                       {speakingIndex === idx ? (
                         <>
-                          <VolumeX size={12} className="text-amber-500" />
-                          <span className="text-amber-500">Stop</span>
+                          <VolumeX size={13} className="text-white" />
+                          <span>Stop</span>
                         </>
                       ) : (
                         <>
-                          <Volume2 size={12} />
-                          <span>Listen</span>
+                          <Volume2 size={13} />
+                          <span>Listen (सुनें)</span>
                         </>
                       )}
                     </button>
@@ -480,20 +593,53 @@ export default function ZyvraAiGuruModal({
 
         {/* Minimalist Input Footer */}
         <footer className="p-3 sm:p-4 border-t dark:border-slate-800/80 border-slate-100 bg-white/70 dark:bg-[#0B1120]/70 backdrop-blur-md shrink-0">
-          {/* Voice Listening Bar Indicator */}
+          {/* Active Listening Indicator */}
           {isListening && (
-            <div className="mb-2.5 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center justify-between animate-pulse">
+            <div className="mb-2 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-bold flex items-center justify-between animate-pulse">
               <span className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-amber-500" />
-                {isHi ? 'सुन रहे हैं… बोलिए' : 'Listening… Speak your question'} ({voiceLang})
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+                <span>
+                  {voiceLang === 'hi-IN' ? '🔴 सुन रहा हूँ… बोलिए (हिंदी)' : '🔴 Listening… Speak now (English)'}
+                </span>
               </span>
               <button
                 type="button"
                 onClick={toggleListening}
-                className="text-[10px] underline uppercase tracking-wider"
+                className="text-[10px] font-black uppercase tracking-wider text-rose-500 hover:underline"
               >
                 Stop
               </button>
+            </div>
+          )}
+
+          {/* Quick Mic Language Toggle Badge */}
+          {speechSupported && (
+            <div className="flex items-center justify-between mb-1.5 px-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const nextLang = voiceLang === 'hi-IN' ? 'en-IN' : 'hi-IN';
+                  setVoiceLang(nextLang);
+                  if (recognitionRef.current) {
+                    recognitionRef.current.lang = nextLang;
+                  }
+                  stopSpeaking();
+                }}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-500 hover:text-amber-500 dark:text-slate-400 transition-colors"
+                title="वॉयस टाइपिंग भाषा बदलें"
+              >
+                <Mic size={12} className="text-amber-500" />
+                <span>
+                  वॉयस इनपुट भाषा:{' '}
+                  <strong className="text-amber-600 dark:text-amber-400 underline underline-offset-2">
+                    {voiceLang === 'hi-IN' ? '🇮🇳 हिंदी (Hindi)' : '🇬🇧 English'}
+                  </strong>
+                </span>
+              </button>
+
+              <span className="text-[10px] text-slate-400">
+                (बदलने के लिए टैप करें)
+              </span>
             </div>
           )}
 
@@ -510,26 +656,26 @@ export default function ZyvraAiGuruModal({
                 }
               }}
               placeholder={
-                isHi
-                  ? 'अपना सवाल हिंदी या इंग्लिश में लिखें… (या माइक दबाकर बोलें)'
-                  : 'Type your doubt in Hindi or English… (or use mic)'
+                voiceLang === 'hi-IN'
+                  ? 'अपना सवाल हिंदी में लिखें या माइक दबाकर बोलें…'
+                  : 'Type your question in English or tap mic to speak…'
               }
               className="flex-1 bg-transparent border-0 outline-hidden resize-none text-xs sm:text-sm dark:text-slate-100 text-slate-800 placeholder-slate-400 leading-relaxed px-1"
             />
 
             <div className="flex items-center gap-1.5 shrink-0 pb-1">
-              {/* Voice Input Button */}
+              {/* Voice Input Mic Button */}
               {speechSupported && (
                 <button
                   type="button"
                   onClick={toggleListening}
                   className={`p-2 rounded-xl transition-all ${
                     isListening
-                      ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30 animate-pulse'
+                      ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30 scale-105 animate-pulse'
                       : 'text-slate-400 hover:text-amber-500 hover:bg-slate-200/50 dark:hover:bg-slate-800'
                   }`}
                   aria-label={isListening ? 'Stop listening' : 'Speak doubt'}
-                  title={isListening ? 'Stop voice input' : 'Speak your question (माइक दबाकर बोलें)'}
+                  title={isListening ? 'माइक बंद करें (Stop)' : `माइक से बोलें (${voiceLang === 'hi-IN' ? 'हिंदी' : 'English'})`}
                 >
                   {isListening ? <MicOff size={16} /> : <Mic size={16} />}
                 </button>

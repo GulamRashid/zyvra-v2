@@ -5,6 +5,11 @@ import {
   checkAiPermission,
   queryZyvraAiGuru
 } from '../src/lib/gemini.js';
+import {
+  prepareSpeechText,
+  splitIntoSentences,
+  pickBestVoice
+} from '../src/lib/speechVoice.js';
 
 test('checkAiPermission: allows free queries within daily free limit', () => {
   const config = { ...DEFAULT_AI_CONFIG, freeQuestionsPerDay: 3, coinsPerQuestion: 2 };
@@ -49,3 +54,41 @@ test('queryZyvraAiGuru: rejects empty prompt before network call', async () => {
     { message: /Please enter a question/ }
   );
 });
+
+test('prepareSpeechText: scrubs emojis and markdown asterisks for natural voice synthesis', () => {
+  const raw = '### 🏔️ **रोहतांग दर्रा** (Rohtang Pass)\n* **ऊंचाई**: 3,978 मीटर। ⚡ ट्रिक याद रखें: $v = \\frac{d}{t}$!';
+  const cleaned = prepareSpeechText(raw);
+
+  // Emojis must be scrubbed
+  assert.equal(cleaned.includes('🏔️'), false);
+  assert.equal(cleaned.includes('⚡'), false);
+  // Markdown hashes and asterisks must be scrubbed
+  assert.equal(cleaned.includes('*'), false);
+  assert.equal(cleaned.includes('#'), false);
+  // Fractions must be natural words
+  assert.equal(cleaned.includes('बटा'), true);
+});
+
+test('splitIntoSentences: splits Hindi and English by natural sentence terminators', () => {
+  const text = 'रोहतांग दर्रा हिमाचल प्रदेश में है। यह कुल्लू को जोड़ता है! क्या आप समझ गए?';
+  const sentences = splitIntoSentences(text);
+
+  assert.equal(sentences.length, 3);
+  assert.equal(sentences[0].includes('हिमाचल'), true);
+  assert.equal(sentences[1].includes('कुल्लू'), true);
+});
+
+test('pickBestVoice: selects Google or Natural Hindi voice when available', () => {
+  const mockVoices = [
+    { name: 'Microsoft David', lang: 'en-US' },
+    { name: 'Google हिन्दी', lang: 'hi-IN' },
+    { name: 'Microsoft Ravi', lang: 'en-IN' }
+  ];
+
+  const bestHi = pickBestVoice(mockVoices, 'hi-IN');
+  assert.equal(bestHi.name, 'Google हिन्दी');
+
+  const bestEn = pickBestVoice(mockVoices, 'en-IN');
+  assert.equal(bestEn.name, 'Microsoft Ravi');
+});
+
