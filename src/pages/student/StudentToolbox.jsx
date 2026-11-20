@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Binary, Bookmark, BookOpen, Brain, Calculator, Calendar, CalendarDays, ChevronRight,
   Clock, Clock3, Compass, Dices, Heart, Landmark, ListChecks, LockKeyhole, MapPin, Percent, Search,
-  Scale, Shapes, Sigma, StickyNote, Superscript, Target, TrendingUp, Wrench, Zap
+  Scale, Shapes, Sigma, Sparkles, StickyNote, Superscript, Target, TrendingUp, Wrench, Zap
 } from 'lucide-react';
 import CheckoutModal from '../../components/common/CheckoutModal';
 import SmartCalculator from '../../components/toolbox/math/SmartCalculator';
