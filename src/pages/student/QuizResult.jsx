@@ -76,12 +76,18 @@ export default function QuizResult() {
       return `${k}. ${val}`;
     }).join('\n');
     const correctKey = normalizeCorrectAnswer(solItem.correct_answer || q.correct_answer, q.options || solItem.options);
-    const studentSel = solItem.student_selected || solItem.selected_option || 'None';
+    const studentSel = solItem.student_selected || solItem.selected_option || solItem.response?.selected_option || null;
+    const hasSelection = Boolean(studentSel);
+
+    const contextStr = `Exam: ${result?.test_title || 'Mock Test'}\nQuestion:\n${qText}\n\nOptions:\n${optionsStr}\n\nCorrect Answer: Option ${correctKey}\nStudent Answer: ${hasSelection ? `Option ${studentSel}` : 'Skipped / Unanswered'}`;
     
-    const contextStr = `Exam: ${result?.test_title || 'Mock Test'}\nQuestion:\n${qText}\n\nOptions:\n${optionsStr}\n\nCorrect Answer: Option ${correctKey}\nStudent Answer: Option ${studentSel}`;
-    const promptStr = language === 'hi'
-      ? 'कृपया इस प्रश्न का सही उत्तर, इसके पीछे का कॉन्सेप्ट और इसे परीक्षा में तेज़ी से हल करने की शॉर्टकट ट्रिक समझाएं।'
-      : `Please explain the concept and shortcut trick for this question, and clarify why Option ${correctKey} is correct.`;
+    const promptStr = !hasSelection
+      ? (language === 'hi'
+          ? `मैंने यह प्रश्न छोड़ दिया था क्योंकि मुझे इसमें संदेह था। कृपया इसका मूल कॉन्सेप्ट, सही उत्तर (विकल्प ${correctKey}) और इसे परीक्षा में तुरंत हल करने का आसान तरीका समझाएं।`
+          : `I skipped this question due to doubt. Please explain the core concept, why Option ${correctKey} is correct, and an easy method to solve it.`)
+      : (language === 'hi'
+          ? `मैंने इस प्रश्न में विकल्प ${studentSel} चुना जो गलत था, जबकि सही उत्तर विकल्प ${correctKey} है। कृपया मुझे बताएं कि मेरी सोच में क्या चूक हुई, सही उत्तर के पीछे का कॉन्सेप्ट क्या है, और इसे याद रखने की ट्रिक क्या है।`
+          : `I selected Option ${studentSel} which was incorrect; the correct answer is Option ${correctKey}. Please explain where my reasoning went wrong, the core concept, and a memory tip to never miss this.`);
 
     setAiContext(contextStr);
     setAiPrompt(promptStr);
@@ -608,22 +614,66 @@ export default function QuizResult() {
         {/* ======================================================== */}
         {activeTab === 'review' && (
           <div className="space-y-4">
-            {/* Celebration Card */}
-            <div className="dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#1e1b4b] dark:to-[#0B1120] bg-gradient-to-r from-indigo-50 via-slate-50 to-indigo-50/50 border dark:border-indigo-500/30 border-indigo-200 rounded-3xl p-4 sm:p-6 shadow-sm dark:shadow-xl flex items-center gap-3 sm:gap-4 transition-colors">
-              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-amber-400/20 border border-amber-400/35 flex items-center justify-center shrink-0 text-2xl sm:text-3xl shadow-inner">
-                🏆
+            {/* Celebration Card with Dopamine, Coins, & Motivation */}
+            <div className="relative overflow-hidden dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#1e1b4b] dark:to-[#0B1120] bg-gradient-to-r from-indigo-50 via-amber-50/40 to-emerald-50/50 border dark:border-indigo-500/30 border-indigo-200/80 rounded-3xl p-4 sm:p-6 shadow-sm dark:shadow-xl transition-all">
+              {/* Subtle decorative glow */}
+              <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 dark:bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 sm:gap-4">
+                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0 text-2xl sm:text-3xl shadow-inner animate-in zoom-in-95 duration-300">
+                    {percentage >= 80 ? '🏆' : percentage >= 50 ? '🌟' : '🎯'}
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-base sm:text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-1.5">
+                        <span>{appLanguage === 'hi' ? 'टेस्ट सफलतापूर्वक पूरा हुआ' : 'Test Completed Successfully'}</span>
+                        <CheckCircle2 size={18} className="text-emerald-400" />
+                      </h2>
+                    </div>
+                    <p className="text-xs sm:text-sm font-semibold dark:text-slate-300 text-slate-700">
+                      {percentage >= 80
+                        ? (appLanguage === 'hi' ? 'शानदार प्रदर्शन! आप टॉप रैंकर्स की श्रेणी में हैं।' : 'Top-tier mastery! You are performing in the top tier.')
+                        : percentage >= 50
+                        ? (appLanguage === 'hi' ? 'बहुत अच्छा प्रयास! गलतियों को दोहराकर 90%+ का लक्ष्य पाएं।' : 'Solid performance! Revise your mistakes to reach 90%+.')
+                        : (appLanguage === 'hi' ? 'हर गलती सीखने का अवसर है! नीचे AI Guru से डाउट हल करें।' : 'Every mistake is a learning step. Clear doubts with AI Guru below.')}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Coins Earned Dopamine Badge */}
+                <div className="w-full sm:w-auto flex items-center sm:flex-col items-end justify-between sm:justify-center p-2.5 sm:px-4 sm:py-2 rounded-2xl bg-gradient-to-r from-amber-500/20 to-yellow-500/15 border border-amber-400/40 shadow-xs shrink-0 animate-in fade-in duration-300">
+                  <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-black text-xs sm:text-sm">
+                    <span className="text-base sm:text-lg animate-bounce">🪙</span>
+                    <span>+{percentage >= 70 ? '15' : '10'} ZYVRA {appLanguage === 'hi' ? 'कॉइन्स' : 'Coins'}</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-amber-700/80 dark:text-amber-300/80">
+                    {appLanguage === 'hi' ? 'वॉलेट में जोड़े गए' : 'Added to Wallet'}
+                  </span>
+                </div>
               </div>
-              <div className="space-y-1">
-                <h2 className="text-base sm:text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-2">
-                  <span>{appLanguage === 'hi' ? 'टेस्ट सफलतापूर्वक जमा हुआ' : 'Test Submitted Successfully'}</span>
-                  <CheckCircle2 size={18} className="text-emerald-400" />
-                </h2>
-                <p className="text-xs sm:text-sm dark:text-slate-300 text-slate-600 font-medium">
-                  {appLanguage === 'hi'
-                    ? 'आपने टेस्ट पूरा कर लिया है। नीचे अपना स्कोर और विस्तृत समाधान देखें।'
-                    : "You've completed the test. Review your performance and check detailed solutions."}
-                </p>
-              </div>
+
+              {/* Leaderboard & Percentile Highlight Strip */}
+              {peerStats?.percentile !== undefined && peerStats.total_attempts > 1 && (
+                <div className="mt-3.5 pt-3 border-t dark:border-slate-800 border-slate-200/80 flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-bold min-w-0">
+                    <span className="text-base shrink-0">🎯</span>
+                    <span className="truncate">
+                      {appLanguage === 'hi'
+                        ? `लीडरबोर्ड: आप शीर्ष ${Math.max(1, Math.round(100 - peerStats.percentile))}% अभ्यर्थियों में हैं (${peerStats.percentile}% परसेंटाइल)`
+                        : `Leaderboard: Top ${Math.max(1, Math.round(100 - peerStats.percentile))}% Aspirants (Percentile: ${peerStats.percentile}%)`}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('compare')}
+                    className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 hover:underline shrink-0 flex items-center gap-0.5 cursor-pointer"
+                  >
+                    <span>{appLanguage === 'hi' ? 'तुलना देखें' : 'View Stats'}</span>
+                    <ChevronRight size={12} />
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Scorecard Grid */}
@@ -708,56 +758,82 @@ export default function QuizResult() {
                       setCurrentSolutionIndex(origIndex);
                       setActiveTab('solutions');
                     }}
-                    className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/40 transition-all cursor-pointer flex items-center justify-between gap-2.5 sm:gap-3 group shadow-xs"
+                    className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/40 transition-all cursor-pointer flex flex-col gap-2.5 group shadow-xs"
                   >
-                    <div className="flex items-start gap-2.5 sm:gap-3 flex-1 min-w-0">
-                      <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
-                        isCorrect
-                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                          : hasSelection
-                          ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                          : 'dark:bg-slate-800 bg-slate-100 text-slate-400 border dark:border-slate-700 border-slate-300'
-                      }`}>
-                        Q{origIndex + 1}
-                      </span>
+                    <div className="flex items-center justify-between gap-2.5 sm:gap-3 w-full">
+                      <div className="flex items-start gap-2.5 sm:gap-3 flex-1 min-w-0">
+                        <span className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                          isCorrect
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : hasSelection
+                            ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                            : 'dark:bg-slate-800 bg-slate-100 text-slate-400 border dark:border-slate-700 border-slate-300'
+                        }`}>
+                          Q{origIndex + 1}
+                        </span>
 
-                      <div className="space-y-1.5 flex-1 min-w-0">
-                        <p className="text-xs sm:text-sm font-semibold dark:text-white text-slate-900 line-clamp-2 leading-relaxed">
-                          {qText}
-                        </p>
-                        <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-bold">
-                          {hasSelection ? (
-                            <span className="px-2 py-0.5 rounded-md dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 dark:text-slate-300 text-slate-700">
-                              {appLanguage === 'hi' ? 'आपका' : 'Your'}: {chosenKey}
+                        <div className="space-y-1.5 flex-1 min-w-0">
+                          <p className="text-xs sm:text-sm font-semibold dark:text-white text-slate-900 line-clamp-2 leading-relaxed">
+                            {qText}
+                          </p>
+                          <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-bold">
+                            {hasSelection ? (
+                              <span className="px-2 py-0.5 rounded-md dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 dark:text-slate-300 text-slate-700">
+                                {appLanguage === 'hi' ? 'आपका' : 'Your'}: {chosenKey}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-md dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 text-slate-400">
+                                {appLanguage === 'hi' ? 'छोड़ा' : 'Skipped'}
+                              </span>
+                            )}
+                            <span className="px-2 py-0.5 rounded-md dark:bg-emerald-500/15 bg-emerald-50 border dark:border-emerald-500/30 border-emerald-200 text-emerald-600 dark:text-emerald-400">
+                              {appLanguage === 'hi' ? 'उत्तर' : 'Ans'}: {correctKey || 'B'} ✓
                             </span>
-                          ) : (
-                            <span className="px-2 py-0.5 rounded-md dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 text-slate-400">
-                              {appLanguage === 'hi' ? 'छोड़ा' : 'Skipped'}
-                            </span>
-                          )}
-                          <span className="px-2 py-0.5 rounded-md dark:bg-emerald-500/15 bg-emerald-50 border dark:border-emerald-500/30 border-emerald-200 text-emerald-600 dark:text-emerald-400">
-                            {appLanguage === 'hi' ? 'उत्तर' : 'Ans'}: {correctKey || 'B'} ✓
-                          </span>
+                          </div>
                         </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                        {isCorrect ? (
+                          <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                            <Check size={12} strokeWidth={3} /> {appLanguage === 'hi' ? 'सही' : 'Correct'}
+                          </span>
+                        ) : hasSelection ? (
+                          <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-black bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1">
+                            <CircleX size={12} /> {appLanguage === 'hi' ? 'गलत' : 'Incorrect'}
+                          </span>
+                        ) : (
+                          <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold dark:bg-slate-800 bg-slate-100 text-slate-400 border dark:border-slate-700 border-slate-200">
+                            {appLanguage === 'hi' ? 'छोड़ा' : 'Skipped'}
+                          </span>
+                        )}
+                        <ChevronRight size={16} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-800 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-                      {isCorrect ? (
-                        <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                          <Check size={12} strokeWidth={3} /> {appLanguage === 'hi' ? 'सही' : 'Correct'}
-                        </span>
-                      ) : hasSelection ? (
-                        <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-black bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1">
-                          <CircleX size={12} /> {appLanguage === 'hi' ? 'गलत' : 'Incorrect'}
-                        </span>
-                      ) : (
-                        <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold dark:bg-slate-800 bg-slate-100 text-slate-400 border dark:border-slate-700 border-slate-200">
-                          {appLanguage === 'hi' ? 'छोड़ा' : 'Skipped'}
-                        </span>
-                      )}
-                      <ChevronRight size={16} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-800 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
-                    </div>
+                    {/* Doubt-to-Confidence 1-Click AI Guru Bridge for Incorrect & Skipped questions */}
+                    {!isCorrect && (
+                      <div className="pt-2 border-t dark:border-slate-800/80 border-slate-100">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openAiForQuestion(item);
+                          }}
+                          className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-all active:scale-[0.98] group/btn cursor-pointer shadow-2xs"
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Sparkles size={13} className="text-amber-500 shrink-0 animate-pulse" />
+                            <span className="truncate">
+                              {appLanguage === 'hi' ? '⚡ 1 क्लिक में डाउट क्लियर करें → AI Guru से समझें' : '⚡ Clear Doubt in 1-Click with AI Guru'}
+                            </span>
+                          </div>
+                          <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 group-hover/btn:translate-x-0.5 transition-transform shrink-0">
+                            {appLanguage === 'hi' ? 'पूछें →' : 'Ask →'}
+                          </span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 );
               })}

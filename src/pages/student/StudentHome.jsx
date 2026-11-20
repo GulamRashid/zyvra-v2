@@ -622,6 +622,43 @@ export default function StudentHome() {
       </section>
 
       {/* ======================================================== */}
+      {/* 4.5 DAILY 5-MINUTE PCS BOOSTER CHALLENGE (PSYCHOLOGY HOOK) */}
+      {/* ======================================================== */}
+      <section className="space-y-2">
+        <div className="p-3.5 sm:p-4 rounded-3xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-indigo-500/10 border border-amber-500/30 shadow-xs flex items-center justify-between gap-3 transition-all hover:border-amber-500/50">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-500 dark:text-amber-400 flex items-center justify-center text-xl shrink-0 shadow-inner">
+              ⚡
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-600 dark:text-amber-400 uppercase tracking-wider border border-amber-500/30">
+                  {language === 'hi' ? 'दैनिक चुनौती' : 'Daily 5-Min Booster'}
+                </span>
+                <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  🪙 +10 Coins
+                </span>
+              </div>
+              <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 truncate mt-0.5">
+                {language === 'hi' ? '5 प्रश्नों का त्वरित पीसीएस अभ्यास' : '5 Quick PCS Exam Questions'}
+              </h4>
+              <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium truncate">
+                {language === 'hi' ? 'कम समय में स्ट्रीक सुरक्षित करें और दिन का लक्ष्य आगे बढ़ाएं।' : 'Save your streak in just 5 mins & advance your daily goal.'}
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/tests?tab=tests"
+            className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm shrink-0 shadow-sm transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-1.5 min-h-[44px]"
+          >
+            <span>{language === 'hi' ? 'शुरू करें' : 'Start Booster'}</span>
+            <ArrowRight size={14} strokeWidth={2.5} />
+          </Link>
+        </div>
+      </section>
+
+      {/* ======================================================== */}
       {/* 5. RECOMMENDED PRACTICE OR CONTINUE WHERE YOU LEFT     */}
       {/* ======================================================== */}
       <section className="space-y-2">
