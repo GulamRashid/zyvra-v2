@@ -66,6 +66,68 @@ export default function QuizResult() {
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiContext, setAiContext] = useState('');
 
+  // Challenger 1v1 Match State
+  const challenger = useMemo(() => {
+    if (location.state?.challenger) return location.state.challenger;
+    const params = new URLSearchParams(location.search);
+    const cName = params.get('cName');
+    const cScore = params.get('cScore');
+    const cTotal = params.get('cTotal');
+    const challengerId = params.get('challengerId');
+    if (cName && (cScore !== null || challengerId)) {
+      return {
+        cName: decodeURIComponent(cName),
+        cScore: cScore ? Number(cScore) : 0,
+        cTotal: cTotal ? Number(cTotal) : 0,
+        challengerId
+      };
+    }
+    try {
+      const stored = sessionStorage.getItem(`zyvra_challenge_${attemptId}`);
+      if (stored) return JSON.parse(stored);
+    } catch {}
+    return null;
+  }, [location.state, location.search, attemptId]);
+
+  const handleWhatsAppChallenge = () => {
+    const studentName = user?.user_metadata?.full_name || user?.user_metadata?.name || (appLanguage === 'hi' ? 'आपके साथी छात्र' : 'Your study partner');
+    const challengeUrl = `${window.location.origin}/quiz/${result?.test_id || ''}?challengerId=${attemptId}&cName=${encodeURIComponent(studentName)}&cScore=${score}&cTotal=${totalMarks || totalQuestions}`;
+    
+    const msg = appLanguage === 'hi'
+      ? `🔥 मैंने Zyvra पर '${testTitle}' में ${score}/${totalMarks || totalQuestions} (${percentage}%) अंक प्राप्त किए!\n\nक्या तुम मुझे 1v1 मुकाबले में हरा सकते हो? यहाँ क्लिक करके ठीक यही टेस्ट दो और अपने स्कोर की तुलना करो:\n${challengeUrl}`
+      : `🔥 I scored ${score}/${totalMarks || totalQuestions} (${percentage}%) in '${testTitle}' on Zyvra!\n\nCan you beat my score? Click the link to take the exact same test in a 1v1 challenge:\n${challengeUrl}`;
+
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleReattemptMistakes = () => {
+    const mistakeQuestionIds = solutions
+      .filter((item) => {
+        const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? null;
+        const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? null;
+        const correctKey = normalizeCorrectAnswer(rawCorrect, item.options || item.question?.options);
+        const chosenKey = Array.isArray(selected) ? selected[0] : selected;
+        const hasSelection = Boolean(chosenKey);
+        const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
+        return hasSelection && !isCorrect;
+      })
+      .map((item) => String(item.question?.id || item.id || item.question_id))
+      .filter(Boolean);
+
+    if (mistakeQuestionIds.length === 0) return;
+
+    try {
+      sessionStorage.setItem('zyvra_mistake_quiz_ids', JSON.stringify(mistakeQuestionIds));
+    } catch (e) {
+      console.warn('Unable to store mistake question ids:', e);
+    }
+
+    navigate(`/quiz/${result?.test_id || ''}?mode=mistakes_only&sourceAttempt=${attemptId}`, {
+      state: { reattempt: true, returnTo, mode: 'mistakes_only', mistakeIds: mistakeQuestionIds }
+    });
+  };
+
   const openAiForQuestion = (solItem) => {
     if (!solItem) return;
     const q = solItem.question || solItem;
@@ -614,6 +676,42 @@ export default function QuizResult() {
         {/* ======================================================== */}
         {activeTab === 'review' && (
           <div className="space-y-4">
+            {/* 1v1 Challenger Battle Result Card (When in a 1v1 Match) */}
+            {challenger && (
+              <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-indigo-500/20 border-2 border-amber-500/40 shadow-md space-y-3 animate-in zoom-in-95 duration-200">
+                <div className="flex items-center justify-between">
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500 text-slate-950 uppercase tracking-wider">
+                    ⚔️ 1v1 मुकाबला परिणाम
+                  </span>
+                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                    {score > challenger.cScore ? '🎉 आप जीत गए!' : score === challenger.cScore ? '🤝 मुकाबला टाई रहा!' : '⚔️ चैलेंजर आगे रहा'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5 pt-1">
+                  <div className="p-3 rounded-2xl dark:bg-slate-900/80 bg-white/90 border dark:border-slate-800 border-slate-200 text-center">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block truncate">चैलेंजर ({challenger.cName})</span>
+                    <span className="text-xl sm:text-2xl font-black dark:text-white text-slate-900">{challenger.cScore}</span>
+                    <span className="text-[11px] text-slate-400 block font-semibold">/ {challenger.cTotal || totalMarks || totalQuestions}</span>
+                  </div>
+
+                  <div className={`p-3 rounded-2xl border text-center ${score >= challenger.cScore ? 'dark:bg-emerald-950/40 bg-emerald-50/80 border-emerald-500/40' : 'dark:bg-slate-900/80 bg-white/90 dark:border-slate-800 border-slate-200'}`}>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase block">आप (You)</span>
+                    <span className="text-xl sm:text-2xl font-black text-emerald-500 dark:text-emerald-400">{score}</span>
+                    <span className="text-[11px] text-slate-400 block font-semibold">/ {totalMarks || totalQuestions}</span>
+                  </div>
+                </div>
+
+                <p className="text-xs font-bold text-center dark:text-amber-300 text-amber-800">
+                  {score > challenger.cScore
+                    ? `🔥 अद्भुत प्रदर्शन! आपने ${challenger.cName} को ${score - challenger.cScore} अंकों से पछाड़ दिया!`
+                    : score === challenger.cScore
+                    ? `🤝 दोनों के बीच बराबरी की टक्कर! दोनों ने ${score} अंक प्राप्त किए।`
+                    : `⚔️ कड़ा मुकाबला! ${challenger.cName} आपसे ${challenger.cScore - score} अंक आगे रहे। दोबारा प्रयास करके स्कोर बीट करें!`}
+                </p>
+              </div>
+            )}
+
             {/* Celebration Card with Dopamine, Coins, & Motivation */}
             <div className="relative overflow-hidden dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#1e1b4b] dark:to-[#0B1120] bg-gradient-to-r from-indigo-50 via-amber-50/40 to-emerald-50/50 border dark:border-indigo-500/30 border-indigo-200/80 rounded-3xl p-4 sm:p-6 shadow-sm dark:shadow-xl transition-all">
               {/* Subtle decorative glow */}
@@ -674,6 +772,37 @@ export default function QuizResult() {
                   </button>
                 </div>
               )}
+            </div>
+
+            {/* WhatsApp 1v1 Challenge Action Card */}
+            <div className="p-3.5 sm:p-4 rounded-3xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all hover:border-emerald-500/50">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shrink-0 shadow-inner">
+                  ⚔️
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 uppercase tracking-wider border border-emerald-500/30">
+                      {appLanguage === 'hi' ? '1v1 मुकाबला' : '1v1 Challenge'}
+                    </span>
+                  </div>
+                  <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 truncate mt-0.5">
+                    {appLanguage === 'hi' ? 'किसी दोस्त को WhatsApp पर चुनौती दें' : 'Challenge a Study Partner on WhatsApp'}
+                  </h4>
+                  <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium truncate">
+                    {appLanguage === 'hi' ? 'दोस्त ठीक यही टेस्ट देगा और दोनों का स्कोर सीधे आमने-सामने तुलना होगा।' : 'Your friend solves the exact same test to compare scores head-to-head.'}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleWhatsAppChallenge}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shrink-0 shadow-md transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
+              >
+                <Share2 size={15} />
+                <span>{appLanguage === 'hi' ? 'चुनौती भेजें' : 'Send Challenge'}</span>
+              </button>
             </div>
 
             {/* Scorecard Grid */}
@@ -841,13 +970,28 @@ export default function QuizResult() {
 
             {/* Bottom Sticky Action Buttons */}
             <div className="pt-2 flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+              {stats.incorrectCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleReattemptMistakes}
+                  className="w-full sm:flex-1 py-3 rounded-full bg-gradient-to-r from-rose-600 via-amber-600 to-rose-600 hover:from-rose-500 hover:to-amber-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-transform hover:scale-[1.02] active:scale-95 min-h-[44px] shadow-sm cursor-pointer"
+                >
+                  <RotateCcw size={15} />
+                  <span>
+                    {appLanguage === 'hi'
+                      ? `सिर्फ ${stats.incorrectCount} गलत सवाल दोबारा हल करें`
+                      : `Re-attempt ${stats.incorrectCount} Mistakes Only`}
+                  </span>
+                </button>
+              )}
+
               <Link
                 to={`/quiz/${result?.test_id || ''}`}
                 state={{ reattempt: true, returnTo }}
                 className="w-full sm:flex-1 py-3 rounded-full dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 dark:text-slate-200 text-slate-800 hover:text-black dark:hover:text-white font-extrabold text-xs sm:text-sm flex items-center justify-center gap-2 transition-colors min-h-[44px] shadow-sm"
               >
                 <RotateCcw size={15} />
-                <span>{appLanguage === 'hi' ? 'फिर से टेस्ट दें' : 'Re-attempt Test'}</span>
+                <span>{appLanguage === 'hi' ? 'पूरा टेस्ट दोबारा दें' : 'Full Re-attempt'}</span>
               </Link>
 
               <button
@@ -1229,11 +1373,18 @@ export default function QuizResult() {
                   key={idx}
                   className="p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 space-y-2.5"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
                     <h4 className="text-sm font-bold dark:text-white text-slate-900 tracking-tight">{item.topic}</h4>
-                    <span className={`text-xs font-black ${item.accuracy >= 70 ? 'text-emerald-400' : item.accuracy >= 50 ? 'text-amber-500 dark:text-amber-400' : 'text-red-500'}`}>
-                      {item.accuracy}% Accuracy
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      {item.accuracy < 50 && (
+                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+                          {appLanguage === 'hi' ? 'कमज़ोर क्षेत्र (Needs Revision)' : 'Needs Revision'}
+                        </span>
+                      )}
+                      <span className={`text-xs font-black ${item.accuracy >= 70 ? 'text-emerald-400' : item.accuracy >= 50 ? 'text-amber-500 dark:text-amber-400' : 'text-red-500'}`}>
+                        {item.accuracy}% Accuracy
+                      </span>
+                    </div>
                   </div>
 
                   {/* Progress bar */}
@@ -1295,31 +1446,42 @@ export default function QuizResult() {
               const percentile = peerStats?.percentile ?? 100;
 
               return (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                   {/* Card 1: Percentile */}
-                  <div className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
+                  <div className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
                     <div className="text-[10px] sm:text-xs uppercase font-bold dark:text-slate-400 text-slate-500">Your Percentile</div>
                     <div className="text-xl sm:text-2xl font-black dark:text-amber-400 text-amber-600 my-1">
                       {hasPeers ? `${percentile}%` : '1st Attempt'}
                     </div>
                     <span className="text-[11px] font-semibold dark:text-indigo-400 text-indigo-600">
-                      {hasPeers ? `Top ${Math.max(1, Math.round(100 - percentile))}% (${totalAttempts} attempts)` : 'Awaiting more attempts for peer percentile'}
+                      {hasPeers ? `Top ${Math.max(1, Math.round(100 - percentile))}% (${totalAttempts} attempts)` : 'Awaiting more attempts'}
                     </span>
                   </div>
 
                   {/* Card 2: Average Score */}
-                  <div className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
+                  <div className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
                     <div className="text-[10px] sm:text-xs uppercase font-bold dark:text-slate-400 text-slate-500">Average Score</div>
                     <div className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 my-1">
                       {hasPeers ? avgScore : userScore}
                     </div>
                     <span className={`text-[11px] font-semibold ${!hasPeers ? 'dark:text-slate-400 text-slate-500' : scoreDiff >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                      {hasPeers ? `${scoreDiff >= 0 ? `+${scoreDiff}` : scoreDiff} vs Avg` : 'Your score (1st Attempt)'}
+                      {hasPeers ? `${scoreDiff >= 0 ? `+${scoreDiff}` : scoreDiff} vs Avg` : 'Your score'}
                     </span>
                   </div>
 
-                  {/* Card 3: Avg Time / Question */}
-                  <div className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
+                  {/* Card 3: Topper vs You */}
+                  <div className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
+                    <div className="text-[10px] sm:text-xs uppercase font-bold dark:text-slate-400 text-slate-500">Topper vs You</div>
+                    <div className="text-lg sm:text-xl font-black text-amber-500 dark:text-amber-400 my-1">
+                      {score} <span className="text-xs font-semibold text-slate-400">vs {peerStats?.highest_score || Math.max(score, Math.round(totalMarks * 0.95)) || totalQuestions}</span>
+                    </div>
+                    <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
+                      {score >= (peerStats?.highest_score || totalMarks) ? '🏆 You are the Topper!' : `Diff: -${Math.max(0, (peerStats?.highest_score || Math.max(score, Math.round(totalMarks * 0.95))) - score)} marks`}
+                    </span>
+                  </div>
+
+                  {/* Card 4: Avg Time / Question */}
+                  <div className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
                     <div className="text-[10px] sm:text-xs uppercase font-bold dark:text-slate-400 text-slate-500">Avg Time / Q</div>
                     <div className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 my-1">
                       {avgTimePerQuestion}s

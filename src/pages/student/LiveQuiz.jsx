@@ -363,6 +363,29 @@ export default function LiveQuiz() {
   const saveProgressSnapshotRef = useRef();
   const onlineToastTimerRef = useRef();
 
+  // Challenger 1v1 Battle Info
+  const challengerInfo = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    const cName = params.get('cName');
+    const cScore = params.get('cScore');
+    const cTotal = params.get('cTotal');
+    const challengerId = params.get('challengerId');
+    if (cName && (cScore !== null || challengerId)) {
+      return {
+        cName: decodeURIComponent(cName),
+        cScore: cScore ? Number(cScore) : 0,
+        cTotal: cTotal ? Number(cTotal) : 0,
+        challengerId
+      };
+    }
+    return location.state?.challenger || null;
+  }, [location.search, location.state]);
+
+  // Mistakes Only Mode
+  const isMistakesMode = useMemo(() => {
+    return new URLSearchParams(location.search).get('mode') === 'mistakes_only' || location.state?.mode === 'mistakes_only';
+  }, [location.search, location.state]);
+
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
@@ -748,7 +771,7 @@ export default function LiveQuiz() {
         )
       );
 
-      if (isAttemptCompleted && !location.state?.reattempt) {
+      if (isAttemptCompleted && !location.state?.reattempt && !isMistakesMode) {
         if (active) {
           navigate(`/quiz/result/${latestAttempt.id}`, { replace: true, state: { returnTo } });
           return;
@@ -769,7 +792,7 @@ export default function LiveQuiz() {
         || localSnapshot
         || cachedQuiz?.attemptId;
 
-      if (hasResumeAttempt) {
+      if (hasResumeAttempt && !isMistakesMode) {
         // Paused or in-progress attempt found: pre-load questions and prompt resume
         const activeAttemptId = dbIncomplete?.id || localSnapshot?.attemptId || cachedQuiz?.attemptId;
         let safeQuestions = [];
@@ -790,9 +813,22 @@ export default function LiveQuiz() {
         }
 
         if (active) {
+          let finalQuestions = safeQuestions;
+          if (isMistakesMode) {
+            try {
+              const rawIds = sessionStorage.getItem('zyvra_mistake_quiz_ids');
+              if (rawIds) {
+                const idSet = new Set(JSON.parse(rawIds).map(String));
+                const filtered = safeQuestions.filter((q) => idSet.has(String(q.id || q.question_id)));
+                if (filtered.length > 0) finalQuestions = filtered;
+              }
+            } catch (err) {
+              console.warn('Unable to filter mistake questions:', err);
+            }
+          }
           setAttemptId(activeAttemptId);
-          setQuestions(safeQuestions);
-          writeQuizCache(user.id, testId, { test: testData, attemptId: activeAttemptId, questions: safeQuestions });
+          setQuestions(finalQuestions);
+          writeQuizCache(user.id, testId, { test: testData, attemptId: activeAttemptId, questions: finalQuestions });
 
           // Restore state cleanly from DB and LocalStorage
           const stateJson = dbIncomplete?.state_json || {};
@@ -923,9 +959,23 @@ export default function LiveQuiz() {
       const safeRows = Array.isArray(questionRows) ? questionRows : [];
       const safeQuestions = safeRows.map(sanitizeLiveQuestion);
 
+      let finalQuestions = safeQuestions;
+      if (isMistakesMode) {
+        try {
+          const rawIds = sessionStorage.getItem('zyvra_mistake_quiz_ids');
+          if (rawIds) {
+            const idSet = new Set(JSON.parse(rawIds).map(String));
+            const filtered = safeQuestions.filter((q) => idSet.has(String(q.id || q.question_id)));
+            if (filtered.length > 0) finalQuestions = filtered;
+          }
+        } catch (err) {
+          console.warn('Unable to filter mistake questions:', err);
+        }
+      }
+
       setAttemptId(activeAttemptId);
-      setQuestions(safeQuestions);
-      writeQuizCache(user.id, testId, { test, attemptId: activeAttemptId, questions: safeQuestions });
+      setQuestions(finalQuestions);
+      writeQuizCache(user.id, testId, { test, attemptId: activeAttemptId, questions: finalQuestions });
       lockedAnswersRef.current.clear();
       setResponses({});
       setCurrentIndex(0);
@@ -1274,7 +1324,12 @@ export default function LiveQuiz() {
         window.dispatchEvent(new window.CustomEvent('zyvra:coins-updated'));
       }
 
-      navigate(`/quiz/result/${attemptId}`, { replace: true, state: { returnTo } });
+      if (challengerInfo && attemptId) {
+        try {
+          sessionStorage.setItem(`zyvra_challenge_${attemptId}`, JSON.stringify(challengerInfo));
+        } catch {}
+      }
+      navigate(`/quiz/result/${attemptId}`, { replace: true, state: { returnTo, challenger: challengerInfo } });
     } else {
       submitLock.current = false;
       setSubmitting(false);
@@ -2185,6 +2240,18 @@ export default function LiveQuiz() {
 
       {/* CBT 2-Row Header */}
       <header ref={overflowMenuRef} className="quiz-header cbt-two-row-header">
+        {challengerInfo && (
+          <div className="bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-500/20 border-b border-amber-500/30 px-3 py-1.5 text-center text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center justify-center gap-1.5 shrink-0">
+            <span>⚔️ 1v1 मुकाबला:</span>
+            <span><strong>{challengerInfo.cName}</strong> ने आपको चुनौती दी है ({challengerInfo.cScore}/{challengerInfo.cTotal} अंक)!</span>
+          </div>
+        )}
+        {isMistakesMode && (
+          <div className="bg-gradient-to-r from-rose-500/20 via-amber-500/15 to-rose-500/20 border-b border-rose-500/30 px-3 py-1.5 text-center text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center justify-center gap-1.5 shrink-0">
+            <span>🎯 गलती सुधार अभ्यास (Mistake Retest):</span>
+            <span>केवल आपके द्वारा पहले गलत किए गए प्रश्नों का अभ्यास</span>
+          </div>
+        )}
         {/* ROW 1: Compact Brand + Truncated Title on Left | Compact Action Buttons on Right */}
         <div className="quiz-header-top-row">
           <div className="quiz-header-brand-wrap">
