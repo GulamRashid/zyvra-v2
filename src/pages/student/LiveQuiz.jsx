@@ -386,6 +386,19 @@ export default function LiveQuiz() {
     return new URLSearchParams(location.search).get('mode') === 'mistakes_only' || location.state?.mode === 'mistakes_only';
   }, [location.search, location.state]);
 
+  // Guesswork Risk Analyzer State
+  const [guessedQuestions, setGuessedQuestions] = useState(new Set());
+
+  const toggleGuess = useCallback((qId) => {
+    if (!qId) return;
+    setGuessedQuestions((prev) => {
+      const next = new Set(prev);
+      if (next.has(qId)) next.delete(qId);
+      else next.add(qId);
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
@@ -1324,12 +1337,18 @@ export default function LiveQuiz() {
         window.dispatchEvent(new window.CustomEvent('zyvra:coins-updated'));
       }
 
-      if (challengerInfo && attemptId) {
+      const guessArray = Array.from(guessedQuestions);
+      if (attemptId) {
         try {
-          sessionStorage.setItem(`zyvra_challenge_${attemptId}`, JSON.stringify(challengerInfo));
+          if (challengerInfo) {
+            sessionStorage.setItem(`zyvra_challenge_${attemptId}`, JSON.stringify(challengerInfo));
+          }
+          if (guessArray.length > 0) {
+            sessionStorage.setItem(`zyvra_guesses_${attemptId}`, JSON.stringify(guessArray));
+          }
         } catch {}
       }
-      navigate(`/quiz/result/${attemptId}`, { replace: true, state: { returnTo, challenger: challengerInfo } });
+      navigate(`/quiz/result/${attemptId}`, { replace: true, state: { returnTo, challenger: challengerInfo, guesses: guessArray } });
     } else {
       submitLock.current = false;
       setSubmitting(false);
@@ -2852,6 +2871,19 @@ export default function LiveQuiz() {
                     <Check size={13} className="text-emerald-600 dark:text-emerald-400" />
                     <span>{language === 'hi' ? 'उत्तर दिया' : 'Answered'}</span>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => toggleGuess(question.id)}
+                    className={`quiz-mobile-action-button px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full text-xs font-bold border transition-all flex items-center gap-1 min-h-[40px] select-none cursor-pointer ${
+                      guessedQuestions.has(question.id)
+                        ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/50 ring-1 ring-amber-500/30'
+                        : 'dark:bg-slate-800/80 bg-slate-100 dark:text-slate-400 text-slate-600 border-slate-300 dark:border-slate-700 hover:border-amber-500/40'
+                    }`}
+                    title={language === 'hi' ? '50-50 / तुक्का चिह्नित करें' : 'Mark as 50-50 Guess'}
+                  >
+                    <span>🎯</span>
+                    <span>{guessedQuestions.has(question.id) ? (language === 'hi' ? 'तुक्का ✓' : 'Guess ✓') : (language === 'hi' ? 'तुक्का?' : 'Guess?')}</span>
+                  </button>
                   <button
                     type="button"
                     onClick={clearResponse}

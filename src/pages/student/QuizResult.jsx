@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle, ArrowLeft, ArrowRight, BarChart3, Bookmark, BookOpen,
   Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
-  CircleX, Filter, Lightbulb, MinusCircle, Plus, RotateCcw, Share2, Sparkles, Target, Trophy
+  CircleX, Filter, Headphones, Lightbulb, MinusCircle, Pause, Play, Plus, Printer, RotateCcw, Share2, Sparkles, Square, Target, Trophy, Volume2, X
 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -126,6 +126,125 @@ export default function QuizResult() {
     navigate(`/quiz/${result?.test_id || ''}?mode=mistakes_only&sourceAttempt=${attemptId}`, {
       state: { reattempt: true, returnTo, mode: 'mistakes_only', mistakeIds: mistakeQuestionIds }
     });
+  };
+
+  // Guesswork Risk Analyzer (Tukke ka Sach)
+  const guesses = useMemo(() => {
+    if (Array.isArray(location.state?.guesses)) return new Set(location.state.guesses.map(String));
+    try {
+      const stored = sessionStorage.getItem(`zyvra_guesses_${attemptId}`);
+      if (stored) return new Set(JSON.parse(stored).map(String));
+    } catch {}
+    return new Set();
+  }, [location.state, attemptId]);
+
+  // Silly Mistake Tags: Map of origIndex -> 'concept' | 'not_missed' | 'hurry'
+  const [mistakeTags, setMistakeTags] = useState(() => {
+    try {
+      const stored = localStorage.getItem(`zyvra_mistake_tags_${attemptId}`);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const setQuestionMistakeTag = (idx, tag) => {
+    setMistakeTags((prev) => {
+      const next = { ...prev, [idx]: prev[idx] === tag ? null : tag };
+      try {
+        localStorage.setItem(`zyvra_mistake_tags_${attemptId}`, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  };
+
+  const sillyMistakeSummary = useMemo(() => {
+    const entries = Object.entries(mistakeTags).filter(([, v]) => Boolean(v));
+    if (!entries.length) return null;
+    const totalTagged = entries.length;
+    let notMissed = 0;
+    let hurry = 0;
+    entries.forEach(([, tag]) => {
+      if (tag === 'not_missed') notMissed += 1;
+      if (tag === 'hurry') hurry += 1;
+    });
+    const sillyCount = notMissed + hurry;
+    const sillyPercent = Math.round((sillyCount / totalTagged) * 100);
+    return { totalTagged, sillyCount, sillyPercent };
+  }, [mistakeTags]);
+
+  // Audio Walkman State & Speech Synthesis
+  const [walkmanOpen, setWalkmanOpen] = useState(false);
+  const [walkmanPlaying, setWalkmanPlaying] = useState(false);
+  const [walkmanIndex, setWalkmanIndex] = useState(0);
+
+  const mistakeSolutions = useMemo(() => {
+    return solutions.filter((item) => {
+      const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? null;
+      const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? null;
+      const correctKey = normalizeCorrectAnswer(rawCorrect, item.options || item.question?.options);
+      const chosenKey = Array.isArray(selected) ? selected[0] : selected;
+      const hasSelection = Boolean(chosenKey);
+      const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
+      return !isCorrect;
+    });
+  }, [solutions]);
+
+  const speakCurrentMistake = useCallback((idx) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+
+    const item = mistakeSolutions[idx];
+    if (!item) {
+      setWalkmanPlaying(false);
+      return;
+    }
+
+    const question = item.question || item;
+    const qText = language === 'hi'
+      ? (question.question_text_hi || getStoredHindi(question.question_text) || question.question_text_en || '')
+      : (question.question_text_en || getLocalizedEnglish(question.question_text) || '');
+    const correctKey = normalizeCorrectAnswer(item.correct_answer || question.correct_answer, question.options);
+    const selected = item.student_selected ?? item.selected_option ?? null;
+    const chosenKey = Array.isArray(selected) ? selected[0] : selected;
+    const rawExplanation = item.explanation || question.explanation || '';
+    const cleanExpl = String(rawExplanation).replace(/[*#_`]/g, '').slice(0, 250);
+
+    const textToSpeak = language === 'hi'
+      ? `सवाल नंबर ${idx + 1}. ${qText}. आपका उत्तर था ${chosenKey ? `विकल्प ${chosenKey}` : 'छोड़ा गया'}. सही उत्तर है विकल्प ${correctKey}. मुख्य बिंदु: ${cleanExpl}`
+      : `Question ${idx + 1}. ${qText}. Your selection was ${chosenKey ? `Option ${chosenKey}` : 'Skipped'}. The correct answer is Option ${correctKey}. Explanation: ${cleanExpl}`;
+
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = language === 'hi' ? 'hi-IN' : 'en-US';
+    utterance.rate = 0.95;
+
+    utterance.onend = () => {
+      if (idx + 1 < mistakeSolutions.length) {
+        setWalkmanIndex(idx + 1);
+        speakCurrentMistake(idx + 1);
+      } else {
+        setWalkmanPlaying(false);
+      }
+    };
+    utterance.onerror = () => setWalkmanPlaying(false);
+
+    window.speechSynthesis.speak(utterance);
+    setWalkmanPlaying(true);
+  }, [mistakeSolutions, language]);
+
+  const toggleWalkmanPlay = () => {
+    if (walkmanPlaying) {
+      window.speechSynthesis?.cancel();
+      setWalkmanPlaying(false);
+    } else {
+      speakCurrentMistake(walkmanIndex);
+    }
+  };
+
+  const closeWalkman = () => {
+    window.speechSynthesis?.cancel();
+    setWalkmanPlaying(false);
+    setWalkmanOpen(false);
   };
 
   const openAiForQuestion = (solItem) => {
@@ -449,6 +568,81 @@ export default function QuizResult() {
     return { correctCount, incorrectCount, unattemptedCount };
   }, [solutions, scorecard, totalQuestions]);
 
+  // Guesswork Risk Analyzer Report
+  const guessworkReport = useMemo(() => {
+    if (!guesses.size || !solutions.length) return null;
+    let guessedCorrect = 0;
+    let guessedIncorrect = 0;
+
+    solutions.forEach((item, idx) => {
+      const qId = String(item.question?.id || item.id || item.question_id || `q-${idx}`);
+      if (!guesses.has(qId)) return;
+
+      const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? null;
+      const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? null;
+      const correctKey = normalizeCorrectAnswer(rawCorrect, item.options || item.question?.options);
+      const chosenKey = Array.isArray(selected) ? selected[0] : selected;
+      const hasSelection = Boolean(chosenKey);
+      const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
+
+      if (isCorrect) guessedCorrect += 1;
+      else if (hasSelection) guessedIncorrect += 1;
+    });
+
+    const totalGuessed = guessedCorrect + guessedIncorrect;
+    if (totalGuessed === 0) return null;
+
+    const marksPerQuestion = totalMarks > 0 && totalQuestions > 0 ? totalMarks / totalQuestions : 1;
+    const penaltyPerQuestion = marksPerQuestion / 3;
+    const gainedMarks = Math.round(guessedCorrect * marksPerQuestion * 10) / 10;
+    const lostMarks = Math.round(guessedIncorrect * penaltyPerQuestion * 10) / 10;
+    const netMarks = Math.round((gainedMarks - lostMarks) * 10) / 10;
+    const accuracy = Math.round((guessedCorrect / totalGuessed) * 100);
+
+    return { totalGuessed, guessedCorrect, guessedIncorrect, gainedMarks, lostMarks, netMarks, accuracy };
+  }, [guesses, solutions, totalMarks, totalQuestions]);
+
+  // Auto-save Mistakes to Notebook (Auto Mistake Bank)
+  const autoSavedRef = useRef(false);
+  useEffect(() => {
+    if (!solutions.length || autoSavedRef.current || !user?.id) return;
+    autoSavedRef.current = true;
+
+    const wrongList = solutions.filter((item) => {
+      const selected = item.student_selected ?? item.selected_option ?? null;
+      const rawCorrect = item.correct_answer ?? item.answer_key ?? null;
+      const correctKey = normalizeCorrectAnswer(rawCorrect, item.options || item.question?.options);
+      const chosenKey = Array.isArray(selected) ? selected[0] : selected;
+      const hasSelection = Boolean(chosenKey);
+      const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
+      return hasSelection && !isCorrect;
+    });
+
+    if (wrongList.length > 0) {
+      wrongList.slice(0, 10).forEach(async (item, idx) => {
+        const question = item.question || item;
+        const qId = String(question.id || item.question_id || `q-${idx}`);
+        if (mistakeSavedIds.has(qId)) return;
+
+        const selected = item.student_selected ?? item.selected_option ?? null;
+        const rawCorrect = item.correct_answer ?? item.answer_key ?? null;
+        const correctKey = normalizeCorrectAnswer(rawCorrect, question.options);
+        const chosenKey = Array.isArray(selected) ? selected[0] : selected;
+
+        await saveMistakeToNotebook({
+          userId: user.id,
+          topic: question.subject || result?.title || 'Exam Revision',
+          mistake: `Selected: Option ${chosenKey}\nQ: ${(question.question_text || question.text || '').slice(0, 150)}`,
+          correctAnswer: `Correct: Option ${correctKey}\n${(item.explanation || '').slice(0, 150)}`,
+          questionId: qId,
+          testTitle: result?.test_title || 'Mock Test'
+        }).catch(() => {});
+
+        setMistakeSavedIds((prev) => new Set([...prev, qId]));
+      });
+    }
+  }, [solutions, user?.id, result, mistakeSavedIds]);
+
   // Topic Analysis Aggregate: Real Question Grouping by Tags/Subject/Topic
   const topicAnalysis = useMemo(() => {
     const map = new Map();
@@ -588,6 +782,15 @@ export default function QuizResult() {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 hover:text-slate-900 dark:hover:text-white transition-colors"
+              title={appLanguage === 'hi' ? 'प्रिंट या PDF सेव करें' : 'Print / Save PDF Cheat Sheet'}
+              aria-label="Print sheet"
+            >
+              <Printer size={15} />
+            </button>
             <button
               type="button"
               onClick={toggleBookmark}
@@ -842,11 +1045,87 @@ export default function QuizResult() {
               </div>
             </div>
 
-            {/* Question Review Section Header with Filter */}
-            <div className="flex items-center justify-between pt-1">
+            {/* Guesswork Risk Analyzer Card (Tukke ka Sach) */}
+            {guessworkReport && (
+              <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/30 shadow-xs space-y-2.5 animate-in fade-in duration-200">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🎯</span>
+                    <h4 className="text-xs sm:text-sm font-black dark:text-amber-300 text-amber-800 uppercase tracking-wide">
+                      {appLanguage === 'hi' ? 'तुक्के का सच (Guesswork Risk Analyzer)' : 'Guesswork Risk Analyzer'}
+                    </h4>
+                  </div>
+                  <span className={`text-xs font-black px-2.5 py-0.5 rounded-full ${guessworkReport.netMarks >= 0 ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-600 dark:text-rose-400 border border-rose-500/30'}`}>
+                    {guessworkReport.netMarks >= 0 ? `+${guessworkReport.netMarks} Net Gain` : `${guessworkReport.netMarks} Net Loss`}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center pt-1">
+                  <div className="p-2 rounded-xl dark:bg-slate-900/60 bg-white/80 border dark:border-slate-800 border-slate-200">
+                    <span className="text-[10px] font-bold text-slate-500 block">{appLanguage === 'hi' ? 'कुल तुक्के' : 'Guessed'}</span>
+                    <span className="text-base sm:text-lg font-black dark:text-white text-slate-900">{guessworkReport.totalGuessed}</span>
+                  </div>
+                  <div className="p-2 rounded-xl dark:bg-emerald-950/30 bg-emerald-50/80 border dark:border-emerald-800/40 border-emerald-200 text-emerald-700 dark:text-emerald-300">
+                    <span className="text-[10px] font-bold block">{appLanguage === 'hi' ? 'सही (+अंक)' : 'Correct (+)'}</span>
+                    <span className="text-base sm:text-lg font-black">+{guessworkReport.gainedMarks}</span>
+                  </div>
+                  <div className="p-2 rounded-xl dark:bg-rose-950/30 bg-rose-50/80 border dark:border-rose-800/40 border-rose-200 text-rose-700 dark:text-rose-300">
+                    <span className="text-[10px] font-bold block">{appLanguage === 'hi' ? 'गलत (-पेनल्टी)' : 'Wrong (-)'}</span>
+                    <span className="text-base sm:text-lg font-black">-{guessworkReport.lostMarks}</span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 pt-0.5">
+                  {guessworkReport.netMarks >= 0
+                    ? (appLanguage === 'hi' ? '✓ तुक्के से आपको शुद्ध लाभ हुआ, लेकिन वास्तविक परीक्षा में नेगेटिव मार्किंग से सावधान रहें।' : '✓ Guesses gave a positive return, but stay cautious of negative marking.')
+                    : (appLanguage === 'hi' ? '⚠️ तुक्कों की वजह से आपके अंक कट गए! परीक्षा में अनिश्चित सवालों को छोड़ने का अभ्यास करें।' : '⚠️ Negative marking reduced your total score! Practice leaving doubtful questions.')}
+                </p>
+              </div>
+            )}
+
+            {/* Silly Mistake X-Ray Diagnostic Card */}
+            {sillyMistakeSummary && sillyMistakeSummary.sillyCount > 0 && (
+              <div className="p-3.5 sm:p-4 rounded-3xl bg-gradient-to-r from-indigo-500/15 via-purple-500/10 to-indigo-500/15 border border-indigo-500/30 shadow-xs flex items-center justify-between gap-3 animate-in fade-in duration-200">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="text-xl shrink-0">💡</span>
+                  <div className="min-w-0">
+                    <strong className="block text-xs sm:text-sm font-black dark:text-indigo-300 text-indigo-950 truncate">
+                      {appLanguage === 'hi' ? 'सिल्ली मिस्टेक डायग्नोस्टिक (X-Ray)' : 'Silly Mistake Diagnostic'}
+                    </strong>
+                    <span className="text-[11px] dark:text-slate-300 text-slate-600 block">
+                      {appLanguage === 'hi'
+                        ? `आपकी ${sillyMistakeSummary.sillyPercent}% गलतियां केवल जल्दबाजी या 'नहीं' न पढ़ने की वजह से हुईं!`
+                        : `${sillyMistakeSummary.sillyPercent}% of your mistakes were purely due to rush or missing 'NOT' in questions!`}
+                    </span>
+                  </div>
+                </div>
+                <span className="px-2.5 py-1 rounded-full text-xs font-black bg-indigo-600 text-white shrink-0 shadow-xs">
+                  +{sillyMistakeSummary.sillyCount * 2} {appLanguage === 'hi' ? 'अंक बच सकते हैं' : 'Marks Saveable'}
+                </span>
+              </div>
+            )}
+
+            {/* Question Review Section Header with Filter & Walkman */}
+            <div className="flex items-center justify-between pt-1 gap-2 flex-wrap">
               <h3 className="text-sm sm:text-base font-extrabold dark:text-white text-slate-900">{appLanguage === 'hi' ? 'प्रश्नों की समीक्षा' : 'Question Review'}</h3>
 
               <div className="flex items-center gap-1.5 sm:gap-2">
+                {/* Audio Walkman Toggle Button */}
+                {mistakeSolutions.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setWalkmanOpen(true);
+                      speakCurrentMistake(0);
+                    }}
+                    className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-indigo-600/15 hover:bg-indigo-600/25 border border-indigo-500/30 text-indigo-700 dark:text-indigo-300 font-bold text-xs flex items-center gap-1.5 transition-all min-h-[44px] cursor-pointer"
+                    title="Listen to mistakes in audio format"
+                  >
+                    <Headphones size={14} className="text-indigo-500" />
+                    <span>{appLanguage === 'hi' ? 'गलतियां सुनें' : 'Audio Walkman'}</span>
+                  </button>
+                )}
+
                 <Filter size={13} className="dark:text-slate-400 text-slate-500" />
                 <select
                   value={reviewFilter}
@@ -942,7 +1221,7 @@ export default function QuizResult() {
 
                     {/* Doubt-to-Confidence 1-Click AI Guru Bridge for Incorrect & Skipped questions */}
                     {!isCorrect && (
-                      <div className="pt-2 border-t dark:border-slate-800/80 border-slate-100">
+                      <div className="pt-2 border-t dark:border-slate-800/80 border-slate-100 space-y-2">
                         <button
                           type="button"
                           onClick={(e) => {
@@ -961,6 +1240,57 @@ export default function QuizResult() {
                             {appLanguage === 'hi' ? 'पूछें →' : 'Ask →'}
                           </span>
                         </button>
+
+                        {/* Silly Mistake X-Ray 1-Tap Reason Tags for Incorrect Questions */}
+                        {hasSelection && (
+                          <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                            <span className="text-[10px] font-bold text-slate-400">
+                              {appLanguage === 'hi' ? 'गलती का कारण:' : 'Reason:'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setQuestionMistakeTag(origIndex, 'concept');
+                              }}
+                              className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                                mistakeTags[origIndex] === 'concept'
+                                  ? 'bg-indigo-600 text-white border-indigo-500 shadow-2xs'
+                                  : 'dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600 border-slate-300 dark:border-slate-700 hover:border-indigo-500/40'
+                              }`}
+                            >
+                              🧠 {appLanguage === 'hi' ? 'कॉन्सेप्ट' : 'Concept'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setQuestionMistakeTag(origIndex, 'not_missed');
+                              }}
+                              className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                                mistakeTags[origIndex] === 'not_missed'
+                                  ? 'bg-amber-600 text-white border-amber-500 shadow-2xs'
+                                  : 'dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600 border-slate-300 dark:border-slate-700 hover:border-amber-500/40'
+                              }`}
+                            >
+                              ⚠️ {appLanguage === 'hi' ? "'नहीं' छूटा" : "Missed 'NOT'"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setQuestionMistakeTag(origIndex, 'hurry');
+                              }}
+                              className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                                mistakeTags[origIndex] === 'hurry'
+                                  ? 'bg-rose-600 text-white border-rose-500 shadow-2xs'
+                                  : 'dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600 border-slate-300 dark:border-slate-700 hover:border-rose-500/40'
+                              }`}
+                            >
+                              ⚡ {appLanguage === 'hi' ? 'जल्दबाजी' : 'Rushed'}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1509,6 +1839,76 @@ export default function QuizResult() {
         >
           {toastMessage.type === 'warning' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
           <span>{toastMessage.text}</span>
+        </aside>
+      )}
+
+      {/* Floating Audio Walkman Controller */}
+      {walkmanOpen && mistakeSolutions.length > 0 && (
+        <aside
+          aria-label="Audio Walkman"
+          className="fixed bottom-4 left-4 right-4 max-w-md mx-auto z-50 p-3 sm:p-4 rounded-3xl dark:bg-slate-900/95 bg-white/95 backdrop-blur-md border dark:border-indigo-500/40 border-indigo-200 shadow-2xl flex items-center justify-between gap-3 animate-in slide-in-from-bottom duration-300"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-500 dark:text-indigo-400 flex items-center justify-center shrink-0">
+              <Headphones size={20} className={walkmanPlaying ? 'animate-bounce' : ''} />
+            </div>
+            <div className="min-w-0">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">
+                {appLanguage === 'hi' ? 'ऑडियो वॉकमेन' : 'Mistakes Walkman'} ({walkmanIndex + 1}/{mistakeSolutions.length})
+              </span>
+              <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 truncate block">
+                {walkmanPlaying ? (appLanguage === 'hi' ? 'गलतियां सुनाई जा रही हैं...' : 'Speaking mistake details...') : (appLanguage === 'hi' ? 'प्ले दबाएं' : 'Paused')}
+              </strong>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                const prev = Math.max(0, walkmanIndex - 1);
+                setWalkmanIndex(prev);
+                speakCurrentMistake(prev);
+              }}
+              disabled={walkmanIndex === 0}
+              className="w-8 h-8 rounded-full dark:bg-slate-800 bg-slate-100 flex items-center justify-center text-slate-600 dark:text-slate-300 disabled:opacity-30 cursor-pointer"
+              aria-label="Previous mistake"
+            >
+              <ChevronLeft size={16} />
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleWalkmanPlay}
+              className="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow-md cursor-pointer transition-transform active:scale-95"
+              aria-label={walkmanPlaying ? 'Pause' : 'Play'}
+            >
+              {walkmanPlaying ? <Pause size={18} /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                const next = Math.min(mistakeSolutions.length - 1, walkmanIndex + 1);
+                setWalkmanIndex(next);
+                speakCurrentMistake(next);
+              }}
+              disabled={walkmanIndex >= mistakeSolutions.length - 1}
+              className="w-8 h-8 rounded-full dark:bg-slate-800 bg-slate-100 flex items-center justify-center text-slate-600 dark:text-slate-300 disabled:opacity-30 cursor-pointer"
+              aria-label="Next mistake"
+            >
+              <ChevronRight size={16} />
+            </button>
+
+            <button
+              type="button"
+              onClick={closeWalkman}
+              className="w-8 h-8 rounded-full dark:bg-slate-800 bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer ml-1"
+              aria-label="Close Walkman"
+            >
+              <X size={15} />
+            </button>
+          </div>
         </aside>
       )}
 

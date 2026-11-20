@@ -4123,4 +4123,21 @@ body.light .practice-explanation-card {
   }
 }
 
+/* ======================================================== */
+/* High-Density Printable Exam-Eve Cheat Sheet Format       */
+/* ======================================================== */
+@media print {
+  header, nav, aside, button, .no-print {
+    display: none !important;
+  }
+  body, #root, main, div {
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+  }
+  * {
+    border-color: #d1d5db !important;
+  }
+}
+
 
