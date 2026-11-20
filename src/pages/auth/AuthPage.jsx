@@ -98,6 +98,9 @@ export default function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [deviceConflictModal, setDeviceConflictModal] = useState(false);
+  const [takeoverBusy, setTakeoverBusy] = useState(false);
+  const [takeoverError, setTakeoverError] = useState('');
 
   const [refCode, setRefCode] = useState(() => {
     try {
@@ -425,9 +428,53 @@ export default function AuthPage() {
         }
       }
     } catch (authError) {
+      const detail = authError?.message || (typeof authError === 'object' ? JSON.stringify(authError) : String(authError));
+      if (/two devices|already signed in|already active/i.test(detail)) {
+        setDeviceConflictModal(true);
+        setError('');
+        return;
+      }
       setError(formatAuthError(authError, language));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleForceTakeoverLogin = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !password || !supabase) return;
+
+    setTakeoverBusy(true);
+    setTakeoverError('');
+
+    try {
+      // 1. Evict oldest session via RPC so a slot is freed
+      const { data: rpcData, error: rpcError } = await supabase.rpc('evict_oldest_device_session', {
+        p_email: cleanEmail,
+        p_password: password
+      });
+
+      if (rpcError) {
+        throw new Error(rpcError.message || 'Unable to sign out prior device.');
+      }
+      if (rpcData && rpcData.success === false) {
+        throw new Error(rpcData.error || 'Unable to sign out prior device.');
+      }
+
+      // 2. Sign in on this device now that slot is open
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: cleanEmail,
+        password
+      });
+
+      if (signInError) throw signInError;
+
+      // Close modal on success
+      setDeviceConflictModal(false);
+    } catch (err) {
+      setTakeoverError(formatAuthError(err, language));
+    } finally {
+      setTakeoverBusy(false);
     }
   };
 
@@ -1169,6 +1216,71 @@ export default function AuthPage() {
       <footer className="auth-footer">
         © 2026 ZYVRA <span>·</span> Learn with intent.
       </footer>
+
+      {/* Device Conflict / 2-Device Limit Warning Modal */}
+      {deviceConflictModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="w-full max-w-md bg-slate-900 border border-amber-500/40 rounded-3xl p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto text-2xl border border-amber-500/30">
+              📱
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-white font-black text-base">
+                {language === 'hi' ? 'खाता अन्य डिवाइस पर सक्रिय है' : 'Account Active on Other Devices'}
+              </h3>
+              <p className="text-slate-300 text-xs leading-relaxed">
+                {language === 'hi'
+                  ? 'आपका Zyvra खाता पहले से दूसरे डिवाइस पर लॉग इन है। जैसे ही आप यहाँ लॉग इन करेंगे, आपके पुराने डिवाइस से खाता स्वतः लॉग आउट हो जाएगा।'
+                  : 'Your Zyvra account is currently signed in on other devices. Logging in here will automatically sign out your oldest device.'}
+              </p>
+            </div>
+
+            {takeoverError && (
+              <div className="p-2.5 rounded-xl bg-rose-950/50 border border-rose-500/30 text-rose-300 text-xs font-bold text-left">
+                {takeoverError}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2 pt-2">
+              <button
+                type="button"
+                onClick={handleForceTakeoverLogin}
+                disabled={takeoverBusy}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px] cursor-pointer"
+              >
+                {takeoverBusy ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Loader2 className="animate-spin" size={16} />
+                    <span>{language === 'hi' ? 'पुराने डिवाइस से लॉगआउट कर रहे हैं...' : 'Signing out old device...'}</span>
+                  </span>
+                ) : (
+                  <span>
+                    {language === 'hi'
+                      ? 'पुराने डिवाइस से लॉगआउट कर यहाँ लॉगिन करें'
+                      : 'Log Out Old Device & Sign In Here'}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setDeviceConflictModal(false);
+                  setTakeoverError('');
+                }}
+                disabled={takeoverBusy}
+                className="w-full py-2.5 rounded-2xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-bold transition-all min-h-[44px] cursor-pointer"
+              >
+                {language === 'hi' ? 'रद्द करें (Cancel)' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

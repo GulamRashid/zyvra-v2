@@ -834,11 +834,11 @@ export default function LandingPage() {
             <span className="font-medium">© {new Date().getFullYear()} ZYVRA Prep. All rights reserved.</span>
           </div>
 
-          <div className="flex flex-wrap justify-center items-center gap-4 sm:gap-6 font-semibold">
-            <Link to="/explore" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>{isHindi ? 'परीक्षाएं' : 'Exams'}</Link>
-            <Link to="/tests" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>{isHindi ? 'टेस्ट हब' : 'Tests'}</Link>
-            <Link to="/toolbox" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>{isHindi ? 'टूलबॉक्स' : 'Toolbox'}</Link>
-            <Link to="/auth?mode=signin" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>{isHindi ? 'लॉगिन' : 'Sign In'}</Link>
+          <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4 font-semibold text-xs sm:text-sm">
+            <Link to="/explore" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>{isHindi ? 'परीक्षाएं' : 'Exams'}</Link>
+            <Link to="/tests" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>{isHindi ? 'टेस्ट हब' : 'Tests'}</Link>
+            <Link to="/toolbox" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>{isHindi ? 'टूलबॉक्स' : 'Toolbox'}</Link>
+            <Link to="/auth?mode=signin" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>{isHindi ? 'लॉगिन' : 'Sign In'}</Link>
           </div>
         </div>
       </footer>

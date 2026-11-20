@@ -776,7 +776,8 @@ export default function StudentToolbox() {
                   return (
                     <div
                       key={tool.id}
-                      className="group rounded-2xl border dark:border-slate-800/80 border-slate-200/90 dark:bg-slate-900/60 bg-white hover:border-indigo-500/40 hover:shadow-xs transition-all p-3.5 flex flex-col justify-between"
+                      data-tool-id={tool.id}
+                      className="toolbox-tool-card group rounded-2xl border dark:border-slate-800/80 border-slate-200/90 dark:bg-slate-900/60 bg-white hover:border-indigo-500/40 hover:shadow-xs transition-all p-3.5 flex flex-col justify-between"
                     >
                       <div>
                         {/* Top Bar: Icon + Status Badge + Favorite */}

@@ -491,7 +491,7 @@ body.light .practice-card { background: linear-gradient(135deg, #EEF2FF, #F8FAFC
 .pwa-install-copy strong { font-size: 10px; line-height: 1.45; }
 .pwa-install-copy > span { color: var(--muted); font-size: 9px; }
 .pwa-install-copy .pwa-install-error { color: #f19b8f; }
-.pwa-install-action, .pwa-install-later { min-height: 34px; padding: 0 10px; font-size: 9px; white-space: nowrap; }
+.pwa-install-action, .pwa-install-later { min-height: 44px; padding: 0 14px; font-size: 11px; font-weight: 700; border-radius: 10px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; }
 .pwa-install-later { border: 1px solid var(--line); }
 .pwa-install-close { display: none; }
 .pwa-update-prompt { position: fixed; z-index: 37; right: 22px; bottom: 96px; display: flex; width: min(620px, calc(100vw - 300px)); align-items: center; gap: 12px; padding: 13px 15px; border: 1px solid rgba(99, 102, 241, .35); border-radius: 14px; background: color-mix(in srgb, var(--panel) 96%, #0B1120); box-shadow: 0 16px 48px rgba(0, 0, 0, .3); }
@@ -901,7 +901,7 @@ body.light .practice-card { background: linear-gradient(135deg, #EEF2FF, #F8FAFC
   .pwa-install-banner { right: 10px; bottom: calc(70px + env(safe-area-inset-bottom)); left: 10px; width: auto; gap: 8px; padding: 10px; border-radius: 12px; }
   .pwa-install-mark { width: 33px; height: 33px; }
   .pwa-install-copy strong { font-size: 9px; }
-  .pwa-install-action, .pwa-install-later { min-height: 31px; padding: 0 7px; font-size: 8px; }
+  .pwa-install-action, .pwa-install-later { min-height: 44px; padding: 0 12px; font-size: 11px; font-weight: 700; border-radius: 10px; }
   .pwa-install-close { display: none; }
   .pwa-update-prompt { right: 10px; bottom: calc(134px + env(safe-area-inset-bottom)); left: 10px; width: auto; gap: 8px; padding: 10px; border-radius: 12px; }
   .pwa-update-copy strong { font-size: 10px; }

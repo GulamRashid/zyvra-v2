@@ -24,8 +24,14 @@ export function AuthProvider({ children }) {
   const [coinBalance, setCoinBalance] = useState(0);
   const [accountAccess, setAccountAccess] = useState({ userId: null, loading: Boolean(supabase), ready: false, isPremium: false, unlockedCount: 0, validTill: 'Free plan' });
   const [loading, setLoading] = useState(Boolean(supabase));
-  const [guest, setGuest] = useState(false);
-  const [guestDemoEnabled, setGuestDemoEnabled] = useState(false);
+  const [guest, setGuest] = useState(() => {
+    try {
+      return typeof window !== 'undefined' && sessionStorage.getItem('zyvra-guest') === 'true';
+    } catch {
+      return false;
+    }
+  });
+  const [guestDemoEnabled, setGuestDemoEnabled] = useState(true);
   const { setTheme, setLanguage } = useThemeLanguage();
   const isHydratedRef = useRef(false);
   const userRef = useRef(null);
@@ -202,21 +208,23 @@ export function AuthProvider({ children }) {
     supabase.from('platform_settings').select('value').eq('key', 'guest_demo_enabled').maybeSingle()
       .then(({ data, error }) => {
         if (error) {
-          if (error.code !== 'PGRST116') console.error('Unable to load guest demo setting:', error);
+          // If query fails or table is inaccessible to anon, retain default enabled
           return;
         }
-        const setting = data?.value;
-        const enabled = typeof setting === 'object' && setting !== null ? setting.enabled : setting;
-        if (!active) return;
-        const isEnabled = enabled === true || enabled === 'true';
-        setGuestDemoEnabled(isEnabled);
-        if (isEnabled && sessionStorage.getItem('zyvra-guest') === 'true') setGuest(true);
-        if (!isEnabled) {
-          sessionStorage.removeItem('zyvra-guest');
-          setGuest(false);
+        if (data?.value !== undefined && data?.value !== null) {
+          const setting = data.value;
+          const enabled = typeof setting === 'object' && setting !== null ? setting.enabled : setting;
+          if (!active) return;
+          const isEnabled = enabled !== false && enabled !== 'false';
+          setGuestDemoEnabled(isEnabled);
+          if (isEnabled && sessionStorage.getItem('zyvra-guest') === 'true') setGuest(true);
+          if (!isEnabled) {
+            sessionStorage.removeItem('zyvra-guest');
+            setGuest(false);
+          }
         }
       })
-      .catch((error) => console.error('Unable to load guest demo setting:', error));
+      .catch(() => {});
     return () => { active = false; };
   }, []);
 

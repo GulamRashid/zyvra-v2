@@ -143,7 +143,7 @@ export default function StudentHome() {
       try {
         let attemptsQuery = supabase
           .from('test_attempts')
-          .select('id, test_id, score, total_questions, status, started_at, completed_at, responses, submitted_at, finished_at')
+          .select('id, test_id, score, total_questions, status, started_at, completed_at, submitted_at, finished_at')
           .order('started_at', { ascending: false });
 
         if (user?.id) {
@@ -154,8 +154,8 @@ export default function StudentHome() {
           attemptsQuery,
           supabase
             .from('tests')
-            .select('id, title, duration_minutes, total_marks, is_published, created_at, chapter_id, coin_reward_enabled')
-            .eq('is_published', true)
+            .select('id, title, chapter_id, status, duration_minutes, total_marks, is_free, coin_reward_enabled, created_at')
+            .in('status', ['published', 'live', 'available'])
         ]);
 
         if (!active) return;
