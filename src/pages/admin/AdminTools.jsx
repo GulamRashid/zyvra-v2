@@ -865,6 +865,19 @@ export default function AdminTools() {
 
                 <div>
                   <label className="text-[10px] font-bold text-slate-300 block mb-1">
+                    AI Studio API Key (Optional Override)
+                  </label>
+                  <input
+                    type="password"
+                    value={aiConfig?.apiKey || ''}
+                    onChange={(e) => setAiConfig((c) => ({ ...c, apiKey: e.target.value.trim() }))}
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs font-mono focus:outline-none focus:border-amber-400"
+                    placeholder="Enter Gemini API key..."
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-slate-300 block mb-1">
                     AI System Prompt / Exam Guidelines
                   </label>
                   <textarea
