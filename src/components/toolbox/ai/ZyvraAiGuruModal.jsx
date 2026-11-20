@@ -25,7 +25,8 @@ import {
   getAiConfig,
   getDailyAiUsage,
   incrementDailyAiUsage,
-  queryZyvraAiGuru
+  queryZyvraAiGuru,
+  streamZyvraAiGuru
 } from '../../../lib/gemini';
 import {
   pickBestVoice,
@@ -234,17 +235,34 @@ export default function ZyvraAiGuruModal({
     }
 
     const userMessage = { role: 'user', text: textToSend, timestamp: Date.now() };
-    const nextMessages = [...messages, userMessage];
+    const streamingAiMessage = { role: 'model', text: '', isStreaming: true, timestamp: Date.now() };
+    const nextMessages = [...messages, userMessage, streamingAiMessage];
     setMessages(nextMessages);
     setInputText('');
     baseTextRef.current = '';
     setLoading(true);
 
     try {
-      const response = await queryZyvraAiGuru({
+      const response = await streamZyvraAiGuru({
         prompt: textToSend,
         context: initialContext,
-        conversationHistory: nextMessages.slice(0, -1),
+        conversationHistory: nextMessages.slice(0, -2),
+        onChunk: (accumulated) => {
+          setLoading(false);
+          setMessages((prev) => {
+            if (!prev.length) return prev;
+            const updated = [...prev];
+            const lastIdx = updated.length - 1;
+            if (updated[lastIdx].role === 'model') {
+              updated[lastIdx] = {
+                ...updated[lastIdx],
+                text: accumulated,
+                isStreaming: true
+              };
+            }
+            return updated;
+          });
+        },
         config
       });
 
@@ -270,19 +288,34 @@ export default function ZyvraAiGuruModal({
         }
       }
 
-      setMessages([
-        ...nextMessages,
-        {
-          role: 'model',
-          text: response.text,
-          model: response.model,
-          timestamp: Date.now()
+      // Finalize the streamed message
+      setMessages((prev) => {
+        if (!prev.length) return prev;
+        const updated = [...prev];
+        const lastIdx = updated.length - 1;
+        if (updated[lastIdx].role === 'model') {
+          updated[lastIdx] = {
+            ...updated[lastIdx],
+            text: response.text,
+            model: response.modelUsed,
+            isStreaming: false
+          };
         }
-      ]);
+        return updated;
+      });
 
       refreshQuota();
     } catch (err) {
       console.error('AI Guru Query Failed:', err);
+      // Remove empty streaming bubble if error occurs before any chunk
+      setMessages((prev) => {
+        if (!prev.length) return prev;
+        const last = prev[prev.length - 1];
+        if (last.role === 'model' && !last.text) {
+          return prev.slice(0, -1);
+        }
+        return prev;
+      });
       setErrorMsg(err.message || 'Unable to connect to Zyvra AI. Please try again.');
     } finally {
       setLoading(false);
@@ -520,59 +553,68 @@ export default function ZyvraAiGuruModal({
 
                   {/* Refined rich typography message body */}
                   <div className="rounded-2xl rounded-tl-sm p-4 text-xs sm:text-sm leading-relaxed dark:bg-slate-900/70 bg-slate-50 border dark:border-slate-800 border-slate-200 text-slate-800 dark:text-slate-200 shadow-xs">
-                    <AiMessageRenderer content={msg.text} />
+                    {msg.text ? (
+                      <AiMessageRenderer content={msg.text} />
+                    ) : (
+                      <span className="text-slate-400 italic text-xs">उत्तर तैयार किया जा रहा है…</span>
+                    )}
+                    {msg.isStreaming && (
+                      <span className="inline-block w-1.5 h-3.5 bg-amber-400 animate-pulse ml-1 align-middle rounded-xs" />
+                    )}
                   </div>
 
-                  {/* Micro Actions: Copy & Expressive Listen */}
-                  <div className="flex items-center gap-2 pt-1 pl-1">
-                    <button
-                      type="button"
-                      onClick={() => handleCopy(msg.text, idx)}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
-                      title="Copy explanation"
-                    >
-                      {copiedIndex === idx ? (
-                        <>
-                          <Check size={12} className="text-emerald-500" />
-                          <span className="text-emerald-500">Copied</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy size={12} />
-                          <span>Copy</span>
-                        </>
-                      )}
-                    </button>
+                  {/* Micro Actions: Copy & Expressive Listen (shown when streaming finishes) */}
+                  {!msg.isStreaming && msg.text && (
+                    <div className="flex items-center gap-2 pt-1 pl-1">
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(msg.text, idx)}
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors px-2 py-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                        title="Copy explanation"
+                      >
+                        {copiedIndex === idx ? (
+                          <>
+                            <Check size={12} className="text-emerald-500" />
+                            <span className="text-emerald-500">Copied</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy size={12} />
+                            <span>Copy</span>
+                          </>
+                        )}
+                      </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleSpeak(msg.text, idx)}
-                      className={`inline-flex items-center gap-1 text-[11px] font-bold transition-all px-2.5 py-1 rounded-lg ${
-                        speakingIndex === idx
-                          ? 'bg-amber-500 text-white shadow-xs animate-pulse'
-                          : 'text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800'
-                      }`}
-                      title={speakingIndex === idx ? 'आवाज़ रोकें (Stop audio)' : 'स्पष्ट आवाज़ में सुनें (Listen aloud)'}
-                    >
-                      {speakingIndex === idx ? (
-                        <>
-                          <VolumeX size={13} className="text-white" />
-                          <span>Stop</span>
-                        </>
-                      ) : (
-                        <>
-                          <Volume2 size={13} />
-                          <span>Listen (सुनें)</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={() => handleSpeak(msg.text, idx)}
+                        className={`inline-flex items-center gap-1 text-[11px] font-bold transition-all px-2.5 py-1 rounded-lg ${
+                          speakingIndex === idx
+                            ? 'bg-amber-500 text-white shadow-xs animate-pulse'
+                            : 'text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800'
+                        }`}
+                        title={speakingIndex === idx ? 'आवाज़ रोकें (Stop audio)' : 'स्पष्ट आवाज़ में सुनें (Listen aloud)'}
+                      >
+                        {speakingIndex === idx ? (
+                          <>
+                            <VolumeX size={13} className="text-white" />
+                            <span>Stop</span>
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 size={13} />
+                            <span>Listen (सुनें)</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
           ))}
 
-          {loading && (
+          {loading && !messages.some((m) => m.isStreaming) && (
             <div className="flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500 py-2">
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-bounce" />
               <span className="w-2 h-2 rounded-full bg-amber-400 animate-bounce [animation-delay:0.2s]" />

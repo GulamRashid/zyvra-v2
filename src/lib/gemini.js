@@ -355,6 +355,153 @@ export async function queryZyvraAiGuru({
 }
 
 /**
+ * Stream responses word-by-word from Google Gemini API via SSE
+ */
+export async function streamZyvraAiGuru({
+  prompt,
+  context = '',
+  conversationHistory = [],
+  onChunk,
+  config = DEFAULT_AI_CONFIG
+}) {
+  if (!prompt || !prompt.trim()) {
+    throw new Error('Please enter a question or problem statement.');
+  }
+
+  const apiKey = config.apiKey || DEFAULT_AI_CONFIG.apiKey;
+  if (!apiKey) {
+    throw new Error('AI engine API key is missing. Please contact admin.');
+  }
+
+  const systemInstructionText = config.systemPrompt || DEFAULT_AI_CONFIG.systemPrompt;
+  const modelsToTry = [
+    config.model || 'gemini-3.5-flash-lite',
+    ...(config.fallbackModels || ['gemini-3.5-flash', 'gemini-flash-lite-latest'])
+  ];
+
+  const contents = [];
+  const recentHistory = (conversationHistory || []).slice(-6);
+  recentHistory.forEach((msg) => {
+    if (msg.role === 'user' || msg.role === 'model') {
+      contents.push({
+        role: msg.role === 'model' ? 'model' : 'user',
+        parts: [{ text: msg.text }]
+      });
+    }
+  });
+
+  let finalUserPrompt = prompt.trim();
+  if (context && context.trim()) {
+    finalUserPrompt = `[Context / Reference Question]:\n${context.trim()}\n\n[Student Doubt / Query]:\n${prompt.trim()}`;
+  }
+
+  contents.push({
+    role: 'user',
+    parts: [{ text: finalUserPrompt }]
+  });
+
+  let lastError = null;
+
+  for (const model of modelsToTry) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
+      const payload = {
+        systemInstruction: {
+          parts: [{ text: systemInstructionText }]
+        },
+        contents,
+        generationConfig: {
+          temperature: 0.4,
+          maxOutputTokens: 2048
+        }
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errMsg = errorData?.error?.message || `HTTP ${response.status} from model ${model}`;
+        if (response.status === 503 || response.status === 404) {
+          lastError = new Error(errMsg);
+          continue;
+        }
+        throw new Error(errMsg);
+      }
+
+      if (!response.body || !response.body.getReader) {
+        // Fallback if ReadableStream is not available
+        return await queryZyvraAiGuru({ prompt, context, conversationHistory, config });
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let accumulatedText = '';
+      let buffer = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data: ')) {
+            const jsonStr = trimmed.slice(6).trim();
+            if (jsonStr === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const partText = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (partText) {
+                accumulatedText += partText;
+                if (onChunk) {
+                  onChunk(accumulatedText, partText);
+                }
+              }
+            } catch {
+              // Ignore non-json lines
+            }
+          }
+        }
+      }
+
+      if (buffer.trim().startsWith('data: ')) {
+        try {
+          const parsed = JSON.parse(buffer.trim().slice(6).trim());
+          const partText = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (partText) {
+            accumulatedText += partText;
+            if (onChunk) onChunk(accumulatedText, partText);
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (!accumulatedText.trim()) {
+        throw new Error('AI returned an empty response.');
+      }
+
+      return {
+        text: accumulatedText,
+        modelUsed: model
+      };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  // Graceful fallback to static query
+  return queryZyvraAiGuru({ prompt, context, conversationHistory, config });
+}
+
+/**
  * Safely parse JSON array returned by Gemini
  */
 export function extractJsonArray(rawText) {
