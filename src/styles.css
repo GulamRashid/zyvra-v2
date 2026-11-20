@@ -3759,13 +3759,23 @@ body.light .admin-orders-page .data-table {
   }
 }
 
-  .student-page-content {
-    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px) + 16px) !important;
+  .content-area.student-page-content {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    padding-top: 10px !important;
+    padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px) + 12px) !important;
   }
 
-  @media (min-width: 761px) {
-    .student-page-content {
-      padding-bottom: 32px !important;
+  @media (min-width: 641px) {
+    .content-area.student-page-content {
+      max-width: 1140px;
+      padding-left: 20px !important;
+      padding-right: 20px !important;
+      padding-top: 24px !important;
+      padding-bottom: 40px !important;
     }
   }
 

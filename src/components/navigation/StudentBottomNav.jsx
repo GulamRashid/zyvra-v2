@@ -52,10 +52,10 @@ export default function StudentBottomNav() {
 
   return (
     <nav
-      className="student-bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden dark:bg-[#0B1120]/95 bg-white/95 backdrop-blur-xl border-t dark:border-slate-800 border-slate-200 transition-all duration-300 pb-[env(safe-area-inset-bottom,0px)]"
+      className="student-bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden dark:bg-[#0B1120]/90 bg-white/90 backdrop-blur-xl border-t dark:border-slate-800/80 border-slate-200/80 transition-all duration-300 pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_25px_rgba(0,0,0,0.5)]"
       aria-label="Student Mobile Navigation"
     >
-      <div className="max-w-xl mx-auto px-1.5 py-1 sm:py-1.5 grid grid-cols-5 gap-1">
+      <div className="max-w-md mx-auto px-2 py-1 grid grid-cols-5 gap-1">
         {navItems.map((item) => {
           const active = isItemActive(item);
           const Icon = item.Icon;
@@ -65,15 +65,26 @@ export default function StudentBottomNav() {
             <NavLink
               key={item.key}
               to={item.to}
-              className={`flex min-h-[50px] flex-col items-center justify-center rounded-2xl px-1 py-1 text-[10px] font-bold transition-all touch-manipulation ${
+              className={`relative flex min-h-[50px] flex-col items-center justify-center rounded-2xl py-1 text-[10px] font-bold transition-all touch-manipulation active:scale-95 ${
                 active
-                  ? 'bg-indigo-600 text-white shadow-sm scale-[1.02]'
-                  : 'text-slate-500 hover:bg-slate-100 hover:text-indigo-600 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-indigo-300'
+                  ? 'text-indigo-600 dark:text-indigo-400 font-black'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
               }`}
               aria-current={active ? 'page' : undefined}
             >
-              <Icon size={19} strokeWidth={active ? 2.3 : 1.8} className="mb-0.5 shrink-0" />
-              <span className="truncate max-w-full leading-tight text-center tracking-tight">{label}</span>
+              <div
+                className={`p-1 rounded-xl transition-all ${
+                  active ? 'bg-indigo-500/15 dark:bg-indigo-400/20 scale-105' : ''
+                }`}
+              >
+                <Icon size={19} strokeWidth={active ? 2.4 : 1.7} className="shrink-0" />
+              </div>
+              <span className="truncate max-w-full leading-tight text-center tracking-tight mt-0.5">
+                {label}
+              </span>
+              {active && (
+                <span className="w-1 h-1 rounded-full bg-indigo-600 dark:bg-indigo-400 mt-0.5" />
+              )}
             </NavLink>
           );
         })}

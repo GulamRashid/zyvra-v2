@@ -487,13 +487,13 @@ export default function StudentProfile() {
   };
 
   return (
-    <div className="min-h-screen dark:bg-[#080d19] bg-[#f8fafc] dark:text-[#f0fdf4] text-slate-900 transition-colors pb-24">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors pb-24">
       {/* Top App Bar & Atmospheric Aura */}
       <div className="relative">
         <MountainSunsetAura height={190} mobileHeight={80} showSun={true} />
 
         {/* Top Floating Navigation */}
-        <div className="absolute top-0 inset-x-0 z-20 px-3.5 sm:px-6 pt-3.5 flex items-center justify-between max-w-2xl mx-auto">
+        <div className="absolute top-0 inset-x-0 z-20 px-2 sm:px-4 pt-3.5 flex items-center justify-between w-full max-w-4xl mx-auto">
           <div className="flex items-center gap-2.5">
             <button
               type="button"
@@ -542,7 +542,7 @@ export default function StudentProfile() {
         </div>
 
         {/* Unique Feature: Zyvra Student Digital ID Card (विद्यार्थी पहचान पत्र) */}
-        <div className="relative z-10 px-3.5 sm:px-6 pt-12 sm:pt-16 pb-3 max-w-2xl mx-auto">
+        <div className="relative z-10 pt-12 sm:pt-16 pb-3 w-full max-w-4xl mx-auto">
           <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#111827] dark:via-[#1e293b] dark:to-[#0f172a] bg-gradient-to-br from-white via-slate-50 to-indigo-50/40 border dark:border-slate-700/80 border-slate-200/90 p-4 sm:p-5 shadow-xl transition-all">
             {/* Subtle ID Card Watermark Logo */}
             <div className="absolute -right-6 -bottom-6 select-none opacity-[0.04] dark:opacity-[0.06] text-9xl font-black pointer-events-none">
@@ -715,7 +715,7 @@ export default function StudentProfile() {
         </div>
       </div>
 
-      <div className="px-3.5 sm:px-6 max-w-2xl mx-auto space-y-4 relative z-10">
+      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 relative z-10">
         {/* Pass / Pro Subscription Card */}
         <section className="relative overflow-hidden rounded-2xl dark:bg-gradient-to-r dark:from-[#1b1706] dark:via-slate-900 dark:to-slate-900 bg-gradient-to-r from-amber-50 via-amber-100/30 to-white border dark:border-amber-500/40 border-amber-300 p-4 sm:p-4.5 shadow-md flex items-center justify-between gap-3">
           <div className="flex items-center gap-3.5 min-w-0">

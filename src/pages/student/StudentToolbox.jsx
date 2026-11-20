@@ -328,7 +328,6 @@ export default function StudentToolbox() {
   const isToolVisible = (tool) => !tool.accessKey || visibleTools[tool.accessKey] !== false;
   const openCategory = (categoryId) => {
     setActiveCategory(categoryId);
-    setCurrentView('category-menu');
   };
   const openTool = (tool) => {
     recordStudyActivity(supabase, user?.id, 'toolbox_practice');
@@ -403,7 +402,7 @@ export default function StudentToolbox() {
   };
 
   const currentCategory = CATEGORY_CONFIG.find((category) => category.id === activeCategory);
-  const currentTool = (CATEGORY_TOOLS[activeCategory] || []).find((tool) => tool.id === activeTool);
+  const currentTool = allTools.find((tool) => tool.id === activeTool) || (CATEGORY_TOOLS[activeCategory] || []).find((tool) => tool.id === activeTool);
   const currentCategoryTitle = currentCategory ? t(currentCategory.titleKey) : '';
   const currentToolTitle = currentTool ? t(currentTool.titleKey) : '';
   const visibleCategories = CATEGORY_CONFIG.filter((category) => (CATEGORY_TOOLS[category.id] || []).some(isToolVisible));
@@ -541,39 +540,39 @@ export default function StudentToolbox() {
 
   return (
     <div className="toolbox-page min-h-screen min-w-0 dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
-      <div className="max-w-2xl min-w-0 mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
+      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
         {/* Top Header / Breadcrumb */}
-        {currentView !== 'main-menu' ? (
-          <div className="flex items-center justify-between gap-2.5 p-2.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 min-w-0">
+        {currentView === 'active-tool' ? (
+          <div className="flex items-center justify-between gap-2.5 p-3 rounded-2xl dark:bg-slate-900 bg-white shadow-xs border dark:border-slate-800 border-slate-200 min-w-0">
             <button
               type="button"
               onClick={goBack}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl dark:bg-slate-800 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 dark:text-slate-200 text-slate-800 text-xs font-bold transition-colors min-h-[40px] shrink-0"
             >
-              <ArrowLeft size={15} />
-              <span>{language === 'hi' ? 'वापस' : 'Back'}</span>
+              <ArrowLeft size={16} />
+              <span>{language === 'hi' ? 'टूलबॉक्स पर वापस' : 'Back to Tools'}</span>
             </button>
-            <div className="text-xs font-black dark:text-white text-slate-900 truncate text-right min-w-0 flex-1">
+            <div className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 truncate text-right min-w-0 flex-1">
               {currentToolTitle || currentCategoryTitle}
             </div>
           </div>
         ) : (
-          /* Main Hero Banner (Matching Mockup 1794580797580_48eb471c.jpg) */
-          <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-r dark:from-slate-900 dark:via-[#1E293B] dark:to-slate-900 bg-gradient-to-r from-indigo-50 via-slate-50 to-white border dark:border-indigo-500/30 border-indigo-200/60 p-4 sm:p-5 shadow-sm">
+          /* Main Hero Banner */
+          <div className="rounded-3xl dark:bg-slate-900/90 bg-white border dark:border-slate-800 border-slate-200/80 p-4 sm:p-5 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-base">
+                  <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 text-sm">
                     🧰
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                     {language === 'hi' ? 'ज़ीव्रा स्टडी सूट' : 'Zyvra Study Suite'}
                   </span>
                 </div>
-                <h1 className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-bold dark:text-white text-slate-900 tracking-tight">
                   {language === 'hi' ? 'अध्ययन टूलबॉक्स' : 'Study Toolbox'}
                 </h1>
-                <p className="text-xs dark:text-slate-300 text-slate-600 font-medium">
+                <p className="text-xs dark:text-slate-400 text-slate-600 font-medium">
                   {language === 'hi'
                     ? 'परीक्षा में सफलता हेतु स्मार्ट टूल्स, कैलकुलेटर, संविधान वॉल्ट और रिवीजन टूल्स'
                     : 'Smart utilities, calculators & quick reference tools for exam success'}
@@ -582,21 +581,21 @@ export default function StudentToolbox() {
 
               <div className="flex flex-row flex-wrap sm:flex-col sm:items-end gap-1.5">
                 {fullPassPricing.price > 0 && fullPassPricing.included_exam_ids.length + fullPassPricing.included_tool_ids.length > 0 && !toolAccess.__full_pass && (
-                  <div className="flex flex-col items-start gap-1">
+                  <div className="flex flex-col items-start sm:items-end gap-1">
                     <button
                       type="button"
                       onClick={openFullPassCheckout}
-                      className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-[11px] shadow-glowGold transition-transform active:scale-95"
+                      className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-xs transition-transform active:scale-95"
                     >
                       🌟 {language === 'hi' ? 'फुल पास' : 'Full Pass'} · ₹{fullPassPricing.price}
                     </button>
-                    <span className="text-[10px] font-semibold dark:text-slate-300 text-slate-600">
+                    <span className="text-[10px] font-medium dark:text-slate-400 text-slate-500">
                       {language === 'hi' ? 'शामिल:' : 'Includes'} {fullPassPricing.included_exam_titles.slice(0, 3).join(', ') || (language === 'hi' ? 'कोई परीक्षा नहीं' : 'no exams')}{fullPassPricing.included_exam_titles.length > 3 ? ` +${fullPassPricing.included_exam_titles.length - 3}` : ''}{fullPassPricing.included_tool_titles.length ? ` · ${fullPassPricing.included_tool_titles.slice(0, 2).join(', ')}${fullPassPricing.included_tool_titles.length > 2 ? ` +${fullPassPricing.included_tool_titles.length - 2}` : ''}` : ''}
                     </span>
                   </div>
                 )}
                 {toolAccess.__full_pass && (
-                  <span className="px-3 py-1.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 text-[10px] font-black">
+                  <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-bold">
                     {language === 'hi' ? 'फुल पास सक्रिय' : 'Full Pass active'}
                   </span>
                 )}
@@ -604,27 +603,12 @@ export default function StudentToolbox() {
                   <button
                     type="button"
                     onClick={openComboCheckout}
-                    className="px-3 py-1.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 font-black text-[10px] transition-transform active:scale-95"
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs border dark:border-slate-700 border-slate-200 transition-transform active:scale-95"
                   >
                     ⚡ {language === 'hi' ? 'केवल टूलबॉक्स' : 'Toolbox only'} · ₹{comboPricing.price}
                   </button>
                 )}
               </div>
-            </div>
-
-            {/* Quick capability badges */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-3 text-[11px] font-bold">
-              {(language === 'hi'
-                ? ['✓ गणना (Calculate)', '✓ रूपांतरण (Convert)', '✓ संविधान (Polity)', '✓ दोहराव (Revise)', '✓ फोकस टाइमर (Focus)']
-                : ['✓ Calculate', '✓ Convert', '✓ Revise', '✓ Memorize', '✓ Focus Timer']
-              ).map((pill, idx) => (
-                <span
-                  key={idx}
-                  className="px-2.5 py-1 rounded-full dark:bg-slate-800/80 bg-white/90 border dark:border-slate-700/40 border-slate-200 dark:text-slate-200 text-slate-800 whitespace-nowrap shadow-xs"
-                >
-                  {pill}
-                </span>
-              ))}
             </div>
           </div>
         )}
@@ -643,349 +627,215 @@ export default function StudentToolbox() {
         )}
 
         {/* ======================================================== */}
-        {/* VIEW 1: MAIN MENU (Dashboard View with Categories & Popular) */}
+        {/* VIEW: MAIN DASHBOARD (Unified Segmented Modern Layout) */}
         {/* ======================================================== */}
-        {currentView === 'main-menu' && (
+        {currentView !== 'active-tool' && (
           <div className="space-y-4">
-            {/* Today's Revision Workout Bar (Mobile First Cockpit) */}
-            {!searchText && (
-              <div className="rounded-3xl p-3.5 sm:p-4 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-amber-500/10 border border-indigo-500/25 dark:border-indigo-500/30 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Zyvra AI Guru Spotlight Banner */}
+            <div className="rounded-2xl p-4 bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-amber-500/10 border border-indigo-500/20 dark:border-indigo-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-lg shrink-0 shadow-sm">
+                  ✨
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      {language === 'hi' ? 'स्मार्ट एआई मेंटर' : 'Smart AI Mentor'}
+                    </span>
+                    <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/30">
+                      24/7 Live
+                    </span>
+                  </div>
+                  <strong className="block text-sm font-bold dark:text-white text-slate-900 truncate">
+                    Zyvra AI Guru
+                  </strong>
+                  <p className="text-xs dark:text-slate-400 text-slate-600 truncate">
+                    {language === 'hi'
+                      ? 'डाउट समाधान, गणित ट्रिक्स व सूत्र स्पष्टीकरण'
+                      : 'Instant exam doubt solving, formulas & conceptual clarity'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  const aiTool = allTools.find((t) => t.id === 'zyvra-ai-guru');
+                  if (aiTool) openTool(aiTool);
+                }}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shrink-0 flex items-center justify-center gap-1.5 min-h-[40px] shadow-xs"
+              >
+                <Sparkles size={14} />
+                <span>{language === 'hi' ? 'सवाल पूछें' : 'Ask AI Guru'}</span>
+              </button>
+            </div>
+
+            {/* Today's Revision Workout Bar (Spaced Repetition due count) */}
+            {dueMistakesCount > 0 && !searchText && (
+              <div className="rounded-2xl p-3.5 bg-rose-500/10 border border-rose-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-lg shrink-0 shadow-glowIndigo">
-                    {dueMistakesCount > 0 ? '⚡' : '🎯'}
+                  <div className="w-9 h-9 rounded-xl bg-rose-500 text-white flex items-center justify-center text-base shrink-0">
+                    ⚡
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                        {language === 'hi' ? 'आज का दोहराव सत्र' : "Today's Revision Workout"}
-                      </span>
-                      {dueMistakesCount > 0 && (
-                        <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
-                          {dueMistakesCount} {language === 'hi' ? 'बाकी' : 'Due'}
-                        </span>
-                      )}
-                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+                      {language === 'hi' ? 'आज का दोहराव सत्र' : "Today's Revision"}
+                    </span>
                     <strong className="block text-xs sm:text-sm font-bold dark:text-white text-slate-900 truncate">
-                      {dueMistakesCount > 0
-                        ? language === 'hi'
-                          ? `आज दोहराने के लिए ${dueMistakesCount} गलतियां पेंडिंग हैं`
-                          : `${dueMistakesCount} errors need spaced review today`
-                        : userMistakes.length > 0
-                        ? language === 'hi'
-                          ? 'शाबाश! आज की सभी गलतियां दोहरा ली गई हैं'
-                          : 'All caught up! No mistakes due today'
-                        : language === 'hi'
-                        ? 'मॉक टेस्ट से 1-क्लिक में गलतियां जोड़ें और दोहराएं'
-                        : 'Practice mocks & track your error notebook'}
+                      {language === 'hi'
+                        ? `आज दोहराने के लिए ${dueMistakesCount} गलतियां पेंडिंग हैं`
+                        : `${dueMistakesCount} errors need spaced review today`}
                     </strong>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  {dueMistakesCount > 0 ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const tool = allTools.find((t) => t.id === 'mistake-notebook');
-                        if (tool) openTool(tool);
-                      }}
-                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-glowIndigo flex items-center justify-center gap-1.5 min-h-[44px] active:scale-95 transition-transform"
-                    >
-                      <span>⚡ {language === 'hi' ? '5-मिनट दोहराव शुरू करें' : 'Start 5-Min Recap'}</span>
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const tool = allTools.find((t) => t.id === 'risk-simulator');
-                        if (tool) openTool(tool);
-                      }}
-                      className="w-full sm:w-auto px-3.5 py-2.5 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 text-slate-800 dark:text-slate-100 font-extrabold text-xs flex items-center justify-center gap-1.5 min-h-[44px] active:scale-95 transition-transform"
-                    >
-                      <span>🎯 {language === 'hi' ? 'रिस्क सिम्युलेटर' : 'Risk Simulator'}</span>
-                    </button>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const tool = allTools.find((t) => t.id === 'mistake-notebook');
+                    if (tool) openTool(tool);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs shrink-0 transition-colors flex items-center justify-center gap-1.5"
+                >
+                  <span>⚡ {language === 'hi' ? 'दोहराव शुरू करें' : 'Start Recap'}</span>
+                </button>
               </div>
             )}
 
-            <label className="flex min-h-12 items-center gap-2 rounded-2xl border dark:border-slate-700/60 border-slate-200 dark:bg-[#1E293B]/85 bg-white px-3.5 shadow-sm">
-              <Search size={18} className="shrink-0 text-slate-500" />
-              <input type="search" value={toolSearch} onChange={(event) => setToolSearch(event.target.value)} placeholder={t('tbSearchTools')} aria-label={t('tbSearchTools')} className="min-w-0 flex-1 bg-transparent py-3 text-base font-semibold outline-none placeholder:text-slate-500" />
-              {toolSearch && <button type="button" onClick={() => setToolSearch('')} className="min-h-10 px-2 text-xs font-bold text-indigo-500">{t('tbClearSearch')}</button>}
-            </label>
-            {(favorites.length > 0 || recentTools.length > 0) && !searchText && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {favorites.length > 0 && <section className="rounded-2xl border dark:border-slate-700/60 border-slate-200 dark:bg-[#1E293B]/85 bg-white p-3"><h3 className="mb-2 flex items-center gap-2 text-xs font-black"><Heart size={14} className="text-rose-500" />{t('tbFavorites')}</h3><div className="flex flex-wrap gap-2">{favorites.map((id) => { const tool = allTools.find((item) => item.id === id); if (!tool) return null; return <button key={id} type="button" onClick={() => openTool(tool)} className="min-h-10 rounded-xl bg-indigo-500/10 px-3 text-left text-xs font-bold text-indigo-700 dark:text-indigo-200">{t(tool.titleKey)}</button>; })}</div></section>}
-                {recentTools.length > 0 && <section className="rounded-2xl border dark:border-slate-700/60 border-slate-200 dark:bg-[#1E293B]/85 bg-white p-3"><h3 className="mb-2 flex items-center gap-2 text-xs font-black"><Clock3 size={14} className="text-indigo-500" />{t('tbRecentlyUsed')}</h3><div className="flex flex-wrap gap-2">{recentTools.map((id) => { const tool = allTools.find((item) => item.id === id); if (!tool) return null; return <button key={id} type="button" onClick={() => openTool(tool)} className="min-h-10 rounded-xl dark:bg-slate-800 bg-slate-100 px-3 text-left text-xs font-bold">{t(tool.titleKey)}</button>; })}</div></section>}
-              </div>
-            )}
-            {/* Category Filter Pills (Matching Mockup 1794580797580_48eb471c.jpg) */}
-            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
+            {/* Minimalist Search Bar */}
+            <div className="relative">
+              <label className="flex min-h-11 items-center gap-2 rounded-2xl border dark:border-slate-800 border-slate-200 dark:bg-slate-900 bg-white px-3.5 shadow-xs">
+                <Search size={16} className="shrink-0 text-slate-400 dark:text-slate-500" />
+                <input
+                  type="search"
+                  value={toolSearch}
+                  onChange={(event) => setToolSearch(event.target.value)}
+                  placeholder={t('tbSearchTools')}
+                  aria-label={t('tbSearchTools')}
+                  className="min-w-0 flex-1 bg-transparent py-2.5 text-xs sm:text-sm font-medium outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 dark:text-white text-slate-900"
+                />
+                {toolSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setToolSearch('')}
+                    className="min-h-8 px-2 text-xs font-bold text-indigo-500 hover:text-indigo-400"
+                  >
+                    {t('tbClearSearch')}
+                  </button>
+                )}
+              </label>
+            </div>
+
+            {/* Segmented Category Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
               <button
                 type="button"
                 onClick={() => setActiveCategory(null)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all flex items-center gap-1.5 min-h-[44px] ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 min-h-[38px] ${
                   activeCategory === null
-                    ? 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white shadow-glowIndigo'
-                    : 'dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-300 text-slate-700 hover:border-indigo-500'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'dark:bg-slate-900 bg-white border dark:border-slate-800 border-slate-200 dark:text-slate-300 text-slate-700 hover:border-indigo-400'
                 }`}
               >
                 <span>{language === 'hi' ? 'सभी टूल्स' : 'All Tools'}</span>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${activeCategory === null ? 'bg-white/20 text-white' : 'dark:bg-slate-800 bg-slate-100 text-slate-500'}`}>
+                  {allTools.filter(isToolVisible).length}
+                </span>
               </button>
               {visibleCategories.map(({ id, titleKey, Icon }) => {
                 const isSelected = activeCategory === id;
+                const count = (CATEGORY_TOOLS[id] || []).filter(isToolVisible).length;
                 return (
                   <button
                     key={id}
                     type="button"
                     onClick={() => setActiveCategory(isSelected ? null : id)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-extrabold whitespace-nowrap transition-all flex items-center gap-1.5 min-h-[44px] ${
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 min-h-[38px] ${
                       isSelected
-                        ? 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white shadow-glowIndigo'
-                        : 'dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-300 text-slate-700 hover:border-indigo-500'
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'dark:bg-slate-900 bg-white border dark:border-slate-800 border-slate-200 dark:text-slate-300 text-slate-700 hover:border-indigo-400'
                     }`}
                   >
                     <Icon size={14} />
                     <span>{t(titleKey)}</span>
+                    <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${isSelected ? 'bg-white/20 text-white' : 'dark:bg-slate-800 bg-slate-100 text-slate-500'}`}>
+                      {count}
+                    </span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Popular Quick Tools Row (Matching Mockup 1794580797580_48eb471c.jpg) */}
-            {!searchText && <div className="space-y-2">
-              <div className="flex items-center justify-between px-1">
-                <h3 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 flex items-center gap-1.5">
-                  <span className="text-amber-500">🔥</span>
-                  <span>{language === 'hi' ? 'लोकप्रिय टूल्स' : 'Popular Tools'}</span>
-                </h3>
-                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400">
-                  {language === 'hi' ? 'त्वरित एक्सेस' : 'Quick Access'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 sm:grid-cols-6 min-w-0 gap-1.5 sm:gap-2">
-                {[
-                  { id: 'zyvra-ai-guru', cat: 'productivity', label: language === 'hi' ? 'AI गुरु डाउट' : 'AI Doubt Guru', icon: Sparkles, color: 'text-amber-500' },
-                  { id: 'risk-simulator', cat: 'productivity', label: language === 'hi' ? 'रिस्क कैलकुलेटर' : 'Risk Simulator', icon: Target, color: 'text-amber-500' },
-                  { id: 'mistake-notebook', cat: 'revision', label: language === 'hi' ? 'गलती नोटबुक' : 'Mistake Vault', icon: ListChecks, color: 'text-indigo-500' },
-                  { id: 'constitution-articles', cat: 'general-studies', label: language === 'hi' ? 'संविधान अनुच्छेद' : 'Polity Vault', icon: Landmark, color: 'text-emerald-500' },
-                  { id: 'calculator', cat: 'math', label: language === 'hi' ? 'कैलकुलेटर' : 'Calculator', icon: Calculator, color: 'text-cyan-500' },
-                  { id: 'fraction-converter', cat: 'math', label: language === 'hi' ? 'प्रतिशत' : 'Percentage', icon: Percent, color: 'text-indigo-500' },
-                  { id: 'pomodoro', cat: 'productivity', label: language === 'hi' ? 'फोकस टाइमर' : 'Focus Timer', icon: Clock3, color: 'text-rose-500' }
-                ].map((item) => {
-                  const toolObj = (CATEGORY_TOOLS[item.cat] || []).find((t) => t.id === item.id);
-                  const locked = toolObj ? isToolLocked(toolObj) : false;
-                  const Icon = item.icon;
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveCategory(item.cat);
-                        if (toolObj) openTool(toolObj);
-                      }}
-                      className="p-2 sm:p-2.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 flex flex-col items-center justify-center text-center transition-all hover:scale-105 active:scale-95 group min-h-[72px]"
-                    >
-                      <div className="relative mb-1">
-                        <Icon size={18} className={`${item.color} group-hover:scale-110 transition-transform`} />
-                        {locked && (
-                          <div className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-amber-500 text-black flex items-center justify-center text-[9px] font-black">
-                            🔒
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-[10px] sm:text-xs font-bold dark:text-white text-slate-800 leading-tight">
-                        {item.label}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>}
-
-            {/* Tools by Subject Accordions / Groups */}
-            <div className="space-y-3 pt-1">
-              <div className="flex items-center justify-between px-1">
-                <h3 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 flex items-center gap-1.5">
-                  <Wrench size={14} className="text-indigo-500" />
-                  <span>{language === 'hi' ? 'विषय अनुसार टूल्स' : 'Tools by Subject'}</span>
-                </h3>
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  {visibleCategories.length} {language === 'hi' ? 'विषय' : 'Subjects'}
-                </span>
-              </div>
-
-              {visibleCategories
-                .filter((cat) => !activeCategory || cat.id === activeCategory)
-                .map((category) => {
-                  const Icon = category.Icon;
-                  const tools = (CATEGORY_TOOLS[category.id] || []).filter((tool) => isToolVisible(tool) && matchesToolSearch(tool));
-                  if (searchText && tools.length === 0) return null;
+            {/* Unified Flat Tool Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {(activeCategory ? (CATEGORY_TOOLS[activeCategory] || []) : allTools)
+                .filter((tool) => isToolVisible(tool) && matchesToolSearch(tool))
+                .map((tool) => {
+                  const locked = isToolLocked(tool);
+                  const Icon = tool.Icon;
+                  const isFav = favorites.includes(tool.id);
 
                   return (
                     <div
-                      key={category.id}
-                      className="rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 overflow-hidden"
+                      key={tool.id}
+                      className="group rounded-2xl border dark:border-slate-800/80 border-slate-200/90 dark:bg-slate-900/60 bg-white hover:border-indigo-500/40 hover:shadow-xs transition-all p-3.5 flex flex-col justify-between"
                     >
-                      {/* Subject Header */}
-                      <button
-                        type="button"
-                        onClick={() => setActiveCategory(activeCategory === category.id ? null : category.id)}
-                        className={`w-full p-3.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors text-left ${category.color || ''}`}
-                      >
-                        <div className="flex items-center gap-3">
+                      <div>
+                        {/* Top Bar: Icon + Status Badge + Favorite */}
+                        <div className="flex items-center justify-between gap-2">
                           <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
                             <Icon size={18} />
                           </div>
-                          <div>
-                            <h4 className="text-sm font-bold dark:text-white text-slate-900">
-                              {t(category.titleKey)}
-                            </h4>
-                            <p className="text-xs dark:text-slate-400 text-slate-500">
-                              {tools.length} {language === 'hi' ? 'टूल्स उपलब्ध' : 'Tools Available'}
-                            </p>
+                          <div className="flex items-center gap-1.5">
+                            {locked ? (
+                              <span className="px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/30 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
+                                🔒 ₹{getToolConfig(tool).price || 49}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
+                                {language === 'hi' ? 'मुफ़्त' : 'Free'}
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => toggleFavorite(tool.id)}
+                              aria-label={isFav ? t('tbRemoveFavorite') : t('tbAddFavorite')}
+                              className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                            >
+                              <Heart
+                                size={14}
+                                className={isFav ? 'fill-rose-500 text-rose-500' : 'text-slate-400 dark:text-slate-500'}
+                              />
+                            </button>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold dark:text-indigo-400 text-indigo-600">
-                            {activeCategory === category.id ? (language === 'hi' ? 'सभी देखें' : 'Show All') : (language === 'hi' ? 'खोलें' : 'Expand')}
-                          </span>
-                          <ChevronRight size={16} className={`text-slate-400 dark:text-slate-500 transition-transform ${activeCategory === category.id ? 'rotate-90' : ''}`} />
+                        {/* Title & Description */}
+                        <div className="mt-2.5 space-y-0.5">
+                          <h3 className="text-sm font-bold dark:text-white text-slate-900 truncate">
+                            {t(tool.titleKey)}
+                          </h3>
+                          <p className="text-xs dark:text-slate-400 text-slate-500 line-clamp-2 leading-relaxed">
+                            {t(tool.subtitleKey)}
+                          </p>
                         </div>
-                      </button>
-
-                      {/* All tools in category */}
-                      <div className="px-3.5 pb-3.5 pt-1 border-t dark:border-slate-700/40 border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {tools.map((tool) => {
-                          const locked = isToolLocked(tool);
-                          const ToolIcon = tool.Icon;
-
-                          return (
-                            <button
-                              key={tool.id}
-                              type="button"
-                              onClick={() => {
-                                setActiveCategory(category.id);
-                                openTool(tool);
-                              }}
-                              className="p-2.5 rounded-xl dark:bg-slate-900/50 bg-slate-50 hover:bg-slate-100 dark:hover:bg-slate-800/60 border dark:border-slate-700/40 border-slate-200/80 flex items-center justify-between gap-2 text-left transition-colors min-h-[44px]"
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <ToolIcon size={15} className="text-indigo-500 shrink-0" />
-                                <span className="text-xs font-bold dark:text-white text-slate-800 truncate">
-                                  {t(tool.titleKey)}
-                                </span>
-                              </div>
-                              {locked ? (
-                                <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-600 dark:text-amber-300 border border-amber-400/30 shrink-0">
-                                  🔒 ₹{getToolConfig(tool).price || 'Premium'}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0">
-                                  {language === 'hi' ? 'मुफ़्त' : 'Free'}
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
                       </div>
+
+                      {/* Action Button */}
+                      <button
+                        type="button"
+                        onClick={() => openTool(tool)}
+                        className="mt-3.5 w-full py-2 px-3 rounded-xl dark:bg-slate-800/80 bg-slate-100 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white dark:text-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center justify-between"
+                      >
+                        <span>{language === 'hi' ? 'टूल खोलें' : 'Open Tool'}</span>
+                        <ChevronRight size={14} />
+                      </button>
                     </div>
                   );
                 })}
-              {searchText && searchResultCount === 0 && <div className="rounded-2xl border border-dashed dark:border-slate-700 border-slate-300 p-6 text-center text-sm text-slate-500">{t('tbNoSearchResults')}</div>}
-            </div>
-          </div>
-        )}
-
-        {/* ======================================================== */}
-        {/* VIEW 2: CATEGORY MENU (List of all tools in category) */}
-        {/* ======================================================== */}
-        {currentView === 'category-menu' && (
-          <div className="space-y-3">
-            <div className="p-3 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-black dark:text-white text-slate-900">
-                  {currentCategoryTitle}
-                </h3>
-                <p className="text-xs dark:text-slate-400 text-slate-600">
-                  {language === 'hi' ? 'पूरा इंटरफ़ेस खोलने के लिए नीचे दिए गए टूल को चुनें' : 'Select a tool below to open its full interactive interface'}
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              {(CATEGORY_TOOLS[activeCategory] || []).filter((tool) => isToolVisible(tool) && matchesToolSearch(tool)).map((tool) => {
-                const locked = isToolLocked(tool);
-                const Icon = tool.Icon;
-
-                return (
-                  <div
-                    key={tool.id}
-                    className="group relative rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/80 transition-all flex items-center justify-between p-3 sm:p-3.5 gap-2.5 min-w-0"
-                  >
-                    {/* Main Clickable Area to open tool */}
-                    <button
-                      type="button"
-                      onClick={() => openTool(tool)}
-                      className="flex items-center gap-3 min-w-0 flex-1 text-left active:scale-[0.99] transition-transform"
-                    >
-                      <div className="w-10 h-10 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
-                        <Icon size={20} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                          {t(tool.titleKey)}
-                        </strong>
-                        <small className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-500 block truncate">
-                          {t(tool.subtitleKey)}
-                        </small>
-                      </div>
-                    </button>
-
-                    {/* Integrated Action Buttons on Right */}
-                    <div className="shrink-0 flex items-center gap-1 sm:gap-2">
-                      {locked ? (
-                        <button
-                          type="button"
-                          onClick={() => openTool(tool)}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/40 text-[11px] font-black"
-                        >
-                          <LockKeyhole size={12} />
-                          <span>₹{getToolConfig(tool).price || 49}</span>
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => openTool(tool)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-500 transition-colors"
-                          aria-label="Open tool"
-                        >
-                          <ChevronRight size={18} />
-                        </button>
-                      )}
-
-                      {/* Favorite Button Neatly Integrated Inside Card */}
-                      <button
-                        type="button"
-                        onClick={() => toggleFavorite(tool.id)}
-                        aria-label={favorites.includes(tool.id) ? t('tbRemoveFavorite') : t('tbAddFavorite')}
-                        aria-pressed={favorites.includes(tool.id)}
-                        className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
-                      >
-                        <Heart
-                          size={16}
-                          className={favorites.includes(tool.id) ? 'fill-rose-500 text-rose-500' : 'text-slate-400 dark:text-slate-500'}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-              {(CATEGORY_TOOLS[activeCategory] || []).filter((tool) => isToolVisible(tool) && matchesToolSearch(tool)).length === 0 && <div className="col-span-full rounded-2xl border border-dashed dark:border-slate-700 border-slate-300 p-6 text-center text-sm text-slate-500">{t('tbNoSearchResults')}</div>}
+              {(activeCategory ? (CATEGORY_TOOLS[activeCategory] || []) : allTools).filter((tool) => isToolVisible(tool) && matchesToolSearch(tool)).length === 0 && (
+                <div className="col-span-full rounded-2xl border border-dashed dark:border-slate-800 border-slate-300 p-8 text-center text-sm text-slate-500">
+                  {t('tbNoSearchResults')}
+                </div>
+              )}
             </div>
           </div>
         )}

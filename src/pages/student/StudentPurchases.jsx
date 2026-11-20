@@ -243,20 +243,24 @@ export default function StudentPurchases() {
   }, [searchQuery, enrolledExams, folders, chapters, enrolledStandaloneFolders]);
 
   return (
-    <div className="purchases-page min-h-screen dark:bg-[#0B1120] bg-[#f8fafc] dark:text-slate-100 text-slate-900 transition-colors pb-24">
-      <div className="max-w-4xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
+    <div className="purchases-page min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors pb-24">
+      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
 
         {/* Top Header Card */}
-        <div className="page-heading relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50/70 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200/90 p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <div className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 tracking-wider flex items-center gap-1.5">
-              <GraduationCap size={15} />
-              <span>{language === 'hi' ? 'मेरा अध्ययन कक्ष' : 'STUDENT LEARNING DASHBOARD'}</span>
+        <div className="rounded-3xl dark:bg-slate-900/90 bg-white border dark:border-slate-800 border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 text-sm">
+                🎓
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                {language === 'hi' ? 'मेरा अध्ययन कक्ष' : 'Student Learning Dashboard'}
+              </span>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-2 mt-0.5">
-              <span>{language === 'hi' ? 'मेरे कोर्सेज (My Courses)' : 'My Enrolled Courses'}</span>
+            <h1 className="text-xl sm:text-2xl font-bold dark:text-white text-slate-900 tracking-tight">
+              {language === 'hi' ? 'मेरे कोर्सेज (My Courses)' : 'My Enrolled Courses'}
             </h1>
-            <p className="text-xs sm:text-sm dark:text-slate-300 text-slate-600 font-medium mt-0.5">
+            <p className="text-xs dark:text-slate-400 text-slate-600 font-medium">
               {language === 'hi'
                 ? 'आपके खरीदे गए सभी एग्जाम, मुख्य विषय, सब-फोल्डर्स और टेस्ट्स क्रमबद्ध रूप से।'
                 : 'All your unlocked exams, subject folders, sub-folders, and mock tests in structured hierarchy.'}
@@ -266,7 +270,7 @@ export default function StudentPurchases() {
           <button
             type="button"
             onClick={loadPurchases}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 text-xs font-bold dark:text-slate-200 text-slate-700 shadow-xs hover:border-indigo-500 transition-colors shrink-0 active:scale-95"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl dark:bg-slate-800/80 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 border dark:border-slate-700/60 border-slate-200 text-xs font-bold dark:text-slate-200 text-slate-700 shadow-xs transition-colors shrink-0 active:scale-95"
             title="Refresh courses"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
@@ -275,7 +279,7 @@ export default function StudentPurchases() {
         </div>
 
         {error && (
-          <div className="p-3.5 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border dark:border-rose-500/30 border-rose-200 text-rose-600 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
+          <div className="p-3 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border dark:border-rose-500/30 border-rose-200 text-rose-600 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
             <AlertCircle size={16} />
             <span>{error}</span>
           </div>
@@ -286,15 +290,15 @@ export default function StudentPurchases() {
           <button
             type="button"
             onClick={() => setActiveTab('courses')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 min-h-[38px] ${
               activeTab === 'courses'
-                ? 'bg-indigo-600 text-white shadow-md'
+                ? 'bg-indigo-600 text-white shadow-xs'
                 : 'dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800/60'
             }`}
           >
-            <BookOpen size={15} />
+            <BookOpen size={14} />
             <span>{language === 'hi' ? 'मेरे कोर्सेज व फोल्डर्स' : 'My Courses & Folders'}</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white/20 dark:bg-slate-800">
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'courses' ? 'bg-white/20 text-white' : 'dark:bg-slate-800 bg-slate-100 text-slate-500'}`}>
               {enrolledCount}
             </span>
           </button>
@@ -302,15 +306,15 @@ export default function StudentPurchases() {
           <button
             type="button"
             onClick={() => setActiveTab('orders')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 min-h-[38px] ${
               activeTab === 'orders'
-                ? 'bg-indigo-600 text-white shadow-md'
+                ? 'bg-indigo-600 text-white shadow-xs'
                 : 'dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800/60'
             }`}
           >
-            <ShoppingBag size={15} />
+            <ShoppingBag size={14} />
             <span>{language === 'hi' ? 'पेमेंट रसीदें (Orders)' : 'Payment Orders'}</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white/20 dark:bg-slate-800">
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${activeTab === 'orders' ? 'bg-white/20 text-white' : 'dark:bg-slate-800 bg-slate-100 text-slate-500'}`}>
               {orders.length}
             </span>
           </button>
@@ -324,37 +328,37 @@ export default function StudentPurchases() {
 
             {/* 1. Full Pass VIP Highlight Banner */}
             {hasFullPass && !selectedExam && folderStack.length === 0 && (
-              <section className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1e1906] dark:via-slate-900 dark:to-[#0f172a] bg-gradient-to-br from-amber-50 via-amber-100/40 to-indigo-50/30 border dark:border-amber-500/40 border-amber-300 p-4 sm:p-5 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-indigo-500/10 border border-amber-400/30 dark:border-amber-400/20 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-2xl shadow-md shrink-0">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-slate-950 font-bold text-xl shadow-xs shrink-0">
                     👑
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-400 text-slate-950 uppercase tracking-wider">
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-400/20 text-amber-800 dark:text-amber-300 border border-amber-400/30 uppercase tracking-wider">
                         VIP UNLIMITED PASS
                       </span>
-                      <span className="text-xs font-bold text-emerald-500 flex items-center gap-1">
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                         <CheckCircle2 size={12} />
                         <span>{language === 'hi' ? 'सक्रिय' : 'Active'}</span>
                       </span>
                     </div>
-                    <h2 className="text-base sm:text-lg font-black dark:text-white text-slate-900 tracking-tight mt-0.5">
+                    <h2 className="text-base sm:text-lg font-bold dark:text-white text-slate-900 tracking-tight mt-0.5">
                       Zyvra All-Access Full Pass
                     </h2>
-                    <p className="text-xs dark:text-amber-200/90 text-amber-900 font-medium mt-0.5">
+                    <p className="text-xs dark:text-slate-300 text-slate-600 font-medium mt-0.5">
                       {language === 'hi'
-                        ? 'सभी परीक्षाओं के सभी विषय, सब-फोल्डर्स, मॉक टेस्ट्स और 6 स्टडी टूल्स पूरी तरह अनलॉक हैं!'
+                        ? 'सभी परीक्षाओं के सभी विषय, सब-फोल्डर्स, मॉक टेस्ट्स और स्टडी टूल्स पूरी तरह अनलॉक हैं!'
                         : 'Full platform unlocked! All exam folders, full mock tests and tools are active.'}
                     </p>
                   </div>
                 </div>
 
                 <div className="sm:text-right shrink-0">
-                  <span className="text-[10px] uppercase font-bold text-amber-500 block">
+                  <span className="text-[10px] uppercase font-bold text-amber-600 dark:text-amber-400 block">
                     {language === 'hi' ? 'वैधता (Validity)' : 'Validity'}
                   </span>
-                  <span className="text-xs sm:text-sm font-black dark:text-white text-slate-900 block">
+                  <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block">
                     {fullPassGrant?.expires_at
                       ? new Date(fullPassGrant.expires_at).toLocaleDateString(undefined, { dateStyle: 'medium' })
                       : accountAccess?.validTill || 'Lifetime Access'}

@@ -122,37 +122,57 @@ export default function ExploreExams() {
   }, [exams, selectedCategory, search]);
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#f4faf7] dark:text-slate-100 text-slate-900 transition-colors">
-      <div className="max-w-4xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
+      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
         {/* Page Heading Banner */}
-        <div className="page-heading relative overflow-hidden rounded-2xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50/80 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-3.5 sm:p-5 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
-          <div>
-            <h1 className="text-lg sm:text-xl font-black dark:text-white text-slate-900 tracking-tight">
+        <div className="rounded-3xl dark:bg-slate-900/90 bg-white border dark:border-slate-800 border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 text-sm">
+                🎓
+              </div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                {language === 'hi' ? 'पाठ्यक्रम एक्सप्लोरर' : 'Syllabus Explorer'}
+              </span>
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold dark:text-white text-slate-900 tracking-tight">
               {language === 'hi' ? 'परीक्षाएं और पाठ्यक्रम' : 'Explore Exams'}
             </h1>
-            <p className="text-xs dark:text-slate-300 text-slate-600 font-medium mt-0.5">
-              {language === 'hi' ? 'अपनी परीक्षा चुनें और विषयवार नोट्स व टेस्ट सीरीज एक्सप्लोर करें।' : 'Choose an exam to view its syllabus and available study materials.'}
+            <p className="text-xs dark:text-slate-400 text-slate-600 font-medium">
+              {language === 'hi' ? 'अपनी परीक्षा चुनें और विषयवार नोट्स व टेस्ट सीरीज एक्सप्लोर करें।' : 'Choose an exam to view its syllabus, chapters and test series.'}
             </p>
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 text-xs font-bold dark:text-indigo-300 text-indigo-800 shadow-xs shrink-0">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full dark:bg-slate-800/80 bg-slate-100 border dark:border-slate-700/60 border-slate-200 text-xs font-bold dark:text-indigo-300 text-indigo-700 shrink-0">
             <GraduationCap size={15} />
             <span>
-              {visibleExams.length} {language === 'hi' ? 'परीक्षाएं' : visibleExams.length === 1 ? 'Exam' : 'Exams'}
+              {visibleExams.length} {language === 'hi' ? 'परीक्षाएं उपलब्ध' : visibleExams.length === 1 ? 'Exam' : 'Exams'}
             </span>
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* Minimalist Search Bar */}
         <div className="relative">
-          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
-          <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={language === 'hi' ? 'परीक्षा, विषय या टॉपिक खोजें...' : 'Search exams, subjects or syllabus...'}
-            aria-label="Search exams"
-            className="w-full pl-9 pr-3.5 py-2 rounded-xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 dark:text-white text-slate-900 text-xs sm:text-sm font-medium focus:outline-none focus:border-indigo-500 min-h-[40px]"
-          />
+          <label className="flex min-h-11 items-center gap-2 rounded-2xl border dark:border-slate-800 border-slate-200 dark:bg-slate-900 bg-white px-3.5 shadow-xs">
+            <Search size={16} className="shrink-0 text-slate-400 dark:text-slate-500" />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder={language === 'hi' ? 'परीक्षा, विषय या टॉपिक खोजें...' : 'Search exams, subjects or syllabus...'}
+              aria-label="Search exams"
+              className="min-w-0 flex-1 bg-transparent py-2.5 text-xs sm:text-sm font-medium outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500 dark:text-white text-slate-900"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="min-h-8 px-2 text-xs font-bold text-indigo-500 hover:text-indigo-400"
+              >
+                Clear
+              </button>
+            )}
+          </label>
         </div>
 
         {/* Category Filters */}
@@ -166,12 +186,12 @@ export default function ExploreExams() {
                   onClick={() => setSelectedCategory(item.name)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 min-h-[38px] ${
                     isSelected
-                      ? 'bg-indigo-600 border border-indigo-400/30 text-white shadow-xs'
-                      : 'dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 dark:text-slate-300 text-slate-700 hover:border-indigo-400'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'dark:bg-slate-900 bg-white border dark:border-slate-800 border-slate-200 dark:text-slate-300 text-slate-700 hover:border-indigo-400'
                   }`}
                 >
                   <span>{item.name}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full ${
                     isSelected ? 'bg-white/20 text-white' : 'dark:bg-slate-800 bg-slate-100 text-slate-500'
                   }`}>
                     {item.count}
@@ -191,7 +211,7 @@ export default function ExploreExams() {
         {loading && <LoadingSkeleton rows={4} />}
 
         {!loading && !error && !visibleExams.length && (
-          <div className="p-8 rounded-3xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-2">
+          <div className="p-8 rounded-3xl dark:bg-slate-900 bg-white shadow-xs border dark:border-slate-800 border-slate-200 text-center space-y-2">
             <BookOpen size={28} className="mx-auto text-indigo-500 opacity-60" />
             <strong className="block text-sm dark:text-white text-slate-900">No exams available matching your search.</strong>
             <span className="text-xs text-slate-500 dark:text-slate-400">Try a different keyword or view all exams.</span>
@@ -200,70 +220,68 @@ export default function ExploreExams() {
 
         {/* All-Access Platform Full Pass Banner */}
         {fullPassConfig && fullPassConfig.is_active !== false && !search.trim() && (
-          <div className="relative overflow-hidden rounded-3xl p-4 sm:p-5 bg-gradient-to-r from-amber-50 via-yellow-50/70 to-indigo-50/70 dark:from-[#1E293B] dark:via-slate-900 dark:to-[#1E293B] border-2 border-amber-400 dark:border-amber-400/50 shadow-md transition-all">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-              <div className="space-y-1.5 min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 flex items-center gap-1 shadow-xs">
-                    👑 {language === 'hi' ? 'ऑल-एक्सेस प्लेटफॉर्म पास' : 'All-Access Platform Pass'}
-                  </span>
-                  <span className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400">
-                    {fullPassConfig.validity_days || 365} {language === 'hi' ? 'दिन अनलिमिटेड' : 'Days Unlimited'}
-                  </span>
-                </div>
-                <h2 className="text-base sm:text-lg font-black dark:text-white text-slate-900 tracking-tight">
-                  {fullPassConfig.title || 'ZYVRA All-Access Full Pass'}
-                </h2>
-                <p className="text-xs dark:text-slate-300 text-slate-700 font-medium">
-                  {fullPassConfig.subtitle || (language === 'hi' ? 'सभी परीक्षाओं, टेस्ट्स और टूल्स का अनलिमिटेड 1 साल का एक्सेस' : 'Unlimited 1-year access to all exams, tests and study tools')}
-                </p>
-                <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[11px] font-bold text-slate-700 dark:text-slate-300">
-                  <span className="flex items-center gap-1">✓ {language === 'hi' ? 'सभी वर्तमान और भविष्य की परीक्षाएं' : 'All Current & Future Exams'}</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">✓ {language === 'hi' ? 'पूर्ण टेस्ट सीरीज और मॉक टेस्ट' : 'Full Test Series & Mock Tests'}</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1">✓ {language === 'hi' ? 'प्रो स्टडी टूल्स' : 'Pro Study Tools'}</span>
-                </div>
+          <div className="rounded-3xl p-4 sm:p-5 bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-indigo-500/10 border border-amber-400/30 dark:border-amber-400/20 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+            <div className="space-y-1.5 min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-400/20 text-amber-800 dark:text-amber-300 border border-amber-400/30 flex items-center gap-1">
+                  👑 {language === 'hi' ? 'ऑल-एक्सेस प्लेटफॉर्म पास' : 'All-Access Platform Pass'}
+                </span>
+                <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                  {fullPassConfig.validity_days || 365} {language === 'hi' ? 'दिन अनलिमिटेड' : 'Days Unlimited'}
+                </span>
               </div>
+              <h2 className="text-base sm:text-lg font-bold dark:text-white text-slate-900 tracking-tight">
+                {fullPassConfig.title || 'ZYVRA All-Access Full Pass'}
+              </h2>
+              <p className="text-xs dark:text-slate-300 text-slate-600 font-medium">
+                {fullPassConfig.subtitle || (language === 'hi' ? 'सभी परीक्षाओं, टेस्ट्स और टूल्स का अनलिमिटेड 1 साल का एक्सेस' : 'Unlimited 1-year access to all exams, tests and study tools')}
+              </p>
+              <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                <span className="flex items-center gap-1">✓ {language === 'hi' ? 'सभी वर्तमान और भविष्य की परीक्षाएं' : 'All Current & Future Exams'}</span>
+                <span>•</span>
+                <span className="flex items-center gap-1">✓ {language === 'hi' ? 'पूर्ण टेस्ट सीरीज और मॉक टेस्ट' : 'Full Test Series & Mock Tests'}</span>
+                <span>•</span>
+                <span className="flex items-center gap-1">✓ {language === 'hi' ? 'प्रो स्टडी टूल्स' : 'Pro Study Tools'}</span>
+              </div>
+            </div>
 
-              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0 border-t sm:border-t-0 dark:border-slate-800 border-slate-300/80 pt-2.5 sm:pt-0">
-                {hasFullPass ? (
-                  <div className="px-3.5 py-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-300 text-xs font-black flex items-center gap-1.5 shadow-xs">
-                    <span>✓</span>
-                    <span>{language === 'hi' ? 'फुल पास एक्टिव है' : 'Full Pass Active'}</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="text-left sm:text-right">
-                      <div className="text-2xl sm:text-3xl font-black text-amber-600 dark:text-amber-400 leading-none">
-                        ₹{fullPassConfig.price || 999}
-                      </div>
-                      <span className="text-[10px] text-slate-600 dark:text-slate-400 font-semibold">
-                        {fullPassConfig.validity_days || 365} {language === 'hi' ? 'दिनों के लिए' : 'days validity'}
-                      </span>
+            <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 shrink-0 border-t sm:border-t-0 dark:border-slate-800 border-slate-200 pt-2.5 sm:pt-0">
+              {hasFullPass ? (
+                <div className="px-3.5 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center gap-1.5">
+                  <span>✓</span>
+                  <span>{language === 'hi' ? 'फुल पास एक्टिव है' : 'Full Pass Active'}</span>
+                </div>
+              ) : (
+                <>
+                  <div className="text-left sm:text-right">
+                    <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 leading-none">
+                      ₹{fullPassConfig.price || 999}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setCheckout({
-                        itemType: 'full_pass',
-                        itemId: 'global',
-                        itemTitle: fullPassConfig.title || 'ZYVRA All-Access Full Pass',
-                        basePrice: fullPassConfig.price || 999,
-                        validityDays: fullPassConfig.validity_days || 365
-                      })}
-                      className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs sm:text-sm shadow-glowGold transition-all active:scale-95 flex items-center gap-1.5"
-                    >
-                      <span>{language === 'hi' ? 'पूरा पास अनलॉक करें' : 'Unlock Full Pass'}</span>
-                      <ArrowRight size={15} />
-                    </button>
-                  </>
-                )}
-              </div>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
+                      {fullPassConfig.validity_days || 365} {language === 'hi' ? 'दिनों के लिए' : 'days validity'}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCheckout({
+                      itemType: 'full_pass',
+                      itemId: 'global',
+                      itemTitle: fullPassConfig.title || 'ZYVRA All-Access Full Pass',
+                      basePrice: fullPassConfig.price || 999,
+                      validityDays: fullPassConfig.validity_days || 365
+                    })}
+                    className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-xs transition-all active:scale-95 flex items-center gap-1.5"
+                  >
+                    <span>{language === 'hi' ? 'पूरा पास अनलॉक करें' : 'Unlock Full Pass'}</span>
+                    <ArrowRight size={14} />
+                  </button>
+                </>
+              )}
             </div>
           </div>
         )}
 
-        {/* Exams Grid (Compact, tap-friendly, responsive) */}
+        {/* Exams Grid (Modern Minimalism) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {visibleExams.map((exam) => {
             const examFolders = folders.filter((folder) => folder.exam_id === exam.id && isPublished(folder));
@@ -276,47 +294,43 @@ export default function ExploreExams() {
               <Link
                 key={exam.id}
                 to={`/explore/${encodeURIComponent(exam.slug || exam.id)}`}
-                className="group relative p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-xs hover:shadow-md border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500/60 dark:hover:border-indigo-500/60 transition-all flex flex-col justify-between space-y-3 text-left active:scale-[0.99]"
+                className="group rounded-2xl dark:border-slate-800 border-slate-200/90 dark:bg-slate-900/60 bg-white hover:border-indigo-500/40 hover:shadow-xs transition-all p-4 flex flex-col justify-between space-y-3 text-left border"
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl dark:bg-slate-800 bg-indigo-50/80 border dark:border-slate-700 border-indigo-100 flex items-center justify-center text-indigo-500 shrink-0 group-hover:scale-105 transition-transform mt-0.5">
+                  <div className="w-10 h-10 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-100 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform mt-0.5">
                     <ContentIcon icon={exam.icon_url || exam.icon} className="w-5 h-5 text-indigo-500" fallback={GraduationCap} />
                   </div>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1.5">
-                      <h2 className="text-sm sm:text-base font-black dark:text-white text-slate-900 tracking-tight truncate group-hover:text-indigo-400 transition-colors">
+                      <h2 className="text-sm sm:text-base font-bold dark:text-white text-slate-900 tracking-tight truncate group-hover:text-indigo-500 transition-colors">
                         {exam.title}
                       </h2>
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 shrink-0">
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 shrink-0">
                         {getExamCategory(exam)}
                       </span>
                     </div>
 
-                    <p className="text-xs dark:text-slate-400 text-slate-600 font-medium line-clamp-2 mt-0.5 leading-snug">
+                    <p className="text-xs dark:text-slate-400 text-slate-500 font-medium line-clamp-2 mt-0.5 leading-relaxed">
                       {exam.description || 'A structured learning path with topics, practice and tests to help you prepare.'}
                     </p>
 
                     {/* Free Materials Highlight Pill */}
-                    {freeCount > 0 ? (
-                      <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gradient-to-r from-emerald-500/15 via-teal-500/15 to-emerald-500/10 dark:from-emerald-950/60 dark:to-teal-950/40 border border-emerald-500/35 text-emerald-700 dark:text-emerald-300 font-extrabold text-[11px] shadow-xs">
-                        <Sparkles size={12} className="text-emerald-500 fill-emerald-500 animate-pulse shrink-0" />
+                    {freeCount > 0 && (
+                      <div className="mt-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
+                        <Sparkles size={11} className="text-emerald-500 shrink-0" />
                         <span>
                           {language === 'hi'
-                            ? `🎁 ${freeCount} फ्री टेस्ट्स व नोट्स (Free to Practice)`
-                            : `🎁 ${freeCount} Free Tests & Study Materials`}
+                            ? `🎁 ${freeCount} फ्री टेस्ट्स व नोट्स`
+                            : `🎁 ${freeCount} Free Tests & Notes`}
                         </span>
-                      </div>
-                    ) : (
-                      <div className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400">
-                        <span>✨ Complete Structured Prep</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="pt-2 border-t dark:border-slate-800 border-slate-100 flex items-center justify-between text-xs">
-                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold dark:text-slate-400 text-slate-500">
+                <div className="pt-2.5 border-t dark:border-slate-800/80 border-slate-100 flex items-center justify-between text-xs">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium dark:text-slate-400 text-slate-500">
                     <span className="flex items-center gap-1">
                       <Folder size={12} className="text-indigo-400" />
                       <span>{examFolders.length} {language === 'hi' ? 'विषय' : examFolders.length === 1 ? 'folder' : 'folders'}</span>
@@ -326,19 +340,11 @@ export default function ExploreExams() {
                       <BookOpen size={12} className="text-indigo-400" />
                       <span>{chapterCount} {language === 'hi' ? 'अध्याय' : chapterCount === 1 ? 'chapter' : 'chapters'}</span>
                     </span>
-                    {freeCount > 0 && (
-                      <>
-                        <span>•</span>
-                        <span className="flex items-center gap-1 font-black text-emerald-600 dark:text-emerald-400">
-                          <span>🎁 {freeCount} Free</span>
-                        </span>
-                      </>
-                    )}
                   </div>
 
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-indigo-500 group-hover:text-indigo-400 transition-colors shrink-0">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 dark:text-indigo-400 group-hover:translate-x-0.5 transition-transform shrink-0">
                     <span>{language === 'hi' ? 'सिलेबस देखें' : 'View Syllabus'}</span>
-                    <ArrowRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                    <ArrowRight size={13} />
                   </span>
                 </div>
               </Link>
@@ -346,13 +352,7 @@ export default function ExploreExams() {
           })}
         </div>
 
-        {!loading && !error && visibleExams.length > 0 && (
-          <p className="text-center text-xs dark:text-emerald-400/70 text-slate-500 font-medium pt-2">
-            ✨ Curated paths to keep your study focused.
-          </p>
-        )}
-
-        {/* Full Pass Checkout Modal */}
+                {/* Full Pass Checkout Modal */}
         {checkout && (
           <CheckoutModal
             {...checkout}
