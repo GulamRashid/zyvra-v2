@@ -81,7 +81,7 @@ export default function FolderView() {
 
   return (
     <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
-      <div className="max-w-3xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
+      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
         {/* Breadcrumbs */}
         <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-indigo-400/80 overflow-x-auto no-scrollbar py-1">
           <Link to="/explore" className="hover:text-indigo-600 dark:hover:text-white whitespace-nowrap">

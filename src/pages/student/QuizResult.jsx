@@ -495,7 +495,7 @@ export default function QuizResult() {
   }
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-slate-50 dark:text-slate-100 text-slate-800 transition-colors duration-200 overflow-x-hidden">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors duration-200 overflow-x-hidden">
       {/* Top Header Bar */}
       <header className="sticky top-0 z-30 dark:bg-[#0B1120]/95 bg-white/95 backdrop-blur-md border-b dark:border-slate-800 border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3 shadow-xs">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
@@ -547,7 +547,7 @@ export default function QuizResult() {
         </div>
       </header>
 
-      <div className="px-3.5 sm:px-6 max-w-4xl mx-auto space-y-4 pt-4">
+      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
         {/* Navigation Tabs (Review Questions | Solutions | Topic Analysis | Compare) */}
         <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/90 bg-white border dark:border-slate-700/60 border-slate-200 backdrop-blur-md overflow-x-auto select-none shadow-sm">
           <button

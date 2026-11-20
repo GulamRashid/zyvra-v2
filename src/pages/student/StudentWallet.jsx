@@ -112,8 +112,8 @@ export default function StudentWallet() {
   }, [transactions, coinBalance]);
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#f4faf7] dark:text-[#f0fdf4] text-slate-900 transition-colors">
-      <div className="max-w-4xl mx-auto px-3.5 sm:px-6 pt-4 space-y-4">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
+      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
         {/* Page Heading Banner */}
         <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50/90 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-4 sm:p-6 shadow-sm">
           <div className="text-[10px] uppercase font-bold text-amber-500 tracking-wider">

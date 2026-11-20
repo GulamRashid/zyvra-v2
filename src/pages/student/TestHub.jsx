@@ -344,7 +344,7 @@ export default function TestHub() {
   }, [tests, getTestHierarchy, selectedExamId, selectedClassId, searchQuery, testFilter]);
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F7FAF8] dark:text-[#E8F3EC] text-slate-800 transition-colors duration-200 overflow-x-hidden">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-800 transition-colors duration-200 overflow-x-hidden">
       {/* Top Ambient Tech Data Grid Aura */}
       <div className="relative">
         <MountainSunsetAura height={190} mobileHeight={88} showSun={true} />
@@ -366,7 +366,7 @@ export default function TestHub() {
         </div>
       </div>
 
-      <div className="px-3.5 sm:px-6 max-w-5xl mx-auto space-y-4 sm:space-y-5 -mt-2 relative z-10">
+      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 relative z-10">
         {loadError && (
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-200" role="alert">
             <span>{loadError}</span>

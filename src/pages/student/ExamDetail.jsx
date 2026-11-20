@@ -87,8 +87,10 @@ export default function ExamDetail() {
       chapters: chapters.filter((chapter) => descendantIds.has(chapter.folder_id) && isPublished(chapter)).length
     };
   };
-  return <div className="catalog-page">
-    <nav className="student-breadcrumbs"><Link to="/explore">{language === 'hi' ? 'परीक्षाएं' : 'Explore'}</Link><ChevronRight size={14} /><span>{exam?.title || (language === 'hi' ? 'पाठ्यक्रम' : 'Exam syllabus')}</span></nav>
+  return (
+    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
+      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
+        <nav className="student-breadcrumbs"><Link to="/explore">{language === 'hi' ? 'परीक्षाएं' : 'Explore'}</Link><ChevronRight size={14} /><span>{exam?.title || (language === 'hi' ? 'पाठ्यक्रम' : 'Exam syllabus')}</span></nav>
     {error && <div className="feedback error-feedback">{error}</div>}
     {loading && <LoadingSkeleton rows={4} />}
     {!loading && !error && !exam && <div className="empty-content"><GraduationCap size={25} /><strong>{language === 'hi' ? 'यह परीक्षा नहीं मिली।' : 'We couldn’t find this exam.'}</strong><span>{language === 'hi' ? 'यह अभी अप्रकाशित हो सकती है।' : 'It may be unpublished or no longer available.'}</span><Link className="button button-outline" to="/explore"><ArrowLeft size={15} /> {language === 'hi' ? 'सभी परीक्षाएं देखें' : 'Browse exams'}</Link></div>}
@@ -191,6 +193,8 @@ export default function ExamDetail() {
       })}</div>
       <div className="catalog-tip"><Clock3 size={15} /> {language === 'hi' ? 'प्लान लेने से पहले आप मुफ़्त अध्यायों को देख और हल कर सकते हैं।' : 'You can explore free chapters before committing to a study plan.'}</div>
       {checkoutItem && <CheckoutModal {...checkoutItem} onClose={() => setCheckoutItem(null)} onCompleted={() => setRefreshKey((value) => value + 1)} />}
-    </>}
-  </div>;
+      </>}
+    </div>
+  </div>
+  );
 }
