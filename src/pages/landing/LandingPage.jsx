@@ -232,17 +232,17 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={toggleTheme}
-              className={`p-2 rounded-xl border text-xs font-bold ${
+              className={`w-10 h-10 flex items-center justify-center rounded-xl border text-xs font-bold transition-all ${
                 isDark ? 'bg-slate-800 border-slate-700 text-amber-400' : 'bg-white border-slate-200 text-slate-700'
               }`}
               aria-label="Toggle theme"
             >
-              {isDark ? <Sun size={16} /> : <Moon size={16} />}
+              {isDark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
             <button
               type="button"
               onClick={() => setLanguage(isHindi ? 'en' : 'hi')}
-              className={`p-2 rounded-xl border text-xs font-bold ${
+              className={`w-10 h-10 flex items-center justify-center rounded-xl border text-xs font-black transition-all ${
                 isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
               }`}
             >
@@ -251,12 +251,12 @@ export default function LandingPage() {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`p-2 rounded-xl border ${
+              className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all ${
                 isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
               }`}
               aria-label="Open navigation menu"
             >
-              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+              {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
             </button>
           </div>
         </div>
@@ -299,7 +299,7 @@ export default function LandingPage() {
                   <Link
                     to="/auth?mode=signin"
                     onClick={() => setMobileMenuOpen(false)}
-                    className={`w-full py-2 rounded-xl border font-bold text-sm text-center ${
+                    className={`w-full py-2.5 min-h-[44px] flex items-center justify-center rounded-xl border font-bold text-sm text-center ${
                       isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-800'
                     }`}
                   >
@@ -308,7 +308,7 @@ export default function LandingPage() {
                   <Link
                     to="/auth?mode=signup"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-500 text-white font-bold text-sm text-center shadow-lg shadow-indigo-600/30"
+                    className="w-full py-2.5 min-h-[44px] flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-500 text-white font-bold text-sm text-center shadow-lg shadow-indigo-600/30"
                   >
                     {isHindi ? 'मुफ़्त रजिस्ट्रेशन करें' : 'Get Started Free'}
                   </Link>
