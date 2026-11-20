@@ -432,6 +432,63 @@ export default function StudentHome() {
         </div>
       </section>
 
+      {/* Dynamic Streak & Loss-Aversion Engagement Banner */}
+      {streakData?.streakAtRisk && !streakData?.isActiveToday && streak > 0 ? (
+        <div className="flex items-center justify-between gap-3 p-3 sm:px-4 rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-500/10 border border-orange-500/30 text-xs shadow-xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-xl shrink-0 animate-bounce">🔥</span>
+            <div className="min-w-0">
+              <strong className="block text-orange-600 dark:text-orange-400 font-black truncate">
+                {language === 'hi' ? `आपकी ${streak} दिन की स्ट्रीक दांव पर है!` : `Your ${streak}-day streak is at risk!`}
+              </strong>
+              <span className="text-slate-600 dark:text-slate-400 text-[11px] truncate block">
+                {language === 'hi' ? 'आज 1 टेस्ट या अभ्यास पूरा करें और स्ट्रीक को सुरक्षित रखें।' : 'Complete 1 quick test or practice to save your streak.'}
+              </span>
+            </div>
+          </div>
+          <Link
+            to="/tests"
+            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-xs shrink-0 shadow-sm transition-all hover:scale-[1.02] active:scale-95"
+          >
+            {language === 'hi' ? 'स्ट्रीक बचाएं' : 'Save Streak'}
+          </Link>
+        </div>
+      ) : goalPercent >= 100 ? (
+        <div className="flex items-center justify-between gap-2 p-3 sm:px-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300 font-bold shadow-xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <span className="text-lg shrink-0">🎉</span>
+            <span className="truncate">
+              {language === 'hi'
+                ? `अद्भुत निरंतरता! आज का लक्ष्य पूर्ण हुआ (${todayQuestionsSolved}/${dailyTarget} सवाल)।`
+                : `Goal Achieved! (${todayQuestionsSolved}/${dailyTarget} questions solved today).`}
+            </span>
+          </div>
+          <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase tracking-wider shrink-0">
+            {language === 'hi' ? '✓ सुरक्षित' : '✓ Secured'}
+          </span>
+        </div>
+      ) : streakData?.nextMilestone && streak > 0 ? (
+        <button
+          type="button"
+          onClick={() => setStreakModalOpen(true)}
+          className="w-full text-left flex items-center justify-between gap-2 p-2.5 sm:px-3.5 rounded-2xl dark:bg-[#1E293B]/70 bg-white border dark:border-slate-800 border-slate-200 text-xs shadow-xs hover:border-amber-500/40 transition-all cursor-pointer group"
+        >
+          <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 min-w-0">
+            <span className="text-sm shrink-0">{streakData.nextMilestone.icon}</span>
+            <span className="text-[11px] truncate">
+              {language === 'hi' ? 'अगला माइलस्टोन:' : 'Next Milestone:'}{' '}
+              <strong className="text-amber-500 group-hover:underline">
+                {language === 'hi' ? streakData.nextMilestone.labelHi : streakData.nextMilestone.labelEn}
+              </strong>{' '}
+              ({streakData.nextMilestone.days - streak} {language === 'hi' ? 'दिन बाकी' : 'days left'})
+            </span>
+          </div>
+          <span className="text-[10px] font-black text-amber-500 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 shrink-0">
+            +{streakData.nextMilestone.bonusCoins}c
+          </span>
+        </button>
+      ) : null}
+
       {/* ======================================================== */}
       {/* 2. RESTRAINED TOP PROMOTIONAL BANNER CAROUSEL           */}
       {/* ======================================================== */}
