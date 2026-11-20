@@ -353,3 +353,183 @@ export async function queryZyvraAiGuru({
 
   throw lastError || new Error('Could not connect to Zyvra AI. Please try again.');
 }
+
+/**
+ * Safely parse JSON array returned by Gemini
+ */
+export function extractJsonArray(rawText) {
+  let cleaned = String(rawText || '').trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  }
+  const firstBracket = cleaned.indexOf('[');
+  const lastBracket = cleaned.lastIndexOf(']');
+  if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+    cleaned = cleaned.substring(firstBracket, lastBracket + 1);
+  }
+  return JSON.parse(cleaned);
+}
+
+/**
+ * Senior Chief Examiner PCS Question Generator
+ * 
+ * Generates authentic, high-caliber, multi-statement examination questions
+ * modeled after State PSC (BPSC, UPPSC, MPPSC) and UPSC Civil Services papers.
+ */
+export async function generatePcsExamQuestions({
+  subject = 'General Studies',
+  topic = 'General Overview',
+  subtopic = '',
+  examTarget = 'bpsc', // 'bpsc' | 'uppsc' | 'mppsc' | 'general_pcs' | 'upsc'
+  questionMix = 'balanced', // 'balanced' | 'statements' | 'assertion_reason' | 'match_columns' | 'standard'
+  difficulty = 'pcs_prelims', // 'moderate' | 'pcs_prelims' | 'pcs_advanced'
+  count = 5,
+  chapterId = null,
+  config = DEFAULT_AI_CONFIG
+}) {
+  const apiKey = config.apiKey || DEFAULT_AI_CONFIG.apiKey;
+  if (!apiKey) {
+    throw new Error('AI engine API key is missing. Please configure Gemini API key.');
+  }
+
+  const isBpsc = examTarget.toLowerCase().includes('bpsc');
+  const targetExamLabel = {
+    bpsc: 'BPSC (Bihar Public Service Commission - 5 options with Option E)',
+    uppsc: 'UPPSC (Uttar Pradesh Public Service Commission - 4 options, Assertion-Reason & Match List)',
+    mppsc: 'MPPSC (Madhya Pradesh Public Service Commission - 4 options)',
+    upsc: 'UPSC Civil Services Prelims (High Analytical Depth, Statement Evaluation)',
+    general_pcs: 'State PCS Examination (High Quality Analytical MCQ)'
+  }[examTarget] || 'State PCS Examination';
+
+  const systemInstruction = `You are a Senior Question Paper Setter & Chief Examiner for Indian State Public Service Commissions (BPSC, UPPSC, MPPSC, RAS, JPSC) and UPSC Civil Services with 20+ years of paper moderation experience.
+
+CORE PHILOSOPHY & EXAMINER RULES:
+1. NO TRIVIAL QUESTIONS: Never generate superficial one-liners. Emulate authentic State PSC preliminary exam papers.
+2. AUTHORITY & SOURCE GROUNDING: Ground questions in NCERT (Class 6-12), M. Laxmikanth (Polity), Bipin Chandra & Spectrum Rajiv Ahir (Modern History), GC Leong & Majid Husain (Geography), Ramesh Singh & Economic Survey (Economy), and authentic state gazettes.
+3. BILINGUAL EXCELLENCE:
+   - Provide "question_text" in clear, formal English.
+   - Provide "question_text_hi" in authentic, standard Devanagari Hindi using official commission terminology (e.g., 'अनुच्छेद', 'संवैधानिक संशोधन', 'अधिनियम', 'प्रायद्वीपीय', 'अपवाह तंत्र').
+   - Provide options in both English and Hindi.
+4. EXAM PATTERN & OPTIONS SPECIFICATION:
+   ${isBpsc ? `- BPSC SPECIAL RULE: Each question MUST have exactly 5 options (A, B, C, D, E).
+   Option E MUST be strictly:
+   {"en": "None of the above / More than one of the above", "hi": "उपर्युक्त में से कोई नहीं / उपर्युक्त में से एक से अधिक"}
+   - Option E can be the correct answer if appropriate.` : `- Provide exactly 4 options (A, B, C, D) with distinct plausible choices.`}
+5. QUESTION FORMAT MIX:
+   ${questionMix === 'statements' ? '- Use Multi-statement format: "Consider the following statements... 1, 2, 3... Which of the statements given above is/are correct? (A) 1 only (B) 2 only (C) 1 and 2 (D) Neither 1 nor 2"' :
+   questionMix === 'assertion_reason' ? '- Use Assertion-Reason format: "Assertion (A): ... Reason (R): ... Codes: (A) Both A and R are true and R is the correct explanation of A..."' :
+   questionMix === 'match_columns' ? '- Use Match the Following: "Match List-I with List-II and select the correct answer using the codes given below..."' :
+   '- Create a rich mix of Multi-Statement evaluation ("कथनों पर विचार कीजिए"), Assertion-Reason, and analytical single questions.'}
+6. DISTRACTOR (TRAP) ENGINEERING:
+   - The incorrect options must be realistic traps that test student vigilance against common misconceptions, near-miss years, swapped terms, or partial truths.
+   - For each incorrect option, include a brief note in "distractor_notes" explaining why an aspirant might mistakenly choose it and why it is wrong.
+7. COMPREHENSIVE EXPLANATION:
+   - Provide a thorough, authoritative explanation in "explanation" (English) and "explanation_hi" (Hindi) explaining why the correct answer is right, citing the specific Article, Act, or historical fact.
+   - Use KaTeX math ($...$) for any formula or equation.
+
+OUTPUT FORMAT:
+You MUST respond ONLY with a valid JSON array of question objects. Do not include markdown code blocks or surrounding text.
+Example JSON schema per question:
+{
+  "question_text": "English question",
+  "question_text_hi": "हिंदी प्रश्न",
+  "question_type": "mcq",
+  "options": [
+    { "en": "Option A in English", "hi": "विकल्प A हिंदी में" },
+    { "en": "Option B in English", "hi": "विकल्प B हिंदी में" },
+    { "en": "Option C in English", "hi": "विकल्प C हिंदी में" },
+    { "en": "Option D in English", "hi": "विकल्प D हिंदी में" }
+    ${isBpsc ? ',{ "en": "None of the above / More than one of the above", "hi": "उपर्युक्त में से कोई नहीं / उपर्युक्त में से एक से अधिक" }' : ''}
+  ],
+  "correct_answer": "A",
+  "explanation": "Detailed conceptual explanation in English...",
+  "explanation_hi": "विस्तृत व्याख्या हिंदी में...",
+  "distractor_notes": {
+    "B": "Why B is a trap",
+    "C": "Why C is incorrect"
+  },
+  "subject": "${subject}",
+  "difficulty": "${difficulty === 'pcs_advanced' ? 'hard' : difficulty === 'moderate' ? 'medium' : 'hard'}",
+  "tags": ["${examTarget.toUpperCase()}", "${subject}", "${topic}"]
+}`;
+
+  const prompt = `Generate exactly ${count} authentic ${targetExamLabel} examination questions on the following curriculum:
+- Subject: ${subject}
+- Main Topic: ${topic}
+${subtopic ? `- Specific Sub-topic: ${subtopic}` : ''}
+- Target Standard: ${difficulty}
+- Pattern Focus: ${questionMix}
+
+Ensure all ${count} questions are deep, rigorous, authentically phrased, and formatted as a strict JSON array conforming to the specified schema.`;
+
+  const modelsToTry = [
+    'gemini-2.5-flash',
+    'gemini-1.5-flash',
+    config.model || 'gemini-3.5-flash-lite',
+    ...(config.fallbackModels || ['gemini-3.5-flash', 'gemini-flash-lite-latest'])
+  ];
+
+  let lastError = null;
+
+  for (const model of modelsToTry) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      const payload = {
+        systemInstruction: {
+          parts: [{ text: systemInstruction }]
+        },
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: prompt }]
+          }
+        ],
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.35,
+          maxOutputTokens: 8192
+        }
+      };
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errMsg = errorData?.error?.message || `HTTP ${response.status} from model ${model}`;
+        if (response.status === 503 || response.status === 404) {
+          lastError = new Error(errMsg);
+          continue;
+        }
+        throw new Error(errMsg);
+      }
+
+      const data = await response.json();
+      const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!rawText) {
+        throw new Error('AI returned an empty question batch.');
+      }
+
+      const questions = extractJsonArray(rawText);
+      if (!Array.isArray(questions) || questions.length === 0) {
+        throw new Error('AI failed to format questions as a valid JSON array.');
+      }
+
+      // Attach chapter_id if provided
+      return questions.map((q) => ({
+        ...q,
+        chapter_id: chapterId || null,
+        status: 'published',
+        usage_scope: 'both'
+      }));
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('Could not generate questions with PCS Examiner engine.');
+}
+

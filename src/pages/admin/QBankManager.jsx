@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import QuestionFormatter from '../../components/common/QuestionFormatter';
 import UploadGuide from '../../components/common/UploadGuide';
+import PcsQuestionGeneratorModal from '../../components/admin/PcsQuestionGeneratorModal';
 
 export function getChapterHierarchyPath(chapterId, chaptersMap, foldersMap, examsMap) {
   if (!chapterId) {
@@ -1144,8 +1145,19 @@ export default function QBankManager() {
   // Dialogs & Actions
   const [dialog, setDialog] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [tests, setTests] = useState([]);
+
+  useEffect(() => {
+    let active = true;
+    if (!supabase) return;
+    supabase.from('tests').select('id, title, chapter_id').order('title').then(({ data, error: err }) => {
+      if (!err && data && active) setTests(data);
+    });
+    return () => { active = false; };
+  }, []);
 
   const refresh = async () => {
     if (!supabase) { setError('Supabase is not configured.'); setLoading(false); return; }
@@ -1479,6 +1491,14 @@ export default function QBankManager() {
         <p>Author, review and organise reusable questions for tests and practice.</p>
       </div>
       <div className="qbank-heading-actions">
+        <button
+          type="button"
+          className="button bg-gradient-to-r from-amber-500 to-indigo-600 hover:from-amber-400 hover:to-indigo-500 text-white border-0 shadow-md shadow-indigo-600/25 flex items-center gap-1.5 font-bold"
+          onClick={() => setAiGeneratorOpen(true)}
+          title="Generate authentic State PSC / BPSC questions using AI"
+        >
+          <Sparkles size={15} /> AI Examiner (PCS)
+        </button>
         <button className="button button-outline" onClick={() => setImportOpen(true)}><Upload size={15} /> Bulk import</button>
         <button className="button button-primary" onClick={() => setDialog({ question: null })}><Plus size={15} /> Author question</button>
       </div>
@@ -1736,6 +1756,19 @@ export default function QBankManager() {
         chapters={chapters}
         onClose={() => setImportOpen(false)}
         onImported={refresh}
+      />,
+      document.body
+    )}
+
+    {aiGeneratorOpen && createPortal(
+      <PcsQuestionGeneratorModal
+        isOpen={aiGeneratorOpen}
+        onClose={() => setAiGeneratorOpen(false)}
+        chapters={chapters}
+        tests={tests}
+        onQuestionsInserted={() => {
+          refresh();
+        }}
       />,
       document.body
     )}
