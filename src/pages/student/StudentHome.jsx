@@ -19,12 +19,14 @@ import OnboardingModal from './OnboardingModal';
 import HeroCarousel from '../../components/student/HeroCarousel';
 import ShareAndEarnCard from '../../components/common/ShareAndEarnCard';
 import ContentIcon from '../../components/common/ContentIcon';
+import DailyStreakModal from '../../components/student/DailyStreakModal';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getExamCategory, isPublished, sortContentItems } from '../../lib/content';
 import { getRecommendedPractice } from '../../lib/recommendations';
 import { getAnsweredQuestionCount } from '../../lib/tests';
+import { syncAttemptsWithStreak, calculateStreakData, getStoredActivityDates, toLocalDateString } from '../../lib/streak';
 
 function isComplete(attempt) {
   const status = String(attempt?.status || '').toLowerCase();
@@ -33,29 +35,7 @@ function isComplete(attempt) {
 }
 
 function localDateKey(date = new Date()) {
-  const d = new Date(date);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-function getStreak(attempts) {
-  if (!attempts || attempts.length === 0) return 0;
-  const days = new Set();
-  attempts.forEach((a) => {
-    const ts = a.completed_at || a.submitted_at || a.finished_at || a.created_at;
-    if (ts) days.add(localDateKey(ts));
-  });
-  let streak = 0;
-  const cursor = new Date();
-  while (true) {
-    const key = localDateKey(cursor);
-    if (days.has(key)) {
-      streak += 1;
-      cursor.setDate(cursor.getDate() - 1);
-    } else {
-      break;
-    }
-  }
-  return streak;
+  return toLocalDateString(date);
 }
 
 function loadSavedChapter(userId) {
@@ -216,11 +196,21 @@ export default function StudentHome() {
     return () => { active = false; };
   }, [supabase, user, overviewRetry]);
 
-  // Real Streak (No fake baseline)
-  const streak = useMemo(() => {
-    const computed = getStreak(attempts);
-    return Math.max(computed, Number(profile?.current_streak || 0));
-  }, [attempts, profile?.current_streak]);
+  const [streakModalOpen, setStreakModalOpen] = useState(false);
+  const [streakVersion, setStreakVersion] = useState(0);
+
+  useEffect(() => {
+    const handleStreakUpdate = () => setStreakVersion((v) => v + 1);
+    window.addEventListener('zyvra:streak-updated', handleStreakUpdate);
+    return () => window.removeEventListener('zyvra:streak-updated', handleStreakUpdate);
+  }, []);
+
+  // Real Streak (bulletproof & synced across devices)
+  const streakData = useMemo(() => {
+    return syncAttemptsWithStreak(user?.id || 'guest', attempts, profile);
+  }, [attempts, profile?.current_streak, profile?.last_active_date, user?.id, streakVersion]);
+
+  const streak = streakData.currentStreak;
 
   // Real Daily Target & Questions Solved
   const dailyTarget = Number(profile?.daily_goal_target || 50);
@@ -376,20 +366,30 @@ export default function StudentHome() {
         {/* Streak & Today's Goal Glassmorphic Panel (Dopamine Trigger Card) */}
         <section className="order-0 dark:bg-[#1E293B]/90 bg-white border dark:border-slate-700/60 border-slate-200 rounded-3xl p-3.5 sm:p-6 lg:p-8 transition-colors duration-200 shadow-md">
           <div className="grid grid-cols-2 divide-x dark:divide-slate-700/50 divide-slate-200">
-            {/* Left: Study Streak - Vibrant Orange Trigger */}
-            <div className="flex items-center gap-2 sm:gap-3 pr-1.5 sm:pr-3">
-              <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-2xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(249,115,22,0.25)]">
+            {/* Left: Study Streak - Interactive Trigger */}
+            <button
+              type="button"
+              onClick={() => setStreakModalOpen(true)}
+              className="flex items-center gap-2 sm:gap-3 pr-1.5 sm:pr-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-2xl p-1 -ml-1 sm:p-2 sm:-ml-2 transition-all group cursor-pointer"
+              aria-label={language === 'hi' ? 'अध्ययन स्ट्रीक विस्तार देखें' : 'View Study Streak Details'}
+            >
+              <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-2xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(249,115,22,0.25)] group-hover:scale-105 transition-transform">
                 <Flame className={`w-4 h-4 sm:w-6 sm:h-6 ${streak > 0 ? 'text-orange-500 fill-orange-500 animate-pulse' : 'text-neutral-500'}`} />
               </div>
               <div className="min-w-0">
                 <div className="text-base sm:text-2xl font-black dark:text-orange-400 text-orange-600 tracking-tight flex items-baseline gap-1">
                   {profileError ? '—' : streak} <span className="text-[11px] sm:text-sm font-bold dark:text-amber-300 text-amber-700">{language === 'hi' ? 'दिन' : 'Days'}</span>
                 </div>
-                <div className="text-[10px] sm:text-xs font-bold dark:text-slate-400 text-slate-500 uppercase tracking-wider truncate">
-                  {language === 'hi' ? 'अध्ययन स्ट्रीक' : 'Study Streak'}
+                <div className="text-[10px] sm:text-xs font-bold dark:text-slate-400 text-slate-500 uppercase tracking-wider truncate flex items-center gap-1.5">
+                  <span>{language === 'hi' ? 'अध्ययन स्ट्रीक' : 'Study Streak'}</span>
+                  {streakData?.isActiveToday ? (
+                    <span className="text-[9px] text-emerald-500 font-extrabold lowercase">✓ {language === 'hi' ? 'आज पूर्ण' : 'active'}</span>
+                  ) : streakData?.streakAtRisk ? (
+                    <span className="text-[9px] text-amber-500 font-extrabold lowercase">⚡ {language === 'hi' ? 'आज बाकी' : 'pending'}</span>
+                  ) : null}
                 </div>
               </div>
-            </div>
+            </button>
 
             {/* Right: Today's Goal - Bright Amber Trigger */}
             <div className="flex items-center justify-between pl-2 sm:pl-4">
@@ -738,6 +738,13 @@ export default function StudentHome() {
           </div>
         </div>
       )}
+
+      {/* Daily Study Streak Detail Modal */}
+      <DailyStreakModal
+        isOpen={streakModalOpen}
+        onClose={() => setStreakModalOpen(false)}
+        streakData={streakData}
+      />
     </div>
   );
 }

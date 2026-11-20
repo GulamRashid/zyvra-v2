@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
+import { calculateStreakData } from '../../lib/streak';
 
 const QUERY_PAGE_SIZE = 1000;
 const ID_BATCH_SIZE = 500;
@@ -67,24 +68,8 @@ function optionECount(attempt, responses) {
 }
 
 function streakDays(attempts) {
-  const daySet = new Set(attempts.map((attempt) => {
-    const date = attempt.completed_at || attempt.submitted_at || attempt.finished_at || attempt.created_at;
-    return date ? new Date(date).toLocaleDateString('en-CA') : null;
-  }).filter(Boolean));
-  let date = new Date();
-  let current = date.toLocaleDateString('en-CA');
-  if (!daySet.has(current)) {
-    date.setDate(date.getDate() - 1);
-    current = date.toLocaleDateString('en-CA');
-    if (!daySet.has(current)) return 0;
-  }
-  let streak = 0;
-  while (daySet.has(current)) {
-    streak += 1;
-    date.setDate(date.getDate() - 1);
-    current = date.toLocaleDateString('en-CA');
-  }
-  return streak;
+  const dates = (attempts || []).map((attempt) => attempt.completed_at || attempt.submitted_at || attempt.finished_at || attempt.created_at).filter(Boolean);
+  return calculateStreakData(dates).currentStreak;
 }
 
 export default function StudentAnalytics() {

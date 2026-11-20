@@ -48,6 +48,7 @@ import {
   unwrapRpcPayload
 } from '../../lib/tests';
 import { translateText } from '../../lib/translator';
+import { recordStudyActivity } from '../../lib/streak';
 
 const SUBMIT_MODAL_STRINGS = {
   en: {
@@ -1268,6 +1269,7 @@ export default function LiveQuiz() {
       if (refreshAccount) {
         refreshAccount();
       }
+      recordStudyActivity(supabase, user?.id, 'test_completed');
       if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
         window.dispatchEvent(new window.CustomEvent('zyvra:coins-updated'));
       }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell, ChartNoAxesColumn, ChevronRight, ClipboardList,
@@ -7,10 +7,12 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
+import { calculateStreakData, getStoredActivityDates } from '../../lib/streak';
 import CoinBadge from '../common/CoinBadge';
 import LanguageToggle from '../common/LanguageToggle';
 import ThemeToggle from '../common/ThemeToggle';
 import StudentBottomNav from '../navigation/StudentBottomNav';
+import DailyStreakModal from '../student/DailyStreakModal';
 
 const sections = [
   { to: '/', label: 'Home', key: 'home', Icon: Home },
@@ -25,14 +27,42 @@ const sections = [
 
 export default function StudentLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { profile, profileError, coinBalance, isAdmin, guest, signOut } = useAuth();
+  const [streakModalOpen, setStreakModalOpen] = useState(false);
+  const { user, profile, profileError, coinBalance, isAdmin, guest, signOut } = useAuth();
   const { t, language, theme } = useThemeLanguage();
   const location = useLocation();
   const navigate = useNavigate();
   const assessmentActive = /^\/(?:quiz|test|exams?)(?:\/|$)/i.test(location.pathname);
   const visibleSections = sections.filter(({ key }) => !(assessmentActive && key === 'toolbox'));
   const name = profile?.full_name || profile?.name || 'Learner';
-  const streak = Number(profile?.current_streak || 0);
+
+  const [streakData, setStreakData] = useState(() => {
+    const dates = getStoredActivityDates(user?.id || 'guest');
+    const data = calculateStreakData(dates);
+    if (profile?.current_streak && Number(profile.current_streak) > data.currentStreak) {
+      data.currentStreak = Number(profile.current_streak);
+    }
+    return data;
+  });
+
+  useEffect(() => {
+    const updateStreak = () => {
+      const dates = getStoredActivityDates(user?.id || 'guest');
+      const data = calculateStreakData(dates);
+      if (profile?.current_streak && Number(profile.current_streak) > data.currentStreak) {
+        data.currentStreak = Number(profile.current_streak);
+      }
+      setStreakData(data);
+    };
+    updateStreak();
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('zyvra:streak-updated', updateStreak);
+      return () => window.removeEventListener('zyvra:streak-updated', updateStreak);
+    }
+  }, [user?.id, profile?.current_streak]);
+
+  const streak = Number(streakData?.currentStreak || 0);
 
   const navKeys = {
     '/analytics': 'analytics', '/explore': 'exploreExams', '/profile': 'profileSettings'
@@ -132,14 +162,24 @@ export default function StudentLayout() {
             {/* Dark / Light Mode Toggle - Always visible on mobile & desktop */}
             <ThemeToggle />
 
-            {/* Study Streak Badge - Vibrant Orange Dopamine Trigger */}
-            <div
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 rounded-full bg-orange-500/15 border border-orange-500/35 text-orange-400 text-xs font-black shadow-[0_0_15px_rgba(249,115,22,0.25)] shrink-0"
-              title={`${streak} day study streak`}
+            {/* Study Streak Badge - Interactive Dopamine Trigger */}
+            <button
+              type="button"
+              onClick={() => setStreakModalOpen(true)}
+              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-black transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95 ${
+                streak > 0
+                  ? 'bg-orange-500/15 border border-orange-500/40 text-orange-500 dark:text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.25)] hover:bg-orange-500/25'
+                  : 'bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-orange-500/40'
+              }`}
+              title={language === 'hi' ? `${streak} दिन की अध्ययन स्ट्रीक (विस्तार देखें)` : `${streak} day study streak (click for details)`}
+              aria-label="View daily study streak"
             >
-              <Flame size={13} className="fill-orange-500 text-orange-500 animate-pulse" />
-              <span className="font-extrabold text-orange-400">{profileError ? '—' : streak}</span>
-            </div>
+              <Flame size={14} className={streak > 0 ? 'fill-orange-500 text-orange-500 animate-pulse' : 'text-slate-400'} />
+              <span className="font-extrabold">{profileError ? '—' : streak}</span>
+              {streakData?.streakAtRisk && (
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" title="Study today to keep streak" />
+              )}
+            </button>
 
             {/* Coin Badge */}
             <CoinBadge balance={coinBalance} />
@@ -169,6 +209,13 @@ export default function StudentLayout() {
         {/* Unified, persistent Bottom Navigation Bar for Student portal */}
         <StudentBottomNav />
       </div>
+
+      {/* Daily Study Streak Detail Modal */}
+      <DailyStreakModal
+        isOpen={streakModalOpen}
+        onClose={() => setStreakModalOpen(false)}
+        streakData={streakData}
+      />
     </div>
   );
 }

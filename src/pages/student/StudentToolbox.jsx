@@ -37,6 +37,7 @@ import { normalizeAccessResult } from '../../lib/commerce';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 import { readMistakesLocal } from '../../lib/studentToolbox';
 import useStudentToolboxData from '../../hooks/useStudentToolboxData';
+import { recordStudyActivity } from '../../lib/streak';
 
 const CATEGORY_CONFIG = [
   { id: 'math', titleKey: 'tbCategoryMath', subtitleKey: 'tbCategoryMathDesc', Icon: Calculator, color: 'gold' },
@@ -328,6 +329,7 @@ export default function StudentToolbox() {
     setCurrentView('category-menu');
   };
   const openTool = (tool) => {
+    recordStudyActivity(supabase, user?.id, 'toolbox_practice');
     const categoryId = categoryForTool(tool.id);
     if (categoryId) setActiveCategory(categoryId);
     setRecentTools((current) => [tool.id, ...current.filter((id) => id !== tool.id)].slice(0, 6));

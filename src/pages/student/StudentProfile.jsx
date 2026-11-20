@@ -9,10 +9,12 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import MountainSunsetAura from '../../components/common/MountainSunsetAura';
 import UploadGuide from '../../components/common/UploadGuide';
+import DailyStreakModal from '../../components/student/DailyStreakModal';
 import { uploadAsset } from '../../lib/storage';
 import { useAuth } from '../../context/AuthContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 import { ensureReferralCode } from '../../lib/referrals';
+import { syncAttemptsWithStreak } from '../../lib/streak';
 
 const POPULAR_EXAMS = [
   'SSC CGL / CHSL',
@@ -34,6 +36,14 @@ export default function StudentProfile() {
   const [goalsModalOpen, setGoalsModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
+  const [streakModalOpen, setStreakModalOpen] = useState(false);
+  const [streakVersion, setStreakVersion] = useState(0);
+
+  useEffect(() => {
+    const handleStreakUpdate = () => setStreakVersion((v) => v + 1);
+    window.addEventListener('zyvra:streak-updated', handleStreakUpdate);
+    return () => window.removeEventListener('zyvra:streak-updated', handleStreakUpdate);
+  }, []);
 
   // Edit profile form state
   const [fullName, setFullName] = useState('');
@@ -254,7 +264,11 @@ export default function StudentProfile() {
     return Math.min(100, Math.round(avg));
   }, [attempts]);
 
-  const streakDays = Number(profile?.current_streak || 0);
+  const streakData = useMemo(() => {
+    return syncAttemptsWithStreak(user?.id || 'guest', attempts, profile);
+  }, [attempts, profile?.current_streak, profile?.last_active_date, user?.id, streakVersion]);
+
+  const streakDays = streakData.currentStreak;
 
   const displayName = fullName || profile?.full_name || profile?.name || user?.user_metadata?.full_name || (guest ? 'Guest Student' : 'Student');
   const displayEmail = user?.email || (guest ? 'guest@zyvra.in' : '');
@@ -780,17 +794,27 @@ export default function StudentProfile() {
 
           <div className="grid grid-cols-4 gap-2 sm:gap-3">
             {/* 1. Daily Study Streak */}
-            <div className="dark:bg-[#111827] bg-white border dark:border-orange-500/30 border-orange-200 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-sm relative overflow-hidden group">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-500/15 text-orange-500 flex items-center justify-center mb-1.5">
-                <Flame size={16} className={streakDays > 0 ? 'fill-orange-500 animate-bounce' : 'text-slate-400'} />
+            <button
+              type="button"
+              onClick={() => setStreakModalOpen(true)}
+              className="dark:bg-[#111827] bg-white border dark:border-orange-500/30 border-orange-200 hover:border-orange-400 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-sm relative overflow-hidden group active:scale-95 transition-all cursor-pointer"
+              aria-label="View daily study streak details"
+            >
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-500/15 text-orange-500 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
+                <Flame size={16} className={streakDays > 0 ? 'fill-orange-500 animate-pulse' : 'text-slate-400'} />
               </div>
               <div className="text-base sm:text-xl font-black dark:text-orange-400 text-orange-600 tracking-tight">
                 {streakDays} <span className="text-[10px] font-bold">days</span>
               </div>
-              <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">
-                Streak (लगन)
+              <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 flex items-center gap-1">
+                <span>Streak</span>
+                {streakData?.isActiveToday ? (
+                  <span className="text-emerald-500 font-black">✓</span>
+                ) : streakData?.streakAtRisk ? (
+                  <span className="text-amber-500 font-black">⚡</span>
+                ) : null}
               </div>
-            </div>
+            </button>
 
             {/* 2. Daily Goal Target */}
             <button
@@ -1816,6 +1840,13 @@ export default function StudentProfile() {
           </div>
         </div>
       )}
+
+      {/* Daily Study Streak Detail Modal */}
+      <DailyStreakModal
+        isOpen={streakModalOpen}
+        onClose={() => setStreakModalOpen(false)}
+        streakData={streakData}
+      />
     </div>
   );
 }

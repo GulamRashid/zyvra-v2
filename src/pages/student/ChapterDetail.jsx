@@ -17,6 +17,7 @@ import { supabase } from '../../lib/supabase';
 import { sanitizeLiveQuestion } from '../../lib/tests';
 import { prefetchLiveQuiz } from '../../lib/prefetchLiveQuiz';
 import { getFriendlyErrorMessage } from '../../lib/errors';
+import { recordStudyActivity } from '../../lib/streak';
 
 export default function ChapterDetail() {
   const { chapterId } = useParams();
@@ -134,6 +135,7 @@ export default function ChapterDetail() {
         examTitle: exam?.title || '',
         visitedAt: new Date().toISOString()
       }));
+      recordStudyActivity(supabase, user?.id, 'chapter_study');
     } catch (storageError) {
       console.error('Unable to save the last visited chapter:', storageError);
     }
