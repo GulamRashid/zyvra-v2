@@ -208,7 +208,7 @@ export default function ExploreExams() {
           </div>
         )}
 
-        {loading && <LoadingSkeleton rows={4} />}
+        {loading && <LoadingSkeleton variant="cards" count={6} />}
 
         {!loading && !error && !visibleExams.length && (
           <div className="p-8 rounded-3xl dark:bg-slate-900 bg-white shadow-xs border dark:border-slate-800 border-slate-200 text-center space-y-2">

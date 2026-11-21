@@ -48,7 +48,7 @@ function RootRoute() {
   const location = useLocation();
 
   if (loading) {
-    return <main className="page-loading"><LoadingSkeleton rows={5} /></main>;
+    return <main className="page-loading"><LoadingSkeleton variant="page" /></main>;
   }
 
   if (!user && !guest) {
@@ -68,7 +68,7 @@ function RootRoute() {
 }
 
 function AppRoutes() {
-  return <Suspense fallback={<main className="page-loading"><LoadingSkeleton rows={5} /></main>}><Routes>
+  return <Suspense fallback={<main className="page-loading"><LoadingSkeleton variant="page" /></main>}><Routes>
     <Route path="/landing" element={<LandingPage />} />
     <Route path="/auth" element={<AuthPage />} />
     <Route path="/privacy" element={<LegalPage />} />

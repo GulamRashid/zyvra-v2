@@ -202,7 +202,7 @@ export default function AdminReports() {
       </div>
 
       {loading ? (
-        <LoadingSkeleton rows={4} />
+        <LoadingSkeleton variant="dashboard" />
       ) : (
         <>
           <div className="metrics-grid">

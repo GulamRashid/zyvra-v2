@@ -160,7 +160,7 @@ export default function AdminSubscriptions() {
       )}
 
       {loading ? (
-        <LoadingSkeleton rows={4} />
+        <LoadingSkeleton variant="table" />
       ) : (
         <>
           <div className="metrics-grid">

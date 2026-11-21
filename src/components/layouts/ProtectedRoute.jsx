@@ -28,7 +28,7 @@ export default function ProtectedRoute({ children, admin = false }) {
   }, [admin, user, supabase]);
 
   if (loading || (admin && user && !mfaChecked)) {
-    return <main className="page-loading"><LoadingSkeleton rows={5} /></main>;
+    return <main className="page-loading"><LoadingSkeleton variant="page" /></main>;
   }
   if (admin) {
     if (!user || guest) return <Navigate to="/auth" replace state={{ from: location }} />;

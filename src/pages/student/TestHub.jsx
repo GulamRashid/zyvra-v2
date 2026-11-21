@@ -594,7 +594,7 @@ export default function TestHub() {
 
             {/* Subject Cards Grid (Strictly from Real DB Folders) */}
             {catalogLoading ? (
-              <LoadingSkeleton count={4} />
+              <LoadingSkeleton variant="cards" count={4} />
             ) : displaySubjects.length === 0 ? (
               <div className="p-8 text-center text-sm dark:text-slate-400 text-slate-500 dark:bg-[#1E293B] bg-white rounded-3xl border dark:border-slate-700/60 border-slate-200">
                 <p>No subjects are available yet. Check back soon to start practicing.</p>
@@ -670,7 +670,7 @@ export default function TestHub() {
             </div>
 
             {catalogLoading ? (
-              <LoadingSkeleton count={4} />
+              <LoadingSkeleton variant="cards" count={4} />
             ) : filteredChapters.length === 0 ? (
               <div className="p-8 text-center text-sm dark:text-slate-400 text-slate-500 dark:bg-[#1E293B] bg-white rounded-3xl border dark:border-slate-700/60 border-slate-200">
                 <p>{language === 'hi' ? 'कोई अध्याय नहीं मिला। कृपया फ़िल्टर बदलें।' : 'No chapters match your selection. Try clearing filters.'}</p>
@@ -764,7 +764,7 @@ export default function TestHub() {
             </div>
 
             {loading ? (
-              <LoadingSkeleton count={3} />
+              <LoadingSkeleton variant="cards" count={3} />
             ) : filteredTests.length === 0 ? (
               <div className="p-8 text-center text-xs dark:text-slate-400 text-slate-500 dark:bg-[#1E293B]/60 bg-white rounded-2xl border dark:border-slate-700/60 border-slate-200">
                 <p>No tests match these filters. Try clearing a filter or check back later.</p>

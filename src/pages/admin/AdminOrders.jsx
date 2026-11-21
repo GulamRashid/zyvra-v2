@@ -127,7 +127,7 @@ export default function AdminOrders() {
       </div>
 
       {loading ? (
-        <LoadingSkeleton rows={4} />
+        <LoadingSkeleton variant="dashboard" />
       ) : loadError ? (
         <div className="empty-content" role="alert" style={{ padding: '40px 16px', textAlign: 'center' }}>
           <XCircle size={28} style={{ opacity: 0.6, margin: '0 auto 10px', color: '#f87171' }} />

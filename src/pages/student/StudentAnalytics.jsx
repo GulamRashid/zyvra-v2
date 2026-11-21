@@ -185,7 +185,7 @@ export default function StudentAnalytics() {
         )}
 
         {loading ? (
-          <LoadingSkeleton rows={5} />
+          <LoadingSkeleton variant="dashboard" />
         ) : (
           <>
             {/* 4 Analytics Stat Cards (2x2 on mobile 360px, 4 across on desktop) */}
