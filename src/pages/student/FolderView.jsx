@@ -68,7 +68,8 @@ export default function FolderView() {
       .from('tests')
       .select('id, title, duration_minutes, duration_mins, total_marks, is_free, solution_mode, status, pattern_type')
       .eq('folder_id', folder.id)
-      .eq('status', 'published')
+        .is('chapter_id', null)
+        .eq('status', 'published')
       .then(({ data, error: tErr }) => {
         if (!isCancelled) {
           if (!tErr && data) {
