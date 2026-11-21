@@ -175,7 +175,7 @@ export default function AdminOrders() {
             </article>
           </div>
 
-          <section className="panel-card" style={{ marginTop: '24px' }}>
+          <section className="panel-card p-5 sm:p-6 mt-6 min-w-0 overflow-hidden">
             <div className="section-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '14px' }}>
               <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px', width: '100%', maxWidth: '640px' }}>
                 <div className="input-with-icon" style={{ minWidth: '0', flex: '1 1 200px' }}>

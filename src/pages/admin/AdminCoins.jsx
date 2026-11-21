@@ -389,7 +389,7 @@ export default function AdminCoins() {
           </div>
 
           {/* Recent Global Ledger Activity */}
-          <section className="panel-card" style={{ marginTop: '24px' }}>
+          <section className="panel-card p-5 sm:p-6 mt-6 min-w-0 overflow-hidden">
             <div className="section-heading">
               <div>
                 <div className="eyebrow">GLOBAL LEDGER</div>

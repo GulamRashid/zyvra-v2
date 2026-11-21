@@ -240,7 +240,7 @@ export default function AdminReports() {
           </div>
 
           <div className="admin-equal-two-col-grid">
-            <section className="panel-card">
+            <section className="panel-card p-5 sm:p-6 min-w-0 overflow-hidden">
               <div className="section-heading">
                 <div>
                   <div className="eyebrow">ENGAGEMENT RATIOS</div>
@@ -249,47 +249,47 @@ export default function AdminReports() {
                 <div className="setting-symbol"><BarChart3 size={18} /></div>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
-                <div style={{ padding: '14px', background: 'var(--bg-subtle, rgba(255,255,255,0.03))', borderRadius: '8px', border: '1px solid var(--border-color, rgba(255,255,255,0.06))' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '0.875rem' }}>Test Completion Rate</span>
-                    <strong>
+              <div className="flex flex-col gap-3.5 mt-4">
+                <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-800/60">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs sm:text-sm font-medium text-slate-300">Test Completion Rate</span>
+                    <strong className="text-xs sm:text-sm font-bold text-white">
                       {queryErrors.attempts || metrics.totalAttempts === null
                         ? 'Data unavailable'
                         : `${Math.round((metrics.completedAttempts / metrics.totalAttempts) * 100)}%`}
                     </strong>
                   </div>
-                  <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{ width: `${metrics.totalAttempts > 0 ? Math.round((metrics.completedAttempts / metrics.totalAttempts) * 100) : 0}%`, height: '100%', background: '#34d399', borderRadius: '3px' }} />
+                  <div className="w-full h-1.5 bg-slate-700/60 rounded-full overflow-hidden">
+                    <div style={{ width: `${metrics.totalAttempts > 0 ? Math.round((metrics.completedAttempts / metrics.totalAttempts) * 100) : 0}%` }} className="h-full bg-emerald-400 rounded-full transition-all duration-300" />
                   </div>
                   {queryErrors.attempts && retryButton(['attempts'])}
                 </div>
 
-                <div style={{ padding: '14px', background: 'var(--bg-subtle, rgba(255,255,255,0.03))', borderRadius: '8px', border: '1px solid var(--border-color, rgba(255,255,255,0.06))' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '0.875rem' }}>Referral Adoption</span>
-                    <strong>
+                <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-800/60">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-xs sm:text-sm font-medium text-slate-300">Referral Adoption</span>
+                    <strong className="text-xs sm:text-sm font-bold text-white">
                       {queryErrors.users || queryErrors.referrals || metrics.totalUsers === null || metrics.totalReferrals === null
                         ? 'Data unavailable'
                         : `${((metrics.totalReferrals / metrics.totalUsers) * 100).toFixed(1)}%`}
                     </strong>
                   </div>
-                  <div style={{ width: '100%', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{ width: `${Math.min(100, metrics.totalUsers > 0 && metrics.totalReferrals !== null ? ((metrics.totalReferrals / metrics.totalUsers) * 100) : 0)}%`, height: '100%', background: '#f59e0b', borderRadius: '3px' }} />
+                  <div className="w-full h-1.5 bg-slate-700/60 rounded-full overflow-hidden">
+                    <div style={{ width: `${Math.min(100, metrics.totalUsers > 0 && metrics.totalReferrals !== null ? ((metrics.totalReferrals / metrics.totalUsers) * 100) : 0)}%` }} className="h-full bg-amber-400 rounded-full transition-all duration-300" />
                   </div>
                   {(queryErrors.users || queryErrors.referrals) && retryButton(['users', 'referrals'])}
                 </div>
 
-                <div style={{ padding: '14px', background: 'var(--bg-subtle, rgba(255,255,255,0.03))', borderRadius: '8px', border: '1px solid var(--border-color, rgba(255,255,255,0.06))' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '0.875rem' }}>Total Coins in Ecosystem</span>
-                    <strong>
+                <div className="p-4 rounded-xl bg-slate-800/40 border border-slate-800/60">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs sm:text-sm font-medium text-slate-300">Total Coins in Ecosystem</span>
+                    <strong className="text-xs sm:text-sm font-bold text-amber-400">
                       {queryErrors.wallets || metrics.totalCoins === null
                         ? 'Data unavailable'
                         : `${metrics.totalCoins.toLocaleString()} coins`}
                     </strong>
                   </div>
-                  <small style={{ color: 'var(--text-muted, #94a3b8)', display: 'block', marginTop: '4px' }}>
+                  <small className="text-[11px] text-slate-400 block mt-1">
                     Liquid coin reward supply across learner wallets.
                   </small>
                   {queryErrors.wallets && retryButton(['wallets'])}
@@ -297,13 +297,13 @@ export default function AdminReports() {
               </div>
             </section>
 
-            <section className="panel-card">
+            <section className="panel-card p-5 sm:p-6 min-w-0 overflow-hidden">
               <div className="section-heading">
                 <div>
                   <div className="eyebrow">DROP-OFF SIGNALS</div>
                   <h2>Where learners leave</h2>
                 </div>
-                <span className="chapter-item-count">
+                <span className="chapter-item-count shrink-0">
                   {queryErrors.attempts || dropoffInsights.total === null ? 'Data unavailable' : `${dropoffInsights.total} events`}
                 </span>
               </div>
@@ -318,94 +318,100 @@ export default function AdminReports() {
                   <span>No pause, tab-switch, or abandonment events recorded yet.</span>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gap: '14px', marginTop: '16px' }}>
+                <div className="space-y-4 mt-4 min-w-0">
                   {(dropoffInsights.byType[0] || dropoffInsights.hotspots[0]) && (
-                    <div className="feedback" role="status">
+                    <div className="feedback flex flex-col gap-1.5 p-3.5 rounded-xl border border-indigo-500/25 bg-indigo-500/5 text-slate-300 text-xs my-2 overflow-hidden break-words" role="status">
                       {dropoffInsights.byType[0] && (
-                        <div>Most common signal: <strong>{dropoffInsights.byType[0][0].replace(/[_-]+/g, ' ')}</strong> ({dropoffInsights.byType[0][1]} events).</div>
+                        <div className="break-words leading-relaxed">
+                          Most common signal: <strong className="text-white font-semibold">{dropoffInsights.byType[0][0].replace(/[_-]+/g, ' ')}</strong> ({dropoffInsights.byType[0][1]} events).
+                        </div>
                       )}
                       {dropoffInsights.hotspots[0] && (
-                        <div>Most affected question or section: <strong>{dropoffInsights.hotspots[0][0]}</strong> ({dropoffInsights.hotspots[0][1]} events).</div>
+                        <div className="break-words leading-relaxed">
+                          Most affected question or section: <strong className="text-white font-semibold">{dropoffInsights.hotspots[0][0]}</strong> ({dropoffInsights.hotspots[0][1]} events).
+                        </div>
                       )}
                     </div>
                   )}
-                  <div>
-                    <strong style={{ display: 'block', marginBottom: '8px' }}>Event types</strong>
+                  <div className="space-y-2">
+                    <strong className="block text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Event types</strong>
                     {dropoffInsights.byType.map(([type, count]) => (
-                      <div key={type} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0' }}>
-                        <span>{type.replace('_', ' ')}</span><strong>{count}</strong>
+                      <div key={type} className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-800/40 border border-slate-800/60 text-xs">
+                        <span className="capitalize text-slate-300 truncate mr-2 font-medium">{type.replace('_', ' ')}</span>
+                        <strong className="px-2.5 py-0.5 rounded-md bg-slate-700/80 text-white font-mono text-xs shrink-0">{count}</strong>
                       </div>
                     ))}
                   </div>
-                  <div>
-                    <strong style={{ display: 'block', marginBottom: '8px' }}>Question or section hotspots</strong>
+                  <div className="space-y-2">
+                    <strong className="block text-xs uppercase tracking-wider text-slate-400 font-bold mb-2">Question or section hotspots</strong>
                     {dropoffInsights.hotspots.map(([hotspot, count]) => (
-                      <div key={hotspot} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', gap: '12px' }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{hotspot}</span><strong>{count}</strong>
+                      <div key={hotspot} className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-800/40 border border-slate-800/60 text-xs">
+                        <span className="truncate text-slate-300 mr-2 font-medium" title={hotspot}>{hotspot}</span>
+                        <strong className="px-2.5 py-0.5 rounded-md bg-slate-700/80 text-white font-mono text-xs shrink-0">{count}</strong>
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
-            </section>
-
-            <section className="panel-card">
-              <div className="section-heading">
-                <div>
-                  <div className="eyebrow">ACTIVITY STREAM</div>
-                  <h2>Recent Test Submissions</h2>
-                </div>
-                <span className="chapter-item-count">{recentAttempts.length} attempts</span>
-              </div>
-
-              {queryErrors.recentAttempts ? (
-                <div className="empty-content" role="alert" style={{ padding: '30px', textAlign: 'center' }}>
-                  <span>Data unavailable</span>
-                  {retryButton(['recentAttempts'])}
-                </div>
-              ) : recentAttempts.length === 0 ? (
-                <div className="empty-content" style={{ padding: '30px', textAlign: 'center' }}>
-                  <FileQuestion size={24} style={{ opacity: 0.4, margin: '0 auto 8px' }} />
-                  <span>No test attempts recorded yet.</span>
-                </div>
-              ) : (
-                <div className="data-table-wrap" style={{ overflowX: 'auto', marginTop: '14px' }}>
-                  <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.08))', textAlign: 'left', color: 'var(--text-muted, #94a3b8)' }}>
-                        <th style={{ padding: '8px 10px' }}>User ID</th>
-                        <th style={{ padding: '8px 10px' }}>Status</th>
-                        <th style={{ padding: '8px 10px' }}>Score</th>
-                        <th style={{ padding: '8px 10px' }}>Date</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {recentAttempts.map((att) => (
-                        <tr key={att.id} style={{ borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.04))' }}>
-                          <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>
-                            {att.user_id ? `${att.user_id.slice(0, 8)}…` : 'Guest'}
-                          </td>
-                          <td style={{ padding: '8px 10px' }}>
-                            <StatusBadge
-                              status={att.status || 'in_progress'}
-                              variant={att.status === 'completed' ? 'success' : 'pending'}
-                              label={att.status || 'in_progress'}
-                            />
-                          </td>
-                          <td style={{ padding: '8px 10px', fontWeight: 600 }}>
-                            {att.score !== null && att.score !== undefined ? `${att.score}%` : '—'}
-                          </td>
-                          <td style={{ padding: '8px 10px', color: 'var(--text-muted, #94a3b8)', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
-                            {att.created_at ? new Date(att.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
               )}
             </section>
           </div>
+
+          <section className="panel-card p-5 sm:p-6 mt-6 min-w-0 overflow-hidden">
+            <div className="section-heading mb-4">
+              <div>
+                <div className="eyebrow">ACTIVITY STREAM</div>
+                <h2>Recent Test Submissions</h2>
+              </div>
+              <span className="chapter-item-count shrink-0">{recentAttempts.length} attempts</span>
+            </div>
+
+            {queryErrors.recentAttempts ? (
+              <div className="empty-content" role="alert" style={{ padding: '30px', textAlign: 'center' }}>
+                <span>Data unavailable</span>
+                {retryButton(['recentAttempts'])}
+              </div>
+            ) : recentAttempts.length === 0 ? (
+              <div className="empty-content" style={{ padding: '30px', textAlign: 'center' }}>
+                <FileQuestion size={24} style={{ opacity: 0.4, margin: '0 auto 8px' }} />
+                <span>No test attempts recorded yet.</span>
+              </div>
+            ) : (
+              <div className="data-table-wrap overflow-x-auto">
+                <table className="data-table w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-700/60 text-left text-slate-400 text-xs uppercase tracking-wider">
+                      <th className="py-2.5 px-3">User ID</th>
+                      <th className="py-2.5 px-3">Status</th>
+                      <th className="py-2.5 px-3">Score</th>
+                      <th className="py-2.5 px-3">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {recentAttempts.map((att) => (
+                      <tr key={att.id} className="border-b border-slate-800/60 hover:bg-slate-800/30 transition-colors">
+                        <td className="py-2.5 px-3 font-mono text-xs text-slate-400">
+                          {att.user_id ? `${att.user_id.slice(0, 8)}…` : 'Guest'}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <StatusBadge
+                            status={att.status || 'in_progress'}
+                            variant={att.status === 'completed' ? 'success' : 'pending'}
+                            label={att.status || 'in_progress'}
+                          />
+                        </td>
+                        <td className="py-2.5 px-3 font-semibold text-white">
+                          {att.score !== null && att.score !== undefined ? `${att.score}%` : '—'}
+                        </td>
+                        <td className="py-2.5 px-3 text-slate-400 text-xs whitespace-nowrap">
+                          {att.created_at ? new Date(att.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
         </>
       )}
     </div>
