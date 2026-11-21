@@ -13,6 +13,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
+import LottiePlayer from '../common/LottiePlayer';
+import { streakFlameAnimationData } from '../../assets/animations/streakFlameData';
 
 export default function DailyStreakModal({ isOpen, onClose, streakData }) {
   const { language } = useThemeLanguage();
@@ -80,7 +82,16 @@ export default function DailyStreakModal({ isOpen, onClose, streakData }) {
         {/* Hero Section: Flame & Current Streak */}
         <div className="flex flex-col items-center text-center pt-2 pb-4">
           <div className="relative mb-3">
-            <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-3xl flex items-center justify-center shadow-lg transition-transform duration-300 hover:scale-105 ${
+            {currentStreak > 0 && (
+              <div className="absolute -inset-4 flex items-center justify-center pointer-events-none z-0">
+                <LottiePlayer
+                  animationData={streakFlameAnimationData}
+                  className="w-32 h-32 opacity-85"
+                  loop={true}
+                />
+              </div>
+            )}
+            <div className={`relative z-10 w-20 h-20 sm:w-24 sm:h-24 rounded-3xl flex items-center justify-center shadow-lg transition-transform duration-300 hover:scale-105 ${
               currentStreak > 0
                 ? 'bg-gradient-to-tr from-orange-500 via-amber-500 to-yellow-400 shadow-orange-500/30'
                 : 'bg-slate-800 border border-slate-700 text-slate-500'
@@ -91,7 +102,7 @@ export default function DailyStreakModal({ isOpen, onClose, streakData }) {
               />
             </div>
             {currentStreak > 0 && (
-              <span className="absolute -bottom-2 -right-2 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-neutral-950 text-amber-400 border border-amber-400/40 shadow-md flex items-center gap-1">
+              <span className="relative z-20 absolute -bottom-2 -right-2 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-neutral-950 text-amber-400 border border-amber-400/40 shadow-md flex items-center gap-1">
                 <Sparkles size={12} /> {currentStreak}d
               </span>
             )}

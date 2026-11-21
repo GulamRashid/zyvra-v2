@@ -1,48 +1,64 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useMemo } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { contentTables, getContentErrorMessage, sortContentItems } from '../lib/content';
 import { supabase, supabaseConfigurationError } from '../lib/supabase';
 
+async function fetchContentCatalog() {
+  if (!supabase) {
+    throw new Error(supabaseConfigurationError);
+  }
+  const results = await Promise.all(
+    contentTables.map((table) =>
+      supabase.from(table).select('*').order('display_order', { ascending: true })
+    )
+  );
+  const failed = results.find((result) => result.error);
+  if (failed) {
+    throw new Error(getContentErrorMessage(failed.error, 'Unable to load content hierarchy.'));
+  }
+  return {
+    exams: sortContentItems(results[0].data || []),
+    folders: sortContentItems(results[1].data || []),
+    chapters: sortContentItems(results[2].data || [])
+  };
+}
+
 export default function useContentCatalog() {
-  const [catalog, setCatalog] = useState({ exams: [], folders: [], chapters: [] });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const queryClient = useQueryClient();
+
+  const {
+    data = { exams: [], folders: [], chapters: [] },
+    isLoading,
+    error: queryError,
+    refetch
+  } = useQuery({
+    queryKey: ['content-catalog'],
+    queryFn: fetchContentCatalog,
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
+    gcTime: 1000 * 60 * 30
+  });
 
   const refresh = useCallback(async () => {
-    if (!supabase) {
-      setError(supabaseConfigurationError);
-      setLoading(false);
-      return;
-    }
-    setError('');
-    setLoading(true);
-    const results = await Promise.all(contentTables.map((table) => supabase.from(table).select('*').order('display_order', { ascending: true })));
-    const failed = results.find((result) => result.error);
-    if (failed) {
-      setError(getContentErrorMessage(failed.error, 'Unable to load content hierarchy.'));
-      setLoading(false);
-      return;
-    }
-    setCatalog({
-      exams: sortContentItems(results[0].data || []),
-      folders: sortContentItems(results[1].data || []),
-      chapters: sortContentItems(results[2].data || [])
-    });
-    setLoading(false);
-  }, []);
+    await refetch();
+  }, [refetch]);
 
   const removeExam = useCallback((examId) => {
-    setCatalog((current) => {
-      const examFolderIds = new Set(current.folders.filter((folder) => folder.exam_id === examId).map((folder) => folder.id));
+    queryClient.setQueryData(['content-catalog'], (current) => {
+      if (!current) return { exams: [], folders: [], chapters: [] };
+      const examFolderIds = new Set(
+        current.folders.filter((folder) => folder.exam_id === examId).map((folder) => folder.id)
+      );
       return {
         exams: current.exams.filter((exam) => exam.id !== examId),
         folders: current.folders.filter((folder) => folder.exam_id !== examId),
         chapters: current.chapters.filter((chapter) => !examFolderIds.has(chapter.folder_id))
       };
     });
-  }, []);
+  }, [queryClient]);
 
   const removeFolder = useCallback((folderId) => {
-    setCatalog((current) => {
+    queryClient.setQueryData(['content-catalog'], (current) => {
+      if (!current) return { exams: [], folders: [], chapters: [] };
       const childrenByParent = new Map();
       current.folders.forEach((f) => {
         const parent = f.parent_folder_id || f.parent_id;
@@ -65,45 +81,32 @@ export default function useContentCatalog() {
         chapters: current.chapters.filter((c) => !toRemove.has(c.folder_id))
       };
     });
-  }, []);
+  }, [queryClient]);
 
   const removeChapter = useCallback((chapterId) => {
-    setCatalog((current) => ({
-      exams: current.exams,
-      folders: current.folders,
-      chapters: current.chapters.filter((c) => c.id !== chapterId)
-    }));
-  }, []);
-
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      if (!supabase) {
-        setError(supabaseConfigurationError);
-        setLoading(false);
-        return;
-      }
-      const results = await Promise.all(contentTables.map((table) => supabase.from(table).select('*').order('display_order', { ascending: true })));
-      if (!active) return;
-      const failed = results.find((result) => result.error);
-      if (failed) setError(getContentErrorMessage(failed.error, 'Unable to load content hierarchy.'));
-      else setCatalog({
-        exams: sortContentItems(results[0].data || []),
-        folders: sortContentItems(results[1].data || []),
-        chapters: sortContentItems(results[2].data || [])
-      });
-      setLoading(false);
-    };
-    load().catch((loadError) => {
-      if (active) {
-        setError(getContentErrorMessage(loadError, 'Unable to load content hierarchy.'));
-        setLoading(false);
-      }
+    queryClient.setQueryData(['content-catalog'], (current) => {
+      if (!current) return { exams: [], folders: [], chapters: [] };
+      return {
+        exams: current.exams,
+        folders: current.folders,
+        chapters: current.chapters.filter((c) => c.id !== chapterId)
+      };
     });
-    return () => {
-      active = false;
-    };
-  }, [refresh]);
+  }, [queryClient]);
 
-  return { ...catalog, loading, error, refresh, removeExam, removeFolder, removeChapter };
+  const error = useMemo(() => {
+    if (!queryError) return '';
+    return getContentErrorMessage(queryError, 'Unable to load content hierarchy.');
+  }, [queryError]);
+
+  return {
+    ...data,
+    loading: isLoading,
+    error,
+    refresh,
+    removeExam,
+    removeFolder,
+    removeChapter
+  };
 }
+

@@ -8,6 +8,8 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import QuestionFormatter from '../../components/common/QuestionFormatter';
 import ZyvraAiGuruModal from '../../components/toolbox/ai/ZyvraAiGuruModal';
+import LottiePlayer from '../../components/common/LottiePlayer';
+import { celebrationAnimationData } from '../../assets/animations/celebrationData';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
@@ -940,9 +942,20 @@ export default function QuizResult() {
               {/* Subtle decorative glow */}
               <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 dark:bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
 
+              {/* Lottie Confetti Burst for Good Scores */}
+              {percentage >= 60 && (
+                <div className="absolute -top-4 -right-4 sm:right-10 pointer-events-none z-0 opacity-80">
+                  <LottiePlayer
+                    animationData={celebrationAnimationData}
+                    className="w-36 h-36 sm:w-44 sm:h-44"
+                    loop={false}
+                  />
+                </div>
+              )}
+
               <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0 text-2xl sm:text-3xl shadow-inner animate-in zoom-in-95 duration-300">
+                  <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0 text-2xl sm:text-3xl shadow-inner animate-in zoom-in-95 duration-300">
                     {percentage >= 80 ? '🏆' : percentage >= 50 ? '🌟' : '🎯'}
                   </div>
                   <div className="space-y-1">

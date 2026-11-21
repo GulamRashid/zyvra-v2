@@ -18,6 +18,7 @@ import { sanitizeLiveQuestion } from '../../lib/tests';
 import { prefetchLiveQuiz } from '../../lib/prefetchLiveQuiz';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 import { recordStudyActivity } from '../../lib/streak';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function ChapterDetail() {
   const { chapterId } = useParams();
@@ -537,40 +538,28 @@ export default function ChapterDetail() {
 
             {/* Tab Bar: Only rendered when multiple content modes exist to keep UI clean and minimalist */}
             {tabsList.length > 1 && (
-              <div
-                className="flex items-center gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/70 bg-white border dark:border-slate-800 border-slate-200/80 shadow-xs"
-                role="tablist"
-                aria-label={t('chapterContent')}
-              >
-                {tabsList.map(({ id, label, count, icon: Icon }) => {
-                  const isActive = activeTab === id;
-                  return (
-                    <button
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList
+                  className="w-full flex items-center gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/70 bg-white border dark:border-slate-800 border-slate-200/80 shadow-xs h-auto"
+                  aria-label={t('chapterContent')}
+                >
+                  {tabsList.map(({ id, label, count, icon: Icon }) => (
+                    <TabsTrigger
                       key={id}
-                      role="tab"
-                      aria-selected={isActive}
-                      onClick={() => setActiveTab(id)}
-                      className={`flex-1 py-2 sm:py-2.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all min-h-[44px] border ${
-                        isActive
-                          ? 'bg-indigo-600 text-white dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 border-indigo-600 shadow-sm'
-                          : 'border-transparent dark:text-slate-400 text-slate-600 hover:text-black dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
-                      }`}
+                      value={id}
+                      className="flex-1 py-2 sm:py-2.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all min-h-[44px] data-[state=active]:bg-indigo-600 data-[state=active]:text-white dark:data-[state=active]:bg-indigo-500/20 dark:data-[state=active]:text-indigo-300 dark:data-[state=active]:border-indigo-500/40 border border-transparent shadow-xs"
                     >
                       <Icon size={14} />
                       <span>{label}</span>
                       {typeof count === 'number' && (
-                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
-                          isActive
-                            ? 'bg-white/20 text-white dark:bg-indigo-400/20 dark:text-indigo-200'
-                            : 'dark:bg-slate-800 bg-slate-200/80 dark:text-slate-300 text-slate-600'
-                        }`}>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded-full font-bold dark:bg-slate-800/80 bg-slate-200/80 dark:text-slate-300 text-slate-600">
                           {count}
                         </span>
                       )}
-                    </button>
-                  );
-                })}
-              </div>
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+              </Tabs>
             )}
 
             {/* Clear Mode Explainer Banner */}
