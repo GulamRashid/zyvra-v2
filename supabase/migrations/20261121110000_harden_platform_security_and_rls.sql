@@ -84,29 +84,29 @@ DROP POLICY IF EXISTS "Anyone can read safe platform settings" ON public.platfor
 CREATE POLICY "Anyone can read safe platform settings"
   ON public.platform_settings FOR SELECT
   USING (
-    public.is_admin_user()
+    coalesce(key, setting_key) IN (
+      'guest_demo_enabled',
+      'general',
+      'coins_config',
+      'payment_config',
+      'coin_redemption_config',
+      'global_pricing_enabled',
+      'toolbox_pricing',
+      'coupon_codes',
+      'referral_program_config',
+      'referral_enabled',
+      'referrer_reward_coins',
+      'referred_reward_coins',
+      'test_coin_reward_slabs',
+      'full_pass_config',
+      'study_toolbox_config',
+      'ai_tutor_config'
+    )
     OR (
-      coalesce(key, setting_key) IN (
-        'guest_demo_enabled',
-        'general',
-        'coins_config',
-        'payment_config',
-        'coin_redemption_config',
-        'global_pricing_enabled',
-        'toolbox_pricing',
-        'coupon_codes',
-        'referral_program_config',
-        'referral_enabled',
-        'referrer_reward_coins',
-        'referred_reward_coins',
-        'test_coin_reward_slabs',
-        'full_pass_config',
-        'study_toolbox_config',
-        'ai_tutor_config'
-      )
-      OR (
-        auth.uid() IS NOT NULL
-        AND coalesce(key, setting_key) = ('support_chat:' || auth.uid()::text)
+      auth.uid() IS NOT NULL
+      AND (
+        coalesce(key, setting_key) = ('support_chat:' || auth.uid()::text)
+        OR public.is_admin_user()
       )
     )
   );
