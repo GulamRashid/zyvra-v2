@@ -10,6 +10,70 @@
 import { prepareSpeechText, splitIntoSentences } from '../src/lib/speechVoice.js';
 
 /**
+ * High-fidelity Gemini Neural TTS generator
+ * Uses studio quality Google neural voice model
+ */
+async function generateGeminiSpeech(text, lang) {
+  const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
+  if (!apiKey) return null;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
+  const isHindi = String(lang).toLowerCase().startsWith('hi');
+  const voiceName = isHindi ? 'Sulafat' : 'Kore';
+  const style = isHindi
+    ? 'calm, warm, articulate Indian teacher explaining a concept to a student with clear pronunciation and natural intonation'
+    : 'calm, warm, articulate educator explaining a concept to a student with clear pronunciation and natural intonation';
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'gemini-3.8-flash-lite-tts',
+        input: [{
+          type: 'user_input',
+          content: [{
+            type: 'text',
+            text: text,
+            annotations: [{
+              type: 'speech_metadata',
+              style: style
+            }]
+          }]
+        }],
+        response_format: { type: 'audio' },
+        generation_config: {
+          speech_config: [
+            { voice: voiceName }
+          ]
+        }
+      })
+    });
+
+    if (!res.ok) {
+      console.warn('Gemini TTS non-200 response:', res.status);
+      return null;
+    }
+
+    const data = await res.json();
+    for (const step of (data.steps || [])) {
+      for (const item of (step.content || [])) {
+        if (item.type === 'audio' && item.data) {
+          return {
+            buffer: Buffer.from(item.data, 'base64'),
+            mimeType: item.mime_type || 'audio/wav'
+          };
+        }
+      }
+    }
+    return null;
+  } catch (err) {
+    console.warn('Gemini TTS generator exception:', err.message);
+    return null;
+  }
+}
+
+/**
  * Split text into chunks safe for Google TTS (<180 chars per chunk)
  */
 function chunkForTTS(text, maxChars = 175) {
@@ -90,6 +154,28 @@ export default async function handler(req, res) {
   const targetLang = isHindi ? 'hi' : 'en-IN';
 
   try {
+    // 1. Primary: Studio-quality Gemini Neural TTS
+    const geminiAudio = await generateGeminiSpeech(cleaned, targetLang);
+    if (geminiAudio && geminiAudio.buffer && geminiAudio.buffer.length > 0) {
+      if (isWebStandard) {
+        return new Response(geminiAudio.buffer, {
+          status: 200,
+          headers: {
+            'Content-Type': geminiAudio.mimeType,
+            'Content-Length': String(geminiAudio.buffer.byteLength),
+            'Cache-Control': 'public, max-age=604800, s-maxage=604800, immutable'
+          }
+        });
+      }
+
+      res.setHeader('Content-Type', geminiAudio.mimeType);
+      res.setHeader('Content-Length', geminiAudio.buffer.byteLength);
+      res.setHeader('Cache-Control', 'public, max-age=604800, s-maxage=604800, immutable');
+      res.status(200).send(geminiAudio.buffer);
+      return;
+    }
+
+    // 2. Secondary fallback: Chunked Google TTS
     const chunks = chunkForTTS(cleaned, 175);
     const audioBuffers = [];
 

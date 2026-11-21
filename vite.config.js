@@ -2,9 +2,34 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+function devApiPlugin() {
+  return {
+    name: 'dev-api-middleware',
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (req.url && req.url.startsWith('/api/tts')) {
+          try {
+            const { default: ttsHandler } = await import('./api/tts.js');
+            await ttsHandler(req, res);
+            return;
+          } catch (err) {
+            console.error('Dev TTS middleware error:', err);
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: err.message }));
+            return;
+          }
+        }
+        next();
+      });
+    }
+  };
+}
+
 export default defineConfig({
   plugins: [
     react(),
+    devApiPlugin(),
     VitePWA({
       registerType: 'prompt',
       includeAssets: ['logo-192.png', 'logo-512.png'],

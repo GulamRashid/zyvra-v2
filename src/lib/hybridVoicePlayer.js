@@ -27,6 +27,96 @@ function getCacheKey(text, lang) {
 }
 
 /**
+ * Fetch studio-grade Neural Speech Audio
+ * 1. Checks /api/tts endpoint (running Gemini Neural TTS)
+ * 2. Falls back to direct client-side Gemini Neural TTS with VITE_GEMINI_API_KEY
+ */
+async function fetchNeuralSpeechBlob(cleaned, lang) {
+  const isHindi = String(lang).toLowerCase().startsWith('hi');
+  const targetLang = isHindi ? 'hi' : 'en-IN';
+
+  // 1. First attempt: call /api/tts endpoint
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    const res = await fetch(`/api/tts?lang=${targetLang}&text=${encodeURIComponent(cleaned)}`, {
+      method: 'GET',
+      headers: { Accept: 'audio/wav, audio/mpeg, */*' },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    const contentType = res.headers.get('content-type') || '';
+    if (res.ok && !contentType.includes('text/html')) {
+      const blob = await res.blob();
+      if (blob.size > 200) {
+        return URL.createObjectURL(blob);
+      }
+    }
+  } catch (err) {
+    console.warn('API TTS fetch note:', err.message);
+  }
+
+  // 2. Direct client-side Gemini Neural TTS call if API route didn't return audio
+  const apiKey = (import.meta.env?.VITE_GEMINI_API_KEY || '').trim();
+  if (apiKey) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
+      const voiceName = isHindi ? 'Sulafat' : 'Kore';
+      const style = isHindi
+        ? 'calm, warm, articulate Indian teacher explaining a concept to a student with clear pronunciation and natural intonation'
+        : 'calm, warm, articulate educator explaining a concept to a student with clear pronunciation and natural intonation';
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'gemini-3.8-flash-lite-tts',
+          input: [{
+            type: 'user_input',
+            content: [{
+              type: 'text',
+              text: cleaned,
+              annotations: [{
+                type: 'speech_metadata',
+                style
+              }]
+            }]
+          }],
+          response_format: { type: 'audio' },
+          generation_config: {
+            speech_config: [{ voice: voiceName }]
+          }
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        for (const step of (data.steps || [])) {
+          for (const item of (step.content || [])) {
+            if (item.type === 'audio' && item.data) {
+              const byteCharacters = atob(item.data);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let i = 0; i < byteCharacters.length; i++) {
+                byteNumbers[i] = byteCharacters.charCodeAt(i);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              const blob = new Blob([byteArray], { type: item.mime_type || 'audio/wav' });
+              return URL.createObjectURL(blob);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Client Gemini TTS note:', err.message);
+    }
+  }
+
+  return null;
+}
+
+/**
  * Preload audio into memory cache silently in the background
  */
 export async function preloadAudio(rawText, lang = 'hi') {
@@ -38,21 +128,11 @@ export async function preloadAudio(rawText, lang = 'hi') {
   if (audioBlobCache.has(key)) return;
 
   try {
-    const isHindi = String(lang).toLowerCase().startsWith('hi');
-    const targetLang = isHindi ? 'hi' : 'en-IN';
-    const endpoint = `/api/tts?lang=${targetLang}&text=${encodeURIComponent(cleaned)}`;
-
-    const res = await fetch(endpoint, {
-      method: 'GET',
-      headers: { Accept: 'audio/mpeg' }
-    });
-
-    if (res.ok) {
-      const blob = await res.blob();
-      const objectUrl = URL.createObjectURL(blob);
+    const objectUrl = await fetchNeuralSpeechBlob(cleaned, lang);
+    if (objectUrl) {
       audioBlobCache.set(key, objectUrl);
     }
-  } catch (err) {
+  } catch (_) {
     // Non-fatal, silent background preload catch
   }
 }
@@ -194,32 +274,11 @@ export async function playRealisticSpeech(rawText, options = {}) {
   const key = getCacheKey(cleaned, lang);
   let audioSrc = audioBlobCache.get(key) || null;
 
-  // 1. Try to fetch from Neural TTS API if not in cache
+  // 1. Try to fetch from Neural TTS if not in cache
   if (!audioSrc) {
-    const isHindi = String(lang).toLowerCase().startsWith('hi');
-    const targetLang = isHindi ? 'hi' : 'en-IN';
-    const endpoint = `/api/tts?lang=${targetLang}&text=${encodeURIComponent(cleaned)}`;
-
-    try {
-      // 2.5 second timeout guard
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
-
-      const res = await fetch(endpoint, {
-        method: 'GET',
-        headers: { Accept: 'audio/mpeg' },
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const blob = await res.blob();
-        audioSrc = URL.createObjectURL(blob);
-        audioBlobCache.set(key, audioSrc);
-      }
-    } catch (err) {
-      // Fetch timed out or network error - will seamlessly fall back
-      console.warn('Neural TTS network attempt note, falling back to browser HD voice:', err.message);
+    audioSrc = await fetchNeuralSpeechBlob(cleaned, lang);
+    if (audioSrc) {
+      audioBlobCache.set(key, audioSrc);
     }
   }
 
