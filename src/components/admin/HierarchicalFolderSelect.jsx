@@ -18,7 +18,7 @@ export default function HierarchicalFolderSelect({
   placeholder = 'Select folder...',
   showAllOption = true,
   allOptionLabel = 'All folders',
-  showSearch = true,
+  showSearch = false,
   className = 'text-input',
   disabled = false,
   required = false
@@ -89,13 +89,13 @@ export default function HierarchicalFolderSelect({
 
   return (
     <div className="space-y-1.5 w-full">
-      {/* Live Search Box for folders */}
+      {/* Live Search Box for folders (only when showSearch is explicitly enabled) */}
       {showSearch && folders.length > 5 && (
         <div className="relative w-full">
           <Search size={12} className="absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            className="w-full pl-7 pr-6 py-1 rounded-lg bg-slate-900 border border-slate-700/80 text-slate-200 text-xs placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            className="w-full pl-7 pr-6 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 text-slate-900 dark:text-slate-200 text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-400"
             placeholder="Search folder (e.g. Science, Class 10)..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -103,7 +103,7 @@ export default function HierarchicalFolderSelect({
           {searchQuery && (
             <button
               type="button"
-              className="absolute right-2 top-2 text-slate-400 hover:text-white"
+              className="absolute right-2 top-2 text-slate-400 hover:text-slate-900 dark:hover:text-white"
               onClick={() => setSearchQuery('')}
               title="Clear folder search"
             >
@@ -136,10 +136,10 @@ export default function HierarchicalFolderSelect({
 
       {/* Active Selection Breadcrumb Indicator */}
       {activeFolder && (
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-[11px] text-indigo-300">
-          <CheckCircle2 size={12} className="text-indigo-400 shrink-0" />
-          <span className="font-semibold text-slate-400">Path:</span>
-          <span className="font-medium text-slate-200 truncate">{activeFolder.breadcrumb}</span>
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/20 text-[11px] text-indigo-900 dark:text-indigo-300">
+          <CheckCircle2 size={12} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+          <span className="font-semibold text-slate-500 dark:text-slate-400">Path:</span>
+          <span className="font-medium text-slate-800 dark:text-slate-200 truncate">{activeFolder.breadcrumb}</span>
         </div>
       )}
     </div>

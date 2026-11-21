@@ -455,8 +455,8 @@ export default function TestManager() {
 
   return <div className="test-manager-page">
     <div className="page-heading"><div><div className="eyebrow">ADMINISTRATION / ASSESSMENT DESIGN</div><h1>Test manager</h1><p>Configure BPSC patterns, scoring rules and question order.</p></div><button className="button button-primary" onClick={() => setEditor({ test: null })}><Plus size={15} /> Create test</button></div>
-    <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 px-3.5 py-2.5 text-xs text-indigo-200 flex items-center gap-2 mb-4">
-      <span>💡 <strong>त्वरित सहायता:</strong> नया टेस्ट बनाने के लिए 'Create test' पर क्लिक करें। टेस्ट बनने के बाद उस पर क्लिक करके दाईं ओर प्रश्न बैंक से सवाल जोड़ें और 'Published' स्टेटस सेट करें ताकि छात्र उसे हल कर सकें।</span>
+    <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/90 dark:bg-indigo-950/30 px-3.5 py-2.5 text-xs text-indigo-950 dark:text-indigo-200 flex items-center gap-2 mb-4">
+      <span className="leading-relaxed">💡 <strong className="font-bold text-indigo-900 dark:text-indigo-100">त्वरित सहायता:</strong> नया टेस्ट बनाने के लिए 'Create test' पर क्लिक करें। टेस्ट बनने के बाद उस पर क्लिक करके दाईं ओर प्रश्न बैंक से सवाल जोड़ें और 'Published' स्टेटस सेट करें ताकि छात्र उसे हल कर सकें।</span>
     </div>
     {error && <div className="feedback error-feedback" role="alert">{error}</div>}
     {successMessage && <div className="feedback success-feedback" role="status">{successMessage}</div>}
@@ -466,7 +466,7 @@ export default function TestManager() {
         {exams.length > 1 && (
           <div className="mb-2">
             <select
-              className="text-input text-xs py-1.5 px-2 bg-slate-900 border-slate-700/80 w-full rounded-lg text-slate-200 focus:ring-1 focus:ring-indigo-400"
+              className="text-input text-xs py-1.5 px-2 bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700/80 w-full rounded-lg text-slate-800 dark:text-slate-200 focus:ring-1 focus:ring-indigo-400"
               value={selectedExamFilter}
               onChange={(e) => setSelectedExamFilter(e.target.value)}
               aria-label="Filter tests by exam"
@@ -486,45 +486,47 @@ export default function TestManager() {
           </div>
         )}
         <label className="content-search"><Search size={14} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a test…" /></label>
-        {loading ? <LoadingSkeleton rows={3} /> : filteredTests.map((test) => {
-          const qCount = questionCountByTest.get(test.id) || 0;
-          return (
-            <div key={test.id} className={`test-list-item-row ${selectedTestId === test.id ? 'selected' : ''}`}>
-              <button
-                type="button"
-                className={`test-list-item ${selectedTestId === test.id ? 'selected' : ''}`}
-                onClick={() => selectTest(test.id)}
-              >
-                <span className="test-list-icon"><ClipboardList size={17} /></span>
-                <span className="min-w-0 flex-1">
-                  <strong>{test.title}</strong>
-                  <small className="truncate block">{chapterTitle(test.chapter_id)} · {test.duration_minutes} min</small>
-                  <span className="flex items-center gap-1.5 pt-1">
-                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${qCount > 0 ? 'bg-indigo-500/20 text-indigo-300' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}`}>
-                      {qCount > 0 ? `${qCount} Qs` : '⚠️ 0 Qs (Empty)'}
-                    </span>
-                    <span className="text-[10px] font-mono uppercase text-slate-400">
-                      {test.pattern === 'bpsc-mandatory-e' ? 'BPSC 5-Opt' : test.pattern === 'bpsc-classic-5' ? 'Classic 5-Opt' : '4-Opt'}
+        <div className="test-list-items">
+          {loading ? <LoadingSkeleton rows={3} /> : filteredTests.map((test) => {
+            const qCount = questionCountByTest.get(test.id) || 0;
+            return (
+              <div key={test.id} className={`test-list-item-row ${selectedTestId === test.id ? 'selected' : ''}`}>
+                <button
+                  type="button"
+                  className={`test-list-item ${selectedTestId === test.id ? 'selected' : ''}`}
+                  onClick={() => selectTest(test.id)}
+                >
+                  <span className="test-list-icon"><ClipboardList size={17} /></span>
+                  <span className="min-w-0 flex-1">
+                    <strong>{test.title}</strong>
+                    <small className="truncate block">{chapterTitle(test.chapter_id)} · {test.duration_minutes} min</small>
+                    <span className="flex items-center gap-1.5 pt-1">
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${qCount > 0 ? 'bg-indigo-500/20 text-indigo-300' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}`}>
+                        {qCount > 0 ? `${qCount} Qs` : '⚠️ 0 Qs (Empty)'}
+                      </span>
+                      <span className="text-[10px] font-mono uppercase text-slate-400">
+                        {test.pattern === 'bpsc-mandatory-e' ? 'BPSC 5-Opt' : test.pattern === 'bpsc-classic-5' ? 'Classic 5-Opt' : '4-Opt'}
+                      </span>
                     </span>
                   </span>
-                </span>
-                <span className={`content-status status-${test.status || 'draft'}`}>{test.status || 'draft'}</span>
-              </button>
-              <button
-                type="button"
-                className="icon-button test-delete-btn"
-                title={`Delete ${test.title}`}
-                aria-label={`Delete ${test.title}`}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setTestToDelete(test);
-                }}
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          );
-        })}
+                  <span className={`content-status status-${test.status || 'draft'}`}>{test.status || 'draft'}</span>
+                </button>
+                <button
+                  type="button"
+                  className="icon-button test-delete-btn"
+                  title={`Delete ${test.title}`}
+                  aria-label={`Delete ${test.title}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setTestToDelete(test);
+                  }}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
       </aside>
       <section className="test-builder-panel panel-card">{!selectedTest ? <div className="content-empty-state"><div className="placeholder-icon"><ClipboardList size={23} /></div><h2>Create a test or select one.</h2><p>Then add eligible published questions and arrange them in the order students will see.</p></div> : <>
         <div className="workspace-title-row">

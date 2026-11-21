@@ -1983,8 +1983,8 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
 .qbank-item-meta { display: flex; flex-wrap: wrap; gap: 11px; margin: 8px 0; color: var(--muted); font-size: 11px; }
 .qbank-item-meta span { display: inline-flex; align-items: center; gap: 5px; }
 .qbank-item-meta svg { color: var(--gold); }
-.qbank-options-preview { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
-.qbank-options-preview > span { display: flex; gap: 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: 12px; line-height: 1.4; }
+.qbank-options-preview { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 8px; margin: 12px 0; }
+.qbank-options-preview > span { display: flex; gap: 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; color: var(--muted); font-size: 13px; line-height: 1.5; word-break: break-word; overflow-wrap: break-word; min-width: 0; }
 .qbank-options-preview > span.is-answer { border-color: rgba(77, 211, 154, .3); background: rgba(77, 211, 154, .08); color: var(--text); }
 .qbank-options-preview b { color: var(--gold); }
 .admin-answer-preview, .distractor-details { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--line); color: var(--muted); }
@@ -2038,8 +2038,24 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
   .import-modal-actions { flex-direction: row; align-items: center; }
   .import-modal-actions .button { width: auto; }
 }
-.test-manager-layout { display: grid; grid-template-columns: minmax(280px, .9fr) minmax(0, 1.8fr); align-items: start; gap: 14px; }
-.test-list-panel, .test-builder-panel { min-width: 0; padding: 15px; }
+.test-manager-layout { display: grid; grid-template-columns: minmax(320px, 380px) minmax(0, 1fr); align-items: start; gap: 16px; }
+.test-list-panel {
+  min-width: 0;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 150px);
+  position: sticky;
+  top: 75px;
+}
+.test-list-items {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-top: 8px;
+}
+.test-builder-panel { min-width: 0; padding: 18px; display: grid; gap: 15px; }
 .test-list-panel .section-heading h2, .test-order-section .section-heading h2, .test-question-picker .section-heading h2 { font-size: 14px; }
 .test-list-panel > .content-search { margin: 12px 0; }
 .test-list-item-row { display: flex; align-items: center; position: relative; margin: 4px 0; border: 1px solid transparent; border-radius: 9px; transition: background .15s ease, border-color .15s ease; }

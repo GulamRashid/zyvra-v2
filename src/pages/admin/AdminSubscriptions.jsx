@@ -149,7 +149,7 @@ export default function AdminSubscriptions() {
         </button>
       </div>
 
-      <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 px-3.5 py-2.5 text-xs text-indigo-200 flex items-center gap-2 mb-4">
+      <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/90 dark:bg-indigo-950/30 px-3.5 py-2.5 text-xs text-indigo-950 dark:text-indigo-200 flex items-center gap-2 mb-4">
         <span>💡 <strong>त्वरित सहायता:</strong> यहाँ छात्रों के कोर्स व टेस्ट सीरीज़ अनलॉक्स की सूची है। यदि किसी छात्र का एक्सेस अस्थायी रूप से रोकना हो तो 'Revoke' दबाएं, और वापस चालू करने के लिए 'Reinstate' दबाएं।</span>
       </div>
 

@@ -1519,7 +1519,7 @@ export default function QBankManager() {
       </div>
     </div>
 
-    <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 px-3.5 py-2.5 text-xs text-indigo-200 flex items-center gap-2 mb-4">
+    <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/90 dark:bg-indigo-950/30 px-3.5 py-2.5 text-xs text-indigo-950 dark:text-indigo-200 flex items-center gap-2 mb-4">
       <span>💡 <strong>त्वरित सहायता:</strong> प्रश्न बैंक में सवाल जोड़ते समय उसे किसी Chapter से अवश्य मैप करें। 'Bulk import' से आप एक साथ सैकड़ों सवाल CSV/JSON फ़ाइल द्वारा सीधे अपलोड कर सकते हैं।</span>
     </div>
 

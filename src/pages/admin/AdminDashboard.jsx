@@ -238,29 +238,29 @@ export default function AdminDashboard() {
           <div className="eyebrow">QUICK ACCESS</div>
           <h2>Action Launchpad</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-            <Link to="/admin/tests" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors text-xs font-semibold text-slate-200">
-              <span className="flex items-center gap-2"><ClipboardList size={16} className="text-amber-400" /> Test Manager</span>
-              <ArrowUpRight size={14} className="text-slate-500" />
+            <Link to="/admin/tests" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 dark:border-slate-800 dark:text-slate-200 transition-colors text-xs font-semibold">
+              <span className="flex items-center gap-2"><ClipboardList size={16} className="text-amber-500 dark:text-amber-400" /> Test Manager</span>
+              <ArrowUpRight size={14} className="text-slate-400 dark:text-slate-500" />
             </Link>
-            <Link to="/admin/qbank" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors text-xs font-semibold text-slate-200">
-              <span className="flex items-center gap-2"><FileQuestion size={16} className="text-emerald-400" /> Question Bank & CSV</span>
-              <ArrowUpRight size={14} className="text-slate-500" />
+            <Link to="/admin/qbank" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 dark:border-slate-800 dark:text-slate-200 transition-colors text-xs font-semibold">
+              <span className="flex items-center gap-2"><FileQuestion size={16} className="text-emerald-500 dark:text-emerald-400" /> Question Bank & CSV</span>
+              <ArrowUpRight size={14} className="text-slate-400 dark:text-slate-500" />
             </Link>
-            <Link to="/admin/content" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors text-xs font-semibold text-slate-200">
-              <span className="flex items-center gap-2"><BookOpen size={16} className="text-indigo-400" /> Learning Curriculum</span>
-              <ArrowUpRight size={14} className="text-slate-500" />
+            <Link to="/admin/content" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 dark:border-slate-800 dark:text-slate-200 transition-colors text-xs font-semibold">
+              <span className="flex items-center gap-2"><BookOpen size={16} className="text-indigo-500 dark:text-indigo-400" /> Learning Curriculum</span>
+              <ArrowUpRight size={14} className="text-slate-400 dark:text-slate-500" />
             </Link>
-            <Link to="/admin/users" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors text-xs font-semibold text-slate-200">
-              <span className="flex items-center gap-2"><Users size={16} className="text-blue-400" /> Users & Access</span>
-              <ArrowUpRight size={14} className="text-slate-500" />
+            <Link to="/admin/users" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 dark:border-slate-800 dark:text-slate-200 transition-colors text-xs font-semibold">
+              <span className="flex items-center gap-2"><Users size={16} className="text-blue-500 dark:text-blue-400" /> Users & Access</span>
+              <ArrowUpRight size={14} className="text-slate-400 dark:text-slate-500" />
             </Link>
-            <Link to="/admin/orders" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors text-xs font-semibold text-slate-200">
-              <span className="flex items-center gap-2"><CircleDollarSign size={16} className="text-purple-400" /> Orders & Payments</span>
-              <ArrowUpRight size={14} className="text-slate-500" />
+            <Link to="/admin/orders" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 dark:border-slate-800 dark:text-slate-200 transition-colors text-xs font-semibold">
+              <span className="flex items-center gap-2"><CircleDollarSign size={16} className="text-purple-500 dark:text-purple-400" /> Orders & Payments</span>
+              <ArrowUpRight size={14} className="text-slate-400 dark:text-slate-500" />
             </Link>
-            <Link to="/admin/support" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors text-xs font-semibold text-slate-200">
-              <span className="flex items-center gap-2"><Activity size={16} className="text-rose-400" /> Support Chat</span>
-              <ArrowUpRight size={14} className="text-slate-500" />
+            <Link to="/admin/support" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 dark:border-slate-800 dark:text-slate-200 transition-colors text-xs font-semibold">
+              <span className="flex items-center gap-2"><Activity size={16} className="text-rose-500 dark:text-rose-400" /> Support Chat</span>
+              <ArrowUpRight size={14} className="text-slate-400 dark:text-slate-500" />
             </Link>
           </div>
         </section>

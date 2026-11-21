@@ -465,20 +465,20 @@ export default function AdminTools() {
   const activeCount = tools.filter((t) => t.active).length;
 
   return (
-    <div className="min-h-screen bg-[#0B1120] text-slate-100 p-4 sm:p-6 space-y-5">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-slate-50 dark:text-slate-100 text-slate-900 p-4 sm:p-6 space-y-5">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-bold mb-1">
+          <div className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-bold mb-1">
             <span>Tools (Toolbox)</span>
             <ChevronRight size={13} />
-            <span className="text-white">Toolbox Manager</span>
+            <span className="text-slate-900 dark:text-white">Toolbox Manager</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <Wrench className="w-6 h-6 text-amber-400" />
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <Wrench className="w-6 h-6 text-amber-500 dark:text-amber-400" />
             <span>Student Toolbox Manager</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Manage live student tool groups, pricing, visibility, and Full Pass contents.
           </p>
         </div>
@@ -488,16 +488,16 @@ export default function AdminTools() {
             href="/student/toolbox"
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-600/20 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 border border-indigo-200 dark:border-indigo-500/30 text-indigo-700 dark:text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-colors"
             title="Open real student toolbox in a new tab"
           >
-            <ExternalLink size={13} className="text-amber-400" />
+            <ExternalLink size={13} className="text-amber-500 dark:text-amber-400" />
             <span>Open Student Toolbox ↗</span>
           </a>
           <button
             type="button"
             onClick={fetchToolsConfig}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:text-black dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
           >
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             <span>Refresh</span>
@@ -505,7 +505,7 @@ export default function AdminTools() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/30 px-3 py-2 text-xs leading-relaxed text-indigo-100">
+      <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/90 dark:bg-indigo-950/30 px-3 py-2 text-xs leading-relaxed text-indigo-950 dark:text-indigo-100">
         Live configurable tool groups: Math, Reasoning, Productivity, General Studies, and Revision & Memory (Flashcards & Mistake Notebook). New custom tools must be implemented in the student app before they can be sold or included in Full Pass.
       </div>
 
@@ -514,8 +514,8 @@ export default function AdminTools() {
         <div
           className={`p-3 rounded-xl text-xs font-bold flex items-center justify-between border ${
             statusMessage.type === 'success'
-              ? 'bg-slate-800 border-indigo-500/50 text-indigo-300'
-              : 'bg-rose-950/80 border-rose-500/50 text-rose-300'
+              ? 'bg-slate-100 dark:bg-slate-800 border-indigo-300 dark:border-indigo-500/50 text-indigo-900 dark:text-indigo-300'
+              : 'bg-rose-50 dark:bg-rose-950/80 border-rose-300 dark:border-rose-500/50 text-rose-900 dark:text-rose-300'
           }`}
         >
           <span>{statusMessage.text}</span>
@@ -525,36 +525,36 @@ export default function AdminTools() {
 
       {/* Real Summary Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
-          <div className="flex items-center gap-2 text-xs text-indigo-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/60 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
             <Layers size={14} /> Total Tools
           </div>
-          <div className="text-xl font-black text-white">{totalCount}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">In Database Config</div>
+          <div className="text-xl font-black text-slate-900 dark:text-white">{totalCount}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">In Database Config</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
-          <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/60 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold mb-1">
             <Unlock size={14} /> Free Tools
           </div>
-          <div className="text-xl font-black text-emerald-400">{freeCount}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Always Free Access</div>
+          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">{freeCount}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Always Free Access</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
-          <div className="flex items-center gap-2 text-xs text-amber-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/60 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-semibold mb-1">
             <Lock size={14} /> Paid / Pro Tools
           </div>
-          <div className="text-xl font-black text-amber-400">{paidCount}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Require Purchase or Pro</div>
+          <div className="text-xl font-black text-amber-600 dark:text-amber-400">{paidCount}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Require Purchase or Pro</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
-          <div className="flex items-center gap-2 text-xs text-indigo-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/60 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
             <CheckCircle2 size={14} /> Active for Students
           </div>
-          <div className="text-xl font-black text-white">{activeCount}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Visible in Toolbox</div>
+          <div className="text-xl font-black text-slate-900 dark:text-white">{activeCount}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Visible in Toolbox</div>
         </div>
       </div>
 
@@ -563,13 +563,13 @@ export default function AdminTools() {
         {/* ======================================================== */}
         {/* COLUMN 1 (7 Cols): Reorderable Tools Table */}
         {/* ======================================================== */}
-        <div className="lg:col-span-7 p-4 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 flex flex-col h-[440px] lg:h-[700px]">
+        <div className="lg:col-span-7 p-4 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm flex flex-col h-[440px] lg:h-[700px]">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
-              <GripVertical size={14} className="text-amber-400" />
+            <div className="text-xs font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-300 flex items-center gap-1.5">
+              <GripVertical size={14} className="text-amber-500 dark:text-amber-400" />
               <span>Toolbox Layout (Drag to Reorder)</span>
             </div>
-            <span className="text-[10px] text-slate-400">
+            <span className="text-[10px] text-slate-500 dark:text-slate-400">
               {filteredTools.length} of {tools.length}
             </span>
           </div>
@@ -583,13 +583,13 @@ export default function AdminTools() {
                 placeholder="Search tools..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder:text-slate-400 focus:outline-none focus:border-indigo-500"
+                className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white text-xs placeholder:text-slate-400 focus:outline-none focus:border-indigo-500"
               />
             </div>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-2 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-bold focus:outline-none"
+              className="px-2 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold focus:outline-none"
             >
               <option value="all">All Categories</option>
               <option value="Quantitative Aptitude">Math</option>
@@ -601,7 +601,7 @@ export default function AdminTools() {
             <select
               value={accessFilter}
               onChange={(e) => setAccessFilter(e.target.value)}
-              className="px-2 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-slate-200 text-xs font-bold focus:outline-none"
+              className="px-2 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold focus:outline-none"
             >
               <option value="all">All Access</option>
               <option value="free">Free</option>
@@ -631,17 +631,17 @@ export default function AdminTools() {
                     onClick={() => setSelectedToolId(tool.id)}
                     className={`flex items-center justify-between p-2.5 rounded-2xl border transition-all cursor-pointer ${
                       isSelected
-                        ? 'bg-indigo-600/25 border-indigo-500 text-white shadow-sm'
-                        : 'bg-slate-900/60 border-slate-700/60 text-slate-200 hover:bg-slate-800'
+                        ? 'bg-indigo-50 dark:bg-indigo-600/25 border-indigo-400 dark:border-indigo-500 text-indigo-950 dark:text-white shadow-sm'
+                        : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/60 text-slate-800 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
                     }`}
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <div className="cursor-grab active:cursor-grabbing text-slate-500 hover:text-amber-400">
+                      <div className="cursor-grab active:cursor-grabbing text-slate-400 dark:text-slate-500 hover:text-amber-500 dark:hover:text-amber-400">
                         <GripVertical size={15} />
                       </div>
                       <span className="text-base shrink-0">{tool.iconChar}</span>
                       <div className="truncate">
-                        <div className="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                        <div className="text-xs font-bold text-slate-900 dark:text-white truncate flex items-center gap-1.5">
                           <span>{tool.name}</span>
                           {!tool.active && (
                             <span className="text-[9px] px-1.5 py-0.2 rounded bg-neutral-800 text-neutral-400">
@@ -697,21 +697,21 @@ export default function AdminTools() {
         {/* ======================================================== */}
         {/* COLUMN 2 (5 Cols): Access & Pricing Editor */}
         {/* ======================================================== */}
-        <div className="lg:col-span-5 p-5 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-5 p-5 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm flex flex-col justify-between space-y-4">
           <div className="space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b border-slate-700/60">
+            <div className="flex items-center gap-2 pb-2 border-b border-slate-200 dark:border-slate-700/60">
               <span className="text-xl">{selectedTool?.iconChar || '🔧'}</span>
               <div>
-                <h3 className="text-xs font-black text-white truncate">
+                <h3 className="text-xs font-black text-slate-900 dark:text-white truncate">
                   {selectedTool?.name || 'Select a Tool'}
                 </h3>
-                <span className="text-[10px] text-slate-400">Configure Tool Access</span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Configure Tool Access</span>
               </div>
             </div>
 
             {/* Access Type Switch */}
             <div>
-              <label className="text-[11px] font-bold text-slate-300 block mb-1.5">Access Type</label>
+              <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1.5">Access Type</label>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'free', label: 'Free' },
@@ -723,8 +723,8 @@ export default function AdminTools() {
                     onClick={() => setEditAccessType(id)}
                     className={`py-1.5 rounded-xl text-xs font-bold border transition-colors ${
                       editAccessType === id
-                        ? 'bg-indigo-600/25 border-indigo-500 text-white'
-                        : 'bg-slate-900 border-slate-700 text-neutral-400 hover:text-white'
+                        ? 'bg-indigo-50 dark:bg-indigo-600/25 border-indigo-400 dark:border-indigo-500 text-indigo-950 dark:text-white'
+                        : 'bg-slate-100 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-700 dark:text-neutral-400 hover:text-black dark:hover:text-white'
                     }`}
                   >
                     {label}
@@ -736,16 +736,16 @@ export default function AdminTools() {
             {/* Price (if paid) */}
             {editAccessType === 'paid' && (
               <div>
-                <label className="text-[11px] font-bold text-slate-300 block mb-1">Price (₹)</label>
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mb-1">Price (₹)</label>
                 <input
                   type="number"
                   min="0"
                   value={editPrice}
                   onChange={(e) => setEditPrice(Number(e.target.value))}
-                  className="w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-black focus:outline-none focus:border-amber-400"
+                  className="w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-black focus:outline-none focus:border-amber-400"
                 />
-                <label className="text-[11px] font-bold text-slate-300 block mt-2">Validity (days)
-                  <input type="number" min="1" max="3650" value={editValidityDays} onChange={(e) => setEditValidityDays(Number(e.target.value))} className="mt-1 w-full px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-black focus:outline-none focus:border-amber-400" />
+                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 block mt-2">Validity (days)
+                  <input type="number" min="1" max="3650" value={editValidityDays} onChange={(e) => setEditValidityDays(Number(e.target.value))} className="mt-1 w-full px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-black focus:outline-none focus:border-amber-400" />
                 </label>
               </div>
             )}
@@ -779,53 +779,53 @@ export default function AdminTools() {
             )}
 
             {/* Global Access Rules Toggles */}
-            <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-700/60 space-y-2 mt-2">
-              <h4 className="text-[10px] font-black uppercase tracking-wider text-emerald-300">Platform Full Pass</h4>
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60 space-y-2 mt-2">
+              <h4 className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-300">Platform Full Pass</h4>
               <div className="grid grid-cols-2 gap-2">
-                <label className="text-[10px] font-bold text-slate-300">Price (₹)<input type="number" min="0" value={fullPassPrice} onChange={(e) => setFullPassPrice(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>
-                <label className="text-[10px] font-bold text-slate-300">Validity (days)<input type="number" min="1" max="3650" value={fullPassDays} onChange={(e) => setFullPassDays(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>
+                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Price (₹)<input type="number" min="0" value={fullPassPrice} onChange={(e) => setFullPassPrice(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs" /></label>
+                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Validity (days)<input type="number" min="1" max="3650" value={fullPassDays} onChange={(e) => setFullPassDays(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs" /></label>
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">Included exams</span>
-                  <div className="flex gap-2"><button type="button" onClick={() => setFullPassExamIds(fullPassExams.map((exam) => exam.id))} className="text-[10px] font-bold text-indigo-300">Select all</button><button type="button" onClick={() => setFullPassExamIds([])} className="text-[10px] font-bold text-slate-400">Clear</button></div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Included exams</span>
+                  <div className="flex gap-2"><button type="button" onClick={() => setFullPassExamIds(fullPassExams.map((exam) => exam.id))} className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300">Select all</button><button type="button" onClick={() => setFullPassExamIds([])} className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Clear</button></div>
                 </div>
                 {fullPassExams.length ? fullPassExams.map((exam) => (
-                  <label key={exam.id} className="flex items-center gap-2 rounded-lg bg-slate-800/70 px-2.5 py-2 text-xs text-slate-200">
+                  <label key={exam.id} className="flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800/70 px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200">
                     <input type="checkbox" checked={fullPassExamIds.includes(exam.id)} onChange={(e) => setFullPassExamIds((ids) => e.target.checked ? [...new Set([...ids, exam.id])] : ids.filter((id) => id !== exam.id))} className="accent-emerald-400" />
                     <span className="min-w-0 flex-1 truncate">{exam.title}</span>
-                    <span className="text-[9px] text-slate-400">includes its sections & chapters</span>
+                    <span className="text-[9px] text-slate-500 dark:text-slate-400">includes its sections & chapters</span>
                   </label>
-                )) : <p className="text-[10px] text-slate-400">No published exams are available.</p>}
+                )) : <p className="text-[10px] text-slate-500 dark:text-slate-400">No published exams are available.</p>}
                 <div className="flex items-center justify-between gap-2 pt-1">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">Included tool groups</span>
-                  <div className="flex gap-2"><button type="button" onClick={() => setFullPassToolIds(tools.filter((tool) => LIVE_STUDENT_TOOL_GROUPS.has(tool.id) && tool.active && tool.accessType === 'paid').map((tool) => tool.id))} className="text-[10px] font-bold text-indigo-300">Select all</button><button type="button" onClick={() => setFullPassToolIds([])} className="text-[10px] font-bold text-slate-400">Clear</button></div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300">Included tool groups</span>
+                  <div className="flex gap-2"><button type="button" onClick={() => setFullPassToolIds(tools.filter((tool) => LIVE_STUDENT_TOOL_GROUPS.has(tool.id) && tool.active && tool.accessType === 'paid').map((tool) => tool.id))} className="text-[10px] font-bold text-indigo-600 dark:text-indigo-300">Select all</button><button type="button" onClick={() => setFullPassToolIds([])} className="text-[10px] font-bold text-slate-500 dark:text-slate-400">Clear</button></div>
                 </div>
                 {tools.filter((tool) => LIVE_STUDENT_TOOL_GROUPS.has(tool.id) && tool.active && tool.accessType === 'paid').length ? tools.filter((tool) => LIVE_STUDENT_TOOL_GROUPS.has(tool.id) && tool.active && tool.accessType === 'paid').map((tool) => (
-                  <label key={tool.id} className="flex items-center gap-2 rounded-lg bg-slate-800/70 px-2.5 py-2 text-xs text-slate-200">
+                  <label key={tool.id} className="flex items-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800/70 px-2.5 py-2 text-xs text-slate-800 dark:text-slate-200">
                     <input type="checkbox" checked={fullPassToolIds.includes(tool.id)} onChange={(e) => setFullPassToolIds((ids) => e.target.checked ? [...new Set([...ids, tool.id])] : ids.filter((id) => id !== tool.id))} className="accent-emerald-400" />
                     <span className="min-w-0 flex-1">{tool.name}</span>
-                    <span className="text-[9px] text-slate-400">{tool.category}</span>
+                    <span className="text-[9px] text-slate-500 dark:text-slate-400">{tool.category}</span>
                   </label>
-                )) : <p className="text-[10px] text-slate-400">Set a tool as paid to include it here.</p>}
-                <p className="text-[10px] leading-relaxed text-slate-400">New exams stay out of Full Pass until selected. New sections added inside a selected exam are included automatically.</p>
+                )) : <p className="text-[10px] text-slate-500 dark:text-slate-400">Set a tool as paid to include it here.</p>}
+                <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">New exams stay out of Full Pass until selected. New sections added inside a selected exam are included automatically.</p>
               </div>
-              <button type="button" disabled={saving} onClick={saveFullPassPricing} className="w-full py-2 rounded-lg bg-emerald-400 text-slate-950 text-xs font-black disabled:opacity-50">Save Full Pass</button>
-              <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-300">Unlock All Tools Bundle</h4>
+              <button type="button" disabled={saving} onClick={saveFullPassPricing} className="w-full py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black disabled:opacity-50 transition-colors">Save Full Pass</button>
+              <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-300">Unlock All Tools Bundle</h4>
               <div className="grid grid-cols-2 gap-2">
-                <label className="text-[10px] font-bold text-slate-300">Price (₹)<input type="number" min="0" value={bundlePrice} onChange={(e) => setBundlePrice(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>
-                <label className="text-[10px] font-bold text-slate-300">Validity (days)<input type="number" min="1" max="3650" value={bundleValidityDays} onChange={(e) => setBundleValidityDays(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs" /></label>
+                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Price (₹)<input type="number" min="0" value={bundlePrice} onChange={(e) => setBundlePrice(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs" /></label>
+                <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300">Validity (days)<input type="number" min="1" max="3650" value={bundleValidityDays} onChange={(e) => setBundleValidityDays(Number(e.target.value))} className="mt-1 w-full px-2.5 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs" /></label>
               </div>
-              <button type="button" disabled={saving} onClick={saveBundlePricing} className="w-full py-2 rounded-lg bg-amber-400 text-slate-950 text-xs font-black disabled:opacity-50">Save bundle price</button>
+              <button type="button" disabled={saving} onClick={saveBundlePricing} className="w-full py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black disabled:opacity-50 transition-colors">Save bundle price</button>
 
               {/* Zyvra AI Guru Controls & Quotas */}
-              <div className="pt-2 border-t border-slate-700/60 mt-3 space-y-2">
+              <div className="pt-2 border-t border-slate-200 dark:border-slate-700/60 mt-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+                  <h4 className="text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                     <Sparkles size={12} />
                     <span>Zyvra AI Guru Controls</span>
                   </h4>
-                  <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-slate-300">
+                  <label className="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold text-slate-700 dark:text-slate-300">
                     <input
                       type="checkbox"
                       checked={Boolean(aiConfig?.enabled)}
@@ -837,7 +837,7 @@ export default function AdminTools() {
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
-                  <label className="text-[10px] font-bold text-slate-300">
+                  <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
                     Free Qs / day
                     <input
                       type="number"
@@ -845,11 +845,11 @@ export default function AdminTools() {
                       max="100"
                       value={aiConfig?.freeQuestionsPerDay ?? 3}
                       onChange={(e) => setAiConfig((c) => ({ ...c, freeQuestionsPerDay: Math.max(0, Number(e.target.value) || 0) }))}
-                      className="mt-1 w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-bold"
+                      className="mt-1 w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold"
                     />
                   </label>
 
-                  <label className="text-[10px] font-bold text-slate-300">
+                  <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
                     Coins / extra Q
                     <input
                       type="number"
@@ -857,11 +857,11 @@ export default function AdminTools() {
                       max="50"
                       value={aiConfig?.coinsPerQuestion ?? 2}
                       onChange={(e) => setAiConfig((c) => ({ ...c, coinsPerQuestion: Math.max(0, Number(e.target.value) || 0) }))}
-                      className="mt-1 w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-bold"
+                      className="mt-1 w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold"
                     />
                   </label>
 
-                  <label className="text-[10px] font-bold text-slate-300">
+                  <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300">
                     Pass user limit
                     <input
                       type="number"
@@ -869,33 +869,33 @@ export default function AdminTools() {
                       max="500"
                       value={aiConfig?.passUserDailyLimit ?? 50}
                       onChange={(e) => setAiConfig((c) => ({ ...c, passUserDailyLimit: Math.max(1, Number(e.target.value) || 1) }))}
-                      className="mt-1 w-full px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs font-bold"
+                      className="mt-1 w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold"
                     />
                   </label>
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-300 block mb-1">
+                  <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     AI Studio API Key (Optional Override)
                   </label>
                   <input
                     type="password"
                     value={aiConfig?.apiKey || ''}
                     onChange={(e) => setAiConfig((c) => ({ ...c, apiKey: e.target.value.trim() }))}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs font-mono focus:outline-none focus:border-amber-400"
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200 text-xs font-mono focus:outline-none focus:border-amber-400"
                     placeholder="Enter Gemini API key..."
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] font-bold text-slate-300 block mb-1">
+                  <label className="text-[10px] font-bold text-slate-700 dark:text-slate-300 block mb-1">
                     AI System Prompt / Exam Guidelines
                   </label>
                   <textarea
                     rows={4}
                     value={aiConfig?.systemPrompt || ''}
                     onChange={(e) => setAiConfig((c) => ({ ...c, systemPrompt: e.target.value }))}
-                    className="w-full p-2 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-[10px] leading-relaxed resize-none focus:outline-none focus:border-amber-400"
+                    className="w-full p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-slate-200 text-[10px] leading-relaxed resize-none focus:outline-none focus:border-amber-400"
                     placeholder="Customize Zyvra AI Guru persona and rules..."
                   />
                 </div>

@@ -196,7 +196,7 @@ export default function UserManager() {
 
   return <div className="user-manager-page">
     <div className="page-heading"><div><div className="eyebrow">ADMINISTRATION / ACCESS CONTROL</div><h1>Users & access</h1><p>Review student accounts, balances, purchases and learning grants.</p></div><div className="user-directory-count"><Users size={16} /> {filteredUsers.length} users</div></div>
-    <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 px-3.5 py-2.5 text-xs text-indigo-200 flex items-center gap-2">
+    <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/90 dark:bg-indigo-950/30 px-3.5 py-2.5 text-xs text-indigo-950 dark:text-indigo-200 flex items-center gap-2 mb-4">
       <span>💡 <strong>त्वरित सहायता:</strong> किसी भी छात्र पर क्लिक करके उसका एक्टिव कोर्स, ऑर्डर हिस्ट्री व वॉलेट देखें। आप वहाँ से सीधे मुफ़्त कोर्स का लाइफटाइम एक्सेस ग्रांट या कॉइन क्रेडिट कर सकते हैं।</span>
     </div>
     {error && <div className="feedback error-feedback">{error}</div>}

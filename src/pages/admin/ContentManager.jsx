@@ -286,11 +286,11 @@ function ResourceManagerModal({ chapter, onClose }) {
         )}
 
         {/* Admin Guide Accordion */}
-        <div className="my-2 p-2.5 rounded-xl border border-indigo-500/30 bg-indigo-950/20 text-xs">
+        <div className="my-2 p-2.5 rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/90 dark:bg-indigo-950/20 text-xs">
           <button
             type="button"
             onClick={() => setShowGuide(!showGuide)}
-            className="w-full flex items-center justify-between text-left font-bold text-indigo-300 hover:text-indigo-200"
+            className="w-full flex items-center justify-between text-left font-bold text-indigo-950 dark:text-indigo-200 hover:text-indigo-800 dark:hover:text-indigo-100"
           >
             <span className="flex items-center gap-1.5">
               <Lightbulb size={14} className="text-amber-400" />
@@ -1232,7 +1232,7 @@ export default function ContentManager() {
 
   return <div className="content-manager">
     <div className="page-heading content-manager-heading"><div><div className="eyebrow">ADMINISTRATION / CONTENT OPERATIONS</div><h1>Content manager</h1><p>Build and maintain the exam → folder → chapter learning hierarchy.</p></div><button className="button button-gold" onClick={() => setDialog({ kind: selectedExam ? 'folder' : 'exam', item: null })}><Plus size={16} /> {selectedExam ? 'Add folder' : 'Add exam'}</button></div>
-    <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 px-3.5 py-2.5 text-xs text-indigo-200 flex items-center gap-2 mb-4">
+    <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/90 dark:bg-indigo-950/30 px-3.5 py-2.5 text-xs text-indigo-950 dark:text-indigo-200 flex items-center gap-2 mb-4">
       <span>💡 <strong>स्टेप 1 (कंटेंट हायरार्की):</strong> पहले बाईं तरफ 'Add exam' से परीक्षा बनाएं। फिर परीक्षा पर क्लिक करके उसके अंदर विषय फ़ोल्डर्स (Folder) और अध्यायों (Chapter) को जोड़ें। हर चैप्टर में आप पीडीएफ नोट्स भी अपलोड कर सकते हैं।</span>
     </div>
     {(error || actionError) && <div className="feedback error-feedback" role="alert">{actionError || error}</div>}

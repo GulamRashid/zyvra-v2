@@ -666,20 +666,20 @@ export default function PricingManager() {
   }, [dynamicTree, treeSearch]);
 
   return (
-    <div className="min-h-screen bg-[#0B1120] text-slate-100 p-4 sm:p-6 space-y-5">
+    <div className="min-h-screen dark:bg-[#0B1120] bg-slate-50 dark:text-slate-100 text-slate-900 p-4 sm:p-6 space-y-5">
       {/* Top Header */}
       <div className="page-heading flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-1.5 text-xs text-indigo-400 font-bold mb-1">
+          <div className="flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 font-bold mb-1">
             <span>Pricing & Offers</span>
             <ChevronRight size={13} />
-            <span className="text-white">Pricing Control</span>
+            <span className="text-slate-900 dark:text-white">Pricing Control</span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
-            <Tag className="w-6 h-6 text-amber-400" />
+          <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <Tag className="w-6 h-6 text-amber-500 dark:text-amber-400" />
             <span>Pricing & Offers Control Center</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
             Configure price, discount, and access rules directly on your database content.
           </p>
         </div>
@@ -688,7 +688,7 @@ export default function PricingManager() {
           <button
             type="button"
             onClick={() => { refreshCatalog(); fetchTests(); fetchSettings(); }}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+            className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-200 hover:text-black dark:hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors shadow-sm"
           >
             <RefreshCw size={13} className={catalogLoading ? 'animate-spin' : ''} />
             <span>Refresh</span>
@@ -704,7 +704,7 @@ export default function PricingManager() {
         </div>
       </div>
 
-      <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 px-3.5 py-2.5 text-xs text-indigo-200 flex items-center gap-2">
+      <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/90 dark:bg-indigo-950/30 px-3.5 py-2.5 text-xs text-indigo-950 dark:text-indigo-200 flex items-center gap-2 mb-4">
         <span>💡 <strong>स्टेप 4 (मूल्य निर्धारण):</strong> किसी भी परीक्षा, विषय फ़ोल्डर या टेस्ट का चयन करके तय करें कि वह 'Free' रहेगा या 'Paid'। आप यहाँ से डिस्काउंट कूपन कोड (Coupon Codes) भी बना सकते हैं।</span>
       </div>
 
@@ -713,8 +713,8 @@ export default function PricingManager() {
         <div
           className={`p-3 rounded-xl text-xs font-bold flex items-center justify-between border ${
             statusMessage.type === 'success'
-              ? 'bg-slate-800 border-emerald-500/50 text-emerald-300'
-              : 'bg-rose-950/80 border-rose-500/50 text-rose-300'
+              ? 'bg-slate-100 dark:bg-slate-800 border-emerald-300 dark:border-emerald-500/50 text-emerald-800 dark:text-emerald-300'
+              : 'bg-rose-50 dark:bg-rose-950/80 border-rose-300 dark:border-rose-500/50 text-rose-800 dark:text-rose-300'
           }`}
         >
           <span>{statusMessage.text}</span>
@@ -724,56 +724,56 @@ export default function PricingManager() {
 
       {/* Real Summary Metrics Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
-          <div className="flex items-center gap-2 text-xs text-indigo-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/60 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
             <Layers size={14} /> Total Items
           </div>
-          <div className="text-xl font-black text-white">{totalItemsCount}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Real Database Content</div>
+          <div className="text-xl font-black text-slate-900 dark:text-white">{totalItemsCount}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Real Database Content</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
-          <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/60 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400 font-semibold mb-1">
             <Unlock size={14} /> Free Items
           </div>
-          <div className="text-xl font-black text-emerald-400">{freeItemsCount}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
+          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">{freeItemsCount}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
             {totalItemsCount > 0 ? Math.round((freeItemsCount / totalItemsCount) * 100) : 0}% of catalog
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
-          <div className="flex items-center gap-2 text-xs text-amber-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/60 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-semibold mb-1">
             <Lock size={14} /> Paid Items
           </div>
-          <div className="text-xl font-black text-amber-400">{paidItemsCount}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
+          <div className="text-xl font-black text-amber-600 dark:text-amber-400">{paidItemsCount}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
             {totalItemsCount > 0 ? Math.round((paidItemsCount / totalItemsCount) * 100) : 0}% of catalog
           </div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
-          <div className="flex items-center gap-2 text-xs text-indigo-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/60 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
             <Folder size={14} /> Folders
           </div>
-          <div className="text-xl font-black text-white">{folders.length}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Under {exams.length} Exam(s)</div>
+          <div className="text-xl font-black text-slate-900 dark:text-white">{folders.length}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Under {exams.length} Exam(s)</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
-          <div className="flex items-center gap-2 text-xs text-indigo-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/60 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-indigo-600 dark:text-indigo-400 font-semibold mb-1">
             <FileText size={14} /> Chapters
           </div>
-          <div className="text-xl font-black text-white">{chapters.length}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">{tests.length} Active Tests</div>
+          <div className="text-xl font-black text-slate-900 dark:text-white">{chapters.length}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{tests.length} Active Tests</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-[#1E293B] border border-slate-700/60">
-          <div className="flex items-center gap-2 text-xs text-amber-400 font-semibold mb-1">
+        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/60 shadow-sm">
+          <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-semibold mb-1">
             <BadgePercent size={14} /> Active Coupons
           </div>
-          <div className="text-xl font-black text-amber-400">{coupons.length}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">Configured</div>
+          <div className="text-xl font-black text-amber-600 dark:text-amber-400">{coupons.length}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Configured</div>
         </div>
 
         <button
@@ -782,14 +782,14 @@ export default function PricingManager() {
           className={`p-3.5 rounded-2xl border text-left transition-all ${
             activeTab === 'full_pass'
               ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/50 shadow-glowGold'
-              : 'bg-[#1E293B] border-slate-700/60 hover:border-amber-400/60'
+              : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-700/60 hover:border-amber-400/60 shadow-sm'
           }`}
         >
-          <div className="flex items-center gap-2 text-xs text-amber-400 font-semibold mb-1">
+          <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-semibold mb-1">
             <Crown size={14} /> Full Pass
           </div>
-          <div className="text-xl font-black text-amber-300">₹{fullPassConfig.price || 999}</div>
-          <div className="text-[10px] text-slate-400 mt-0.5">
+          <div className="text-xl font-black text-amber-500 dark:text-amber-300">₹{fullPassConfig.price || 999}</div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
             {fullPassConfig.is_active ? 'Active · Click to Edit' : 'Disabled'}
           </div>
         </button>
@@ -835,7 +835,7 @@ export default function PricingManager() {
         {/* ======================================================== */}
         {/* COLUMN 1 (4 Cols): Real Tree View Content Hierarchy */}
         {/* ======================================================== */}
-        <div className="lg:col-span-4 p-4 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 flex flex-col h-[420px] lg:h-[680px]">
+        <div className="lg:col-span-4 p-4 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm flex flex-col h-[420px] lg:h-[680px]">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-200">
               <FolderOpen size={15} className="text-amber-400" />
@@ -1009,7 +1009,7 @@ export default function PricingManager() {
         {/* ======================================================== */}
         {/* COLUMN 2 (5 Cols): Real Item Pricing & Access Editor */}
         {/* ======================================================== */}
-        <div className="lg:col-span-5 p-5 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-5 p-5 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm flex flex-col justify-between space-y-4">
           <div className="space-y-4">
             {/* Header of selected item */}
             <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-700/60">
@@ -1216,7 +1216,7 @@ export default function PricingManager() {
         {/* ======================================================== */}
         <div className="lg:col-span-3 space-y-4">
           {/* Quick Actions */}
-          <div className="p-4 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 space-y-2">
+          <div className="p-4 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-2">
             <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5 mb-2">
               <Zap size={14} className="text-amber-400" />
               <span>Quick Actions</span>
@@ -1261,7 +1261,7 @@ export default function PricingManager() {
           </div>
 
           {/* Real Coupons Configured */}
-          <div className="p-4 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 space-y-2.5">
+          <div className="p-4 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-2.5">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
                 <BadgePercent size={14} className="text-amber-400" />
@@ -1345,7 +1345,7 @@ export default function PricingManager() {
             {/* Left 7 Columns: Form Controls */}
             <div className="lg:col-span-7 space-y-4">
               {/* Card 1: Core Pass Attributes */}
-              <div className="p-4 sm:p-5 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 space-y-4">
+              <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-2">
                     <Crown size={15} className="text-amber-400" />
@@ -1418,7 +1418,7 @@ export default function PricingManager() {
               </div>
 
               {/* Card 2: Included Courses & Exams */}
-              <div className="p-4 sm:p-5 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 space-y-3.5">
+              <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-3.5">
                 <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-2">
                     <GraduationCap size={15} className="text-indigo-400" />
@@ -1549,7 +1549,7 @@ export default function PricingManager() {
               </div>
 
               {/* Card 3: Included Pro Tools */}
-              <div className="p-4 sm:p-5 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 space-y-3">
+              <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-3">
                 <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-2">
                     <PackageCheck size={15} className="text-emerald-400" />
@@ -1612,7 +1612,7 @@ export default function PricingManager() {
 
             {/* Right 5 Columns: Live Student Preview & Actions */}
             <div className="lg:col-span-5 space-y-4">
-              <div className="p-4 sm:p-5 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 space-y-3.5">
+              <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-3.5">
                 <div className="flex items-center justify-between border-b border-slate-700/80 pb-2.5">
                   <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
                     <Sparkles size={14} className="text-amber-400" />
@@ -1706,7 +1706,7 @@ export default function PricingManager() {
       {/* Modal: Create New Folder */}
       {createFolderModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md p-6 rounded-3xl bg-[#0B1120] border border-slate-700 text-white space-y-4">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white space-y-4 shadow-2xl">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-black flex items-center gap-2">
                 <FolderPlus size={18} className="text-amber-400" />
