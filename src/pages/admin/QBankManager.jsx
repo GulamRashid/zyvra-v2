@@ -1614,6 +1614,7 @@ export default function QBankManager() {
               setSelectedChapterId('all');
             }}
             allOptionLabel="All folders"
+            showSearch={true}
           />
         </div>
 

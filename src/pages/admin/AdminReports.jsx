@@ -46,7 +46,14 @@ export default function AdminReports() {
     try {
       const queryFns = {
         users: () => supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        attempts: () => supabase.from('test_attempts').select('score, status, time_spent_seconds, state_json'),
+        attempts: async () => {
+          const res = await supabase.from('test_attempts').select('score, status, time_spent_seconds, state_json');
+          if (res.error) {
+            console.warn('test_attempts full select failed, trying basic select fallback:', res.error);
+            return await supabase.from('test_attempts').select('score, status');
+          }
+          return res;
+        },
         orders: () => supabase.from('payment_orders').select('amount, status'),
         wallets: () => supabase.from('coin_wallets').select('balance'),
         referrals: () => supabase.from('referrals').select('id', { count: 'exact', head: true }),
@@ -59,8 +66,12 @@ export default function AdminReports() {
       const results = await Promise.all(requestedKeys.map(async (key) => {
         try {
           const result = await queryFns[key]();
+          if (result?.error) {
+            console.warn(`AdminReports query error [${key}]:`, result.error);
+          }
           return { key, ...result };
         } catch (error) {
+          console.warn(`AdminReports query catch [${key}]:`, error);
           return { key, data: null, count: null, error };
         }
       }));

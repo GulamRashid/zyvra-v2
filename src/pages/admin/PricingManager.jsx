@@ -796,14 +796,14 @@ export default function PricingManager() {
       </div>
 
       {/* Top Tab Switcher */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
         <button
           type="button"
           onClick={() => setActiveTab('tree')}
           className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
             activeTab === 'tree'
               ? 'bg-indigo-600 text-white shadow-glowIndigo font-black'
-              : 'bg-slate-800 text-slate-300 hover:bg-slate-700 font-bold'
+              : 'bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-bold shadow-sm'
           }`}
         >
           <Layers size={14} />
@@ -816,13 +816,15 @@ export default function PricingManager() {
           className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
             activeTab === 'full_pass'
               ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black shadow-glowGold'
-              : 'bg-slate-800 text-amber-300 hover:bg-slate-700 font-bold'
+              : 'bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-amber-300 border border-slate-200 dark:border-slate-700 font-bold shadow-sm'
           }`}
         >
-          <Crown size={14} />
+          <Crown size={14} className="text-amber-500 dark:text-amber-300" />
           <span>Platform Full Pass (All-Access Pass)</span>
           <span className={`text-[9px] px-2 py-0.5 rounded-full font-black ${
-            fullPassConfig.is_active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+            fullPassConfig.is_active
+              ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/40'
+              : 'bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/40'
           }`}>
             {fullPassConfig.is_active ? `Active · ₹${fullPassConfig.price || 999}` : 'Disabled'}
           </span>
@@ -1346,13 +1348,13 @@ export default function PricingManager() {
             <div className="lg:col-span-7 space-y-4">
               {/* Card 1: Core Pass Attributes */}
               <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-2">
-                    <Crown size={15} className="text-amber-400" />
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <Crown size={15} className="text-amber-500 dark:text-amber-400" />
                     <span>Pass Pricing & Status</span>
                   </h3>
                   <label className="flex items-center gap-2 cursor-pointer select-none">
-                    <span className="text-xs font-bold text-slate-300">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                       {fullPassConfig.is_active ? 'Active (चालू)' : 'Paused (बंद)'}
                     </span>
                     <input
@@ -1366,30 +1368,30 @@ export default function PricingManager() {
 
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">Pass Title (नाम)</label>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Pass Title (नाम)</label>
                     <input
                       type="text"
                       value={fullPassConfig.title || ''}
                       onChange={(e) => setFullPassConfig((prev) => ({ ...prev, title: e.target.value }))}
                       placeholder="e.g. ZYVRA All-Access Full Pass"
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-400"
                     />
                   </div>
 
                   <div>
-                    <label className="text-xs font-bold text-slate-300 block mb-1">Tagline / Subtitle (विवरण)</label>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Tagline / Subtitle (विवरण)</label>
                     <input
                       type="text"
                       value={fullPassConfig.subtitle || ''}
                       onChange={(e) => setFullPassConfig((prev) => ({ ...prev, subtitle: e.target.value }))}
                       placeholder="e.g. सभी परीक्षाओं, टेस्ट्स और टूल्स का 1 साल का अनलिमिटेड एक्सेस"
-                      className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs font-medium focus:outline-none focus:border-amber-400"
+                      className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:border-amber-400"
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-bold text-slate-300 block mb-1">Price in Rupees (₹ मूल्य)</label>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Price in Rupees (₹ मूल्य)</label>
                       <div className="relative">
                         <span className="absolute left-3 top-2 text-slate-400 text-xs font-bold">₹</span>
                         <input
@@ -1397,20 +1399,20 @@ export default function PricingManager() {
                           min="0"
                           value={fullPassConfig.price ?? 999}
                           onChange={(e) => setFullPassConfig((prev) => ({ ...prev, price: Math.max(0, Number(e.target.value) || 0) }))}
-                          className="w-full pl-7 pr-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-amber-300 text-sm font-black focus:outline-none focus:border-amber-400"
+                          className="w-full pl-7 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-amber-600 dark:text-amber-300 text-sm font-black focus:outline-none focus:border-amber-400"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-xs font-bold text-slate-300 block mb-1">Validity (दिनों में)</label>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Validity (दिनों में)</label>
                       <input
                         type="number"
                         min="1"
                         max="3650"
                         value={fullPassConfig.validity_days ?? 365}
                         onChange={(e) => setFullPassConfig((prev) => ({ ...prev, validity_days: Math.max(1, Number(e.target.value) || 365) }))}
-                        className="w-full px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-black focus:outline-none focus:border-amber-400"
+                        className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-black focus:outline-none focus:border-amber-400"
                       />
                     </div>
                   </div>
@@ -1419,12 +1421,12 @@ export default function PricingManager() {
 
               {/* Card 2: Included Courses & Exams */}
               <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-3.5">
-                <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-2">
-                    <GraduationCap size={15} className="text-indigo-400" />
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <GraduationCap size={15} className="text-indigo-500 dark:text-indigo-400" />
                     <span>Included Courses & Exams (शामिल परीक्षाएं)</span>
                   </h3>
-                  <span className="text-[10px] text-slate-400 font-bold">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">
                     {fullPassConfig.include_all ? 'All Exams Included' : `${fullPassConfig.included_exam_ids?.length || 0} of ${exams.length} Selected`}
                   </span>
                 </div>
@@ -1433,8 +1435,8 @@ export default function PricingManager() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <label className={`p-3 rounded-2xl border cursor-pointer transition-all ${
                     fullPassConfig.include_all
-                      ? 'bg-indigo-600/20 border-indigo-500 text-white'
-                      : 'bg-slate-900/60 border-slate-700/60 text-slate-300 hover:bg-slate-900'
+                      ? 'bg-indigo-50 dark:bg-indigo-600/20 border-indigo-400 dark:border-indigo-500 text-indigo-950 dark:text-white'
+                      : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900'
                   }`}>
                     <div className="flex items-center gap-2">
                       <input
@@ -1444,17 +1446,17 @@ export default function PricingManager() {
                         onChange={() => setFullPassConfig((prev) => ({ ...prev, include_all: true }))}
                         className="accent-indigo-500"
                       />
-                      <span className="text-xs font-black">ऑल-इनक्लूसिव (Auto-Include All)</span>
+                      <span className="text-xs font-black text-slate-900 dark:text-white">ऑल-इनक्लूसिव (Auto-Include All)</span>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1 pl-5 leading-relaxed">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 pl-5 leading-relaxed">
                       वर्तमान और भविष्य में बनने वाली सभी परीक्षाएं अपने आप फुल पास में अनलॉक रहेंगी।
                     </p>
                   </label>
 
                   <label className={`p-3 rounded-2xl border cursor-pointer transition-all ${
                     !fullPassConfig.include_all
-                      ? 'bg-indigo-600/20 border-indigo-500 text-white'
-                      : 'bg-slate-900/60 border-slate-700/60 text-slate-300 hover:bg-slate-900'
+                      ? 'bg-indigo-50 dark:bg-indigo-600/20 border-indigo-400 dark:border-indigo-500 text-indigo-950 dark:text-white'
+                      : 'bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900'
                   }`}>
                     <div className="flex items-center gap-2">
                       <input
@@ -1464,9 +1466,9 @@ export default function PricingManager() {
                         onChange={() => setFullPassConfig((prev) => ({ ...prev, include_all: false }))}
                         className="accent-indigo-500"
                       />
-                      <span className="text-xs font-black">कस्टम चयन (Select Specific)</span>
+                      <span className="text-xs font-black text-slate-900 dark:text-white">कस्टम चयन (Select Specific)</span>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1 pl-5 leading-relaxed">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 pl-5 leading-relaxed">
                       केवल वे परीक्षाएं जिन्हें आप नीचे चेकबॉक्स से चुनेंगे, वही शामिल होंगी।
                     </p>
                   </label>
@@ -1475,21 +1477,21 @@ export default function PricingManager() {
                 {/* Exam Checkbox List */}
                 <div className="space-y-2 pt-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="text-[11px] font-bold text-slate-300">उपलब्ध परीक्षाएं (Exams in Catalog):</span>
+                    <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">उपलब्ध परीक्षाएं (Exams in Catalog):</span>
                     {!fullPassConfig.include_all && (
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
                           onClick={() => setFullPassConfig((prev) => ({ ...prev, included_exam_ids: exams.map((e) => e.id) }))}
-                          className="text-[11px] font-bold text-indigo-400 hover:underline"
+                          className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
                         >
                           Select All
                         </button>
-                        <span className="text-slate-600">•</span>
+                        <span className="text-slate-400 dark:text-slate-600">•</span>
                         <button
                           type="button"
                           onClick={() => setFullPassConfig((prev) => ({ ...prev, included_exam_ids: [] }))}
-                          className="text-[11px] font-bold text-slate-400 hover:underline"
+                          className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:underline"
                         >
                           Clear
                         </button>
@@ -1512,8 +1514,8 @@ export default function PricingManager() {
                             key={exam.id}
                             className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all cursor-pointer ${
                               isChecked
-                                ? 'bg-indigo-950/40 border-indigo-500/40 text-white'
-                                : 'bg-slate-900/50 border-slate-700/50 text-slate-400 hover:bg-slate-900'
+                                ? 'bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-500/40 text-indigo-950 dark:text-white'
+                                : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700/50 text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900'
                             }`}
                           >
                             <input
@@ -1531,12 +1533,12 @@ export default function PricingManager() {
                             />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2">
-                                <span className="text-xs font-bold truncate text-slate-100">{exam.title}</span>
-                                <span className="text-[10px] text-slate-400 shrink-0">
+                                <span className="text-xs font-bold truncate text-slate-900 dark:text-slate-100">{exam.title}</span>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 shrink-0">
                                   {examFolders.length} folders
                                 </span>
                               </div>
-                              <span className="text-[10px] text-slate-400 block truncate">
+                              <span className="text-[10px] text-slate-500 dark:text-slate-400 block truncate">
                                 {exam.description || `${exam.category || 'Exam'} syllabus & question sets`}
                               </span>
                             </div>
@@ -1550,24 +1552,24 @@ export default function PricingManager() {
 
               {/* Card 3: Included Pro Tools */}
               <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-3">
-                <div className="flex items-center justify-between border-b border-slate-700/80 pb-3">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-2">
-                    <PackageCheck size={15} className="text-emerald-400" />
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <PackageCheck size={15} className="text-emerald-500 dark:text-emerald-400" />
                     <span>Included Study Tools (शामिल टूल्स)</span>
                   </h3>
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setFullPassConfig((prev) => ({ ...prev, included_tool_ids: AVAILABLE_FULL_PASS_TOOLS.map((t) => t.id) }))}
-                      className="text-[11px] font-bold text-emerald-400 hover:underline"
+                      className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline"
                     >
                       Select All
                     </button>
-                    <span className="text-slate-600">•</span>
+                    <span className="text-slate-400 dark:text-slate-600">•</span>
                     <button
                       type="button"
                       onClick={() => setFullPassConfig((prev) => ({ ...prev, included_tool_ids: [] }))}
-                      className="text-[11px] font-bold text-slate-400 hover:underline"
+                      className="text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:underline"
                     >
                       Clear
                     </button>
@@ -1582,8 +1584,8 @@ export default function PricingManager() {
                         key={tool.id}
                         className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer ${
                           isChecked
-                            ? 'bg-emerald-950/40 border-emerald-500/40 text-white'
-                            : 'bg-slate-900/50 border-slate-700/50 text-slate-400 hover:bg-slate-900'
+                            ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-500/40 text-emerald-950 dark:text-white'
+                            : 'bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-700/50 text-slate-700 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900'
                         }`}
                       >
                         <input
@@ -1600,8 +1602,8 @@ export default function PricingManager() {
                         />
                         <span className="text-base shrink-0">{tool.icon}</span>
                         <div className="min-w-0 flex-1">
-                          <strong className="text-xs font-bold block truncate text-slate-100">{tool.name}</strong>
-                          <span className="text-[10px] text-slate-400 block">{tool.category}</span>
+                          <strong className="text-xs font-bold block truncate text-slate-900 dark:text-slate-100">{tool.name}</strong>
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 block">{tool.category}</span>
                         </div>
                       </label>
                     );
@@ -1613,12 +1615,12 @@ export default function PricingManager() {
             {/* Right 5 Columns: Live Student Preview & Actions */}
             <div className="lg:col-span-5 space-y-4">
               <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-3.5">
-                <div className="flex items-center justify-between border-b border-slate-700/80 pb-2.5">
-                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-200 flex items-center gap-1.5">
-                    <Sparkles size={14} className="text-amber-400" />
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-2.5">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                    <Sparkles size={14} className="text-amber-500 dark:text-amber-400" />
                     <span>Live Student Preview (छात्रों को कैसा दिखेगा)</span>
                   </h3>
-                  <span className="text-[10px] text-emerald-400 font-bold">Real-time</span>
+                  <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">Real-time</span>
                 </div>
 
                 {/* Simulated Student Portal Banner */}
@@ -1676,14 +1678,14 @@ export default function PricingManager() {
                   </div>
                 </div>
 
-                <div className="p-3 rounded-2xl bg-slate-900/60 border border-slate-700/60 text-xs text-slate-300 space-y-1.5">
-                  <strong className="block text-slate-100 font-bold flex items-center gap-1.5">
+                <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60 text-xs text-slate-700 dark:text-slate-300 space-y-1.5">
+                  <strong className="block text-slate-900 dark:text-slate-100 font-bold flex items-center gap-1.5">
                     <span>💡 यह कैसे काम करता है:</span>
                   </strong>
-                  <p className="text-[11px] leading-relaxed text-slate-400">
+                  <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
                     छात्र जैसे ही इस पास को खरीदेगा, उसका खाता Razorpay से वेरीफाई होते ही डेटाबेस में <code>user_access (item_type: 'full_pass', item_id: 'global')</code> में दर्ज हो जाएगा।
                   </p>
-                  <p className="text-[11px] leading-relaxed text-slate-400">
+                  <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
                     इसके बाद छात्र के लिए वे सभी कोर्सेज और टूल्स तुरंत अनलॉक हो जाएंगे जो आपने ऊपर शामिल किए हैं।
                   </p>
                 </div>
