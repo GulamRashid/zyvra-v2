@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowDown, ArrowUp, CheckSquare, ClipboardList, Clock3, Coins, FileQuestion, Plus, Search, Square, Trash2 } from 'lucide-react';
+import { ArrowDown, ArrowUp, CheckSquare, ClipboardList, Clock3, Coins, FileQuestion, Plus, Search, Sparkles, Square, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getOptionEntries, TEST_PATTERNS } from '../../lib/tests';
 import { getContentErrorMessage } from '../../lib/content';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import HierarchicalChapterSelect from '../../components/admin/HierarchicalChapterSelect';
 
 const initialTest = {
   title: '', instructions: '', pattern: TEST_PATTERNS[0].value, duration_minutes: 60,
@@ -24,7 +25,7 @@ function slugifyTestTitle(title) {
     .replace(/^-+|-+$/g, '') || 'test';
 }
 
-function TestEditor({ test, chapters, linkedOptionCounts, onClose, onSaved }) {
+function TestEditor({ test, chapters, folders, exams, linkedOptionCounts, onClose, onSaved }) {
   const [values, setValues] = useState(() => test
     ? { ...initialTest, ...test, status: String(test.status || 'draft').toLowerCase() }
     : { ...initialTest });
@@ -72,9 +73,88 @@ function TestEditor({ test, chapters, linkedOptionCounts, onClose, onSaved }) {
     } finally { setSaving(false); }
   };
   return <div className="modal-backdrop"><form className="content-dialog test-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="test-editor-title" onSubmit={save}>
-    <button className="modal-close" type="button" aria-label="Close dialog" onClick={onClose}>×</button><div className="eyebrow">TEST CONFIGURATION</div><h2 id="test-editor-title">{test ? 'Edit test' : 'Create a test'}</h2>
+    <button className="modal-close" type="button" aria-label="Close dialog" onClick={onClose}>×</button>
+    <div className="eyebrow">TEST CONFIGURATION</div>
+    <h2 id="test-editor-title">{test ? 'Edit test' : 'Create a test'}</h2>
+
+    {/* 1-Click Exam Presets for Quick Configuration */}
+    <div className="p-3 mb-3 rounded-2xl bg-slate-900/60 border border-slate-800 text-xs space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="font-semibold text-slate-200 flex items-center gap-1.5">
+          <Sparkles size={13} className="text-amber-400" /> Quick Exam Presets (1-Click Setup)
+        </span>
+        <span className="text-[11px] text-slate-400">Auto-fills timing & marking</span>
+      </div>
+      <div className="flex flex-wrap gap-1.5 pt-1">
+        <button
+          type="button"
+          className="px-2.5 py-1 rounded-lg bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/30 transition-colors font-medium text-xs"
+          onClick={() => {
+            setValues((cur) => ({
+              ...cur,
+              pattern: 'bpsc-mandatory-e',
+              positive_marks: 1,
+              negative_marks: 0.25,
+              mandatory_option_e_penalty: 0.25,
+              duration_minutes: 120,
+              attempt_limit: 3,
+              solution_mode: 'after_submit'
+            }));
+          }}
+        >
+          🎯 BPSC 5-Option (1 Mark, -0.25)
+        </button>
+        <button
+          type="button"
+          className="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition-colors font-medium text-xs"
+          onClick={() => {
+            setValues((cur) => ({
+              ...cur,
+              pattern: 'standard-4',
+              positive_marks: 2,
+              negative_marks: 0.5,
+              mandatory_option_e_penalty: 0,
+              duration_minutes: 60,
+              attempt_limit: 3,
+              solution_mode: 'after_submit'
+            }));
+          }}
+        >
+          ⚡ Standard 4-Option (2 Marks, -0.50)
+        </button>
+        <button
+          type="button"
+          className="px-2.5 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition-colors font-medium text-xs"
+          onClick={() => {
+            setValues((cur) => ({
+              ...cur,
+              pattern: 'standard-4',
+              positive_marks: 1,
+              negative_marks: 0,
+              mandatory_option_e_penalty: 0,
+              duration_minutes: 30,
+              attempt_limit: 10,
+              solution_mode: 'immediate'
+            }));
+          }}
+        >
+          📖 NCERT Practice Mode (0 Negative, Instant Solution)
+        </button>
+      </div>
+    </div>
+
     <label className="field-label">Test title *<input className="text-input" value={values.title} onChange={(event) => setField('title', event.target.value)} minLength="3" maxLength="120" required placeholder="e.g. Indian Polity — Chapter Test" /></label>
-    <label className="field-label">Chapter *<select className="text-input" value={values.chapter_id} onChange={(event) => setField('chapter_id', event.target.value)} required><option value="">Select a chapter</option>{chapters.map((chapter) => <option value={chapter.id} key={chapter.id}>{chapter.title}</option>)}</select></label>
+    <div className="field-label">
+      <span>Chapter mapping *</span>
+      <HierarchicalChapterSelect
+        chapters={chapters}
+        folders={folders}
+        exams={exams}
+        value={values.chapter_id}
+        onChange={(chapterId) => setField('chapter_id', chapterId)}
+        required
+      />
+    </div>
     <label className="field-label">Question pattern *<select className="text-input" value={values.pattern} onChange={(event) => setField('pattern', event.target.value)}>{TEST_PATTERNS.map((pattern) => <option value={pattern.value} key={pattern.value}>{pattern.label}</option>)}</select><small>{TEST_PATTERNS.find((item) => item.value === values.pattern)?.optionCount} options per question.</small></label>
     {values.pattern === 'bpsc-mandatory-e' && <label className="field-label">Penalty when student leaves Option E blank *<div className="number-input"><input aria-label="Mandatory Option E blank penalty" type="number" min="0" step="0.01" value={values.mandatory_option_e_penalty} onChange={(event) => setField('mandatory_option_e_penalty', event.target.value)} required /><span>marks deducted</span></div><small>Applies only when no answer is selected. Selecting option E is a valid response.</small></label>}
     <div className="test-config-grid"><label className="field-label">Duration (minutes) *<input className="text-input" type="number" min="1" max="1440" step="1" value={values.duration_minutes} onChange={(event) => setField('duration_minutes', event.target.value)} required /></label><label className="field-label">Attempt limit *<input className="text-input" type="number" min="1" max="100" step="1" value={values.attempt_limit} onChange={(event) => setField('attempt_limit', event.target.value)} required /></label><label className="field-label">Positive marks *<input className="text-input" type="number" min="0.01" step="0.01" value={values.positive_marks} onChange={(event) => setField('positive_marks', event.target.value)} required /></label><label className="field-label">Negative marks *<input className="text-input" type="number" min="0" step="0.01" value={values.negative_marks} onChange={(event) => setField('negative_marks', event.target.value)} required /></label></div>
@@ -110,7 +190,7 @@ function getQuestionTags(question) {
 }
 
 export default function TestManager() {
-  const { chapters } = useContentCatalog();
+  const { exams, folders, chapters } = useContentCatalog();
   const [tests, setTests] = useState([]);
   const [questions, setQuestions] = useState([]);
   const [testQuestions, setTestQuestions] = useState([]);
@@ -129,6 +209,14 @@ export default function TestManager() {
   const [testToDelete, setTestToDelete] = useState(null);
   const [deletingTest, setDeletingTest] = useState(false);
   const [savingOrder, setSavingOrder] = useState(false);
+
+  const questionCountByTest = useMemo(() => {
+    const counts = new Map();
+    (allTestQuestions || []).forEach((tq) => {
+      counts.set(tq.test_id, (counts.get(tq.test_id) || 0) + 1);
+    });
+    return counts;
+  }, [allTestQuestions]);
 
   const refresh = async () => {
     if (!supabase) { setError('Supabase is not configured.'); setLoading(false); return; }
@@ -360,31 +448,45 @@ export default function TestManager() {
       <aside className="test-list-panel panel-card">
         <div className="section-heading"><div><div className="eyebrow">ASSESSMENTS</div><h2>All tests</h2></div><span className="chapter-item-count">{filteredTests.length}</span></div>
         <label className="content-search"><Search size={14} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a test…" /></label>
-        {loading ? <LoadingSkeleton rows={3} /> : filteredTests.map((test) => (
-          <div key={test.id} className={`test-list-item-row ${selectedTestId === test.id ? 'selected' : ''}`}>
-            <button
-              type="button"
-              className={`test-list-item ${selectedTestId === test.id ? 'selected' : ''}`}
-              onClick={() => selectTest(test.id)}
-            >
-              <span className="test-list-icon"><ClipboardList size={17} /></span>
-              <span><strong>{test.title}</strong><small>{chapterTitle(test.chapter_id)} · {test.duration_minutes} min</small></span>
-              <span className={`content-status status-${test.status || 'draft'}`}>{test.status || 'draft'}</span>
-            </button>
-            <button
-              type="button"
-              className="icon-button test-delete-btn"
-              title={`Delete ${test.title}`}
-              aria-label={`Delete ${test.title}`}
-              onClick={(event) => {
-                event.stopPropagation();
-                setTestToDelete(test);
-              }}
-            >
-              <Trash2 size={14} />
-            </button>
-          </div>
-        ))}
+        {loading ? <LoadingSkeleton rows={3} /> : filteredTests.map((test) => {
+          const qCount = questionCountByTest.get(test.id) || 0;
+          return (
+            <div key={test.id} className={`test-list-item-row ${selectedTestId === test.id ? 'selected' : ''}`}>
+              <button
+                type="button"
+                className={`test-list-item ${selectedTestId === test.id ? 'selected' : ''}`}
+                onClick={() => selectTest(test.id)}
+              >
+                <span className="test-list-icon"><ClipboardList size={17} /></span>
+                <span className="min-w-0 flex-1">
+                  <strong>{test.title}</strong>
+                  <small className="truncate block">{chapterTitle(test.chapter_id)} · {test.duration_minutes} min</small>
+                  <span className="flex items-center gap-1.5 pt-1">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${qCount > 0 ? 'bg-indigo-500/20 text-indigo-300' : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'}`}>
+                      {qCount > 0 ? `${qCount} Qs` : '⚠️ 0 Qs (Empty)'}
+                    </span>
+                    <span className="text-[10px] font-mono uppercase text-slate-400">
+                      {test.pattern === 'bpsc-mandatory-e' ? 'BPSC 5-Opt' : test.pattern === 'bpsc-classic-5' ? 'Classic 5-Opt' : '4-Opt'}
+                    </span>
+                  </span>
+                </span>
+                <span className={`content-status status-${test.status || 'draft'}`}>{test.status || 'draft'}</span>
+              </button>
+              <button
+                type="button"
+                className="icon-button test-delete-btn"
+                title={`Delete ${test.title}`}
+                aria-label={`Delete ${test.title}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setTestToDelete(test);
+                }}
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          );
+        })}
       </aside>
       <section className="test-builder-panel panel-card">{!selectedTest ? <div className="content-empty-state"><div className="placeholder-icon"><ClipboardList size={23} /></div><h2>Create a test or select one.</h2><p>Then add eligible published questions and arrange them in the order students will see.</p></div> : <>
         <div className="workspace-title-row">
@@ -566,6 +668,8 @@ export default function TestManager() {
       <TestEditor
         test={editor.test}
         chapters={chapters}
+        folders={folders}
+        exams={exams}
         linkedOptionCounts={editor.test ? testQuestions.map((item) => getOptionEntries(questions.find((question) => question.id === item.question_id)?.options).length) : []}
         onClose={() => setEditor(null)}
         onSaved={saveTest}

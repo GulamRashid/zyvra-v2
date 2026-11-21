@@ -11,6 +11,7 @@ import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import QuestionFormatter from '../../components/common/QuestionFormatter';
 import UploadGuide from '../../components/common/UploadGuide';
 import PcsQuestionGeneratorModal from '../../components/admin/PcsQuestionGeneratorModal';
+import HierarchicalChapterSelect from '../../components/admin/HierarchicalChapterSelect';
 
 export function getChapterHierarchyPath(chapterId, chaptersMap, foldersMap, examsMap) {
   if (!chapterId) {
@@ -108,7 +109,7 @@ function normalizeQuestion(row) {
   };
 }
 
-function QuestionDialog({ question, chapters, onClose, onSaved, onDelete }) {
+function QuestionDialog({ question, chapters, folders, exams, onClose, onSaved, onDelete }) {
   const [values, setValues] = useState(() => question ? normalizeQuestion(question) : { ...emptyQuestion, options: emptyQuestion.options.map((option) => ({ ...option })) });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -172,7 +173,24 @@ function QuestionDialog({ question, chapters, onClose, onSaved, onDelete }) {
       const key = String.fromCharCode(65 + index);
       return <div className={`qbank-option-row ${values.correct_answer === key ? 'correct-option' : ''}`} key={key}><span className="option-key">{key}</span><div className="qbank-option-fields"><input className="text-input" value={option.en} onChange={(event) => setOption(index, 'en', event.target.value)} placeholder={`Option ${key} (English)`} /><input className="text-input" value={option.hi} onChange={(event) => setOption(index, 'hi', event.target.value)} placeholder={`Option ${key} (Hindi)`} /></div><label className="correct-radio" title={`Set ${key} as the answer`}><input type="radio" name="correct-answer" value={key} checked={values.correct_answer === key} onChange={() => setField('correct_answer', key)} /><Check size={14} /></label></div>;
     })}</div>
-    <div className="qbank-form-grid"><label className="field-label">Subject *<input className="text-input" value={values.subject} onChange={(event) => setField('subject', event.target.value)} required placeholder="e.g. Polity" /></label><label className="field-label">Difficulty<select className="text-input" value={values.difficulty} onChange={(event) => setField('difficulty', event.target.value)}><option value="easy">Easy (सरल)</option><option value="medium">Medium (मध्यम)</option><option value="hard">Hard (कठिन)</option></select></label><label className="field-label">Chapter mapping *<select className="text-input" value={values.chapter_id} onChange={(event) => setField('chapter_id', event.target.value)} required><option value="">Select a chapter</option>{chapters.map((chapter) => <option value={chapter.id} key={chapter.id}>{chapter.title}</option>)}</select></label><label className="field-label">Status<select className="text-input" value={values.status} onChange={(event) => setField('status', event.target.value)}><option value="published">Published (लाइव — प्रकाशित)</option><option value="draft">Draft (ड्राफ्ट — अप्रकाशित)</option><option value="review">Review (समीक्षाधीन)</option><option value="unpublished">Unpublished (छिपाया गया)</option></select></label><label className="field-label">Usage scope<select className="text-input" value={values.usage_scope} onChange={(event) => setField('usage_scope', event.target.value)}><option value="both">Both (मॉक टेस्ट + प्रैक्टिस दोनों में)</option><option value="practice_only">Practice Only (केवल अध्याय अभ्यास)</option><option value="test_only">Test Only (केवल मॉक टेस्ट)</option></select></label></div>
+    <div className="qbank-form-grid">
+      <label className="field-label">Subject *<input className="text-input" value={values.subject} onChange={(event) => setField('subject', event.target.value)} required placeholder="e.g. Polity" /></label>
+      <label className="field-label">Difficulty<select className="text-input" value={values.difficulty} onChange={(event) => setField('difficulty', event.target.value)}><option value="easy">Easy (सरल)</option><option value="medium">Medium (मध्यम)</option><option value="hard">Hard (कठिन)</option></select></label>
+      <div className="field-label">
+        <span>Chapter mapping *</span>
+        <HierarchicalChapterSelect
+          chapters={chapters}
+          folders={folders}
+          exams={exams}
+          value={values.chapter_id}
+          onChange={(chId) => setField('chapter_id', chId)}
+          required
+          showFilters={false}
+        />
+      </div>
+      <label className="field-label">Status<select className="text-input" value={values.status} onChange={(event) => setField('status', event.target.value)}><option value="published">Published (लाइव — प्रकाशित)</option><option value="draft">Draft (ड्राफ्ट — अप्रकाशित)</option><option value="review">Review (समीक्षाधीन)</option><option value="unpublished">Unpublished (छिपाया गया)</option></select></label>
+      <label className="field-label">Usage scope<select className="text-input" value={values.usage_scope} onChange={(event) => setField('usage_scope', event.target.value)}><option value="both">Both (मॉक टेस्ट + प्रैक्टिस दोनों में)</option><option value="practice_only">Practice Only (केवल अध्याय अभ्यास)</option><option value="test_only">Test Only (केवल मॉक टेस्ट)</option></select></label>
+    </div>
     <label className="field-label">Explanation<textarea className="text-input content-textarea" rows="3" value={values.explanation || ''} onChange={(event) => setField('explanation', event.target.value)} placeholder="Explain why the selected answer is correct." /></label>
     <details className="distractor-details"><summary>Distractor notes <ChevronDown size={15} /></summary><div className="distractor-grid">{values.options.map((_, index) => { const key = String.fromCharCode(65 + index); return key !== values.correct_answer && <label className="field-label" key={key}>Option {key}<textarea className="text-input" rows="2" value={values.distractor_notes[key] || ''} onChange={(event) => setValues((current) => ({ ...current, distractor_notes: { ...current.distractor_notes, [key]: event.target.value } }))} placeholder="Why this option is incorrect." /></label>; })}</div></details>
     <label className="field-label">Tags<input className="text-input" value={values.tags} onChange={(event) => setField('tags', event.target.value)} placeholder="constitution, fundamental-rights (comma separated)" /></label>
@@ -204,7 +222,7 @@ function QuestionDialog({ question, chapters, onClose, onSaved, onDelete }) {
   </form></div>;
 }
 
-function ImportDialog({ chapters, onClose, onImported }) {
+function ImportDialog({ chapters, folders, exams, onClose, onImported }) {
   const { user } = useAuth();
   const [json, setJson] = useState('');
   const [uploadedFileName, setUploadedFileName] = useState('');
@@ -752,12 +770,14 @@ function ImportDialog({ chapters, onClose, onImported }) {
     )}
 
     <div className="qbank-form-grid">
-      <label className="field-label">Chapter
-        <select
-          className="text-input"
+      <div className="field-label">
+        <span>Target Chapter (Auto-fills Template & Upload)</span>
+        <HierarchicalChapterSelect
+          chapters={chapters}
+          folders={folders}
+          exams={exams}
           value={selectedChapterId}
-          onChange={(event) => {
-            const chId = event.target.value;
+          onChange={(chId) => {
             setSelectedChapterId(chId);
             if (chId && selectedTestId) {
               const currentTest = tests.find((t) => t.id === selectedTestId);
@@ -766,15 +786,9 @@ function ImportDialog({ chapters, onClose, onImported }) {
               }
             }
           }}
-        >
-          <option value="">All Chapters / From template</option>
-          {chapters.map((chapter) => (
-            <option value={chapter.id} key={chapter.id}>
-              {chapter.title}
-            </option>
-          ))}
-        </select>
-      </label>
+          placeholder="All Chapters / From template"
+        />
+      </div>
 
       <label className="field-label">Link Imported Questions to Test
         <select
@@ -1744,6 +1758,8 @@ export default function QBankManager() {
       <QuestionDialog
         question={dialog.question}
         chapters={chapters}
+        folders={folders}
+        exams={exams}
         onClose={() => setDialog(null)}
         onSaved={refresh}
         onDelete={handleDeleteQuestions}
@@ -1754,6 +1770,8 @@ export default function QBankManager() {
     {importOpen && createPortal(
       <ImportDialog
         chapters={chapters}
+        folders={folders}
+        exams={exams}
         onClose={() => setImportOpen(false)}
         onImported={refresh}
       />,

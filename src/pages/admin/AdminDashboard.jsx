@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   Activity, AlertTriangle, ArrowUpRight, BadgeCheck, BookOpen, CircleDollarSign,
-  Coins, FileQuestion, RefreshCw, ShieldCheck, Users, WalletCards
+  ClipboardList, Coins, FileQuestion, RefreshCw, ShieldCheck, Users, WalletCards
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import SettingsPreview from './SettingsPreview';
 import AdminWorkflowGuide from '../../components/admin/AdminWorkflowGuide';
 
 const metrics = [
@@ -22,10 +21,18 @@ const metricStateDefaults = Object.fromEntries(
 );
 
 export default function AdminDashboard() {
-  const { supabase } = useAuth();
+  const { supabase, profile } = useAuth();
   const [metricState, setMetricState] = useState(metricStateDefaults);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  };
+  const adminName = profile?.full_name ? profile.full_name.trim().split(' ')[0] : 'Admin';
 
   const fetchStats = useCallback(async (active = () => true) => {
     if (!supabase) {
@@ -144,7 +151,7 @@ export default function AdminDashboard() {
             {new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(new Date()).toUpperCase()}{' '}
             <span className="heading-dot">·</span> PLATFORM OVERVIEW
           </div>
-          <h1>Good morning, Admin.</h1>
+          <h1>{getGreeting()}, {adminName}.</h1>
           <p>Here’s what’s happening across your learning platform today.</p>
         </div>
         <button className="button button-outline" onClick={refresh} disabled={refreshing}>
@@ -229,14 +236,35 @@ export default function AdminDashboard() {
 
         <section className="panel-card admin-quick-links">
           <div className="eyebrow">QUICK ACCESS</div>
-          <h2>Keep things moving.</h2>
-          <Link to="/admin/content"><BookOpen size={17} /> Manage learning content <ArrowUpRight size={15} /></Link>
-          <Link to="/admin/users"><Users size={17} /> Review users & access <ArrowUpRight size={15} /></Link>
-          <Link to="/admin/coins"><Coins size={17} /> Configure coin rewards <ArrowUpRight size={15} /></Link>
+          <h2>Action Launchpad</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+            <Link to="/admin/tests" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors text-xs font-semibold text-slate-200">
+              <span className="flex items-center gap-2"><ClipboardList size={16} className="text-amber-400" /> Test Manager</span>
+              <ArrowUpRight size={14} className="text-slate-500" />
+            </Link>
+            <Link to="/admin/qbank" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors text-xs font-semibold text-slate-200">
+              <span className="flex items-center gap-2"><FileQuestion size={16} className="text-emerald-400" /> Question Bank & CSV</span>
+              <ArrowUpRight size={14} className="text-slate-500" />
+            </Link>
+            <Link to="/admin/content" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors text-xs font-semibold text-slate-200">
+              <span className="flex items-center gap-2"><BookOpen size={16} className="text-indigo-400" /> Learning Curriculum</span>
+              <ArrowUpRight size={14} className="text-slate-500" />
+            </Link>
+            <Link to="/admin/users" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors text-xs font-semibold text-slate-200">
+              <span className="flex items-center gap-2"><Users size={16} className="text-blue-400" /> Users & Access</span>
+              <ArrowUpRight size={14} className="text-slate-500" />
+            </Link>
+            <Link to="/admin/orders" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors text-xs font-semibold text-slate-200">
+              <span className="flex items-center gap-2"><CircleDollarSign size={16} className="text-purple-400" /> Orders & Payments</span>
+              <ArrowUpRight size={14} className="text-slate-500" />
+            </Link>
+            <Link to="/admin/support" className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 transition-colors text-xs font-semibold text-slate-200">
+              <span className="flex items-center gap-2"><Activity size={16} className="text-rose-400" /> Support Chat</span>
+              <ArrowUpRight size={14} className="text-slate-500" />
+            </Link>
+          </div>
         </section>
       </div>
-
-      <SettingsPreview compact />
     </div>
   );
 }

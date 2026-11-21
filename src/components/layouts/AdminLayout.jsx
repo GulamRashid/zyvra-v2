@@ -5,21 +5,41 @@ import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
 import Admin2FAModal from '../admin/Admin2FAModal';
 
-const modules = [
-  { to: '/admin', label: 'Dashboard', Icon: Gauge, end: true },
-  { to: '/admin/support', label: 'Support Chat', Icon: MessageCircle },
-  { to: '/admin/engagement', label: 'Banners & QotD', Icon: Sparkles },
-  { to: '/admin/content', label: 'Content Manager', Icon: FileText },
-  { to: '/admin/qbank', label: 'Question Bank', Icon: FileQuestion },
-  { to: '/admin/tests', label: 'Test Manager', Icon: ClipboardList },
-  { to: '/admin/users', label: 'Users & Access', Icon: Users },
-  { to: '/admin/subscriptions', label: 'Subscriptions', Icon: PackageCheck },
-  { to: '/admin/orders', label: 'Orders & Payments', Icon: ShoppingCart },
-  { to: '/admin/coins', label: 'Zyvra Coins', Icon: Coins },
-  { to: '/admin/tools', label: 'Tools (Toolbox)', Icon: Wrench },
-  { to: '/admin/pricing', label: 'Pricing & Offers', Icon: Tag },
-  { to: '/admin/reports', label: 'Reports & Analytics', Icon: Activity },
-  { to: '/admin/notifications', label: 'Notifications', Icon: Bell }
+const navigationSections = [
+  {
+    title: 'OVERVIEW',
+    items: [
+      { to: '/admin', label: 'Dashboard', Icon: Gauge, end: true },
+      { to: '/admin/reports', label: 'Reports & Analytics', Icon: Activity }
+    ]
+  },
+  {
+    title: 'ACADEMIC & CONTENT',
+    items: [
+      { to: '/admin/content', label: 'Content Manager', Icon: FileText },
+      { to: '/admin/qbank', label: 'Question Bank', Icon: FileQuestion },
+      { to: '/admin/tests', label: 'Test Manager', Icon: ClipboardList }
+    ]
+  },
+  {
+    title: 'STUDENTS & SUPPORT',
+    items: [
+      { to: '/admin/support', label: 'Support Chat', Icon: MessageCircle },
+      { to: '/admin/users', label: 'Users & Access', Icon: Users },
+      { to: '/admin/engagement', label: 'Banners & QotD', Icon: Sparkles },
+      { to: '/admin/notifications', label: 'Notifications', Icon: Bell }
+    ]
+  },
+  {
+    title: 'COMMERCE & TOOLS',
+    items: [
+      { to: '/admin/orders', label: 'Orders & Payments', Icon: ShoppingCart },
+      { to: '/admin/subscriptions', label: 'Subscriptions', Icon: PackageCheck },
+      { to: '/admin/pricing', label: 'Pricing & Offers', Icon: Tag },
+      { to: '/admin/coins', label: 'Zyvra Coins', Icon: Coins },
+      { to: '/admin/tools', label: 'Tools (Toolbox)', Icon: Wrench }
+    ]
+  }
 ];
 
 export default function AdminLayout() {
@@ -43,8 +63,27 @@ export default function AdminLayout() {
     {!isSidebarCollapsed && <button type="button" className="drawer-scrim admin-drawer-scrim" aria-label="Close admin navigation" onClick={closeSidebar} />}
     <aside id="admin-navigation" className={`admin-sidebar ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <div className="sidebar-brand admin-brand"><NavLink to="/admin" onClick={closeSidebar} className="sidebar-brand"><img src="/logo-192.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" /><div>ZYVRA<span>CONTROL CENTER</span></div></NavLink></div>
-      <div className="sidebar-caption">OPERATIONS</div>
-      <nav className="side-nav admin-nav">{modules.map(({ to, label, Icon, end }) => <NavLink key={to} to={to} end={end} onClick={closeSidebar} className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}><Icon size={17} /><span>{label}</span></NavLink>)}</nav>
+      <nav className="side-nav admin-nav space-y-4">
+        {navigationSections.map((section) => (
+          <div key={section.title} className="space-y-0.5">
+            <div className="sidebar-caption px-3 pt-2 pb-1 text-[10px] tracking-wider text-slate-400 dark:text-slate-500 font-bold uppercase">
+              {section.title}
+            </div>
+            {section.items.map(({ to, label, Icon, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                onClick={closeSidebar}
+                className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}
+              >
+                <Icon size={17} />
+                <span>{label}</span>
+              </NavLink>
+            ))}
+          </div>
+        ))}
+      </nav>
       <div className="admin-sidebar-footer"><div className="health-dot" /> All systems operational</div>
     </aside>
     <div className={`admin-main ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
