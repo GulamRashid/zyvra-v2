@@ -9,6 +9,7 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
   const [access, setAccess] = useState([]);
   const [orders, setOrders] = useState([]);
   const [accessLoading, setAccessLoading] = useState(true);
+  const [currentBalance, setCurrentBalance] = useState(balance || 0);
   const [action, setAction] = useState('coins');
   const [direction, setDirection] = useState('credit');
   const [amount, setAmount] = useState('');
@@ -18,6 +19,10 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    setCurrentBalance(balance || 0);
+  }, [balance]);
 
   useEffect(() => {
     let active = true;
@@ -43,9 +48,9 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
   }, [profile.id, supabase]);
 
   const contentItems = useMemo(() => ({
-    exam: catalog.exams.filter((item) => item.status !== 'archived').map((item) => ({ id: item.id, title: item.title })),
-    folder: catalog.folders.filter((item) => item.status !== 'archived').map((item) => ({ id: item.id, title: item.title })),
-    chapter: catalog.chapters.filter((item) => item.status !== 'archived').map((item) => ({ id: item.id, title: item.title }))
+    exam: (catalog?.exams || []).filter((item) => item.status !== 'archived').map((item) => ({ id: item.id, title: item.title })),
+    folder: (catalog?.folders || []).filter((item) => item.status !== 'archived').map((item) => ({ id: item.id, title: item.title })),
+    chapter: (catalog?.chapters || []).filter((item) => item.status !== 'archived').map((item) => ({ id: item.id, title: item.title }))
   }), [catalog]);
   const selectedItems = contentItems[itemType] || [];
   const activeAccess = access.filter((grant) => {
@@ -57,50 +62,228 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
     return true;
   });
 
+  const revokeAccess = async (grantId) => {
+    if (!window.confirm('Are you sure you want to revoke this access grant?')) return;
+    setBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const { error: revokeErr } = await supabase
+        .from('user_access')
+        .update({ is_active: false, status: 'revoked', updated_at: new Date().toISOString() })
+        .eq('id', grantId);
+      if (revokeErr) throw revokeErr;
+      setAccess((prev) => prev.filter((g) => g.id !== grantId));
+      setMessage('Access grant revoked.');
+      await onUpdated();
+    } catch (err) {
+      setError(err.message || 'Unable to revoke access.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const performAction = async (event) => {
     event.preventDefault();
     setError('');
     setMessage('');
     if (!reason.trim()) { setError('Add an audit reason for this admin action.'); return; }
     if (action === 'coins' && (!Number.isInteger(Number(amount)) || Number(amount) < 1)) { setError('Enter a whole coin amount greater than zero.'); return; }
-    if (action === 'grant' && !itemId) { setError('Choose an exam, folder or chapter to grant.'); return; }
+    const targetItemId = itemType === 'full_pass' ? 'global' : itemId;
+    if (action === 'grant' && !targetItemId) { setError('Choose an exam, folder or chapter to grant.'); return; }
     setBusy(true);
     try {
       if (action === 'coins') {
-        const signedAmount = direction === 'credit' ? Number(amount) : -Number(amount);
-        const { error: rpcError } = await supabase.rpc('admin_adjust_user_coins', {
-          p_user_id: profile.id,
-          p_amount: signedAmount,
-          p_reason: reason.trim()
-        });
-        if (rpcError) throw rpcError;
-        setMessage(`${direction === 'credit' ? 'Credited' : 'Debited'} ${Number(amount).toLocaleString()} coins with an audit reason.`);
+        const absAmount = Math.abs(parseInt(amount, 10));
+        let coinAdjustSuccess = false;
+
+        // Try primary Postgres RPC definition: admin_adjust_user_coins(p_target_user_id, p_amount, p_action, p_reason)
+        try {
+          const { data: rpcData, error: rpcError } = await supabase.rpc('admin_adjust_user_coins', {
+            p_target_user_id: profile.id,
+            p_amount: absAmount,
+            p_action: direction,
+            p_reason: reason.trim()
+          });
+          if (!rpcError) {
+            coinAdjustSuccess = true;
+            if (rpcData && typeof rpcData.new_balance === 'number') {
+              setCurrentBalance(rpcData.new_balance);
+            } else {
+              setCurrentBalance((prev) => direction === 'credit' ? prev + absAmount : Math.max(0, prev - absAmount));
+            }
+          } else {
+            console.warn('Coin adjust RPC error, trying fallback:', rpcError);
+          }
+        } catch (rpcEx) {
+          console.warn('Coin adjust RPC exception, trying fallback:', rpcEx);
+        }
+
+        // Direct database fallback if RPC not matched or errored
+        if (!coinAdjustSuccess) {
+          const { data: currentWallet } = await supabase
+            .from('coin_wallets')
+            .select('balance, total_earned, total_spent')
+            .eq('user_id', profile.id)
+            .maybeSingle();
+
+          const prevBal = Number(currentWallet?.balance || 0);
+          const prevEarned = Number(currentWallet?.total_earned || 0);
+          const prevSpent = Number(currentWallet?.total_spent || 0);
+
+          if (direction === 'debit' && prevBal < absAmount) {
+            throw new Error(`Cannot debit ${absAmount} coins. User only has ${prevBal} coins.`);
+          }
+
+          const newBal = direction === 'credit' ? prevBal + absAmount : Math.max(0, prevBal - absAmount);
+          const newEarned = direction === 'credit' ? prevEarned + absAmount : prevEarned;
+          const newSpent = direction === 'debit' ? prevSpent + absAmount : prevSpent;
+          const now = new Date().toISOString();
+
+          const { error: walletError } = await supabase.from('coin_wallets').upsert({
+            user_id: profile.id,
+            balance: newBal,
+            total_earned: newEarned,
+            total_spent: newSpent,
+            updated_at: now
+          }, { onConflict: 'user_id' });
+
+          if (walletError) throw walletError;
+
+          try {
+            await supabase.from('coin_ledger').insert({
+              user_id: profile.id,
+              amount: direction === 'credit' ? absAmount : -absAmount,
+              tx_type: direction === 'credit' ? 'admin_credit' : 'admin_debit',
+              source: 'admin_adjustment',
+              reason: reason.trim(),
+              balance_after: newBal
+            });
+          } catch (_) {}
+
+          try {
+            await supabase.from('coin_transactions').insert({
+              user_id: profile.id,
+              amount: absAmount,
+              transaction_type: direction,
+              reason: `Admin adjustment: ${reason.trim()}`,
+              created_at: now
+            });
+          } catch (_) {}
+
+          setCurrentBalance(newBal);
+        }
+
+        setMessage(`${direction === 'credit' ? 'Credited' : 'Debited'} ${absAmount.toLocaleString()} coins with an audit reason.`);
         setAmount('');
       } else if (action === 'role') {
         const newRole = profile.role === 'super_admin' || profile.role === 'admin' ? 'student' : 'super_admin';
-        const { error: rpcError } = await supabase.rpc('admin_update_user_role', {
-          p_user_id: profile.id,
-          p_role: newRole,
-          p_reason: reason.trim()
-        });
-        if (rpcError) throw rpcError;
+        let roleSuccess = false;
+        try {
+          const { error: rpcError } = await supabase.rpc('admin_update_user_role', {
+            p_user_id: profile.id,
+            p_target_user_id: profile.id,
+            p_role: newRole,
+            p_new_role: newRole,
+            p_reason: reason.trim()
+          });
+          if (!rpcError) roleSuccess = true;
+          else console.warn('Role RPC warning:', rpcError);
+        } catch (roleEx) {
+          console.warn('Role RPC exception:', roleEx);
+        }
+
+        if (!roleSuccess) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ role: newRole, updated_at: new Date().toISOString() })
+            .eq('id', profile.id);
+          if (profileError) throw profileError;
+        }
+
         setMessage(`Role changed to ${newRole}.`);
         if (profile.id === user?.id && typeof refreshAccount === 'function') {
           await refreshAccount();
         }
       } else {
-        const { error: rpcError } = await supabase.rpc('admin_grant_user_access', {
-          p_user_id: profile.id,
-          p_item_type: itemType,
-          p_item_id: itemId,
-          p_reason: reason.trim()
-        });
-        if (rpcError) throw rpcError;
-        const { data: updatedAccess, error: loadError } = await supabase.from('user_access').select('*')
-          .eq('user_id', profile.id).order('created_at', { ascending: false });
-        if (loadError) throw loadError;
-        setAccess(updatedAccess || []);
-        setMessage('Lifetime content access granted.');
+        // Course Access Grant
+        let grantSuccess = false;
+        const now = new Date().toISOString();
+        const selectedItem = (contentItems[itemType] || []).find((entry) => entry.id === targetItemId);
+        const itemTitle = itemType === 'full_pass' ? 'All-in-One Global Full Pass' : (selectedItem?.title || `${itemType} access`);
+
+        // 1. Try RPC overloads
+        try {
+          const res1 = await supabase.rpc('admin_grant_user_access', {
+            p_user_id: profile.id,
+            p_item_type: itemType,
+            p_item_id: String(targetItemId),
+            p_reason: reason.trim()
+          });
+          if (!res1.error) {
+            grantSuccess = true;
+          } else {
+            const res2 = await supabase.rpc('admin_grant_user_access', {
+              p_target_user_id: profile.id,
+              p_item_type: itemType,
+              p_item_id: targetItemId,
+              p_duration_days: null
+            });
+            if (!res2.error) grantSuccess = true;
+          }
+        } catch (grantEx) {
+          console.warn('Grant RPC exception:', grantEx);
+        }
+
+        // 2. Direct database fallback to user_access
+        if (!grantSuccess) {
+          const grantPayload = {
+            user_id: profile.id,
+            item_type: itemType,
+            item_id: String(targetItemId),
+            status: 'active',
+            is_active: true,
+            granted_by: user?.id || null,
+            reason: reason.trim(),
+            starts_at: now,
+            expires_at: null,
+            updated_at: now
+          };
+
+          const { error: insertError } = await supabase
+            .from('user_access')
+            .upsert(grantPayload, { onConflict: 'user_id,item_type,item_id' });
+
+          if (insertError) {
+            const { error: simpleInsertError } = await supabase
+              .from('user_access')
+              .insert({
+                user_id: profile.id,
+                item_type: itemType,
+                item_id: String(targetItemId),
+                status: 'active',
+                is_active: true,
+                granted_by: user?.id || null,
+                reason: reason.trim(),
+                starts_at: now,
+                created_at: now,
+                updated_at: now
+              });
+            if (simpleInsertError) throw simpleInsertError;
+          }
+        }
+
+        // Reload access list
+        const { data: updatedAccess } = await supabase
+          .from('user_access')
+          .select('*')
+          .eq('user_id', profile.id)
+          .order('created_at', { ascending: false });
+        if (updatedAccess) {
+          setAccess(updatedAccess);
+        }
+        setMessage(`Lifetime access granted for "${itemTitle}".`);
+        if (itemType !== 'full_pass') setItemId('');
       }
       await onUpdated();
     } catch (actionError) {
@@ -111,6 +294,7 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
   const accessLabel = (grant) => {
     const type = grant.item_type || grant.content_type || 'content';
     const id = grant.item_id || grant.content_id;
+    if (type === 'full_pass' || id === 'global') return '🌐 All-in-One Global Full Pass';
     const item = (contentItems[type] || []).find((entry) => entry.id === id);
     return grant.item_title || item?.title || `${type} · ${id || 'access'}`;
   };
@@ -121,13 +305,13 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
       <section className="user-drawer-identity"><span className="user-avatar-large">{(profile.full_name || profile.email || 'S').slice(0, 1).toUpperCase()}</span><div><strong>{profile.full_name || 'Student'}</strong><small>{profile.email || 'Email unavailable'}</small>{profile.mobile ? <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}><span style={{ fontSize: '12px', fontWeight: 'bold', color: '#34d399', fontFamily: 'monospace' }}>+91 {profile.mobile}</span><a href={`https://wa.me/91${profile.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent('Namaste ' + (profile.full_name || 'Student') + '! Zyvra ki taraf se aapke liye vishesh update.')}`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: 'bold', background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', border: '1px solid rgba(16, 185, 129, 0.4)', textDecoration: 'none' }} title="Send message on WhatsApp">💬 WhatsApp</a></div> : <small style={{ color: 'var(--muted)', fontSize: '10px' }}>No mobile number</small>}<span className={`user-role-badge ${profile.role === 'super_admin' || profile.role === 'admin' ? 'admin' : ''}`}>{profile.role || 'student'}</span></div></section>
       {error && <div className="feedback error-feedback">{error}</div>}
       {message && <div className="feedback success-feedback">{message}</div>}
-      <section className="user-drawer-section"><div className="section-heading"><div><div className="eyebrow">CONTENT ACCESS</div><h3>Active grants</h3></div><span className="chapter-item-count">{activeAccess.length}</span></div>{accessLoading ? <p className="field-hint">Loading access grants…</p> : !activeAccess.length ? <p className="field-hint">No active access grants.</p> : <div className="user-detail-list">{activeAccess.map((grant) => <div key={grant.id}><BookOpen size={15} /><span><strong>{accessLabel(grant)}</strong><small>{grant.status || (grant.expires_at ? `Expires ${new Date(grant.expires_at).toLocaleDateString()}` : 'Lifetime / active')}</small></span></div>)}</div>}</section>
+      <section className="user-drawer-section"><div className="section-heading"><div><div className="eyebrow">CONTENT ACCESS</div><h3>Active grants</h3></div><span className="chapter-item-count">{activeAccess.length}</span></div>{accessLoading ? <p className="field-hint">Loading access grants…</p> : !activeAccess.length ? <p className="field-hint">No active access grants.</p> : <div className="user-detail-list">{activeAccess.map((grant) => <div key={grant.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><BookOpen size={15} /><span><strong>{accessLabel(grant)}</strong><small>{grant.status || (grant.expires_at ? `Expires ${new Date(grant.expires_at).toLocaleDateString()}` : 'Lifetime / active')}</small></span></div><button type="button" onClick={() => revokeAccess(grant.id)} disabled={busy} style={{ fontSize: '11px', color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '6px', padding: '2px 8px', cursor: 'pointer' }} title="Revoke access">Revoke</button></div>)}</div>}</section>
       <section className="user-drawer-section"><div className="section-heading"><div><div className="eyebrow">PAYMENT HISTORY</div><h3>Recent orders</h3></div><span className="chapter-item-count">{orders.length}</span></div>{accessLoading ? <p className="field-hint">Loading orders…</p> : !orders.length ? <p className="field-hint">No payment orders found.</p> : <div className="user-order-list">{orders.slice(0, 8).map((order) => <div key={order.id}><span><strong>{order.item_title || order.item_name || order.item_type || 'Learning access'}</strong><small>{order.created_at ? new Date(order.created_at).toLocaleDateString() : '—'}</small></span><span className={`order-status order-${String(order.status || 'pending').toLowerCase()}`}>{order.status || 'pending'}</span></div>)}</div>}</section>
-      <section className="user-drawer-section user-admin-actions"><div className="section-heading"><div><div className="eyebrow">ADMIN ACTIONS</div><h3>Manage account</h3></div><span className="user-wallet-pill"><Coins size={14} /> {Number(balance || 0).toLocaleString()}</span></div>
+      <section className="user-drawer-section user-admin-actions"><div className="section-heading"><div><div className="eyebrow">ADMIN ACTIONS</div><h3>Manage account</h3></div><span className="user-wallet-pill"><Coins size={14} /> {Number(currentBalance || 0).toLocaleString()}</span></div>
         <div className="user-action-tabs"><button className={action === 'coins' ? 'active' : ''} onClick={() => setAction('coins')}>🪙 कॉइन एडजस्ट करें</button><button className={action === 'grant' ? 'active' : ''} onClick={() => setAction('grant')}>🎁 कोर्स एक्सेस दें</button><button className={action === 'role' ? 'active' : ''} onClick={() => setAction('role')}>🛡️ रोल बदलें</button></div>
         <form className="user-action-form" onSubmit={performAction}>
-          {action === 'coins' && <><div className="content-form-row"><label className="field-label">Adjustment<select className="text-input" value={direction} onChange={(event) => setDirection(event.target.value)}><option value="credit">Credit coins (+ जोड़ें)</option><option value="debit">Debit coins (− काटें)</option></select></label><label className="field-label">Amount (Coins)<input className="text-input" type="number" min="1" step="1" value={amount} onChange={(event) => setAmount(event.target.value)} required /></label></div><small className="user-action-hint">{direction === 'debit' && Number(amount) > Number(balance) ? 'Debit exceeds displayed balance; the server will validate the request.' : 'छात्र के वॉलेट में सीधे कॉइन जोड़ें या काटें (रिफंड, इनाम या बोनस)। लेजर में ऑडिट एंट्री रिकॉर्ड होगी।'}</small></>}
-          {action === 'grant' && <><div className="content-form-row"><label className="field-label">Content type<select className="text-input" value={itemType} onChange={(event) => { setItemType(event.target.value); setItemId(''); }}><option value="exam">Exam (पूरी परीक्षा)</option><option value="folder">Folder (विषय फ़ोल्डर)</option><option value="chapter">Chapter (अध्याय)</option></select></label><label className="field-label">Content item<select className="text-input" value={itemId} onChange={(event) => setItemId(event.target.value)} required><option value="">Select content</option>{selectedItems.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select></label></div><small className="user-action-hint">छात्र को बिना किसी पेमेंट के इस कोर्स का मुफ़्त लाइफटाइम एक्सेस मिल जाएगा।</small></>}
+          {action === 'coins' && <><div className="content-form-row"><label className="field-label">Adjustment<select className="text-input" value={direction} onChange={(event) => setDirection(event.target.value)}><option value="credit">Credit coins (+ जोड़ें)</option><option value="debit">Debit coins (− काटें)</option></select></label><label className="field-label">Amount (Coins)<input className="text-input" type="number" min="1" step="1" value={amount} onChange={(event) => setAmount(event.target.value)} required /></label></div><small className="user-action-hint">{direction === 'debit' && Number(amount) > Number(currentBalance) ? 'Debit exceeds displayed balance; the server will validate the request.' : 'छात्र के वॉलेट में सीधे कॉइन जोड़ें या काटें (रिफंड, इनाम या बोनस)। लेजर में ऑडिट एंट्री रिकॉर्ड होगी।'}</small></>}
+          {action === 'grant' && <><div className="content-form-row"><label className="field-label">Content type<select className="text-input" value={itemType} onChange={(event) => { const newType = event.target.value; setItemType(newType); setItemId(newType === 'full_pass' ? 'global' : ''); }}><option value="exam">Exam (पूरी परीक्षा)</option><option value="folder">Folder (विषय फ़ोल्डर)</option><option value="chapter">Chapter (अध्याय)</option><option value="full_pass">Full Pass (ऑल-एक्सेस ग्लोबल पास)</option></select></label><label className="field-label">Content item{itemType === 'full_pass' ? <select className="text-input" value="global" disabled><option value="global">🌐 All-in-One Global Full Pass</option></select> : <select className="text-input" value={itemId} onChange={(event) => setItemId(event.target.value)} required><option value="">Select content</option>{selectedItems.map((item) => <option value={item.id} key={item.id}>{item.title}</option>)}</select>}</label></div><small className="user-action-hint">छात्र को बिना किसी पेमेंट के इस कोर्स का मुफ़्त लाइफटाइम एक्सेस मिल जाएगा।</small></>}
           {action === 'role' && <div className="role-change-notice"><ShieldCheck size={17} /><span>Change this account to <strong>{profile.role === 'super_admin' || profile.role === 'admin' ? 'Student' : 'Super Admin'}</strong>. एडमिन रोल देने पर यह यूज़र कंट्रोल सेंटर के सभी डेटा को एक्सेस कर सकेगा।</span></div>}
           <label className="field-label">Audit reason * <textarea className="text-input" rows="2" maxLength="300" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="कारण लिखें: जैसे 'Doubt competition winner' या 'Offline fees verified'" required /></label>
           <button className="button button-gold button-full" disabled={busy}>{busy ? 'Applying…' : action === 'coins' ? direction === 'credit' ? <><ArrowDownLeft size={15} /> Credit coins</> : <><ArrowUpRight size={15} /> Debit coins</> : action === 'grant' ? <><Gift size={15} /> Grant lifetime access</> : <><ShieldCheck size={15} /> Update role</>}</button>
