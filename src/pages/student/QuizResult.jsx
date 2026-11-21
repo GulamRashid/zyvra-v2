@@ -19,6 +19,7 @@ import {
   parseStructuredExplanation,
   unwrapRpcPayload
 } from '../../lib/tests';
+import { playRealisticSpeech, preloadAudio, stopSpeech } from '../../lib/hybridVoicePlayer';
 
 const valueOf = (result, ...keys) => {
   for (const key of keys) {
@@ -192,8 +193,7 @@ export default function QuizResult() {
   }, [solutions]);
 
   const speakCurrentMistake = useCallback((idx) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+    stopSpeech();
 
     const item = mistakeSolutions[idx];
     if (!item) {
@@ -215,29 +215,41 @@ export default function QuizResult() {
       ? `सवाल नंबर ${idx + 1}. ${qText}. आपका उत्तर था ${chosenKey ? `विकल्प ${chosenKey}` : 'छोड़ा गया'}. सही उत्तर है विकल्प ${correctKey}. मुख्य बिंदु: ${cleanExpl}`
       : `Question ${idx + 1}. ${qText}. Your selection was ${chosenKey ? `Option ${chosenKey}` : 'Skipped'}. The correct answer is Option ${correctKey}. Explanation: ${cleanExpl}`;
 
-    const UtteranceClass = typeof window !== 'undefined' ? (window.SpeechSynthesisUtterance || globalThis.SpeechSynthesisUtterance) : null;
-    if (!UtteranceClass) return;
-    const utterance = new UtteranceClass(textToSpeak);
-    utterance.lang = language === 'hi' ? 'hi-IN' : 'en-US';
-    utterance.rate = 0.95;
+    // Background pre-fetch next question's audio so playback transitions with 0ms delay!
+    if (idx + 1 < mistakeSolutions.length) {
+      const nextItem = mistakeSolutions[idx + 1];
+      const nextQ = nextItem.question || nextItem;
+      const nextQText = language === 'hi'
+        ? (nextQ.question_text_hi || getStoredHindi(nextQ.question_text) || nextQ.question_text_en || '')
+        : (nextQ.question_text_en || getLocalizedEnglish(nextQ.question_text) || '');
+      const nextCorrectKey = normalizeCorrectAnswer(nextItem.correct_answer || nextQ.correct_answer, nextQ.options);
+      const nextSelected = nextItem.student_selected ?? nextItem.selected_option ?? null;
+      const nextChosenKey = Array.isArray(nextSelected) ? nextSelected[0] : nextSelected;
+      const nextExpl = String(nextItem.explanation || nextQ.explanation || '').replace(/[*#_`]/g, '').slice(0, 250);
+      const nextText = language === 'hi'
+        ? `सवाल नंबर ${idx + 2}. ${nextQText}. आपका उत्तर था ${nextChosenKey ? `विकल्प ${nextChosenKey}` : 'छोड़ा गया'}. सही उत्तर है विकल्प ${nextCorrectKey}. मुख्य बिंदु: ${nextExpl}`
+        : `Question ${idx + 2}. ${nextQText}. Your selection was ${nextChosenKey ? `Option ${nextChosenKey}` : 'Skipped'}. The correct answer is Option ${nextCorrectKey}. Explanation: ${nextExpl}`;
+      preloadAudio(nextText, language === 'hi' ? 'hi' : 'en');
+    }
 
-    utterance.onend = () => {
-      if (idx + 1 < mistakeSolutions.length) {
-        setWalkmanIndex(idx + 1);
-        speakCurrentMistake(idx + 1);
-      } else {
-        setWalkmanPlaying(false);
-      }
-    };
-    utterance.onerror = () => setWalkmanPlaying(false);
-
-    window.speechSynthesis.speak(utterance);
-    setWalkmanPlaying(true);
+    playRealisticSpeech(textToSpeak, {
+      lang: language === 'hi' ? 'hi' : 'en',
+      onStart: () => setWalkmanPlaying(true),
+      onEnd: () => {
+        if (idx + 1 < mistakeSolutions.length) {
+          setWalkmanIndex(idx + 1);
+          speakCurrentMistake(idx + 1);
+        } else {
+          setWalkmanPlaying(false);
+        }
+      },
+      onError: () => setWalkmanPlaying(false)
+    });
   }, [mistakeSolutions, language]);
 
   const toggleWalkmanPlay = () => {
     if (walkmanPlaying) {
-      window.speechSynthesis?.cancel();
+      stopSpeech();
       setWalkmanPlaying(false);
     } else {
       speakCurrentMistake(walkmanIndex);
@@ -245,17 +257,15 @@ export default function QuizResult() {
   };
 
   const closeWalkman = () => {
-    window.speechSynthesis?.cancel();
+    stopSpeech();
     setWalkmanPlaying(false);
     setWalkmanOpen(false);
   };
 
-  // Clean up any ongoing TTS speech on component unmount
+  // Clean up any ongoing speech on component unmount
   useEffect(() => {
     return () => {
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
+      stopSpeech();
     };
   }, []);
 

@@ -33,6 +33,7 @@ import {
   prepareSpeechText,
   splitIntoSentences
 } from '../../../lib/speechVoice';
+import { playRealisticSpeech, stopSpeech } from '../../../lib/hybridVoicePlayer';
 
 export default function ZyvraAiGuruModal({
   isOpen,
@@ -332,81 +333,36 @@ export default function ZyvraAiGuruModal({
 
   // Stop currently playing speech
   const stopSpeaking = () => {
-    speakingQueueRef.current.active = false;
-    if (speakingQueueRef.current.stopFn) {
-      speakingQueueRef.current.stopFn();
-      speakingQueueRef.current.stopFn = null;
-    }
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
+    stopSpeech();
     setSpeakingIndex(null);
   };
 
-  // Refined natural audio reader with feeling, natural pauses, and emoji-free speech
+  // Ultra-realistic neural speech reader with fallback to browser HD voice
   const handleSpeak = (text, idx) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
     if (speakingIndex === idx) {
       stopSpeaking();
       return;
     }
 
     stopSpeaking();
-
-    // 1. Clean the text (no emojis, no asterisks, friendly math phrases)
-    const cleanSpeech = prepareSpeechText(text);
-    if (!cleanSpeech) return;
-
-    // 2. Split into sentence chunks for natural breathing cadence & zero timeouts
-    const sentences = splitIntoSentences(cleanSpeech);
-    if (sentences.length === 0) return;
-
-    // 3. Find the best human voice
-    const chosenVoice = pickBestVoice(voices, voiceLang);
-
-    speakingQueueRef.current.active = true;
     setSpeakingIndex(idx);
 
-    let currentSentenceIdx = 0;
-
-    const speakNextSentence = () => {
-      if (!speakingQueueRef.current.active || currentSentenceIdx >= sentences.length) {
-        stopSpeaking();
-        return;
-      }
-
-      const UtteranceClass = typeof window !== 'undefined' ? (window.SpeechSynthesisUtterance || globalThis.SpeechSynthesisUtterance) : null;
-      if (!UtteranceClass) return;
-      const sentenceText = sentences[currentSentenceIdx];
-      const utterance = new UtteranceClass(sentenceText);
-
-      if (chosenVoice) {
-        utterance.voice = chosenVoice;
-      }
-      utterance.lang = chosenVoice?.lang || voiceLang;
-      // Pacing for warm, clear teacher explanation
-      utterance.rate = 0.94;
-      utterance.pitch = 1.02;
-
-      utterance.onend = () => {
-        currentSentenceIdx++;
-        // Small 120ms human pause between sentences for emotional resonance
-        setTimeout(() => {
-          speakNextSentence();
-        }, 120);
-      };
-
-      utterance.onerror = (e) => {
-        console.warn('Speech chunk error:', e);
-        stopSpeaking();
-      };
-
-      window.speechSynthesis.speak(utterance);
-    };
-
-    speakNextSentence();
+    playRealisticSpeech(text, {
+      lang: voiceLang.startsWith('hi') ? 'hi' : 'en',
+      voices,
+      onStart: () => setSpeakingIndex(idx),
+      onEnd: () => setSpeakingIndex(null),
+      onError: () => setSpeakingIndex(null)
+    });
   };
+
+  // Stop audio whenever modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      stopSpeech();
+      setSpeakingIndex(null);
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

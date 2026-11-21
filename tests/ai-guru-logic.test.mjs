@@ -92,3 +92,27 @@ test('pickBestVoice: selects Google or Natural Hindi voice when available', () =
   assert.equal(bestEn.name, 'Microsoft Ravi');
 });
 
+test('api/tts: validates input and returns method not allowed on non-GET/POST', async () => {
+  const { default: ttsHandler } = await import('../api/tts.js');
+  
+  // Test invalid method
+  const reqInvalid = { method: 'DELETE' };
+  let statusCode = null;
+  let statusMsg = '';
+  const res = {
+    status: (code) => {
+      statusCode = code;
+      return {
+        send: (msg) => { statusMsg = msg; }
+      };
+    }
+  };
+  await ttsHandler(reqInvalid, res);
+  assert.equal(statusCode, 405);
+
+  // Test missing text
+  const reqEmpty = { method: 'GET', url: '/api/tts' };
+  await ttsHandler(reqEmpty, res);
+  assert.equal(statusCode, 400);
+});
+
