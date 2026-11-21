@@ -153,6 +153,10 @@ export default function AdminNotifications() {
         </button>
       </div>
 
+      <div className="rounded-xl border border-indigo-200 dark:border-indigo-500/30 bg-indigo-50/90 dark:bg-indigo-950/30 px-3.5 py-2.5 text-xs text-indigo-950 dark:text-indigo-200 flex items-center gap-2 mb-4">
+        <span>💡 <strong>त्वरित सहायता:</strong> यहाँ से नया नोटिस प्रकाशित करें जो छात्रों के होम डैशबोर्ड पर सबसे ऊपर दिखेगा। आप इसे सभी छात्रों या किसी ख़ास परीक्षा (BPSC, SSC, CTET) के छात्रों के लिए लक्षित कर सकते हैं।</span>
+      </div>
+
       {loadError && (
         <div className="banner error-banner" style={{ marginBottom: '16px', padding: '12px 16px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#ef4444' }}>
           <strong>Error:</strong> {loadError}
@@ -164,7 +168,7 @@ export default function AdminNotifications() {
       ) : (
         <div className="admin-two-col-grid">
           {/* Create Announcement Form */}
-          <section className="panel-card">
+          <section className="panel-card p-5 sm:p-6">
             <div className="section-heading">
               <div>
                 <div className="eyebrow">BROADCAST</div>
@@ -178,92 +182,92 @@ export default function AdminNotifications() {
 
             <form onSubmit={handleCreateAnnouncement} className="space-y-4">
               <div>
-                <label className="field-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.875rem', fontWeight: 600 }}>
-                  Subject / Heading
-                  <input
-                    type="text"
-                    placeholder="e.g. BPSC Prelims 2026 Test Series is Now Live!"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    className="text-input"
-                    style={{ marginTop: '4px', width: '100%' }}
-                    required
-                  />
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Subject / Heading *
                 </label>
+                <input
+                  type="text"
+                  placeholder="e.g. BPSC Prelims 2026 Test Series is Now Live!"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-medium placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  required
+                />
               </div>
 
-              <div style={{ marginTop: '14px' }}>
-                <label className="field-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.875rem', fontWeight: 600 }}>
-                  Message Content
-                  <textarea
-                    rows={4}
-                    placeholder="Provide details about exam dates, new question packs, or tips for learners..."
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    className="text-input"
-                    style={{ marginTop: '4px', width: '100%', resize: 'vertical' }}
-                    required
-                  />
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Message Content *
                 </label>
+                <textarea
+                  rows={4}
+                  placeholder="Provide details about exam dates, new question packs, or tips for learners..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="w-full p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-medium placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-y"
+                  required
+                />
               </div>
 
-              <div className="admin-fields-row-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="field-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.825rem', fontWeight: 600 }}>
-                    Audience
-                    <select
-                      value={targetAudience}
-                      onChange={(e) => setTargetAudience(e.target.value)}
-                      className="text-input"
-                      style={{ marginTop: '4px', width: '100%' }}
-                    >
-                      <option value="all">All Learners</option>
-                      <option value="bpsc">BPSC Aspirants</option>
-                      <option value="ssc">SSC Aspirants</option>
-                      <option value="ctet">CTET Aspirants</option>
-                    </select>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Target Audience
                   </label>
+                  <select
+                    value={targetAudience}
+                    onChange={(e) => setTargetAudience(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="all">All Learners</option>
+                    <option value="bpsc">BPSC Aspirants</option>
+                    <option value="ssc">SSC Aspirants</option>
+                    <option value="ctet">CTET Aspirants</option>
+                  </select>
                 </div>
 
                 <div>
-                  <label className="field-label" style={{ display: 'block', marginBottom: '6px', fontSize: '0.825rem', fontWeight: 600 }}>
-                    Priority
-                    <select
-                      value={priority}
-                      onChange={(e) => setPriority(e.target.value)}
-                      className="text-input"
-                      style={{ marginTop: '4px', width: '100%' }}
-                    >
-                      <option value="normal">Standard Notice</option>
-                      <option value="high">Urgent Alert</option>
-                      <option value="promo">Special Reward / Offer</option>
-                    </select>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Priority Level
                   </label>
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  >
+                    <option value="normal">Standard Notice</option>
+                    <option value="high">Urgent Alert</option>
+                    <option value="promo">Special Reward / Offer</option>
+                  </select>
                 </div>
               </div>
 
               {feedback.text && (
-                <div className={`feedback ${feedback.type === 'success' ? 'success-feedback' : 'error-feedback'}`} style={{ marginTop: '14px' }}>
+                <div className={`p-3 rounded-xl text-xs font-bold flex items-center gap-2 border ${
+                  feedback.type === 'success'
+                    ? 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-300 dark:border-emerald-500/40 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-rose-50 dark:bg-rose-950/30 border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-300'
+                }`}>
                   {feedback.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
-                  {feedback.text}
+                  <span>{feedback.text}</span>
                 </div>
               )}
 
-              <div style={{ marginTop: '20px' }}>
+              <div className="pt-2">
                 <button
                   type="submit"
-                  className="button button-gold"
                   disabled={submitting || !title.trim() || !content.trim()}
-                  style={{ width: '100%', justifyContent: 'center' }}
+                  className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs shadow-glowGold transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer active:scale-98"
                 >
-                  <Send size={15} /> {submitting ? 'Broadcasting…' : 'Publish Announcement'}
+                  <Send size={15} />
+                  <span>{submitting ? 'Broadcasting…' : 'Publish Announcement'}</span>
                 </button>
               </div>
             </form>
           </section>
 
           {/* Published Announcements List */}
-          <section className="panel-card">
+          <section className="panel-card p-5 sm:p-6">
             <div className="section-heading">
               <div>
                 <div className="eyebrow">FEED HISTORY</div>
@@ -279,53 +283,44 @@ export default function AdminNotifications() {
                 <span>Create an announcement on the left to broadcast it to students.</span>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '16px' }}>
+              <div className="flex flex-col gap-3 mt-4">
                 {announcements.map((ann) => (
                   <article
                     key={ann.id}
-                    style={{
-                      padding: '16px',
-                      borderRadius: '10px',
-                      background: 'var(--bg-subtle, rgba(255,255,255,0.03))',
-                      border: '1px solid var(--border-color, rgba(255,255,255,0.08))',
-                      position: 'relative'
-                    }}
+                    className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 shadow-sm relative"
                   >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1.5">
                           <span
-                            style={{
-                              fontSize: '0.7rem',
-                              fontWeight: 700,
-                              textTransform: 'uppercase',
-                              padding: '2px 6px',
-                              borderRadius: '4px',
-                              background: ann.priority === 'urgent' ? 'rgba(239, 68, 68, 0.15)' : ann.priority === 'promo' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                              color: ann.priority === 'urgent' ? '#f87171' : ann.priority === 'promo' ? '#fbbf24' : '#60a5fa'
-                            }}
+                            className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                              ann.priority === 'urgent'
+                                ? 'bg-rose-500/20 text-rose-500 dark:text-rose-400 border border-rose-500/30'
+                                : ann.priority === 'promo'
+                                ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
+                                : 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30'
+                            }`}
                           >
                             {ann.priority || 'NORMAL'}
                           </span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>
+                          <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                             Audience: {ann.audience?.toUpperCase() || 'ALL'}
                           </span>
                         </div>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: '0 0 6px' }}>{ann.title}</h3>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #cbd5e1)', margin: 0, whiteSpace: 'pre-line' }}>
+                        <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1">{ann.title}</h3>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 whitespace-pre-line leading-relaxed">
                           {ann.content}
                         </p>
-                        <div style={{ marginTop: '10px', fontSize: '0.75rem', color: 'var(--text-muted, #94a3b8)' }}>
+                        <div className="mt-2 text-[10px] text-slate-400">
                           Posted {new Date(ann.created_at).toLocaleString()} by {ann.author}
                         </div>
                       </div>
 
                       <button
                         type="button"
-                        className="button button-outline button-small danger-button"
+                        className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/60 hover:bg-rose-100 dark:hover:bg-rose-900/80 border border-rose-200 dark:border-rose-500/30 text-rose-600 dark:text-rose-400 transition-colors shrink-0"
                         onClick={() => handleDeleteAnnouncement(ann.id)}
                         title="Delete announcement"
-                        style={{ padding: '6px 8px', borderColor: 'rgba(239,68,68,0.3)', color: '#f87171' }}
                       >
                         <Trash2 size={14} />
                       </button>

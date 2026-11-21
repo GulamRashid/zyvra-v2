@@ -1157,6 +1157,10 @@ export default function QBankManager() {
   const [viewMode, setViewMode] = useState('list'); // 'list' | 'grouped'
   const [collapsedChapters, setCollapsedChapters] = useState(new Set());
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
   // Dialogs & Actions
   const [dialog, setDialog] = useState(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -1269,6 +1273,19 @@ export default function QBankManager() {
     const searchableText = `${question.question_text?.en || question.question_text || ''} ${question.question_text_hi || ''} ${question.subject || ''} ${question.tags || ''} ${hierarchy?.breadcrumb || ''}`.toLowerCase();
     return searchableText.includes(query);
   }), [questions, questionHierarchyMap, selectedExamId, selectedFolderId, selectedChapterId, statusFilter, optionCountFilter, usageScopeFilter, subject, difficulty, search]);
+
+  // Reset pagination on filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, subject, difficulty, statusFilter, optionCountFilter, usageScopeFilter, selectedExamId, selectedFolderId, selectedChapterId]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredQuestions.length / (pageSize || 1)));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedQuestions = useMemo(() => {
+    if (pageSize === 0) return filteredQuestions;
+    const start = (safeCurrentPage - 1) * pageSize;
+    return filteredQuestions.slice(start, start + pageSize);
+  }, [filteredQuestions, safeCurrentPage, pageSize]);
 
   // Chapter-Grouped questions mapping
   const chapterGroups = useMemo(() => {
@@ -1749,7 +1766,68 @@ export default function QBankManager() {
       </div>
     ) : (
       <div className="qbank-list">
-        {filteredQuestions.map((question) => renderQuestionCard(question))}
+        {paginatedQuestions.map((question) => renderQuestionCard(question))}
+      </div>
+    )}
+
+    {/* Pagination Bar */}
+    {filteredQuestions.length > 0 && viewMode === 'list' && (
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm mt-4">
+        <div className="text-xs text-slate-500 dark:text-slate-400">
+          Showing <span className="font-bold text-slate-800 dark:text-slate-200">{pageSize === 0 ? 1 : (safeCurrentPage - 1) * pageSize + 1}</span> to{' '}
+          <span className="font-bold text-slate-800 dark:text-slate-200">{pageSize === 0 ? filteredQuestions.length : Math.min(safeCurrentPage * pageSize, filteredQuestions.length)}</span> of{' '}
+          <span className="font-bold text-slate-800 dark:text-slate-200">{filteredQuestions.length}</span> questions
+        </div>
+
+        <div className="flex items-center gap-3">
+          <label className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <span>Per page:</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs text-slate-800 dark:text-slate-200 font-bold focus:outline-none"
+            >
+              <option value={20}>20</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={0}>All</option>
+            </select>
+          </label>
+
+          {pageSize > 0 && totalPages > 1 && (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                disabled={safeCurrentPage <= 1}
+                onClick={() => {
+                  setCurrentPage((p) => Math.max(1, p - 1));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 disabled:opacity-40 transition-colors"
+              >
+                Previous
+              </button>
+              <span className="px-2 text-xs font-bold text-slate-600 dark:text-slate-400">
+                Page {safeCurrentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={safeCurrentPage >= totalPages}
+                onClick={() => {
+                  setCurrentPage((p) => Math.min(totalPages, p + 1));
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 disabled:opacity-40 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     )}
 
