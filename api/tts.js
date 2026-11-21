@@ -21,8 +21,8 @@ async function generateGeminiSpeech(text, lang) {
   const isHindi = String(lang).toLowerCase().startsWith('hi');
   const voiceName = isHindi ? 'Sulafat' : 'Kore';
   const style = isHindi
-    ? 'calm, warm, articulate Indian teacher explaining a concept to a student with clear pronunciation and natural intonation'
-    : 'calm, warm, articulate educator explaining a concept to a student with clear pronunciation and natural intonation';
+    ? 'confident, articulate Indian teacher speaking clear Hindi at standard 1x conversational speed with crisp pronunciation and fluent tempo'
+    : 'confident, articulate educator speaking clear English at standard 1x conversational speed with crisp pronunciation and fluent tempo';
 
   try {
     const res = await fetch(url, {

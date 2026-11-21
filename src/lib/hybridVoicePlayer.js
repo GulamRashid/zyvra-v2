@@ -65,8 +65,8 @@ async function fetchNeuralSpeechBlob(cleaned, lang) {
       const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
       const voiceName = isHindi ? 'Sulafat' : 'Kore';
       const style = isHindi
-        ? 'calm, warm, articulate Indian teacher explaining a concept to a student with clear pronunciation and natural intonation'
-        : 'calm, warm, articulate educator explaining a concept to a student with clear pronunciation and natural intonation';
+        ? 'confident, articulate Indian teacher speaking clear Hindi at standard 1x conversational speed with crisp pronunciation and fluent tempo'
+        : 'confident, articulate educator speaking clear English at standard 1x conversational speed with crisp pronunciation and fluent tempo';
 
       const res = await fetch(url, {
         method: 'POST',
@@ -213,7 +213,7 @@ function playFallbackBrowserTTS(cleanedText, lang, { onStart, onEnd, onError, pl
       const utterance = new UtteranceClass(sentence);
       if (chosenVoice) utterance.voice = chosenVoice;
       utterance.lang = chosenVoice?.lang || (lang.startsWith('hi') ? 'hi-IN' : 'en-US');
-      utterance.rate = 0.95;
+      utterance.rate = 1.05;
       utterance.pitch = 1.0;
 
       utterance.onend = () => {
@@ -289,6 +289,7 @@ export async function playRealisticSpeech(rawText, options = {}) {
   if (audioSrc) {
     try {
       const audio = new Audio(audioSrc);
+      audio.playbackRate = 1.08;
       currentAudio = audio;
 
       audio.onplay = () => {
