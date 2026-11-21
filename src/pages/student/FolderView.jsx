@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight, BookOpen, ChevronRight, Clock3, Folder, FolderOpen, LockKeyhole
 } from 'lucide-react';
