@@ -78,6 +78,16 @@ CREATE POLICY "Published tests are readable"
 -- 3. HARDEN PLATFORM_SETTINGS (PREVENT PRIVATE SUPPORT CHAT LEAKS)
 -- ==============================================================================
 
+DROP POLICY IF EXISTS "Admins can update platform settings" ON public.platform_settings;
+DROP POLICY IF EXISTS "Only admins can update platform settings" ON public.platform_settings;
+
+CREATE POLICY "Only admins can update platform settings"
+  ON public.platform_settings
+  FOR ALL
+  TO authenticated
+  USING (public.is_admin_user())
+  WITH CHECK (public.is_admin_user());
+
 DROP POLICY IF EXISTS "Anyone can read platform settings" ON public.platform_settings;
 DROP POLICY IF EXISTS "Anyone can read safe platform settings" ON public.platform_settings;
 
