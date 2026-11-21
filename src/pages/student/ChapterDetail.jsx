@@ -52,27 +52,6 @@ export default function ChapterDetail() {
     return chapterTests.filter((t) => t.solution_mode !== 'immediate');
   }, [chapterTests]);
 
-  const tabsList = useMemo(() => [
-    {
-      id: 'practice',
-      label: language === 'hi' ? 'अभ्यास सेट्स' : 'Practice Sets',
-      count: practiceSets.length || (practiceQuestionsCount > 0 ? 1 : 0),
-      icon: Sparkles
-    },
-    {
-      id: 'tests',
-      label: language === 'hi' ? 'मॉक टेस्ट' : 'Mock Tests',
-      count: mockTests.length,
-      icon: Clock3
-    },
-    {
-      id: 'notes',
-      label: language === 'hi' ? 'नोट्स एवं PDF' : 'Notes & PDFs',
-      count: resources.length,
-      icon: FileText
-    }
-  ], [language, practiceSets.length, practiceQuestionsCount, mockTests.length, resources.length]);
-
   const [checkoutItem, setCheckoutItem] = useState(null);
   const [accessRefreshKey, setAccessRefreshKey] = useState(0);
   const warmQuiz = useCallback(() => {
@@ -109,6 +88,80 @@ export default function ChapterDetail() {
   const hasTests = folder?.allow_tests !== false;
   const hasPractice = folder?.allow_practice !== false;
   const hasNotes = folder?.allow_notes !== false;
+
+  // Smart dynamic tabs: Only display tabs that actually have content or are explicitly enabled
+  const tabsList = useMemo(() => {
+    const list = [];
+    const practiceCount = practiceSets.length || (practiceQuestionsCount > 0 ? 1 : 0);
+
+    // 1. Practice Sets: Only if enabled and has content
+    if (hasPractice && practiceCount > 0) {
+      list.push({
+        id: 'practice',
+        label: language === 'hi' ? 'अभ्यास सेट्स' : 'Practice Sets',
+        count: practiceCount,
+        icon: Sparkles
+      });
+    }
+
+    // 2. Mock Tests: Only if enabled and has at least 1 mock test (eliminates empty "मॉक टेस्ट 0")
+    if (hasTests && mockTests.length > 0) {
+      list.push({
+        id: 'tests',
+        label: language === 'hi' ? 'मॉक टेस्ट' : 'Mock Tests',
+        count: mockTests.length,
+        icon: Clock3
+      });
+    }
+
+    // 3. Notes & PDFs: Only if enabled and has resources
+    if (hasNotes && resources.length > 0) {
+      list.push({
+        id: 'notes',
+        label: language === 'hi' ? 'नोट्स एवं PDF' : 'Notes & PDFs',
+        count: resources.length,
+        icon: FileText
+      });
+    }
+
+    // Fallback: If chapter currently has 0 items across all enabled categories,
+    // display only the enabled categories with 0 so student sees clean "Coming soon" state without fake tabs
+    if (list.length === 0) {
+      if (hasPractice) {
+        list.push({
+          id: 'practice',
+          label: language === 'hi' ? 'अभ्यास सेट्स' : 'Practice Sets',
+          count: 0,
+          icon: Sparkles
+        });
+      }
+      if (hasTests) {
+        list.push({
+          id: 'tests',
+          label: language === 'hi' ? 'मॉक टेस्ट' : 'Mock Tests',
+          count: 0,
+          icon: Clock3
+        });
+      }
+      if (hasNotes) {
+        list.push({
+          id: 'notes',
+          label: language === 'hi' ? 'नोट्स एवं PDF' : 'Notes & PDFs',
+          count: 0,
+          icon: FileText
+        });
+      }
+    }
+
+    return list;
+  }, [hasPractice, hasTests, hasNotes, practiceSets.length, practiceQuestionsCount, mockTests.length, resources.length, language]);
+
+  // Synchronize activeTab if current tab is not available in filtered tabsList
+  useEffect(() => {
+    if (tabsList.length > 0 && !tabsList.some((t) => t.id === activeTab)) {
+      setActiveTab(tabsList[0].id);
+    }
+  }, [tabsList, activeTab]);
 
   useEffect(() => {
     let cancelled = false;
@@ -482,71 +535,58 @@ export default function ChapterDetail() {
               </div>
             </section>
 
-            {/* Tab Bar with Distinct Color Identity for Test vs Practice vs Notes */}
-            <div
-              className="flex items-center gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/85 bg-white border dark:border-slate-700/60 border-slate-200 shadow-sm"
-              role="tablist"
-              aria-label={t('chapterContent')}
-            >
-              {tabsList.map(({ id, label, count, icon: Icon }) => {
-                const isActive = activeTab === id;
-                let activeStyle = 'bg-indigo-600 text-white shadow-sm border-indigo-400/30';
-                if (id === 'practice') {
-                  activeStyle = 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm border-emerald-400/30';
-                } else if (id === 'tests') {
-                  activeStyle = 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm border-indigo-400/30';
-                } else if (id === 'notes') {
-                  activeStyle = 'bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-sm border-amber-400/30';
-                }
-
-                return (
-                  <button
-                    key={id}
-                    role="tab"
-                    aria-selected={isActive}
-                    onClick={() => setActiveTab(id)}
-                    className={`flex-1 py-2 sm:py-2.5 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all min-h-[44px] border ${
-                      isActive
-                        ? activeStyle
-                        : 'border-transparent dark:text-slate-400 text-slate-600 hover:text-black dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
-                    }`}
-                  >
-                    <Icon size={15} />
-                    <span>{label}</span>
-                    {typeof count === 'number' && (
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+            {/* Tab Bar: Only rendered when multiple content modes exist to keep UI clean and minimalist */}
+            {tabsList.length > 1 && (
+              <div
+                className="flex items-center gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/70 bg-white border dark:border-slate-800 border-slate-200/80 shadow-xs"
+                role="tablist"
+                aria-label={t('chapterContent')}
+              >
+                {tabsList.map(({ id, label, count, icon: Icon }) => {
+                  const isActive = activeTab === id;
+                  return (
+                    <button
+                      key={id}
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => setActiveTab(id)}
+                      className={`flex-1 py-2 sm:py-2.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all min-h-[44px] border ${
                         isActive
-                          ? 'bg-white/20 text-white'
-                          : 'dark:bg-slate-800 bg-slate-200/80 dark:text-slate-300 text-slate-600'
-                      }`}>
-                        {count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+                          ? 'bg-indigo-600 text-white dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 border-indigo-600 shadow-sm'
+                          : 'border-transparent dark:text-slate-400 text-slate-600 hover:text-black dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                      }`}
+                    >
+                      <Icon size={14} />
+                      <span>{label}</span>
+                      {typeof count === 'number' && (
+                        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                          isActive
+                            ? 'bg-white/20 text-white dark:bg-indigo-400/20 dark:text-indigo-200'
+                            : 'dark:bg-slate-800 bg-slate-200/80 dark:text-slate-300 text-slate-600'
+                        }`}>
+                          {count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Clear Mode Explainer Banner */}
-            <div className={`p-3 rounded-2xl border text-xs flex items-center gap-2.5 ${
-              activeTab === 'practice'
-                ? 'dark:bg-emerald-950/30 bg-emerald-50/80 border-emerald-500/30 text-emerald-800 dark:text-emerald-200'
-                : activeTab === 'tests'
-                ? 'dark:bg-indigo-950/30 bg-indigo-50/80 border-indigo-500/30 text-indigo-800 dark:text-indigo-200'
-                : 'dark:bg-amber-950/30 bg-amber-50/80 border-amber-500/30 text-amber-800 dark:text-amber-200'
-            }`}>
-              <div className="shrink-0 text-lg">
+            <div className="p-3 rounded-2xl border dark:border-slate-800 border-slate-200 dark:bg-slate-900/60 bg-slate-50 text-xs flex items-center gap-2.5 text-slate-700 dark:text-slate-300">
+              <div className="shrink-0 text-base">
                 {activeTab === 'practice' ? '🎯' : activeTab === 'tests' ? '⏱️' : '📄'}
               </div>
               <div className="min-w-0">
-                <span className="font-black block uppercase tracking-wider text-[10px]">
+                <span className="font-bold block uppercase tracking-wider text-[10px] text-slate-900 dark:text-slate-100">
                   {activeTab === 'practice'
                     ? (language === 'hi' ? 'सेल्फ-पेस्ड प्रैक्टिस मोड (Practice Mode)' : 'Self-Paced Practice Mode')
                     : activeTab === 'tests'
                     ? (language === 'hi' ? 'टाइम-बाउंड मॉक टेस्ट मोड (Real Exam Mode)' : 'Timed Exam Simulation Mode')
                     : (language === 'hi' ? 'रिवीजन नोट्स एवं PDF मोड (Study Handouts)' : 'Revision Notes & Handouts')}
                 </span>
-                <span className="text-[11px] opacity-90 block mt-0.5">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
                   {activeTab === 'practice'
                     ? (language === 'hi' ? 'हर सवाल का तुरंत समाधान देखें। कोई टाइमर का दबाव नहीं, गहरी समझ बनाएं।' : 'Instant solutions after every question. No timer stress — learn with deep concept clarity.')
                     : activeTab === 'tests'
@@ -668,10 +708,10 @@ export default function ChapterDetail() {
                         </div>
 
                         <Link
-                          className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 min-h-[44px] transition-all ${
+                          className={`w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 min-h-[44px] transition-all active:scale-98 shadow-sm ${
                             hasIncomplete
-                              ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-[0_0_15px_rgba(16,185,129,0.25)]'
-                              : 'bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-sm'
+                              ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black'
+                              : 'bg-indigo-600 hover:bg-indigo-500 text-white font-bold border border-indigo-400/20'
                           }`}
                           onClick={(event) => {
                             if (!user) {
@@ -729,7 +769,7 @@ export default function ChapterDetail() {
 
                     <button
                       type="button"
-                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-black flex items-center justify-center gap-2 min-h-[44px] shadow-sm"
+                      className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-98 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 min-h-[44px] shadow-sm border border-indigo-400/20"
                       disabled={practiceLoading}
                       onClick={handleStartPractice}
                     >
@@ -834,12 +874,12 @@ export default function ChapterDetail() {
                         </div>
 
                         <Link
-                          className={`w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 min-h-[44px] transition-all ${
+                          className={`w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 min-h-[44px] transition-all active:scale-98 shadow-sm ${
                             exhausted
                               ? 'dark:bg-slate-800 bg-slate-100 text-slate-400 border border-slate-300 pointer-events-none'
                               : hasIncomplete
-                                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-[0_0_15px_rgba(16,185,129,0.25)]'
-                                : 'bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold shadow-sm'
+                                ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 font-black'
+                                : 'bg-indigo-600 hover:bg-indigo-500 text-white font-bold border border-indigo-400/20'
                           }`}
                           onClick={(event) => {
                             if (exhausted || !user) {

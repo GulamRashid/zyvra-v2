@@ -14,22 +14,22 @@ import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 
 function AccessBadge({ label }) {
-  const lower = label.toLowerCase();
+  const lower = (label || '').toLowerCase();
   const isPaid = lower.includes('paid') || lower.includes('locked');
-  const isPurchased = lower.includes('purchased');
+  const isPurchased = lower.includes('purchased') || (label || '').includes('अनलॉक');
   const isComing = lower.includes('coming');
 
-  let badgeClasses = 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30';
+  let badgeClasses = 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20';
   if (isPurchased) {
-    badgeClasses = 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 font-black';
+    badgeClasses = 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold';
   } else if (isPaid) {
-    badgeClasses = 'bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/40 font-bold';
+    badgeClasses = 'bg-amber-400/15 text-amber-700 dark:text-amber-300 border border-amber-400/30 font-bold';
   } else if (isComing) {
     badgeClasses = 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-300 dark:border-slate-700 font-bold';
   }
 
   return (
-    <span className={`px-2.5 py-0.5 rounded-full text-[10px] uppercase tracking-wider inline-block ${badgeClasses}`}>
+    <span className={`px-2.5 py-0.5 rounded-full text-[10px] tracking-wide inline-block font-semibold ${badgeClasses}`}>
       {label}
     </span>
   );
@@ -42,6 +42,9 @@ export default function FolderView() {
   const { language } = useThemeLanguage();
   const [checkoutItem, setCheckoutItem] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [folderTests, setFolderTests] = useState([]);
+  const [folderTestsLoading, setFolderTestsLoading] = useState(false);
+
   const folder = folders.find((item) => item.id === folderId && isPublished(item));
   const exam = exams.find((item) => item.id === folder?.exam_id && isPublished(item));
   const path = useMemo(() => (folder ? getFolderPath(folder, folders) : []), [folder, folders]);
@@ -55,6 +58,32 @@ export default function FolderView() {
     const list = chapters.filter((chapter) => chapter.folder_id === folder?.id && isPublished(chapter));
     return sortContentItems(list);
   }, [chapters, folder?.id]);
+
+  // Fetch any tests assigned directly to this folder (e.g. Full Syllabus Mock Tests)
+  useEffect(() => {
+    if (!folder?.id || !supabase) return;
+    let isCancelled = false;
+    setFolderTestsLoading(true);
+    supabase
+      .from('tests')
+      .select('id, title, duration_minutes, duration_mins, total_marks, is_free, solution_mode, status, pattern_type')
+      .eq('folder_id', folder.id)
+      .eq('status', 'published')
+      .then(({ data, error: tErr }) => {
+        if (!isCancelled) {
+          if (!tErr && data) {
+            setFolderTests(data);
+          }
+          setFolderTestsLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!isCancelled) setFolderTestsLoading(false);
+      });
+    return () => {
+      isCancelled = true;
+    };
+  }, [folder?.id]);
   const parent = path.length > 1 ? path[path.length - 2] : null;
   const pricing = getFolderPricing(folder, folders);
   const examPrice = Number(exam?.price || 0);
@@ -138,17 +167,17 @@ export default function FolderView() {
 
         {!loading && !error && folder && exam && hierarchyPublished && (
           <>
-            {/* Folder Hero Banner with Tech/Data Focus Theme */}
-            <section className="relative overflow-hidden rounded-2xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50/90 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-3.5 sm:p-5 shadow-sm space-y-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-xl dark:bg-indigo-950/80 bg-white border dark:border-indigo-500/30 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-xs shrink-0">
-                  <ContentIcon icon={folder.icon_url || folder.icon} className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600 dark:text-indigo-400" fallback={FolderOpen} />
+            {/* Folder Hero Banner with Minimalist Theme */}
+            <section className="relative overflow-hidden rounded-2xl dark:bg-[#1E293B]/70 bg-white border dark:border-slate-800 border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-2.5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl dark:bg-slate-800/80 bg-slate-100 border dark:border-slate-700/60 border-slate-200 flex items-center justify-center text-indigo-500 dark:text-indigo-400 shrink-0">
+                  <ContentIcon icon={folder.icon_url || folder.icon} className="w-5 h-5 text-indigo-500 dark:text-indigo-400" fallback={FolderOpen} />
                 </div>
-                <div>
-                  <div className="text-[10px] uppercase font-bold text-indigo-600 dark:text-indigo-400 tracking-wider">
+                <div className="min-w-0 flex-1">
+                  <div className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 tracking-wider">
                     {exam.title} / {language === 'hi' ? 'पाठ्यक्रम' : 'Syllabus'}
                   </div>
-                  <h1 className="text-base sm:text-xl font-black dark:text-white text-slate-900 tracking-tight">
+                  <h1 className="text-base sm:text-xl font-bold dark:text-white text-slate-900 tracking-tight truncate">
                     {folder.title}
                   </h1>
                 </div>
@@ -158,19 +187,26 @@ export default function FolderView() {
                 {folder.description || (language === 'hi' ? 'इस अध्ययन विषय के अध्यायों और टॉपिक्स का अभ्यास करें।' : 'Explore the topics and chapters in this learning section.')}
               </p>
 
-              <div className="flex items-center gap-2 flex-wrap pt-1 text-xs sm:text-sm">
+              <div className="flex items-center gap-2 flex-wrap pt-0.5 text-xs">
                 <AccessBadge label={pricing.amount ? (accessLoading ? (language === 'hi' ? 'जाँच जारी है…' : 'Checking…') : isCurrentFolderUnlocked ? (language === 'hi' ? 'अनलॉक किया हुआ' : 'Purchased') : pricing.label) : (language === 'hi' ? 'मुफ़्त' : 'Free')} />
                 {pricing.amount > 0 && (
-                  <span className="text-amber-600 dark:text-amber-400 font-bold">
+                  <span className="text-amber-500 dark:text-amber-400 font-bold">
                     {pricing.label}
                   </span>
                 )}
-                <span className="flex items-center gap-1 text-slate-500 dark:text-emerald-300/80 font-medium">
-                  <Folder size={12} /> {childFolders.length} {language === 'hi' ? 'सब-फ़ोल्डर' : 'subfolders'}
-                </span>
-                <span className="flex items-center gap-1 text-slate-500 dark:text-emerald-300/80 font-medium">
+                {childFolders.length > 0 && (
+                  <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-medium">
+                    <Folder size={12} /> {childFolders.length} {language === 'hi' ? 'सब-फ़ोल्डर' : 'subfolders'}
+                  </span>
+                )}
+                <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-medium">
                   <BookOpen size={12} /> {folderChapters.length} {language === 'hi' ? 'अध्याय' : 'chapters'}
                 </span>
+                {folderTests.length > 0 && (
+                  <span className="flex items-center gap-1 text-amber-500 font-medium">
+                    <Clock3 size={12} /> {folderTests.length} {language === 'hi' ? 'मॉक टेस्ट' : 'mock tests'}
+                  </span>
+                )}
               </div>
             </section>
 
@@ -229,11 +265,11 @@ export default function FolderView() {
                 </h2>
               </div>
               <span className="text-xs sm:text-sm font-bold dark:text-slate-300 text-slate-700">
-                {childFolders.length + folderChapters.length} {language === 'hi' ? 'अध्ययन सामग्री' : 'learning items'}
+                {childFolders.length + folderChapters.length + folderTests.length} {language === 'hi' ? 'अध्ययन सामग्री' : 'learning items'}
               </span>
             </div>
 
-            {!childFolders.length && !folderChapters.length && (
+            {!childFolders.length && !folderChapters.length && !folderTests.length && (
               <div className="p-8 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-2">
                 <FolderOpen size={24} className="mx-auto text-indigo-500 opacity-60" />
                 <strong className="block text-sm dark:text-white text-slate-900">More learning content coming soon.</strong>
@@ -261,12 +297,12 @@ export default function FolderView() {
                     return (
                       <article
                         key={child.id}
-                        className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-xs border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 transition-all flex flex-col justify-between space-y-2 group"
+                        className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B]/70 bg-white shadow-xs border dark:border-slate-800 border-slate-200/80 hover:border-indigo-500/40 transition-all flex flex-col justify-between space-y-2 group"
                       >
                         <Link to={`/folder/${child.id}`} className="flex items-start justify-between gap-2.5">
                           <div className="flex items-start gap-2.5 min-w-0">
-                            <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform mt-0.5">
-                              <ContentIcon icon={child.icon_url || child.icon} className="w-4 h-4 text-indigo-600 dark:text-indigo-400" fallback={Folder} />
+                            <div className="w-9 h-9 rounded-xl dark:bg-slate-800/80 bg-slate-100 border dark:border-slate-700/60 border-slate-200 flex items-center justify-center text-indigo-500 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform mt-0.5">
+                              <ContentIcon icon={child.icon_url || child.icon} className="w-4 h-4 text-indigo-500 dark:text-indigo-400" fallback={Folder} />
                             </div>
                             <div className="min-w-0">
                               <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate group-hover:text-indigo-400 transition-colors">
@@ -285,7 +321,7 @@ export default function FolderView() {
                         </Link>
 
                         {childPricing.amount > 0 && !accessLoading && !accessError && !isChildUnlocked && (
-                          <div className="pt-2 border-t dark:border-slate-700/40 border-slate-100 flex justify-end">
+                          <div className="pt-2 border-t dark:border-slate-800/80 border-slate-100 flex justify-end">
                             <button
                               type="button"
                               className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[38px]"
@@ -303,73 +339,108 @@ export default function FolderView() {
               </div>
             )}
 
-            {/* Chapter Modules Section with Clear Separation */}
-            {folderChapters.length > 0 && (
-              <div className="space-y-3 pt-2">
+            {/* Full-Book / Full-Syllabus Mock Tests Section (if folder has direct mock tests) */}
+            {folderTests.length > 0 && (
+              <div className="space-y-3 pt-1">
                 <div className="flex items-center justify-between px-1">
-                  <h3 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 flex items-center gap-1.5 uppercase tracking-wider text-indigo-500">
+                  <h3 className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 flex items-center gap-1.5 uppercase tracking-wider text-amber-500">
+                    <Clock3 size={14} />
+                    <span>{language === 'hi' ? 'संपूर्ण पुस्तक मॉक टेस्ट्स' : 'Full Book Mock Tests'} ({folderTests.length})</span>
+                  </h3>
+                  <span className="text-[11px] text-slate-400 font-medium">{language === 'hi' ? 'परीक्षा हॉल पैटर्न' : 'Full Exam Mode'}</span>
+                </div>
+
+                <div className="space-y-2">
+                  {folderTests.map((test) => (
+                    <article
+                      key={test.id}
+                      className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B]/70 bg-white shadow-xs border dark:border-slate-800 border-slate-200/80 hover:border-amber-400/40 transition-all flex items-center justify-between gap-3 group"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-9 h-9 rounded-xl dark:bg-amber-500/10 bg-amber-50 border dark:border-amber-500/20 border-amber-200 flex items-center justify-center text-amber-500 shrink-0 group-hover:scale-105 transition-transform">
+                          <Clock3 size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate group-hover:text-amber-400 transition-colors">
+                            {test.title}
+                          </strong>
+                          <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate mt-0.5">
+                            {test.duration_minutes || test.duration_mins || 60} {language === 'hi' ? 'मिनट' : 'mins'} • {test.total_marks ? `${test.total_marks} अंक` : 'Timed Exam'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <Link
+                        to={isCurrentFolderUnlocked ? `/quiz/${test.id}` : '#'}
+                        onClick={(e) => {
+                          if (!isCurrentFolderUnlocked) {
+                            e.preventDefault();
+                            setCheckoutItem({
+                              itemType: 'folder',
+                              itemId: folder.id,
+                              itemTitle: folder.title,
+                              tier: 'Folder Bundle',
+                              basePrice: pricing.amount
+                            });
+                          }
+                        }}
+                        className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-98 text-white text-xs font-bold shrink-0 flex items-center gap-1.5 shadow-sm border border-indigo-400/20 min-h-[40px]"
+                      >
+                        <span>{language === 'hi' ? 'मॉक टेस्ट दें' : 'Take Mock'}</span>
+                        <ArrowRight size={13} />
+                      </Link>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Chapter Modules Section with Minimalist Cards */}
+            {folderChapters.length > 0 && (
+              <div className="space-y-3 pt-1">
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 flex items-center gap-1.5 uppercase tracking-wider text-indigo-500">
                     <BookOpen size={14} />
-                    <span>{language === 'hi' ? 'अध्याय, प्रैक्टिस एवं टेस्ट सामग्री' : 'Chapters, Practice & Mock Tests'} ({folderChapters.length})</span>
+                    <span>{language === 'hi' ? 'अध्याय एवं अभ्यास सामग्री' : 'Chapters & Learning Materials'} ({folderChapters.length})</span>
                   </h3>
                 </div>
 
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {folderChapters.map((chapter) => {
                     const access = getChapterAccess(chapter, folder, folders);
                     const isChapterUnlocked = isCurrentFolderUnlocked || access.amount <= 0 || accessByKey[`chapter:${chapter.id}`] === true;
-                    const isFree = chapter.access_mode === 'free';
 
                     return (
                       <article
                         key={chapter.id}
-                        className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-xs border dark:border-slate-700/60 border-slate-200 hover:border-indigo-500 transition-all space-y-2 group"
+                        className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B]/70 bg-white shadow-xs border dark:border-slate-800 border-slate-200/80 hover:border-indigo-500/40 dark:hover:border-indigo-500/40 transition-all space-y-2 group"
                       >
-                        <Link to={`/chapter/${chapter.id}`} className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-3 min-w-0">
-                            <div className="w-9 h-9 rounded-xl dark:bg-indigo-500/10 bg-indigo-50 border dark:border-indigo-500/20 border-indigo-200 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform mt-0.5">
+                        <Link to={`/chapter/${chapter.id}`} className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-9 h-9 rounded-xl dark:bg-slate-800/80 bg-slate-100 border dark:border-slate-700/60 border-slate-200 flex items-center justify-center text-indigo-500 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform">
                               <BookOpen size={16} />
                             </div>
                             <div className="min-w-0">
-                              <div className="flex items-center gap-2">
-                                <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate group-hover:text-indigo-400 transition-colors">
-                                  {chapter.title}
-                                </strong>
-                                {isFree && (
-                                  <span className="px-2 py-0.2 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-black text-[10px] shrink-0 border border-emerald-500/30">
-                                    🎁 Free
-                                  </span>
-                                )}
-                              </div>
+                              <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate group-hover:text-indigo-400 transition-colors">
+                                {chapter.title}
+                              </strong>
 
-                              <div className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-500 flex items-center gap-1.5 mt-0.5">
-                                <span className="font-semibold text-indigo-600 dark:text-indigo-400">{chapter.subject || 'General'}</span>
+                              <div className="text-[11px] dark:text-slate-400 text-slate-500 flex items-center gap-1.5 mt-0.5">
+                                <span className="font-semibold text-indigo-500 dark:text-indigo-400">{chapter.subject || 'General'}</span>
                                 <span>•</span>
-                                <span><Clock3 size={11} className="inline mr-0.5" />{chapter.estimated_study_time_minutes || '—'} min</span>
-                              </div>
-
-                              {/* Clear Content Mode Badges */}
-                              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                                  <span>🎯 Practice</span>
-                                </span>
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
-                                  <span>⏱️ Mock Test</span>
-                                </span>
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                                  <span>📄 Notes & PDF</span>
-                                </span>
+                                <span><Clock3 size={11} className="inline mr-0.5" />{chapter.estimated_study_time_minutes || 20} min</span>
                               </div>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 shrink-0 mt-0.5">
-                            <AccessBadge label={access.amount > 0 ? (accessLoading ? (language === 'hi' ? 'जाँच जारी है…' : 'Checking…') : isChapterUnlocked ? (language === 'hi' ? 'अनलॉक किया हुआ' : 'Purchased') : access.label) : access.label} />
-                            <ArrowRight size={15} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
+                          <div className="flex items-center gap-2 shrink-0">
+                            <AccessBadge label={access.amount > 0 ? (accessLoading ? (language === 'hi' ? 'जाँच जारी है…' : 'Checking…') : isChapterUnlocked ? (language === 'hi' ? 'अनलॉक किया हुआ' : 'Purchased') : access.label) : (language === 'hi' ? 'मुफ़्त' : 'Free')} />
+                            <ArrowRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                           </div>
                         </Link>
 
                         {access.amount > 0 && !isChapterUnlocked && (
-                          <div className="pt-2 border-t dark:border-slate-700/40 border-slate-100 flex justify-end">
+                          <div className="pt-2 border-t dark:border-slate-800/80 border-slate-100 flex justify-end">
                             <button
                               type="button"
                               className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[38px]"
