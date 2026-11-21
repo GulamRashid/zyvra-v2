@@ -73,6 +73,8 @@ function AppRoutes() {
     <Route path="/auth" element={<AuthPage />} />
     <Route path="/privacy" element={<LegalPage />} />
     <Route path="/terms" element={<LegalPage />} />
+    <Route path="/refunds" element={<LegalPage />} />
+    <Route path="/cancellation-refund" element={<LegalPage />} />
     <Route path="/quiz/:testId" element={<QuizErrorBoundary><ProtectedRoute><LiveQuiz /></ProtectedRoute></QuizErrorBoundary>} />
     <Route path="/quiz/result/:attemptId" element={<ProtectedRoute><QuizResult /></ProtectedRoute>} />
     <Route path="/admin" element={<ProtectedRoute admin><AdminLayout /></ProtectedRoute>}>
