@@ -788,7 +788,7 @@ export default function StudentToolbox() {
                           <div className="flex items-center gap-1.5">
                             {locked ? (
                               <span className="px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/30 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
-                                🔒 ₹{getToolConfig(tool).price || 49}
+                                🔒 ₹{getToolConfig(tool).price ?? 49}
                               </span>
                             ) : (
                               <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">
