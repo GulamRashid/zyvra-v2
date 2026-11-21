@@ -62,11 +62,16 @@ export default function AdminLayout() {
   return <div className="admin-shell">
     {!isSidebarCollapsed && <button type="button" className="drawer-scrim admin-drawer-scrim" aria-label="Close admin navigation" onClick={closeSidebar} />}
     <aside id="admin-navigation" className={`admin-sidebar ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <div className="sidebar-brand admin-brand"><NavLink to="/admin" onClick={closeSidebar} className="sidebar-brand"><img src="/logo-192.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" /><div>ZYVRA<span>CONTROL CENTER</span></div></NavLink></div>
-      <nav className="side-nav admin-nav space-y-4">
+      <div className="sidebar-brand admin-brand shrink-0 pb-3 mb-1 border-b border-slate-200 dark:border-slate-800/80">
+        <NavLink to="/admin" onClick={closeSidebar} className="sidebar-brand">
+          <img src="/logo-192.png" alt="Zyvra" className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl object-contain shadow-sm" />
+          <div>ZYVRA<span>CONTROL CENTER</span></div>
+        </NavLink>
+      </div>
+      <nav className="side-nav admin-nav space-y-1.5 no-scrollbar">
         {navigationSections.map((section) => (
           <div key={section.title} className="space-y-0.5">
-            <div className="sidebar-caption px-3 pt-2 pb-1 text-[10px] tracking-wider text-slate-400 dark:text-slate-500 font-bold uppercase">
+            <div className="sidebar-caption px-2 pt-1 pb-0.5 text-[9px] tracking-wider text-slate-400 dark:text-slate-500 font-bold uppercase">
               {section.title}
             </div>
             {section.items.map(({ to, label, Icon, end }) => (
@@ -77,14 +82,14 @@ export default function AdminLayout() {
                 onClick={closeSidebar}
                 className={({ isActive }) => `side-link ${isActive ? 'active' : ''}`}
               >
-                <Icon size={17} />
+                <Icon size={15} />
                 <span>{label}</span>
               </NavLink>
             ))}
           </div>
         ))}
       </nav>
-      <div className="admin-sidebar-footer"><div className="health-dot" /> All systems operational</div>
+      <div className="admin-sidebar-footer shrink-0"><div className="health-dot" /> All systems operational</div>
     </aside>
     <div className={`admin-main ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       <header className="admin-topbar"><div>{isSidebarCollapsed

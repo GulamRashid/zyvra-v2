@@ -5,7 +5,7 @@ import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';
 
 function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
-  const { supabase } = useAuth();
+  const { user, supabase, refreshAccount } = useAuth();
   const [access, setAccess] = useState([]);
   const [orders, setOrders] = useState([]);
   const [accessLoading, setAccessLoading] = useState(true);
@@ -85,6 +85,9 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
         });
         if (rpcError) throw rpcError;
         setMessage(`Role changed to ${newRole}.`);
+        if (profile.id === user?.id && typeof refreshAccount === 'function') {
+          await refreshAccount();
+        }
       } else {
         const { error: rpcError } = await supabase.rpc('admin_grant_user_access', {
           p_user_id: profile.id,
