@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   BadgePercent,
+  Check,
   CheckCircle2,
   ChevronDown,
   ChevronRight,
   Coins,
+  Copy,
   Crown,
   FileQuestion,
   FileText,
@@ -83,8 +85,20 @@ export default function PricingManager() {
 
   // Coupons state from platform_settings
   const [coupons, setCoupons] = useState([]);
+  const [couponDraft, setCouponDraft] = useState({
+    code: '',
+    discount_type: 'percent',
+    discount_value: '',
+    scope: 'global',
+    target_exam_id: '',
+    target_folder_id: '',
+    active: true
+  });
+  const [couponSearch, setCouponSearch] = useState('');
+  const [createCouponModalOpen, setCreateCouponModalOpen] = useState(false);
+  const [copiedCouponCode, setCopiedCouponCode] = useState('');
 
-  // Active top tab: 'tree' | 'full_pass'
+  // Active top tab: 'tree' | 'full_pass' | 'coupons'
   const [activeTab, setActiveTab] = useState('tree');
 
   // Platform Full Pass configuration state
@@ -137,7 +151,10 @@ export default function PricingManager() {
           if (key === 'content_pricing_rules' && val && typeof val === 'object') {
             setPricingRules(val);
           } else if (key === 'coupon_codes' && Array.isArray(val)) {
-            setCoupons(val);
+            const normalized = val
+              .filter((c) => c && typeof c === 'object')
+              .map((c) => ({ ...c, id: c.id || `c-${c.code}` }));
+            setCoupons(normalized);
           } else if (key === 'full_pass_config' && val && typeof val === 'object') {
             setFullPassConfig((prev) => ({
               ...prev,
@@ -560,7 +577,143 @@ export default function PricingManager() {
     }
   };
 
-  // Real Delete Item Action
+  // Save coupons array to platform_settings
+  const saveCouponsToDatabase = async (nextCoupons) => {
+    if (!supabase) {
+      setStatusMessage({ text: 'Database is unavailable. Cannot save coupons.', type: 'error' });
+      return false;
+    }
+    setSaving(true);
+    setStatusMessage({ text: '', type: '' });
+    try {
+      const now = new Date().toISOString();
+      const payload = nextCoupons.map((c) => ({
+        id: c.id || `c-${Date.now()}-${c.code}`,
+        code: String(c.code).trim().toUpperCase(),
+        discount_type: c.discount_type || 'percent',
+        discount_value: Number(c.discount_value) || 0,
+        scope: c.scope || 'global',
+        target_folder_id: c.scope === 'folder' ? (c.target_folder_id || null) : null,
+        target_exam_id: c.scope === 'exam' ? (c.target_exam_id || null) : null,
+        active: c.active !== false,
+        created_at: c.created_at || now,
+        expires_at: c.expires_at || null
+      }));
+
+      const { error: upsertError } = await supabase.from('platform_settings').upsert({
+        setting_key: 'coupon_codes',
+        key: 'coupon_codes',
+        setting_value: payload,
+        value: payload,
+        updated_at: now
+      }, { onConflict: 'setting_key' });
+
+      if (upsertError) throw upsertError;
+
+      setCoupons(payload);
+      setStatusMessage({ text: 'Coupons updated successfully in cloud database!', type: 'success' });
+      return true;
+    } catch (err) {
+      console.error('Failed to save coupons:', err);
+      setStatusMessage({ text: err.message || 'Failed to save coupons.', type: 'error' });
+      return false;
+    } finally {
+      setSaving(false);
+      setTimeout(() => setStatusMessage({ text: '', type: '' }), 4000);
+    }
+  };
+
+  // Create new coupon
+  const handleCreateCoupon = async (e) => {
+    e?.preventDefault();
+    const code = String(couponDraft.code || '').trim().toUpperCase();
+    if (!code) {
+      setStatusMessage({ text: 'Please enter a coupon code.', type: 'error' });
+      return;
+    }
+    if (!/^[A-Z0-9_-]{3,32}$/.test(code)) {
+      setStatusMessage({ text: 'Coupon code must be 3-32 characters using uppercase letters, numbers, or dashes (e.g. ZYVRA50).', type: 'error' });
+      return;
+    }
+    const discountVal = Number(couponDraft.discount_value);
+    if (!discountVal || discountVal <= 0) {
+      setStatusMessage({ text: 'Please enter a valid discount amount greater than 0.', type: 'error' });
+      return;
+    }
+    if (couponDraft.discount_type === 'percent' && discountVal > 100) {
+      setStatusMessage({ text: 'Percentage discount cannot exceed 100%.', type: 'error' });
+      return;
+    }
+    if (coupons.some((c) => String(c.code).trim().toUpperCase() === code)) {
+      setStatusMessage({ text: `Coupon code '${code}' already exists!`, type: 'error' });
+      return;
+    }
+
+    const newCoupon = {
+      id: `c-${Date.now()}-${code}`,
+      code,
+      discount_type: couponDraft.discount_type,
+      discount_value: discountVal,
+      scope: couponDraft.scope,
+      target_folder_id: couponDraft.scope === 'folder' ? couponDraft.target_folder_id : null,
+      target_exam_id: couponDraft.scope === 'exam' ? couponDraft.target_exam_id : null,
+      active: couponDraft.active !== false,
+      created_at: new Date().toISOString()
+    };
+
+    const nextCoupons = [newCoupon, ...coupons];
+    const success = await saveCouponsToDatabase(nextCoupons);
+    if (success) {
+      setCouponDraft({
+        code: '',
+        discount_type: 'percent',
+        discount_value: '',
+        scope: 'global',
+        target_exam_id: '',
+        target_folder_id: '',
+        active: true
+      });
+      setCreateCouponModalOpen(false);
+    }
+  };
+
+  // Delete existing coupon
+  const handleDeleteCoupon = async (couponIdOrCode) => {
+    const target = coupons.find((c) => (c.id || c.code) === couponIdOrCode || c.code === couponIdOrCode);
+    const codeName = target?.code || couponIdOrCode;
+    if (!window.confirm(`Are you sure you want to permanently delete coupon "${codeName}"? Students will no longer be able to use it.`)) {
+      return;
+    }
+    const nextCoupons = coupons.filter((c) => (c.id || c.code) !== couponIdOrCode && c.code !== couponIdOrCode);
+    await saveCouponsToDatabase(nextCoupons);
+  };
+
+  // Toggle active/inactive
+  const handleToggleCoupon = async (couponIdOrCode) => {
+    const nextCoupons = coupons.map((c) => {
+      if ((c.id || c.code) === couponIdOrCode || c.code === couponIdOrCode) {
+        return { ...c, active: !c.active };
+      }
+      return c;
+    });
+    await saveCouponsToDatabase(nextCoupons);
+  };
+
+  const handleCopyCoupon = (code) => {
+    navigator.clipboard?.writeText(code);
+    setCopiedCouponCode(code);
+    setTimeout(() => setCopiedCouponCode(''), 2000);
+  };
+
+  const filteredCoupons = useMemo(() => {
+    if (!couponSearch.trim()) return coupons;
+    const q = couponSearch.toLowerCase().trim();
+    return coupons.filter((c) =>
+      c.code.toLowerCase().includes(q) ||
+      String(c.discount_value).includes(q) ||
+      (c.scope || '').toLowerCase().includes(q)
+    );
+  }, [coupons, couponSearch]);
   const handleDeleteItem = async () => {
     if (!currentSelectedItem || !supabase) return;
     const confirmName = prompt(`Type "${currentSelectedItem.title}" to confirm permanent deletion:`);
@@ -768,13 +921,21 @@ export default function PricingManager() {
           <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">{tests.length} Active Tests</div>
         </div>
 
-        <div className="p-3.5 rounded-2xl bg-white dark:bg-[#1E293B] border border-slate-200 dark:border-slate-700/60 shadow-sm">
+        <button
+          type="button"
+          onClick={() => setActiveTab('coupons')}
+          className={`p-3.5 rounded-2xl border text-left transition-all ${
+            activeTab === 'coupons'
+              ? 'bg-amber-500/20 border-amber-400 ring-2 ring-amber-400/50 shadow-glowGold'
+              : 'bg-white dark:bg-[#1E293B] border-slate-200 dark:border-slate-700/60 hover:border-amber-400/60 shadow-sm'
+          }`}
+        >
           <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-semibold mb-1">
             <BadgePercent size={14} /> Active Coupons
           </div>
           <div className="text-xl font-black text-amber-600 dark:text-amber-400">{coupons.length}</div>
-          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Configured</div>
-        </div>
+          <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Manage & Create ↗</div>
+        </button>
 
         <button
           type="button"
@@ -808,6 +969,24 @@ export default function PricingManager() {
         >
           <Layers size={14} />
           <span>Syllabus & Tree Pricing</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('coupons')}
+          className={`px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 ${
+            activeTab === 'coupons'
+              ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black shadow-glowGold'
+              : 'bg-white hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-amber-300 border border-slate-200 dark:border-slate-700 font-bold shadow-sm'
+          }`}
+        >
+          <BadgePercent size={14} className={activeTab === 'coupons' ? 'text-slate-950' : 'text-amber-500 dark:text-amber-300'} />
+          <span>Discount Coupons Studio</span>
+          <span className={`text-[9px] px-2 py-0.5 rounded-full font-black ${
+            activeTab === 'coupons' ? 'bg-slate-950/20 text-slate-950' : 'bg-amber-500/20 text-amber-500 dark:text-amber-300'
+          }`}>
+            {coupons.length} Active
+          </span>
         </button>
 
         <button
@@ -1269,7 +1448,29 @@ export default function PricingManager() {
                 <BadgePercent size={14} className="text-amber-500 dark:text-amber-400" />
                 <span>Configured Coupons</span>
               </h3>
-              <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">{coupons.length} Active</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">{coupons.length} total</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCouponDraft({
+                      code: '',
+                      discount_type: 'percent',
+                      discount_value: '',
+                      scope: 'global',
+                      target_exam_id: '',
+                      target_folder_id: '',
+                      active: true
+                    });
+                    setCreateCouponModalOpen(true);
+                  }}
+                  className="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-500 dark:text-amber-300 text-[10px] font-black flex items-center gap-1 transition-colors"
+                  title="Create a new discount coupon"
+                >
+                  <Plus size={11} />
+                  <span>+ New</span>
+                </button>
+              </div>
             </div>
 
             <div className="space-y-1.5 max-h-[300px] overflow-y-auto no-scrollbar">
@@ -1283,15 +1484,36 @@ export default function PricingManager() {
                     key={c.id || c.code}
                     className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700/60 flex items-center justify-between shadow-sm"
                   >
-                    <div>
-                      <div className="text-xs font-mono font-black text-amber-600 dark:text-amber-300">{c.code}</div>
-                      <div className="text-[10px] text-slate-500 dark:text-slate-400">
+                    <div className="min-w-0 flex-1 mr-2">
+                      <div className="text-xs font-mono font-black text-amber-600 dark:text-amber-300 truncate">{c.code}</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
                         {c.discount_type === 'percent' ? `${c.discount_value}% OFF` : `₹${c.discount_value} OFF`} · {c.scope || 'global'}
                       </div>
                     </div>
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/30">
-                      Active
-                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleCoupon(c.id || c.code)}
+                        disabled={saving}
+                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold border transition-colors ${
+                          c.active !== false
+                            ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-100'
+                            : 'bg-slate-200 dark:bg-neutral-800 text-slate-600 dark:text-neutral-400 border-slate-300 dark:border-neutral-700 hover:bg-slate-300'
+                        }`}
+                        title={c.active !== false ? 'Click to deactivate' : 'Click to activate'}
+                      >
+                        {c.active !== false ? 'Active' : 'Off'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCoupon(c.id || c.code)}
+                        disabled={saving}
+                        className="p-1 rounded text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-colors"
+                        title={`Delete coupon ${c.code}`}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
@@ -1701,6 +1923,508 @@ export default function PricingManager() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* TAB 3: DISCOUNT COUPONS STUDIO */}
+      {/* ======================================================== */}
+      {activeTab === 'coupons' && (
+        <div className="space-y-5">
+          {/* Top Banner Notice */}
+          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-500/15 via-rose-500/10 to-indigo-500/15 border border-amber-400/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-rose-500 text-slate-950 flex items-center justify-center text-2xl shadow-glowGold shrink-0">
+                🏷️
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                    Promotions & Discounts
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    {coupons.filter((c) => c.active !== false).length} Active Live
+                  </span>
+                </div>
+                <h2 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                  Discount Coupons Studio
+                </h2>
+                <p className="text-xs text-slate-300 font-medium max-w-2xl mt-0.5">
+                  यहाँ से आप अपने छात्रों के लिए नए डिस्काउंट कोड्स (Flat ₹ या % OFF) बना सकते हैं, चालू/बंद कर सकते हैं, या हमेशा के लिए डिलीट कर सकते हैं। यह चेकआउट के समय लाइव काम करता है।
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setCouponDraft({
+                  code: '',
+                  discount_type: 'percent',
+                  discount_value: '',
+                  scope: 'global',
+                  target_exam_id: '',
+                  target_folder_id: '',
+                  active: true
+                });
+                setCreateCouponModalOpen(true);
+              }}
+              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-glowGold transition-all flex items-center justify-center gap-2 shrink-0 active:scale-95"
+            >
+              <Plus size={15} />
+              <span>+ Create New Coupon</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            {/* Left 5 Columns: Create Form Card */}
+            <div className="lg:col-span-5 space-y-4">
+              <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 pb-3">
+                  <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                    <BadgePercent size={16} className="text-amber-500 dark:text-amber-400" />
+                    <span>Create Discount Coupon</span>
+                  </h3>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">New Code</span>
+                </div>
+
+                <form onSubmit={handleCreateCoupon} className="space-y-3.5">
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      Coupon Code (कूपन कोड) *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. ZYVRA50, FESTIVAL20, DIWALI75"
+                      value={couponDraft.code}
+                      onChange={(e) => setCouponDraft((prev) => ({ ...prev, code: e.target.value.toUpperCase().replace(/\s+/g, '') }))}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-mono font-black focus:outline-none focus:border-amber-400 uppercase tracking-wider"
+                    />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block mt-1">
+                      छात्र चेकआउट पर यह कोड दर्ज करेंगे (उदा. ZYVRA50)
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                        Discount Type
+                      </label>
+                      <select
+                        value={couponDraft.discount_type}
+                        onChange={(e) => setCouponDraft((prev) => ({ ...prev, discount_type: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                      >
+                        <option value="percent">Percentage (% छूट)</option>
+                        <option value="flat">Flat Amount (₹ छूट)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                        Discount Amount *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-slate-400 text-xs font-bold">
+                          {couponDraft.discount_type === 'percent' ? '%' : '₹'}
+                        </span>
+                        <input
+                          type="number"
+                          required
+                          min="1"
+                          max={couponDraft.discount_type === 'percent' ? 100 : 100000}
+                          placeholder={couponDraft.discount_type === 'percent' ? '50' : '200'}
+                          value={couponDraft.discount_value}
+                          onChange={(e) => setCouponDraft((prev) => ({ ...prev, discount_value: e.target.value }))}
+                          className="w-full pl-7 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-black focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Preset Buttons */}
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 block mb-1.5">
+                      Quick Preset Values:
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {couponDraft.discount_type === 'percent' ? (
+                        [10, 20, 25, 50, 60, 75, 90].map((val) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setCouponDraft((prev) => ({ ...prev, discount_value: String(val) }))}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                              String(couponDraft.discount_value) === String(val)
+                                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            {val}%
+                          </button>
+                        ))
+                      ) : (
+                        [50, 100, 200, 500, 999].map((val) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setCouponDraft((prev) => ({ ...prev, discount_value: String(val) }))}
+                            className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                              String(couponDraft.discount_value) === String(val)
+                                ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+                            }`}
+                          >
+                            ₹{val}
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Scope Selection */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                      Applicable Scope (कहाँ लागू होगा)
+                    </label>
+                    <select
+                      value={couponDraft.scope}
+                      onChange={(e) => setCouponDraft((prev) => ({ ...prev, scope: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                    >
+                      <option value="global">Global (All Platform Items, Passes & Tests)</option>
+                      <option value="exam">Specific Exam Only</option>
+                      <option value="folder">Specific Folder Only</option>
+                    </select>
+                  </div>
+
+                  {couponDraft.scope === 'exam' && (
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                        Select Exam
+                      </label>
+                      <select
+                        value={couponDraft.target_exam_id}
+                        onChange={(e) => setCouponDraft((prev) => ({ ...prev, target_exam_id: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                      >
+                        <option value="">-- Choose Exam --</option>
+                        {exams.map((exam) => (
+                          <option key={exam.id} value={exam.id}>
+                            {exam.title} ({exam.category || 'Exam'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {couponDraft.scope === 'folder' && (
+                    <div>
+                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                        Target Folder ID
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. folder UUID"
+                        value={couponDraft.target_folder_id}
+                        onChange={(e) => setCouponDraft((prev) => ({ ...prev, target_folder_id: e.target.value }))}
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  )}
+
+                  {/* Active Toggle */}
+                  <label className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700/60 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(couponDraft.active)}
+                      onChange={(e) => setCouponDraft((prev) => ({ ...prev, active: e.target.checked }))}
+                      className="accent-amber-400 w-4 h-4 rounded cursor-pointer"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <strong className="text-xs font-bold text-slate-900 dark:text-white block">
+                        Activate Immediately
+                      </strong>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                        बनाते ही छात्र इस कूपन का उपयोग चेकआउट में कर सकेंगे।
+                      </span>
+                    </div>
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={saving || !couponDraft.code.trim() || !couponDraft.discount_value}
+                    className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-slate-950 font-black text-xs shadow-glowGold transition-all flex items-center justify-center gap-2 disabled:opacity-50 active:scale-98"
+                  >
+                    <Plus size={16} />
+                    <span>{saving ? 'Saving Coupon...' : 'Save & Publish Coupon'}</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* Right 7 Columns: Active & Configured Coupons List */}
+            <div className="lg:col-span-7 space-y-4">
+              <div className="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#1E293B]/70 border border-slate-200 dark:border-slate-700/60 shadow-sm space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-700/80 pb-3">
+                  <div>
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      <Sparkles size={15} className="text-amber-500 dark:text-amber-400" />
+                      <span>Configured Coupons ({filteredCoupons.length})</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                      क्लिक करके कूपन कोड कॉपी करें, चालू/बंद करें या डिलीट करें।
+                    </p>
+                  </div>
+
+                  <div className="relative w-full sm:w-56">
+                    <Search size={13} className="absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="Search coupons..."
+                      value={couponSearch}
+                      onChange={(e) => setCouponSearch(e.target.value)}
+                      className="w-full pl-8 pr-3 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+
+                {filteredCoupons.length === 0 ? (
+                  <div className="py-12 text-center rounded-2xl border border-dashed border-slate-300 dark:border-slate-700/60 p-6">
+                    <div className="w-12 h-12 mx-auto rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500 text-xl mb-3">
+                      🏷️
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">No coupons found</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                      {couponSearch ? 'No coupons match your search query.' : 'No discount coupons have been created yet. Use the form on the left to create your first coupon!'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {filteredCoupons.map((coupon) => {
+                      const isPercent = coupon.discount_type === 'percent';
+                      const isActive = coupon.active !== false;
+                      const isCopied = copiedCouponCode === coupon.code;
+
+                      return (
+                        <div
+                          key={coupon.id || coupon.code}
+                          className={`p-3.5 sm:p-4 rounded-2xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                            isActive
+                              ? 'bg-slate-50 dark:bg-slate-900/90 border-slate-200 dark:border-slate-700/70 hover:border-amber-400/40'
+                              : 'bg-slate-100/60 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 opacity-60'
+                          }`}
+                        >
+                          <div className="flex items-start sm:items-center gap-3 min-w-0">
+                            {/* Copy button with Code */}
+                            <button
+                              type="button"
+                              onClick={() => handleCopyCoupon(coupon.code)}
+                              className="px-3 py-2 rounded-xl bg-amber-500/10 dark:bg-amber-400/15 border border-amber-400/30 hover:border-amber-400 text-amber-700 dark:text-amber-300 font-mono font-black text-sm tracking-wider flex items-center gap-1.5 transition-all active:scale-95 group shrink-0"
+                              title="Click to copy coupon code"
+                            >
+                              <span>{coupon.code}</span>
+                              {isCopied ? (
+                                <Check size={13} className="text-emerald-500 dark:text-emerald-400" />
+                              ) : (
+                                <Copy size={13} className="opacity-60 group-hover:opacity-100" />
+                              )}
+                            </button>
+
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                                  isPercent
+                                    ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                                    : 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30'
+                                }`}>
+                                  {isPercent ? `${coupon.discount_value}% OFF` : `₹${coupon.discount_value} FLAT OFF`}
+                                </span>
+
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                  Scope: {coupon.scope === 'exam' ? `Exam (${coupon.target_exam_id || 'ID'})` : coupon.scope === 'folder' ? 'Folder' : 'Global (All items)'}
+                                </span>
+                              </div>
+
+                              <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-1 truncate">
+                                {isActive ? 'Live & available to students at checkout' : 'Disabled — cannot be applied by students'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Action Buttons: Toggle Active & Delete */}
+                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleCoupon(coupon.id || coupon.code)}
+                              disabled={saving}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-black border transition-all active:scale-95 ${
+                                isActive
+                                  ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/30 hover:bg-emerald-100'
+                                  : 'bg-slate-200 dark:bg-neutral-800 text-slate-600 dark:text-neutral-400 border-slate-300 dark:border-neutral-700 hover:bg-slate-300'
+                              }`}
+                              title={isActive ? 'Click to deactivate coupon' : 'Click to activate coupon'}
+                            >
+                              {isActive ? 'Active (चालू)' : 'Paused (बंद)'}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteCoupon(coupon.id || coupon.code)}
+                              disabled={saving}
+                              className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/20 border border-slate-200 dark:border-slate-700/60 transition-all active:scale-95"
+                              title={`Delete ${coupon.code} coupon permanently`}
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Create Coupon Modal */}
+      {createCouponModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md p-6 rounded-3xl bg-white dark:bg-[#0B1120] border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white space-y-4 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black flex items-center gap-2">
+                <BadgePercent size={18} className="text-amber-400" />
+                <span>Create New Coupon Code</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setCreateCouponModalOpen(false)}
+                className="text-neutral-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCoupon} className="space-y-3.5">
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Coupon Code *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. ZYVRA50, NEWYEAR25"
+                  value={couponDraft.code}
+                  onChange={(e) => setCouponDraft((prev) => ({ ...prev, code: e.target.value.toUpperCase().replace(/\s+/g, '') }))}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-mono font-black focus:outline-none focus:border-amber-400 uppercase tracking-wider"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Discount Type
+                  </label>
+                  <select
+                    value={couponDraft.discount_type}
+                    onChange={(e) => setCouponDraft((prev) => ({ ...prev, discount_type: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                  >
+                    <option value="percent">Percentage (% छूट)</option>
+                    <option value="flat">Flat Amount (₹ छूट)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Discount Amount *
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-slate-400 text-xs font-bold">
+                      {couponDraft.discount_type === 'percent' ? '%' : '₹'}
+                    </span>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max={couponDraft.discount_type === 'percent' ? 100 : 100000}
+                      placeholder={couponDraft.discount_type === 'percent' ? '50' : '200'}
+                      value={couponDraft.discount_value}
+                      onChange={(e) => setCouponDraft((prev) => ({ ...prev, discount_value: e.target.value }))}
+                      className="w-full pl-7 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm font-black focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                  Applicable Scope
+                </label>
+                <select
+                  value={couponDraft.scope}
+                  onChange={(e) => setCouponDraft((prev) => ({ ...prev, scope: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                >
+                  <option value="global">Global (All Platform Items)</option>
+                  <option value="exam">Specific Exam Only</option>
+                  <option value="folder">Specific Folder Only</option>
+                </select>
+              </div>
+
+              {couponDraft.scope === 'exam' && (
+                <div>
+                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">
+                    Select Exam
+                  </label>
+                  <select
+                    value={couponDraft.target_exam_id}
+                    onChange={(e) => setCouponDraft((prev) => ({ ...prev, target_exam_id: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs font-bold focus:outline-none focus:border-amber-400"
+                  >
+                    <option value="">-- Choose Exam --</option>
+                    {exams.map((exam) => (
+                      <option key={exam.id} value={exam.id}>
+                        {exam.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={Boolean(couponDraft.active)}
+                  onChange={(e) => setCouponDraft((prev) => ({ ...prev, active: e.target.checked }))}
+                  className="accent-amber-400 w-4 h-4 rounded cursor-pointer"
+                />
+                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                  Activate Immediately (कूपन तुरंत चालू रखें)
+                </span>
+              </label>
+
+              <div className="pt-2 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCreateCouponModalOpen(false)}
+                  className="px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-bold text-slate-300"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || !couponDraft.code.trim() || !couponDraft.discount_value}
+                  className="px-4 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold"
+                >
+                  {saving ? 'Creating...' : 'Create Coupon'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
