@@ -12,6 +12,7 @@ import QuestionFormatter from '../../components/common/QuestionFormatter';
 import UploadGuide from '../../components/common/UploadGuide';
 import PcsQuestionGeneratorModal from '../../components/admin/PcsQuestionGeneratorModal';
 import HierarchicalChapterSelect from '../../components/admin/HierarchicalChapterSelect';
+import HierarchicalFolderSelect from '../../components/admin/HierarchicalFolderSelect';
 
 export function getChapterHierarchyPath(chapterId, chaptersMap, foldersMap, examsMap) {
   if (!chapterId) {
@@ -1584,22 +1585,20 @@ export default function QBankManager() {
         </label>
 
         {/* Folder / Sub-folder */}
-        <label className="filter-select">
-          <span>Folder</span>
-          <select
-            className="text-input"
+        <div className="filter-select min-w-[220px]">
+          <span className="block text-xs font-semibold text-slate-400 mb-1">Folder</span>
+          <HierarchicalFolderSelect
+            folders={folders}
+            exams={exams}
+            selectedExamId={selectedExamId}
             value={selectedFolderId}
-            onChange={(event) => {
-              setSelectedFolderId(event.target.value);
+            onChange={(folderId) => {
+              setSelectedFolderId(folderId);
               setSelectedChapterId('all');
             }}
-          >
-            <option value="all">All folders</option>
-            {availableFolders.map((folder) => (
-              <option value={folder.id} key={folder.id}>{folder.fullPath}</option>
-            ))}
-          </select>
-        </label>
+            allOptionLabel="All folders"
+          />
+        </div>
 
         {/* Chapter */}
         <label className="filter-select">

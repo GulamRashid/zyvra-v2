@@ -2037,7 +2037,7 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
   .import-modal-actions { flex-direction: row; align-items: center; }
   .import-modal-actions .button { width: auto; }
 }
-.test-manager-layout { display: grid; grid-template-columns: minmax(245px, .7fr) minmax(0, 1.8fr); align-items: start; gap: 13px; }
+.test-manager-layout { display: grid; grid-template-columns: minmax(280px, .9fr) minmax(0, 1.8fr); align-items: start; gap: 14px; }
 .test-list-panel, .test-builder-panel { min-width: 0; padding: 15px; }
 .test-list-panel .section-heading h2, .test-order-section .section-heading h2, .test-question-picker .section-heading h2 { font-size: 14px; }
 .test-list-panel > .content-search { margin: 12px 0; }
@@ -2057,9 +2057,9 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
 .test-list-item:hover, .test-list-item.selected { border-color: var(--line); background: var(--panel2); }
 .test-list-icon { display: grid; width: 31px; height: 31px; flex: 0 0 auto; place-items: center; border-radius: 8px; background: rgba(228, 184, 95, .09); color: var(--gold); }
 .test-list-item > span:nth-child(2) { display: grid; min-width: 0; flex: 1; gap: 2px; }
-.test-list-item strong { overflow: hidden; color: var(--text); font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.test-list-item small { color: var(--muted); font-size: 7px; }
-.test-list-item .content-status { font-size: 6px; }
+.test-list-item strong { overflow: hidden; color: var(--text); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.test-list-item small { color: var(--muted); font-size: 11px; }
+.test-list-item .content-status { font-size: 10px; }
 .test-builder-panel { display: grid; gap: 15px; }
 .test-config-chips { display: flex; flex-wrap: wrap; gap: 7px; }
 .test-config-chips > span { display: inline-flex; min-height: 27px; align-items: center; gap: 5px; padding: 0 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--muted); font-size: 8px; }

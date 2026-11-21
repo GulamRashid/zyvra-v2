@@ -46,7 +46,7 @@ export default function AdminReports() {
     try {
       const queryFns = {
         users: () => supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        attempts: () => supabase.from('test_attempts').select('score, status, time_spent, state_json'),
+        attempts: () => supabase.from('test_attempts').select('score, status, time_spent_seconds, state_json'),
         orders: () => supabase.from('payment_orders').select('amount, status'),
         wallets: () => supabase.from('coin_wallets').select('balance'),
         referrals: () => supabase.from('referrals').select('id', { count: 'exact', head: true }),

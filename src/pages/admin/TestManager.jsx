@@ -200,6 +200,7 @@ export default function TestManager() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [query, setQuery] = useState('');
+  const [selectedExamFilter, setSelectedExamFilter] = useState('all');
   const [questionSearch, setQuestionSearch] = useState('');
   const [usageScopeFilter, setUsageScopeFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('all');
@@ -436,7 +437,22 @@ export default function TestManager() {
     }
   };
 
-  const filteredTests = tests.filter((test) => !query.trim() || `${test.title} ${test.pattern} ${chapterTitle(test.chapter_id)}`.toLowerCase().includes(query.trim().toLowerCase()));
+  const filteredTests = useMemo(() => {
+    return tests.filter((test) => {
+      if (selectedExamFilter !== 'all') {
+        const ch = chapters.find((c) => c.id === test.chapter_id);
+        const fo = ch ? folders.find((f) => f.id === ch.folder_id) : null;
+        if (!fo || fo.exam_id !== selectedExamFilter) return false;
+      }
+      if (!query.trim()) return true;
+      const q = query.trim().toLowerCase();
+      const chName = chapterTitle(test.chapter_id).toLowerCase();
+      const title = (test.title || '').toLowerCase();
+      const pattern = (test.pattern || '').toLowerCase();
+      return title.includes(q) || pattern.includes(q) || chName.includes(q);
+    });
+  }, [tests, selectedExamFilter, chapters, folders, query, chapterTitle]);
+
   return <div className="test-manager-page">
     <div className="page-heading"><div><div className="eyebrow">ADMINISTRATION / ASSESSMENT DESIGN</div><h1>Test manager</h1><p>Configure BPSC patterns, scoring rules and question order.</p></div><button className="button button-primary" onClick={() => setEditor({ test: null })}><Plus size={15} /> Create test</button></div>
     <div className="rounded-xl border border-indigo-500/30 bg-indigo-950/20 px-3.5 py-2.5 text-xs text-indigo-200 flex items-center gap-2 mb-4">
@@ -447,6 +463,28 @@ export default function TestManager() {
     <div className="test-manager-layout">
       <aside className="test-list-panel panel-card">
         <div className="section-heading"><div><div className="eyebrow">ASSESSMENTS</div><h2>All tests</h2></div><span className="chapter-item-count">{filteredTests.length}</span></div>
+        {exams.length > 1 && (
+          <div className="mb-2">
+            <select
+              className="text-input text-xs py-1.5 px-2 bg-slate-900 border-slate-700/80 w-full rounded-lg text-slate-200 focus:ring-1 focus:ring-indigo-400"
+              value={selectedExamFilter}
+              onChange={(e) => setSelectedExamFilter(e.target.value)}
+              aria-label="Filter tests by exam"
+            >
+              <option value="all">📚 All Exams ({tests.length})</option>
+              {exams.map((exam) => {
+                const examFolderIds = new Set(folders.filter((f) => f.exam_id === exam.id).map((f) => f.id));
+                const examChapterIds = new Set(chapters.filter((c) => examFolderIds.has(c.folder_id)).map((c) => c.id));
+                const count = tests.filter((t) => examChapterIds.has(t.chapter_id)).length;
+                return (
+                  <option value={exam.id} key={exam.id}>
+                    {exam.title} ({count})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
         <label className="content-search"><Search size={14} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a test…" /></label>
         {loading ? <LoadingSkeleton rows={3} /> : filteredTests.map((test) => {
           const qCount = questionCountByTest.get(test.id) || 0;

@@ -9,6 +9,7 @@ import ContentIcon, { isIconUrl } from '../../components/common/ContentIcon';
 import UploadGuide from '../../components/common/UploadGuide';
 import { uploadAsset, formatBytes } from '../../lib/storage';
 import PdfReaderModal from '../../components/common/PdfReaderModal';
+import HierarchicalFolderSelect from '../../components/admin/HierarchicalFolderSelect';
 
 const initialForm = { title: '', slug: '', description: '', icon: 'BookOpen', icon_url: '', display_order: 0, status: 'published', exam_id: '', parent_folder_id: '', allow_tests: true, allow_practice: true, allow_notes: true, pricing_mode: 'free', price: '', subject: '', estimated_study_time_minutes: 20, access_mode: 'inherit' };
 
@@ -730,14 +731,37 @@ function ContentDialog({ item, kind, exams, folders, chapters, defaultExamId, de
         label="Folder Custom SVG Icon (Optional)"
       />
       <label className="field-label">Exam <span className="required-mark">*</span><select className="text-input" value={values.exam_id} onChange={(event) => setValues((current) => ({ ...current, exam_id: event.target.value, parent_folder_id: '' }))} required><option value="">Select an exam</option>{exams.filter((exam) => exam.status !== 'archived').map((exam) => <option value={exam.id} key={exam.id}>{exam.title}</option>)}</select></label>
-      <label className="field-label">Parent folder<select className="text-input" value={values.parent_folder_id} onChange={(event) => setField('parent_folder_id', event.target.value)}><option value="">None — top-level folder</option>{childFolders.map((folder) => <option value={folder.id} key={folder.id}>{getFolderPath(folder, folders).map((part) => part.title).join(' / ')}</option>)}</select><small>No parent price is applied unless you explicitly choose Inherit Parent.</small></label>
+      <div className="space-y-1 mb-2">
+        <label className="field-label mb-1 block">Parent folder (Optional)</label>
+        <HierarchicalFolderSelect
+          folders={childFolders}
+          exams={exams}
+          selectedExamId={values.exam_id}
+          value={values.parent_folder_id}
+          onChange={(val) => setField('parent_folder_id', val === 'all' ? '' : val)}
+          showAllOption={false}
+          placeholder="None — top-level folder"
+        />
+        <small className="field-hint block text-xs text-slate-400">No parent price is applied unless you explicitly choose Inherit Parent.</small>
+      </div>
       <div className="field-label">Available learning options</div><div className="content-switches">{[['allow_tests', 'Tests'], ['allow_practice', 'Question practice'], ['allow_notes', 'Notes & PDFs']].map(([key, label]) => <label className="content-switch" key={key}><input type="checkbox" checked={Boolean(values[key])} onChange={(event) => setField(key, event.target.checked)} /><span>{label}</span></label>)}</div>
       <label className="field-label">Pricing mode<select className="text-input" value={values.pricing_mode} onChange={(event) => setField('pricing_mode', event.target.value)}><option value="free">Free — this folder has no price</option><option value="paid_own">Paid-Own — set this folder’s price</option><option value="inherit" disabled={!values.parent_folder_id}>Inherit Parent — explicitly use parent price</option></select></label>
       {values.pricing_mode === 'paid_own' && <label className="field-label">Folder price (INR) <span className="required-mark">*</span><input className="text-input" type="number" min="0.01" step="0.01" value={values.price} onChange={(event) => setField('price', event.target.value)} required /></label>}
       <div className={`effective-price ${values.pricing_mode === 'inherit' ? 'inherited-price' : ''}`}><CircleDollarSign size={17} /><div><strong>Effective access: {values.pricing_mode === 'free' ? 'Free' : values.pricing_mode === 'paid_own' ? (Number(values.price) > 0 ? `Paid · ₹${Number(values.price).toLocaleString('en-IN')}` : 'Paid · price required') : values.parent_folder_id ? getFolderPricing({ ...values, title: values.title || 'This folder', parent_folder_id: values.parent_folder_id }, folders).label : 'No parent price available — choose Free or Paid-Own'}</strong><span>Parent pricing never applies automatically. Inheritance is only active when you select it above.</span></div></div>
     </>}
     {kind === 'chapter' && <>
-      <label className="field-label">Parent folder <span className="required-mark">*</span><select className="text-input" value={values.parent_folder_id} onChange={(event) => setField('parent_folder_id', event.target.value)} required><option value="">Select a folder</option>{folders.filter((folder) => folder.status !== 'archived').map((folder) => <option value={folder.id} key={folder.id}>{(exams.find((exam) => exam.id === folder.exam_id)?.title || 'Exam') + ' / ' + getFolderPath(folder, folders).map((part) => part.title).join(' / ')}</option>)}</select></label>
+      <div className="space-y-1 mb-2">
+        <label className="field-label mb-1 block">Parent folder <span className="required-mark">*</span></label>
+        <HierarchicalFolderSelect
+          folders={folders.filter((folder) => folder.status !== 'archived')}
+          exams={exams}
+          value={values.parent_folder_id}
+          onChange={(val) => setField('parent_folder_id', val === 'all' ? '' : val)}
+          showAllOption={false}
+          placeholder="Select a parent folder..."
+          required
+        />
+      </div>
       <label className="field-label">Subject tag <span className="required-mark">*</span><input className="text-input" value={values.subject} onChange={(event) => setField('subject', event.target.value)} maxLength="50" required placeholder="e.g. Polity, Science, Math" /></label>
       <label className="field-label">Estimated study time (minutes) <span className="required-mark">*</span><input className="text-input" type="number" min="1" max="1440" step="1" value={values.estimated_study_time_minutes} onChange={(event) => setField('estimated_study_time_minutes', event.target.value)} required /></label>
       <label className="field-label">Access mode<select className="text-input" value={values.access_mode} onChange={(event) => setField('access_mode', event.target.value)}><option value="free">Free</option><option value="paid_own">Paid-Own</option><option value="inherit">Inherit Parent (explicit)</option></select></label>
@@ -851,8 +875,30 @@ export default function ContentManager() {
   const visibleFolders = folders.filter((folder) => folder.exam_id === selectedExamId && (folder.parent_folder_id || null) === (currentFolder?.id || null));
   const visibleChapters = chapters.filter((chapter) => chapter.folder_id === currentFolder?.id);
   const normalizedSearch = search.trim().toLowerCase();
-  const filteredFolders = visibleFolders.filter((folder) => !normalizedSearch || `${folder.title} ${folder.slug} ${folder.description || ''}`.toLowerCase().includes(normalizedSearch));
-  const filteredChapters = visibleChapters.filter((chapter) => !normalizedSearch || `${chapter.title} ${chapter.subject || ''} ${chapter.slug}`.toLowerCase().includes(normalizedSearch));
+  const isGlobalSearch = Boolean(normalizedSearch);
+
+  // Global search across the entire exam hierarchy when search query is entered
+  const filteredFolders = useMemo(() => {
+    if (!isGlobalSearch) return visibleFolders;
+    return folders.filter((folder) => {
+      if (folder.exam_id !== selectedExamId) return false;
+      const folderPathTitles = getFolderPath(folder, folders).map((p) => p.title).join(' ');
+      const fullText = `${folder.title} ${folder.slug} ${folder.description || ''} ${folderPathTitles}`.toLowerCase();
+      return fullText.includes(normalizedSearch);
+    });
+  }, [folders, selectedExamId, visibleFolders, isGlobalSearch, normalizedSearch]);
+
+  const filteredChapters = useMemo(() => {
+    if (!isGlobalSearch) return visibleChapters;
+    const examFolderIds = new Set(folders.filter((f) => f.exam_id === selectedExamId).map((f) => f.id));
+    return chapters.filter((chapter) => {
+      if (!examFolderIds.has(chapter.folder_id)) return false;
+      const parentFolder = folders.find((f) => f.id === chapter.folder_id);
+      const parentPath = parentFolder ? getFolderPath(parentFolder, folders).map((p) => p.title).join(' ') : '';
+      const fullText = `${chapter.title} ${chapter.subject || ''} ${chapter.slug} ${parentPath}`.toLowerCase();
+      return fullText.includes(normalizedSearch);
+    });
+  }, [chapters, folders, selectedExamId, visibleChapters, isGlobalSearch, normalizedSearch]);
   const beginExam = (exam) => { setSelectedExamId(exam.id); setPathIds([]); setSearch(''); };
   const navigateToPath = (index) => setPathIds(path.slice(0, index + 1).map((folder) => folder.id));
   const handleDeleteClick = (exam) => {
@@ -1220,9 +1266,86 @@ export default function ContentManager() {
               const subCount = folders.filter((child) => child.parent_folder_id === folder.id).length;
               const pricing = getFolderPricing(folder, folders);
               const folderHasImg = isIconUrl(folder?.icon_url || folder?.icon);
-              return <article className="content-entry" key={folder.id}><button className="content-entry-main" onClick={() => { setPathIds([...pathIds, folder.id]); setSearch(''); }}><span className={`content-entry-icon folder-entry-icon ${folderHasImg ? 'has-image-logo' : ''}`}><ContentIcon icon={folder.icon_url || folder.icon} className="w-6 h-6 text-indigo-400" fallback={Folder} /></span><span className="content-entry-copy"><strong>{folder.title}</strong><small>{folder.description || 'No description'} · {subCount} subfolders · {count} chapters</small></span><span className="entry-price">{pricing.label}</span><ChevronRight size={17} /></button><div className="content-entry-actions"><CopyIdButton id={folder.id} label="folder_id" /><span className={`content-status status-${String(folder.status || 'draft').toLowerCase()}`}>{folder.status || 'draft'}</span><button title="Edit folder" aria-label={`Edit ${folder.title}`} onClick={() => setDialog({ kind: 'folder', item: folder })}><Pencil size={14} /></button><button type="button" title="Delete folder and its contents" aria-label={`Delete ${folder.title}`} disabled={deletingContent} onClick={() => handleDeleteFolder(folder)}><Trash2 size={14} /></button><button title="Archive folder" aria-label={`Archive ${folder.title}`} disabled={savingArchive === folder.id} onClick={() => archive('folder', folder)}><Archive size={14} /></button></div></article>;
+              const folderPathParts = getFolderPath(folder, folders);
+              return (
+                <article className="content-entry" key={folder.id}>
+                  <button
+                    className="content-entry-main text-left"
+                    onClick={() => {
+                      if (isGlobalSearch) {
+                        setPathIds(folderPathParts.map((f) => f.id));
+                      } else {
+                        setPathIds([...pathIds, folder.id]);
+                      }
+                      setSearch('');
+                    }}
+                  >
+                    <span className={`content-entry-icon folder-entry-icon ${folderHasImg ? 'has-image-logo' : ''}`}>
+                      <ContentIcon icon={folder.icon_url || folder.icon} className="w-6 h-6 text-indigo-400" fallback={Folder} />
+                    </span>
+                    <span className="content-entry-copy min-w-0 flex-1">
+                      <strong className="block truncate">{folder.title}</strong>
+                      {isGlobalSearch && folderPathParts.length > 1 && (
+                        <span className="text-[11px] text-indigo-400 font-mono tracking-tight block truncate mt-0.5">
+                          📍 {folderPathParts.map((p) => p.title).join(' › ')}
+                        </span>
+                      )}
+                      <small>{folder.description || 'No description'} · {subCount} subfolders · {count} chapters</small>
+                    </span>
+                    <span className="entry-price">{pricing.label}</span>
+                    <ChevronRight size={17} />
+                  </button>
+                  <div className="content-entry-actions">
+                    <CopyIdButton id={folder.id} label="folder_id" />
+                    <span className={`content-status status-${String(folder.status || 'draft').toLowerCase()}`}>{folder.status || 'draft'}</span>
+                    <button title="Edit folder" aria-label={`Edit ${folder.title}`} onClick={() => setDialog({ kind: 'folder', item: folder })}><Pencil size={14} /></button>
+                    <button type="button" title="Delete folder and its contents" aria-label={`Delete ${folder.title}`} disabled={deletingContent} onClick={() => handleDeleteFolder(folder)}><Trash2 size={14} /></button>
+                    <button title="Archive folder" aria-label={`Archive ${folder.title}`} disabled={savingArchive === folder.id} onClick={() => archive('folder', folder)}><Archive size={14} /></button>
+                  </div>
+                </article>
+              );
             })}
-            {filteredChapters.map((chapter) => <article className="content-entry chapter-entry" key={chapter.id}><div className="content-entry-main"><span className="content-entry-icon chapter-entry-icon"><BookOpen size={18} /></span><span className="content-entry-copy"><strong>{chapter.title}</strong><small>{chapter.description || 'No description'}</small></span><span className="entry-price"><Clock3 size={13} /> {chapter.estimated_study_time_minutes || '—'} min</span></div><div className="content-entry-actions"><CopyIdButton id={chapter.id} label="chapter_id" /><span className="subject-pill">{chapter.subject || 'No subject'}</span><span className={`content-status status-${String(chapter.status || 'draft').toLowerCase()}`}>{chapter.status || 'draft'}</span><button title="Add / Manage Resources" aria-label={`Manage resources for ${chapter.title}`} onClick={() => setResourceChapter(chapter)}><FileText size={14} /></button><button title="Edit chapter" aria-label={`Edit ${chapter.title}`} onClick={() => setDialog({ kind: 'chapter', item: chapter })}><Pencil size={14} /></button><button type="button" title="Delete chapter and its contents" aria-label={`Delete ${chapter.title}`} disabled={deletingContent} onClick={() => handleDeleteChapter(chapter)}><Trash2 size={14} /></button><button title="Archive chapter" aria-label={`Archive ${chapter.title}`} disabled={savingArchive === chapter.id} onClick={() => archive('chapter', chapter)}><Archive size={14} /></button></div></article>)}
+            {filteredChapters.map((chapter) => {
+              const parentFolder = folders.find((f) => f.id === chapter.folder_id);
+              const parentPathParts = parentFolder ? getFolderPath(parentFolder, folders) : [];
+              return (
+                <article className="content-entry chapter-entry" key={chapter.id}>
+                  <div
+                    className={`content-entry-main ${isGlobalSearch && parentPathParts.length ? 'cursor-pointer hover:bg-slate-800/40 transition-colors' : ''}`}
+                    onClick={() => {
+                      if (isGlobalSearch && parentPathParts.length) {
+                        setPathIds(parentPathParts.map((f) => f.id));
+                        setSearch('');
+                      }
+                    }}
+                    role={isGlobalSearch && parentPathParts.length ? 'button' : undefined}
+                    tabIndex={isGlobalSearch && parentPathParts.length ? 0 : undefined}
+                    title={isGlobalSearch && parentPathParts.length ? `Jump to folder: ${parentPathParts.map((p) => p.title).join(' › ')}` : undefined}
+                  >
+                    <span className="content-entry-icon chapter-entry-icon"><BookOpen size={18} /></span>
+                    <span className="content-entry-copy min-w-0 flex-1">
+                      <strong className="block truncate">{chapter.title}</strong>
+                      {isGlobalSearch && parentPathParts.length > 0 && (
+                        <span className="text-[11px] text-amber-400 font-mono tracking-tight block truncate mt-0.5">
+                          📁 In: {parentPathParts.map((p) => p.title).join(' › ')} (Click to jump)
+                        </span>
+                      )}
+                      <small>{chapter.description || 'No description'}</small>
+                    </span>
+                    <span className="entry-price"><Clock3 size={13} /> {chapter.estimated_study_time_minutes || '—'} min</span>
+                  </div>
+                  <div className="content-entry-actions">
+                    <CopyIdButton id={chapter.id} label="chapter_id" />
+                    <span className="subject-pill">{chapter.subject || 'No subject'}</span>
+                    <span className={`content-status status-${String(chapter.status || 'draft').toLowerCase()}`}>{chapter.status || 'draft'}</span>
+                    <button title="Add / Manage Resources" aria-label={`Manage resources for ${chapter.title}`} onClick={() => setResourceChapter(chapter)}><FileText size={14} /></button>
+                    <button title="Edit chapter" aria-label={`Edit ${chapter.title}`} onClick={() => setDialog({ kind: 'chapter', item: chapter })}><Pencil size={14} /></button>
+                    <button type="button" title="Delete chapter and its contents" aria-label={`Delete ${chapter.title}`} disabled={deletingContent} onClick={() => handleDeleteChapter(chapter)}><Trash2 size={14} /></button>
+                    <button title="Archive chapter" aria-label={`Archive ${chapter.title}`} disabled={savingArchive === chapter.id} onClick={() => archive('chapter', chapter)}><Archive size={14} /></button>
+                  </div>
+                </article>
+              );
+            })}
             {!filteredFolders.length && !filteredChapters.length && <div className="empty-content workspace-empty"><Folder size={23} /><strong>{currentFolder ? 'This folder is empty' : 'No main folders yet'}</strong><span>Add a folder or chapter to continue building this exam.</span></div>}
           </div>
           {currentFolder && <button className="back-folder-link" onClick={() => setPathIds(pathIds.slice(0, -1))}><ArrowLeft size={14} /> Back to {pathIds.length > 1 ? path[pathIds.length - 2]?.title : selectedExam.title}</button>}

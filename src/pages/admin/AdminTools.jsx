@@ -4,6 +4,7 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
+  ExternalLink,
   Eye,
   Flame,
   GripVertical,
@@ -478,11 +479,21 @@ export default function AdminTools() {
             <span>Student Toolbox Manager</span>
           </h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Manage live student tool groups, pricing, visibility, and Full Pass contents. The phone panel is a visual preview.
+            Manage live student tool groups, pricing, visibility, and Full Pass contents.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
+          <a
+            href="/student/toolbox"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 text-xs font-bold flex items-center gap-1.5 transition-colors"
+            title="Open real student toolbox in a new tab"
+          >
+            <ExternalLink size={13} className="text-amber-400" />
+            <span>Open Student Toolbox ↗</span>
+          </a>
           <button
             type="button"
             onClick={fetchToolsConfig}
@@ -547,12 +558,12 @@ export default function AdminTools() {
         </div>
       </div>
 
-      {/* Main 3-Column Working Grid */}
+      {/* Main 2-Column Working Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* ======================================================== */}
-        {/* COLUMN 1 (5 Cols): Reorderable Tools Table */}
+        {/* COLUMN 1 (7 Cols): Reorderable Tools Table */}
         {/* ======================================================== */}
-        <div className="lg:col-span-5 p-4 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 flex flex-col h-[440px] lg:h-[700px]">
+        <div className="lg:col-span-7 p-4 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 flex flex-col h-[440px] lg:h-[700px]">
           <div className="flex items-center justify-between mb-3">
             <div className="text-xs font-black uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
               <GripVertical size={14} className="text-amber-400" />
@@ -684,9 +695,9 @@ export default function AdminTools() {
         </div>
 
         {/* ======================================================== */}
-        {/* COLUMN 2 (3 Cols): Access & Pricing Editor */}
+        {/* COLUMN 2 (5 Cols): Access & Pricing Editor */}
         {/* ======================================================== */}
-        <div className="lg:col-span-3 p-4 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-5 p-5 rounded-3xl bg-[#1E293B]/70 border border-slate-700/60 flex flex-col justify-between space-y-4">
           <div className="space-y-3">
             <div className="flex items-center gap-2 pb-2 border-b border-slate-700/60">
               <span className="text-xl">{selectedTool?.iconChar || '🔧'}</span>
@@ -916,143 +927,11 @@ export default function AdminTools() {
               className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-300 hover:to-yellow-400 text-black font-black text-xs shadow-glowGold transition-transform hover:scale-[1.01] active:scale-98 flex items-center justify-center gap-1.5 disabled:opacity-50"
             >
               <Save size={14} />
-              <span>{saving ? 'Updating...' : 'Save & Update Preview'}</span>
+              <span>{saving ? 'Updating...' : 'Save Tool Access Settings'}</span>
             </button>
           </div>
         </div>
-
-        {/* ======================================================== */}
-        {/* COLUMN 3 (4 Cols): Live Reactive Mobile Preview */}
-        {/* ======================================================== */}
-        <div className="lg:col-span-4 flex flex-col items-center">
-          <div className="text-xs font-black uppercase tracking-wider text-indigo-300 mb-2 flex items-center gap-1.5">
-            <Eye size={14} className="text-amber-400" />
-            <span>Student Live View (Real-time)</span>
-          </div>
-
-          {/* Smartphone Hardware Frame */}
-          <div className="mockup-phone-frame w-[300px] sm:w-[320px] h-[640px] bg-black rounded-[40px] border-[5px] border-neutral-800 shadow-[0_0_50px_rgba(0,0,0,0.8)] p-2.5 relative flex flex-col overflow-hidden">
-            {/* Top Phone Notch */}
-            <div className="absolute top-2 inset-x-0 mx-auto w-24 h-3.5 bg-neutral-900 rounded-full z-40 flex items-center justify-center">
-              <div className="w-2.5 h-2.5 rounded-full bg-neutral-950 border border-neutral-800 mr-2" />
-              <div className="w-6 h-1 bg-neutral-800 rounded-full" />
-            </div>
-
-            {/* Inner Phone Screen Content */}
-            <div className="w-full h-full bg-[#0B1120] rounded-[32px] overflow-y-auto no-scrollbar text-white flex flex-col justify-between pt-4 pb-2 relative">
-              {/* Phone Status Bar */}
-              <div className="px-3 flex items-center justify-between text-[10px] font-bold text-neutral-400 mb-2">
-                <span>10:24</span>
-                <div className="flex items-center gap-1.5">
-                  <Flame size={11} className="text-amber-400 fill-amber-400" />
-                  <span>12</span>
-                  <span>82%</span>
-                </div>
-              </div>
-
-              {/* Study Toolbox Header */}
-              <div className="px-3 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-amber-400 font-black text-sm">⚡</span>
-                    <span className="font-extrabold text-xs">Zyvra</span>
-                  </div>
-                  <Search size={13} className="text-neutral-400" />
-                </div>
-
-                {/* Banner */}
-                <div className="p-2.5 rounded-2xl bg-gradient-to-r from-slate-900 to-[#1E293B] border border-slate-700/60 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-xl bg-amber-400/20 flex items-center justify-center text-sm shrink-0">
-                    🧰
-                  </div>
-                  <div>
-                    <h4 className="text-[11px] font-black text-white">Zyvra Study Toolbox</h4>
-                    <p className="text-[9px] text-slate-400">Smart Exam Utilities</p>
-                  </div>
-                </div>
-
-                {/* Popular Shelf: Renders REAL tools in current drag-and-drop order */}
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between text-[10px] font-bold text-white">
-                    <span className="flex items-center gap-1">
-                      <Flame size={11} className="text-amber-400 fill-amber-400" /> Featured Tools
-                    </span>
-                    <span className="text-[8px] text-indigo-400">View All →</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {tools.slice(0, 4).map((tool) => {
-                      const isPaid = tool.accessType === 'paid';
-                      const isLocked = isPaid;
-
-                      return (
-                        <div
-                          key={tool.id}
-                          className="p-2 rounded-xl bg-[#1E293B] border border-slate-700/60 flex flex-col items-center text-center relative"
-                        >
-                          <span className="text-base mb-1">{tool.iconChar}</span>
-                          <span className="text-[10px] font-bold text-white truncate w-full">
-                            {tool.name}
-                          </span>
-
-                          {/* Dynamic Badge */}
-                          {isPaid ? (
-                            <span className="mt-1 px-1.5 py-0.2 rounded text-[8px] font-extrabold bg-amber-500/25 text-amber-300 border border-amber-500/40 flex items-center gap-0.5">
-                              {isLocked ? <Lock size={8} /> : 'Pro 👑'}
-                            </span>
-                          ) : (
-                            <span className="mt-1 px-1.5 py-0.2 rounded text-[8px] font-extrabold bg-emerald-500/20 text-emerald-400">
-                              Free
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* All Configured Tools List */}
-                <div className="space-y-1 pt-2">
-                  <span className="text-[10px] font-bold text-white block">All Tools ({tools.length})</span>
-                  <div className="space-y-1 max-h-[160px] overflow-y-auto no-scrollbar pr-0.5">
-                    {tools.map((t) => (
-                      <div
-                        key={t.id}
-                        className="p-1.5 rounded-xl bg-[#1E293B] border border-slate-700/60 flex items-center justify-between text-left"
-                      >
-                        <div className="flex items-center gap-2 truncate">
-                          <span className="text-xs">{t.iconChar}</span>
-                          <div className="truncate">
-                            <div className="text-[9px] font-bold text-white truncate flex items-center gap-1">
-                              <span>{t.name}</span>
-                              {t.accessType === 'paid' && (
-                                <Lock size={8} className="text-amber-400" />
-                              )}
-                            </div>
-                            <div className="text-[8px] text-slate-400">{t.category}</div>
-                          </div>
-                        </div>
-                        <span className="text-[8px] px-1 rounded bg-black/40 text-slate-300">
-                          {t.accessType === 'free' ? 'Free' : `₹${t.price}`}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Phone Bottom Nav */}
-              <div className="px-4 py-2 border-t border-slate-700/40 flex items-center justify-between text-[9px] text-slate-400">
-                <span className="text-slate-300">Home</span>
-                <span className="text-slate-300">Tests</span>
-                <span className="text-amber-400 font-extrabold">Toolbox</span>
-                <span className="text-slate-300">Profile</span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
-
     </div>
   );
 }
