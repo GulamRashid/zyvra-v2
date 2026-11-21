@@ -194,9 +194,9 @@ export default function StudentLayout() {
             </NavLink>
 
             {isAdmin && (
-              <NavLink className="button admin-shortcut bg-indigo-900/60 hover:bg-indigo-800/80 text-indigo-200 border border-indigo-500/30 text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5" to="/admin">
+              <NavLink className="button admin-shortcut bg-indigo-900/60 hover:bg-indigo-800/80 text-indigo-200 border border-indigo-500/30 text-xs px-2.5 py-1.5 rounded-lg flex items-center gap-1.5" to="/admin" title={t('adminPanel')}>
                 <Shield size={14} className="text-indigo-400" />
-                <span>{t('adminPanel')}</span>
+                <span className="hidden sm:inline">{t('adminPanel')}</span>
               </NavLink>
             )}
           </div>
