@@ -95,105 +95,37 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
     try {
       if (action === 'coins') {
         const absAmount = Math.abs(parseInt(amount, 10));
-        let coinAdjustSuccess = false;
 
-        // Try primary Postgres RPC definition: admin_adjust_user_coins(p_target_user_id, p_amount, p_action, p_reason)
-        try {
-          const { data: rpcData, error: rpcError } = await supabase.rpc('admin_adjust_user_coins', {
-            p_target_user_id: profile.id,
-            p_amount: absAmount,
-            p_action: direction,
-            p_reason: reason.trim()
-          });
-          if (!rpcError) {
-            coinAdjustSuccess = true;
-            if (rpcData && typeof rpcData.new_balance === 'number') {
-              setCurrentBalance(rpcData.new_balance);
-            } else {
-              setCurrentBalance((prev) => direction === 'credit' ? prev + absAmount : Math.max(0, prev - absAmount));
-            }
-          } else {
-            console.warn('Coin adjust RPC error, trying fallback:', rpcError);
-          }
-        } catch (rpcEx) {
-          console.warn('Coin adjust RPC exception, trying fallback:', rpcEx);
+        // Call primary Postgres RPC definition: admin_adjust_user_coins(p_target_user_id, p_amount, p_action, p_reason)
+        const { data: rpcData, error: rpcError } = await supabase.rpc('admin_adjust_user_coins', {
+          p_target_user_id: profile.id,
+          p_amount: absAmount,
+          p_action: direction,
+          p_reason: reason.trim()
+        });
+
+        if (rpcError) {
+          throw new Error(rpcError.message || 'Unable to adjust user coins.');
         }
 
-        // Direct database fallback if RPC not matched or errored
-        if (!coinAdjustSuccess) {
-          const { data: currentWallet } = await supabase
-            .from('coin_wallets')
-            .select('balance, total_earned, total_spent')
-            .eq('user_id', profile.id)
-            .maybeSingle();
-
-          const prevBal = Number(currentWallet?.balance || 0);
-          const prevEarned = Number(currentWallet?.total_earned || 0);
-          const prevSpent = Number(currentWallet?.total_spent || 0);
-
-          if (direction === 'debit' && prevBal < absAmount) {
-            throw new Error(`Cannot debit ${absAmount} coins. User only has ${prevBal} coins.`);
-          }
-
-          const newBal = direction === 'credit' ? prevBal + absAmount : Math.max(0, prevBal - absAmount);
-          const newEarned = direction === 'credit' ? prevEarned + absAmount : prevEarned;
-          const newSpent = direction === 'debit' ? prevSpent + absAmount : prevSpent;
-          const now = new Date().toISOString();
-
-          const { error: walletError } = await supabase.from('coin_wallets').upsert({
-            user_id: profile.id,
-            balance: newBal,
-            total_earned: newEarned,
-            total_spent: newSpent,
-            updated_at: now
-          }, { onConflict: 'user_id' });
-
-          if (walletError) throw walletError;
-
-          try {
-            await supabase.from('coin_ledger').insert({
-              user_id: profile.id,
-              amount: direction === 'credit' ? absAmount : -absAmount,
-              tx_type: direction === 'credit' ? 'admin_credit' : 'admin_debit',
-              source: 'admin_adjustment',
-              reason: reason.trim(),
-              balance_after: newBal
-            });
-          } catch (_) {}
-
-          try {
-            await supabase.from('coin_transactions').insert({
-              user_id: profile.id,
-              amount: absAmount,
-              transaction_type: direction,
-              reason: `Admin adjustment: ${reason.trim()}`,
-              created_at: now
-            });
-          } catch (_) {}
-
-          setCurrentBalance(newBal);
+        if (rpcData && typeof rpcData.new_balance === 'number') {
+          setCurrentBalance(rpcData.new_balance);
+        } else {
+          setCurrentBalance((prev) => direction === 'credit' ? prev + absAmount : Math.max(0, prev - absAmount));
         }
 
         setMessage(`${direction === 'credit' ? 'Credited' : 'Debited'} ${absAmount.toLocaleString()} coins with an audit reason.`);
         setAmount('');
+        setReason('');
       } else if (action === 'role') {
         const newRole = profile.role === 'super_admin' || profile.role === 'admin' ? 'student' : 'super_admin';
-        let roleSuccess = false;
-        try {
-          const { error: rpcError } = await supabase.rpc('admin_update_user_role', {
-            p_user_id: profile.id,
-            p_target_user_id: profile.id,
-            p_role: newRole,
-            p_new_role: newRole,
-            p_reason: reason.trim()
-          });
-          if (!rpcError) roleSuccess = true;
-          else console.warn('Role RPC warning:', rpcError);
-        } catch (roleEx) {
-          console.warn('Role RPC exception:', roleEx);
-        }
-
-        if (!roleSuccess) {
+        const { error: rpcError } = await supabase.rpc('admin_update_user_role', {
+          p_user_id: profile.id,
+          p_role: newRole,
+          p_reason: reason.trim()
+        });
+        if (rpcError) {
+          // Direct fallback to profiles
           const { error: profileError } = await supabase
             .from('profiles')
             .update({ role: newRole, updated_at: new Date().toISOString() })
@@ -202,17 +134,17 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
         }
 
         setMessage(`Role changed to ${newRole}.`);
+        setReason('');
         if (profile.id === user?.id && typeof refreshAccount === 'function') {
           await refreshAccount();
         }
       } else {
         // Course Access Grant
-        let grantSuccess = false;
         const now = new Date().toISOString();
         const selectedItem = (contentItems[itemType] || []).find((entry) => entry.id === targetItemId);
         const itemTitle = itemType === 'full_pass' ? 'All-in-One Global Full Pass' : (selectedItem?.title || `${itemType} access`);
 
-        // 1. Try RPC overloads
+        let grantSuccess = false;
         try {
           const res1 = await supabase.rpc('admin_grant_user_access', {
             p_user_id: profile.id,
@@ -231,11 +163,8 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
             });
             if (!res2.error) grantSuccess = true;
           }
-        } catch (grantEx) {
-          console.warn('Grant RPC exception:', grantEx);
-        }
+        } catch (_) {}
 
-        // 2. Direct database fallback to user_access
         if (!grantSuccess) {
           const grantPayload = {
             user_id: profile.id,
@@ -284,6 +213,7 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
         }
         setMessage(`Lifetime access granted for "${itemTitle}".`);
         if (itemType !== 'full_pass') setItemId('');
+        setReason('');
       }
       await onUpdated();
     } catch (actionError) {
