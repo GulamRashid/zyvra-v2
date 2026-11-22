@@ -16,9 +16,11 @@ import {
   RefreshCw,
   Compass,
   FileText,
-  BookOpen
+  BookOpen,
+  Lightbulb
 } from 'lucide-react';
 import { formatDocumentEmbedUrl } from '../../lib/content';
+import useModalBack from '../../hooks/useModalBack';
 
 /**
  * Enhanced In-App PDF & Study Notes Reader
@@ -32,6 +34,7 @@ import { formatDocumentEmbedUrl } from '../../lib/content';
  * - Protected personal study watermarking & access rights
  */
 export default function PdfReaderModal({ resource, url, onClose }) {
+  useModalBack(true, onClose, 'pdf-reader');
   const [zoom, setZoom] = useState(100);
   const [rotation, setRotation] = useState(0); // 0, 90, 180, 270
   const [readingTheme, setReadingTheme] = useState('light'); // 'light' | 'dark' | 'sepia'
@@ -149,10 +152,10 @@ export default function PdfReaderModal({ resource, url, onClose }) {
       if (window.screen?.orientation?.lock) {
         if (isLandscape) {
           await window.screen.orientation.lock('portrait').catch(() => {});
-          showToast('📱 Switched to Portrait view');
+          showToast('Switched to Portrait view');
         } else {
           await window.screen.orientation.lock('landscape').catch(() => {});
-          showToast('🔄 Switched to Full-screen Landscape view');
+          showToast('Switched to Full-screen Landscape view');
         }
         return;
       }
@@ -163,7 +166,7 @@ export default function PdfReaderModal({ resource, url, onClose }) {
     // Virtual 90° canvas rotation
     const nextRotation = (rotation + 90) % 360;
     setRotation(nextRotation);
-    showToast(`🔄 Document Rotated ${nextRotation}°`);
+    showToast(`Document Rotated ${nextRotation}°`);
   };
 
   const cycleTheme = () => {
@@ -393,7 +396,7 @@ export default function PdfReaderModal({ resource, url, onClose }) {
         {!isLandscape && !zenMode && (
           <div className="sm:hidden px-3 py-1.5 bg-indigo-950/80 border-b border-indigo-900/50 flex items-center justify-between text-[11px] text-indigo-300">
             <span className="flex items-center gap-1.5 truncate">
-              <span>💡</span>
+              <Lightbulb size={13} className="shrink-0 text-amber-300" />
               <span>Screen rotate karein for full-screen landscape view!</span>
             </span>
             <button
@@ -451,7 +454,7 @@ export default function PdfReaderModal({ resource, url, onClose }) {
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span className="truncate max-w-[200px] sm:max-w-none">
-                {readingTheme === 'dark' ? '🌙 Night Mode' : readingTheme === 'sepia' ? '📜 Sepia Eye-Care' : '☀️ Day Mode'}
+                {readingTheme === 'dark' ? 'Night Mode' : readingTheme === 'sepia' ? 'Sepia Eye-Care' : 'Day Mode'}
                 {rotation !== 0 ? ` • ${rotation}°` : ''}
               </span>
             </div>

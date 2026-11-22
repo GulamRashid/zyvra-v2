@@ -1,7 +1,9 @@
 import { LockKeyhole, Sparkles, X } from 'lucide-react';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
+import useModalBack from '../../hooks/useModalBack';
 
 export default function ToolUnlockModal({ title, price, validityDays, comboPrice, comboValidityDays, onBuy, onBuyCombo, onClose }) {
+  useModalBack(true, onClose, 'tool-unlock');
   const { t, language } = useThemeLanguage();
   const locale = language === 'hi' ? 'hi-IN' : 'en-IN';
 

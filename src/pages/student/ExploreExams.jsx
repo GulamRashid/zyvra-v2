@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BookOpen, Folder, GraduationCap, Search, Sparkles } from 'lucide-react';
+import { ArrowRight, BookOpen, Crown, Folder, GraduationCap, Search, Sparkles } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import ContentIcon from '../../components/common/ContentIcon';
@@ -122,14 +122,13 @@ export default function ExploreExams() {
   }, [exams, selectedCategory, search]);
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
-      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
-        {/* Page Heading Banner */}
+    <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-900 dark:text-slate-100">
+      {/* Page Heading Banner */}
         <div className="rounded-3xl dark:bg-slate-900/90 bg-white border dark:border-slate-800 border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 text-sm">
-                🎓
+                <GraduationCap size={16} />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                 {language === 'hi' ? 'पाठ्यक्रम एक्सप्लोरर' : 'Syllabus Explorer'}
@@ -224,7 +223,8 @@ export default function ExploreExams() {
             <div className="space-y-1.5 min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-400/20 text-amber-800 dark:text-amber-300 border border-amber-400/30 flex items-center gap-1">
-                  👑 {language === 'hi' ? 'ऑल-एक्सेस प्लेटफॉर्म पास' : 'All-Access Platform Pass'}
+                  <Crown size={12} className="shrink-0" />
+                  <span>{language === 'hi' ? 'ऑल-एक्सेस प्लेटफॉर्म पास' : 'All-Access Platform Pass'}</span>
                 </span>
                 <span className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
                   {fullPassConfig.validity_days || 365} {language === 'hi' ? 'दिन अनलिमिटेड' : 'Days Unlimited'}
@@ -321,8 +321,8 @@ export default function ExploreExams() {
                         <Sparkles size={11} className="text-emerald-500 shrink-0" />
                         <span>
                           {language === 'hi'
-                            ? `🎁 ${freeCount} फ्री टेस्ट्स व नोट्स`
-                            : `🎁 ${freeCount} Free Tests & Notes`}
+                            ? `${freeCount} फ्री टेस्ट्स व नोट्स`
+                            : `${freeCount} Free Tests & Notes`}
                         </span>
                       </div>
                     )}
@@ -364,6 +364,5 @@ export default function ExploreExams() {
           />
         )}
       </div>
-    </div>
   );
 }

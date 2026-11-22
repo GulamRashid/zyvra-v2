@@ -14,6 +14,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import MathRenderer from './MathRenderer';
+import useModalBack from '../../hooks/useModalBack';
 
 export default function DailyChallengeModal({
   isOpen,
@@ -21,6 +22,7 @@ export default function DailyChallengeModal({
   initialChallenge,
   onChallengeCompleted
 }) {
+  useModalBack(isOpen, onClose, 'daily-challenge');
   const { user } = useAuth();
   const [challengeData, setChallengeData] = useState(initialChallenge || null);
   const [loading, setLoading] = useState(!initialChallenge);

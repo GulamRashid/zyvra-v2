@@ -6,6 +6,7 @@ import {
   Scale, Shapes, Sigma, Sparkles, StickyNote, Superscript, Target, TrendingUp, Wrench, Zap
 } from 'lucide-react';
 import CheckoutModal from '../../components/common/CheckoutModal';
+import useModalBack from '../../hooks/useModalBack';
 import SmartCalculator from '../../components/toolbox/math/SmartCalculator';
 import FractionConverter from '../../components/toolbox/math/FractionConverter';
 import SquaresCubes from '../../components/toolbox/math/SquaresCubes';
@@ -356,6 +357,7 @@ export default function StudentToolbox() {
     setActiveTool(null);
     setCurrentView('main-menu');
   };
+  useModalBack(Boolean(activeTool), goBack, 'toolbox-tool');
   const handleUnlockTool = (toolId, price) => {
     const tool = Object.values(CATEGORY_TOOLS).flat().find((item) => item.id === toolId);
     if (!tool) {
@@ -539,9 +541,8 @@ export default function StudentToolbox() {
   };
 
   return (
-    <div className="toolbox-page min-h-screen min-w-0 dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
-      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
-        {/* Top Header / Breadcrumb */}
+    <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-900 dark:text-slate-100">
+      {/* Top Header / Breadcrumb */}
         {currentView === 'active-tool' ? (
           <div className="flex items-center justify-between gap-2.5 p-3 rounded-2xl dark:bg-slate-900 bg-white shadow-xs border dark:border-slate-800 border-slate-200 min-w-0">
             <button
@@ -562,8 +563,8 @@ export default function StudentToolbox() {
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 text-sm">
-                    🧰
+                  <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500">
+                    <Wrench size={14} className="text-indigo-600 dark:text-indigo-400" />
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                     {language === 'hi' ? 'ज़ीव्रा स्टडी सूट' : 'Zyvra Study Suite'}
@@ -585,9 +586,10 @@ export default function StudentToolbox() {
                     <button
                       type="button"
                       onClick={openFullPassCheckout}
-                      className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-xs transition-transform active:scale-95"
+                      className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-xs transition-transform active:scale-95 inline-flex items-center gap-1.5"
                     >
-                      🌟 {language === 'hi' ? 'फुल पास' : 'Full Pass'} · ₹{fullPassPricing.price}
+                      <Sparkles size={13} className="text-slate-950 shrink-0" />
+                      <span>{language === 'hi' ? 'फुल पास' : 'Full Pass'} · ₹{fullPassPricing.price}</span>
                     </button>
                     <span className="text-[10px] font-medium dark:text-slate-400 text-slate-500">
                       {language === 'hi' ? 'शामिल:' : 'Includes'} {fullPassPricing.included_exam_titles.slice(0, 3).join(', ') || (language === 'hi' ? 'कोई परीक्षा नहीं' : 'no exams')}{fullPassPricing.included_exam_titles.length > 3 ? ` +${fullPassPricing.included_exam_titles.length - 3}` : ''}{fullPassPricing.included_tool_titles.length ? ` · ${fullPassPricing.included_tool_titles.slice(0, 2).join(', ')}${fullPassPricing.included_tool_titles.length > 2 ? ` +${fullPassPricing.included_tool_titles.length - 2}` : ''}` : ''}
@@ -603,9 +605,10 @@ export default function StudentToolbox() {
                   <button
                     type="button"
                     onClick={openComboCheckout}
-                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs border dark:border-slate-700 border-slate-200 transition-transform active:scale-95"
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs border dark:border-slate-700 border-slate-200 transition-transform active:scale-95 inline-flex items-center gap-1.5"
                   >
-                    ⚡ {language === 'hi' ? 'केवल टूलबॉक्स' : 'Toolbox only'} · ₹{comboPricing.price}
+                    <Zap size={13} className="text-amber-500 shrink-0" />
+                    <span>{language === 'hi' ? 'केवल टूलबॉक्स' : 'Toolbox only'} · ₹{comboPricing.price}</span>
                   </button>
                 )}
               </div>
@@ -898,6 +901,5 @@ export default function StudentToolbox() {
           />
         )}
       </div>
-    </div>
   );
 }

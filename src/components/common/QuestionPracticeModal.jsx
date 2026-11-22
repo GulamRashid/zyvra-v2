@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Award,
   BookOpen,
@@ -11,6 +11,7 @@ import {
   Lock,
   RotateCcw,
   Sparkles,
+  Trophy,
   X
 } from 'lucide-react';
 import MathRenderer from './MathRenderer';
@@ -27,6 +28,7 @@ import {
   sanitizeLiveQuestion
 } from '../../lib/tests';
 import { supabase } from '../../lib/supabase';
+import useModalBack from '../../hooks/useModalBack';
 
 function getStoredHindi(value) {
   return value && typeof value === 'object' ? value.hi || value.text_hi || '' : '';
@@ -156,6 +158,16 @@ export default function QuestionPracticeModal({
   const [language, setLanguage] = useState('en');
   const [showSummary, setShowSummary] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+
+  const handleModalBack = useCallback(() => {
+    if (paletteOpen) {
+      setPaletteOpen(false);
+    } else {
+      onClose();
+    }
+  }, [paletteOpen, onClose]);
+
+  useModalBack(true, handleModalBack, 'question-practice');
 
   const safeQuestions = useMemo(() => {
     return (questions || []).map((question) => {
@@ -620,8 +632,8 @@ export default function QuestionPracticeModal({
         {showSummary && (
           <div className="absolute inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-150">
             <div className="max-w-sm w-full bg-slate-900 border border-emerald-500/30 rounded-3xl p-5 sm:p-6 shadow-2xl text-center space-y-4 animate-in zoom-in-95">
-              <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto text-2xl shadow-inner">
-                🏆
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto shadow-inner">
+                <Trophy size={28} className="text-amber-400" />
               </div>
 
               <div>

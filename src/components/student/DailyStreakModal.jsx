@@ -13,10 +13,12 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
+import useModalBack from '../../hooks/useModalBack';
 import LottiePlayer from '../common/LottiePlayer';
 import { streakFlameAnimationData } from '../../assets/animations/streakFlameData';
 
 export default function DailyStreakModal({ isOpen, onClose, streakData }) {
+  useModalBack(isOpen, onClose, 'daily-streak');
   const { language } = useThemeLanguage();
   const navigate = useNavigate();
   const isHi = language === 'hi';
@@ -66,7 +68,7 @@ export default function DailyStreakModal({ isOpen, onClose, streakData }) {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 shadow-2xl p-5 sm:p-7 text-left dark:text-slate-100 text-slate-800 transition-all custom-scrollbar"
+        className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-2xl p-5 sm:p-7 text-left dark:text-slate-100 text-slate-800 transition-all custom-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}

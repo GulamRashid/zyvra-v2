@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, Award, BarChart3, Bell, Bookmark, Check, CheckCircle2, ChevronRight,
-  Clock, Compass, Copy, Crown, Download, Edit3, ExternalLink, FileText, Flame,
+  Clock, Coins, Compass, Copy, Crown, Download, Edit3, ExternalLink, FileText, Flame,
   HelpCircle, KeyRound, Layers, LogOut, Mail, MessageCircle, Phone, RefreshCw,
   Send, Settings, Share2, ShieldCheck, Smartphone, Sparkles, Target, Upload, Users,
   X
@@ -10,6 +10,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import MountainSunsetAura from '../../components/common/MountainSunsetAura';
 import UploadGuide from '../../components/common/UploadGuide';
 import DailyStreakModal from '../../components/student/DailyStreakModal';
+import useModalBack from '../../hooks/useModalBack';
 import { uploadAsset } from '../../lib/storage';
 import { useAuth } from '../../context/AuthContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
@@ -63,6 +64,13 @@ export default function StudentProfile() {
   // Password & Device security state
   const [passwordPanelOpen, setPasswordPanelOpen] = useState(false);
   const [passwordStep, setPasswordStep] = useState('closed'); // 'closed' | 'start' | 'verify' | 'done'
+
+  // Hardware Back Button Handlers for Profile Overlays & Modals
+  useModalBack(editProfileOpen, () => setEditProfileOpen(false), 'profile-edit');
+  useModalBack(goalsModalOpen, () => setGoalsModalOpen(false), 'profile-goals');
+  useModalBack(inviteModalOpen, () => setInviteModalOpen(false), 'profile-invite');
+  useModalBack(supportModalOpen, () => setSupportModalOpen(false), 'profile-support');
+  useModalBack(passwordPanelOpen, () => setPasswordPanelOpen(false), 'profile-password');
   const [passwordOtp, setPasswordOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
@@ -497,7 +505,13 @@ export default function StudentProfile() {
           <div className="flex items-center gap-2.5">
             <button
               type="button"
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                if (window.history.state && window.history.state.idx > 0) {
+                  navigate(-1);
+                } else {
+                  navigate('/', { replace: true });
+                }
+              }}
               className="w-9 h-9 rounded-full dark:bg-slate-900/90 bg-white/95 border dark:border-slate-700/80 border-slate-300 flex items-center justify-center dark:text-white text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-sm active:scale-95"
               aria-label="Go Back"
             >
@@ -542,10 +556,10 @@ export default function StudentProfile() {
         </div>
 
         {/* Unique Feature: Zyvra Student Digital ID Card (विद्यार्थी पहचान पत्र) */}
-        <div className="relative z-10 pt-12 sm:pt-16 pb-3 w-full max-w-4xl mx-auto">
-          <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#111827] dark:via-[#1e293b] dark:to-[#0f172a] bg-gradient-to-br from-white via-slate-50 to-indigo-50/40 border dark:border-slate-700/80 border-slate-200/90 p-4 sm:p-5 shadow-xl transition-all">
+        <div className="relative z-10 pt-12 sm:pt-16 pb-3 w-full max-w-4xl min-w-0 mx-auto">
+          <div className="relative overflow-hidden rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 p-4 sm:p-5 shadow-lg transition-all">
             {/* Subtle ID Card Watermark Logo */}
-            <div className="absolute -right-6 -bottom-6 select-none opacity-[0.04] dark:opacity-[0.06] text-9xl font-black pointer-events-none">
+            <div className="absolute -right-6 -bottom-6 select-none opacity-[0.03] dark:opacity-[0.05] text-9xl font-black pointer-events-none">
               ZYV
             </div>
 
@@ -553,8 +567,8 @@ export default function StudentProfile() {
               <div className="flex items-start sm:items-center gap-3.5 min-w-0">
                 {/* Avatar with Ring & Edit Overlay */}
                 <div className="relative shrink-0">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-tr from-indigo-500 via-amber-400 to-indigo-600 p-[2.5px] shadow-lg shadow-indigo-500/10">
-                    <div className="w-full h-full rounded-[14px] dark:bg-[#0B1120] bg-white flex items-center justify-center font-black text-2xl sm:text-3xl text-amber-500 overflow-hidden">
+                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 p-[2px] shadow-sm">
+                    <div className="w-full h-full rounded-[14px] dark:bg-[#0B1120] bg-white flex items-center justify-center font-black text-2xl sm:text-3xl text-indigo-500 overflow-hidden">
                       {avatarUrl || profile?.avatar_url ? (
                         <img
                           src={avatarUrl || profile.avatar_url}
@@ -591,17 +605,16 @@ export default function StudentProfile() {
                     </h1>
                     {/* Membership Badge */}
                     {accessStatus === 'loading' ? (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold dark:bg-slate-800 bg-slate-200 text-slate-500 animate-pulse">
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold dark:bg-slate-800 bg-slate-200 text-slate-500">
                         Verifying...
                       </span>
                     ) : isPro ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-amber-400 to-amber-500 text-black shadow-sm">
-                        <Crown size={11} className="fill-black" />
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 shadow-xs">
+                        <Crown size={11} className="fill-current" />
                         <span>PRO SCHOLAR</span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold dark:bg-slate-800 bg-slate-200 border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-700">
-                        <span>⭐</span>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-700">
                         <span>Free Aspirant</span>
                       </span>
                     )}
@@ -797,7 +810,7 @@ export default function StudentProfile() {
             <button
               type="button"
               onClick={() => setStreakModalOpen(true)}
-              className="dark:bg-[#111827] bg-white border dark:border-orange-500/30 border-orange-200 hover:border-orange-400 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-sm relative overflow-hidden group active:scale-95 transition-all cursor-pointer"
+              className="dark:bg-[#1E293B] bg-white border dark:border-orange-500/30 border-orange-200 hover:border-orange-400 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-sm relative overflow-hidden group active:scale-95 transition-all cursor-pointer"
               aria-label="View daily study streak details"
             >
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-500/15 text-orange-500 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
@@ -823,7 +836,7 @@ export default function StudentProfile() {
                 setDailyTarget(Number(profile?.daily_goal_target || 50));
                 setGoalsModalOpen(true);
               }}
-              className="dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 hover:border-amber-400/50 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-sm group active:scale-95 transition-all text-left"
+              className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 hover:border-amber-400/50 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-sm group active:scale-95 transition-all text-left"
             >
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
                 <Target size={16} />
@@ -840,7 +853,7 @@ export default function StudentProfile() {
             {/* 3. Tests Completed */}
             <Link
               to="/analytics"
-              className="dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 hover:border-indigo-400/50 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-sm group active:scale-95 transition-all"
+              className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 hover:border-indigo-400/50 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-sm group active:scale-95 transition-all"
             >
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-indigo-500/15 text-indigo-500 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
                 <FileText size={16} />
@@ -854,7 +867,7 @@ export default function StudentProfile() {
             </Link>
 
             {/* 4. Accuracy % */}
-            <div className="dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-sm">
+            <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-sm">
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-500/15 text-emerald-500 flex items-center justify-center mb-1.5">
                 <CheckCircle2 size={16} />
               </div>
@@ -872,11 +885,11 @@ export default function StudentProfile() {
         <section>
           <Link
             to="/wallet"
-            className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl dark:bg-[#111827] bg-white border dark:border-amber-500/30 border-amber-200 hover:border-amber-400 shadow-sm transition-all group"
+            className="flex items-center justify-between p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-amber-500/30 border-amber-200 hover:border-amber-400 shadow-sm transition-all group"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-500 text-xl shadow-sm shrink-0">
-                🪙
+              <div className="w-10 h-10 rounded-xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center text-amber-500 shadow-sm shrink-0">
+                <Coins size={20} />
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -912,7 +925,7 @@ export default function StudentProfile() {
             <span className="text-[10px] text-slate-400 font-semibold">Your Study Content</span>
           </div>
 
-          <div className="dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl divide-y dark:divide-slate-800/80 divide-slate-100 shadow-sm overflow-hidden">
+          <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl divide-y dark:divide-slate-800/80 divide-slate-100 shadow-sm overflow-hidden">
             {/* Bookmarked Questions */}
             <Link
               to="/bookmarks"
@@ -1028,12 +1041,12 @@ export default function StudentProfile() {
         <section className="space-y-2">
           <div className="px-1 flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500 flex items-center gap-1.5">
-              <span>👑 Pass & Inam (पास और इनाम)</span>
+              <span>Pass & Inam (पास और इनाम)</span>
             </h3>
             <span className="text-[10px] text-slate-400 font-semibold">Purchases & Rewards</span>
           </div>
 
-          <div className="dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl divide-y dark:divide-slate-800/80 divide-slate-100 shadow-sm overflow-hidden">
+          <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl divide-y dark:divide-slate-800/80 divide-slate-100 shadow-sm overflow-hidden">
             {/* My Purchases & Active Pass */}
             <Link
               to="/purchases"
@@ -1093,12 +1106,12 @@ export default function StudentProfile() {
         <section className="space-y-2">
           <div className="px-1 flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500 flex items-center gap-1.5">
-              <span>🛡️ Khata & Suraksha (खाता और सुरक्षा)</span>
+              <span>Khata & Suraksha (खाता और सुरक्षा)</span>
             </h3>
             <span className="text-[10px] text-slate-400 font-semibold">Security & Help</span>
           </div>
 
-          <div className="dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl divide-y dark:divide-slate-800/80 divide-slate-100 shadow-sm overflow-hidden">
+          <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl divide-y dark:divide-slate-800/80 divide-slate-100 shadow-sm overflow-hidden">
             {/* Edit Personal Details */}
             <button
               type="button"

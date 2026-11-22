@@ -6,24 +6,25 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { useLocation } from 'react-router-dom';
+import useModalBack from '../../hooks/useModalBack';
 
 const SUPPORT_EMAIL = 'zyvra.education@gmail.com';
 const POLL_INTERVAL_MS = 3500;
 
 const QUICK_PROMPTS_EN = [
-  { label: '🔓 Course Unlock', text: 'My purchased course or subject folder is not unlocked' },
-  { label: '💳 Payment Issue', text: 'Payment was debited but test pass is not activated' },
-  { label: '🪙 Zyvra Coins', text: 'How do I redeem and use my Zyvra Coins?' },
-  { label: '⏳ Pass Validity', text: 'What is the validity period for Full Pass and mock tests?' },
-  { label: '👤 Human Admin', text: 'I need to speak directly with the Zyvra Admin team' }
+  { label: 'Course Unlock', text: 'My purchased course or subject folder is not unlocked' },
+  { label: 'Payment Issue', text: 'Payment was debited but test pass is not activated' },
+  { label: 'Zyvra Coins', text: 'How do I redeem and use my Zyvra Coins?' },
+  { label: 'Pass Validity', text: 'What is the validity period for Full Pass and mock tests?' },
+  { label: 'Human Admin', text: 'I need to speak directly with the Zyvra Admin team' }
 ];
 
 const QUICK_PROMPTS_HI = [
-  { label: '🔓 कोर्स अनलॉक', text: 'मेरा खरीदा हुआ कोर्स / फोल्डर अनलॉक नहीं हुआ है' },
-  { label: '💳 पेमेंट समस्या', text: 'पैसे कट गए पर पास एक्टिवेट नहीं हुआ' },
-  { label: '🪙 ज़ीव्रा कॉइन्स', text: 'ज़ीव्रा कॉइन्स और रेफरल बोनस का उपयोग कैसे करें?' },
-  { label: '⏳ पास वैधता', text: 'फुल पास की वैधता और मॉक टेस्ट का क्या नियम है?' },
-  { label: '👤 एडमिन से बात', text: 'मुझे ज़ीव्रा एडमिन से सीधे बात करनी है' }
+  { label: 'कोर्स अनलॉक', text: 'मेरा खरीदा हुआ कोर्स / फोल्डर अनलॉक नहीं हुआ है' },
+  { label: 'पेमेंट समस्या', text: 'पैसे कट गए पर पास एक्टिवेट नहीं हुआ' },
+  { label: 'ज़ीव्रा कॉइन्स', text: 'ज़ीव्रा कॉइन्स और रेफरल बोनस का उपयोग कैसे करें?' },
+  { label: 'पास वैधता', text: 'फुल पास की वैधता और मॉक टेस्ट का क्या नियम है?' },
+  { label: 'एडमिन से बात', text: 'मुझे ज़ीव्रा एडमिन से सीधे बात करनी है' }
 ];
 
 export default function SupportChatWidget() {
@@ -32,6 +33,7 @@ export default function SupportChatWidget() {
   const location = useLocation();
 
   const [isOpen, setIsOpen] = useState(false);
+  useModalBack(isOpen, () => setIsOpen(false), 'support-chat');
   const [chatLang, setChatLang] = useState(language || 'en');
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
@@ -198,8 +200,8 @@ export default function SupportChatWidget() {
       <div className="p-3.5 sm:p-4 bg-gradient-to-r from-indigo-700 via-indigo-800 to-slate-900 text-white flex items-center justify-between shadow-md shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="relative shrink-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-lg sm:text-xl shadow-inner">
-              🤖
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center text-white shadow-inner">
+              <Bot size={20} />
             </div>
             <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-indigo-900" />
           </div>
@@ -208,7 +210,7 @@ export default function SupportChatWidget() {
               <span>{isHindi ? 'ज़ीव्रा AI सहायक व सपोर्ट' : 'Zyvra AI Assistant & Support'}</span>
             </h3>
             <span className="text-[10px] text-indigo-200 font-medium block mt-1 truncate">
-              {isHindi ? '⚡ 24×7 तुरंत AI + आधिकारिक एडमिन' : '⚡ 24×7 Instant AI + Admin Support'}
+              {isHindi ? '24×7 तुरंत AI + आधिकारिक एडमिन' : '24×7 Instant AI + Admin Support'}
             </span>
           </div>
         </div>
@@ -303,8 +305,8 @@ export default function SupportChatWidget() {
           </div>
           <p className="text-xs dark:text-slate-300 text-slate-700 leading-relaxed">
             {isHindi
-              ? 'नमस्ते! ज़ीव्रा स्टूडेंट हेल्प डेस्क में आपका स्वागत है 🎓। किसी भी कोर्स, टेस्ट, पेमेंट या कॉइन की समस्या का तुरंत समाधान पाने के लिए नीचे टाइप करें या ऊपर दिए क्विक बटन्स दबाएं।'
-              : 'Namaste! Welcome to Zyvra Student Support 🎓. For instant assistance with courses, tests, payments, or coins, tap any quick topic above or type your query below.'}
+              ? 'नमस्ते! ज़ीव्रा स्टूडेंट हेल्प डेस्क में आपका स्वागत है। किसी भी कोर्स, टेस्ट, पेमेंट या कॉइन की समस्या का तुरंत समाधान पाने के लिए नीचे टाइप करें या ऊपर दिए क्विक बटन्स दबाएं।'
+              : 'Namaste! Welcome to Zyvra Student Support. For instant assistance with courses, tests, payments, or coins, tap any quick topic above or type your query below.'}
           </p>
         </div>
 
@@ -336,12 +338,12 @@ export default function SupportChatWidget() {
                     {isBot ? (
                       <span className="text-[9px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-purple-500/15 text-purple-400 border border-purple-500/30 flex items-center gap-1">
                         <Bot size={10} />
-                        {isHindi ? 'ज़ीव्रा AI सहायक 🤖' : 'Zyvra AI Assistant 🤖'}
+                        {isHindi ? 'ज़ीव्रा AI सहायक' : 'Zyvra AI Assistant'}
                       </span>
                     ) : (
                       <span className="text-[9px] uppercase font-black tracking-wider px-1.5 py-0.5 rounded-md bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 flex items-center gap-1">
                         <UserCheck size={10} />
-                        {isHindi ? 'ज़ीव्रा आधिकारिक एडमिन 🛡️' : 'Zyvra Official Admin 🛡️'}
+                        {isHindi ? 'ज़ीव्रा आधिकारिक एडमिन' : 'Zyvra Official Admin'}
                       </span>
                     )}
                   </div>

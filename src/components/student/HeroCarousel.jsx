@@ -186,7 +186,7 @@ export default function HeroCarousel() {
 
             {/* CTA Action Pill */}
             <div className="pt-2">
-              <span className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-indigo-600 group-hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm transition-all shadow-[0_0_15px_rgba(79,70,229,0.4)]">
+              <span className="inline-flex items-center gap-1.5 px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-indigo-600 group-hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm transition-all shadow-sm">
                 <span>{activeBanner.cta_text || 'Explore Now'}</span>
                 <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
               </span>

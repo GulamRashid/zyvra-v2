@@ -23,6 +23,7 @@ import {
   RefreshCw,
   RotateCcw,
   Target,
+  Swords,
   Maximize2,
   Minimize2,
   Wifi,
@@ -362,6 +363,14 @@ export default function LiveQuiz() {
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [showOnlineToast, setShowOnlineToast] = useState(false);
   const saveProgressSnapshotRef = useRef();
+  const activeModalsRef = useRef({});
+  activeModalsRef.current = {
+    paletteOpen,
+    confirmSubmit,
+    showPauseModal,
+    showInstructionsModal,
+    overflowOpen
+  };
   const onlineToastTimerRef = useRef();
 
   // Challenger 1v1 Battle Info
@@ -816,6 +825,13 @@ export default function LiveQuiz() {
 
       if (isAttemptCompleted && !location.state?.reattempt && !isMistakesMode) {
         if (active) {
+          // If this quiz was recently submitted in this session (e.g. user pressed back on result),
+          // navigate cleanly to returnTo instead of trapping the student in a result redirect loop!
+          const justSubmitted = sessionStorage.getItem(`zyvra_last_submitted_quiz_${testId}`);
+          if (justSubmitted && (Date.now() - Number(justSubmitted) < 1800000)) {
+            navigate(returnTo, { replace: true });
+            return;
+          }
           navigate(`/quiz/result/${latestAttempt.id}`, { replace: true, state: { returnTo } });
           return;
         }
@@ -1153,7 +1169,20 @@ export default function LiveQuiz() {
 
     const handlePopState = () => {
       window.history.pushState(null, '', window.location.href);
-      setShowPauseModal(true);
+      const m = activeModalsRef.current;
+      if (m.paletteOpen) {
+        setPaletteOpen(false);
+      } else if (m.overflowOpen) {
+        setOverflowOpen(false);
+      } else if (m.confirmSubmit) {
+        setConfirmSubmit(false);
+      } else if (m.showInstructionsModal) {
+        setShowInstructionsModal(false);
+      } else if (m.showPauseModal) {
+        setShowPauseModal(false);
+      } else {
+        setShowPauseModal(true);
+      }
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -1399,6 +1428,7 @@ export default function LiveQuiz() {
           }
           if (testId) {
             sessionStorage.removeItem(`zyvra_active_guesses_${testId}`);
+            sessionStorage.setItem(`zyvra_last_submitted_quiz_${testId}`, String(Date.now()));
           }
         } catch {}
       }
@@ -1934,11 +1964,11 @@ export default function LiveQuiz() {
     return (
       <main className="quiz-instructions-screen">
         <header className="instructions-header">
-          <Link to={returnTo} className="quiz-brand">
+          <Link to={returnTo} replace className="quiz-brand">
             <img src="/logo-192.png" alt="Zyvra" className="w-8 h-8 rounded-xl object-contain shadow-sm" />
             <span>ZYVRA<span>EXAM INSTRUCTIONS</span></span>
           </Link>
-          <Link to={returnTo} className="button button-outline text-xs min-h-[36px]">
+          <Link to={returnTo} replace className="button button-outline text-xs min-h-[36px]">
             <ArrowLeft size={14} /> Exit to Tests
           </Link>
         </header>
@@ -1969,13 +1999,13 @@ export default function LiveQuiz() {
             </div>
 
             {isMistakesMode && (
-              <div className="mb-4 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 to-rose-500/15 border border-amber-500/40 flex items-center gap-3">
-                <RotateCcw size={20} className="text-amber-400 shrink-0" />
+              <div className="mb-4 p-3.5 sm:p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-3">
+                <RotateCcw size={20} className="text-amber-500 dark:text-amber-400 shrink-0" />
                 <div className="text-xs">
-                  <strong className="text-amber-300 font-bold block text-sm">
-                    {language === 'hi' ? '🔥 केवल गलत प्रश्नों का री-अटेम्प्ट मोड' : '🔥 Mistakes Re-attempt Mode Active'}
+                  <strong className="text-amber-600 dark:text-amber-400 font-bold block text-sm">
+                    {language === 'hi' ? 'केवल गलत प्रश्नों का री-अटेम्प्ट मोड' : 'Mistakes Re-attempt Mode Active'}
                   </strong>
-                  <span className="text-slate-300">
+                  <span className="text-slate-600 dark:text-slate-300">
                     {language === 'hi'
                       ? 'इस सत्र में केवल वे प्रश्न शामिल हैं जो आपने पिछले टेस्ट में गलत किए थे। अपनी गलतियों को सुधारें और 100% सटीकता प्राप्त करें।'
                       : 'This session includes only the questions answered incorrectly in your previous attempt. Master your mistakes and achieve 100% accuracy.'}
@@ -2134,11 +2164,11 @@ export default function LiveQuiz() {
     return (
       <main className="quiz-instructions-screen resume-prompt-screen">
         <header className="instructions-header">
-          <Link to={returnTo} className="quiz-brand">
+          <Link to={returnTo} replace className="quiz-brand">
             <img src="/logo-192.png" alt="Zyvra" className="w-8 h-8 rounded-xl object-contain shadow-sm" />
             <span>ZYVRA<span>RESUME TEST</span></span>
           </Link>
-          <Link to={returnTo} className="button button-outline text-xs min-h-[36px]">
+          <Link to={returnTo} replace className="button button-outline text-xs min-h-[36px]">
             <ArrowLeft size={14} /> Exit to Tests
           </Link>
         </header>
@@ -2189,7 +2219,7 @@ export default function LiveQuiz() {
             <div className="resume-actions">
               <button
                 type="button"
-                className="button resume-btn-large bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all"
+                className="button resume-btn-large bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-xs transition-colors"
                 onClick={handleResumeTest}
               >
                 <Play size={18} /> Resume Test Now
@@ -2372,7 +2402,7 @@ export default function LiveQuiz() {
           <div className="locked-icon"><ListChecks size={23} /></div>
           <h1>Test not ready</h1>
           <p>No questions available in this test yet.</p>
-          <Link className="button button-outline" to={test.chapter_id ? `/chapter/${test.chapter_id}` : '/tests'}>
+          <Link className="button button-outline" to={test.chapter_id ? `/chapter/${test.chapter_id}` : '/tests'} replace>
             <ArrowLeft size={15} /> Back to Chapter
           </Link>
         </div>
@@ -2387,7 +2417,7 @@ export default function LiveQuiz() {
           <div className="locked-icon"><LockKeyhole size={23} /></div>
           <h1>Question unavailable</h1>
           <p>We could not load this question. Please return to the test list and try again.</p>
-          <Link className="button button-outline" to="/tests">
+          <Link className="button button-outline" to="/tests" replace>
             <ArrowLeft size={15} /> Back to tests
           </Link>
         </div>
@@ -2426,14 +2456,16 @@ export default function LiveQuiz() {
       {/* CBT 2-Row Header */}
       <header ref={overflowMenuRef} className="quiz-header cbt-two-row-header">
         {challengerInfo && (
-          <div className="bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-500/20 border-b border-amber-500/30 px-3 py-1.5 text-center text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center justify-center gap-1.5 shrink-0">
-            <span>⚔️ 1v1 मुकाबला:</span>
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-3 py-1.5 text-center text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center justify-center gap-1.5 shrink-0">
+            <Swords size={14} className="shrink-0 text-amber-600 dark:text-amber-400" />
+            <span>1v1 मुकाबला:</span>
             <span><strong>{challengerInfo.cName}</strong> ने आपको चुनौती दी है ({challengerInfo.cScore}/{challengerInfo.cTotal} अंक)!</span>
           </div>
         )}
         {isMistakesMode && (
-          <div className="bg-gradient-to-r from-rose-500/20 via-amber-500/15 to-rose-500/20 border-b border-rose-500/30 px-3 py-1.5 text-center text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center justify-center gap-1.5 shrink-0">
-            <span>🎯 गलती सुधार अभ्यास (Mistake Retest):</span>
+          <div className="bg-rose-500/10 border-b border-rose-500/20 px-3 py-1.5 text-center text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center justify-center gap-1.5 shrink-0">
+            <Target size={14} className="shrink-0 text-rose-600 dark:text-rose-400" />
+            <span>गलती सुधार अभ्यास (Mistake Retest):</span>
             <span>केवल आपके द्वारा पहले गलत किए गए प्रश्नों का अभ्यास</span>
           </div>
         )}
@@ -2533,7 +2565,7 @@ export default function LiveQuiz() {
             {/* Submit Test Button (Desktop Header) */}
             <button
               type="button"
-              className="button quiz-submit-button hidden md:inline-flex bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold shadow-[0_0_15px_rgba(79,70,229,0.3)] transition-all"
+              className="button quiz-submit-button hidden md:inline-flex bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold shadow-xs transition-colors"
               disabled={submitting}
               onClick={confirm}
             >
@@ -3046,21 +3078,21 @@ export default function LiveQuiz() {
                   <button
                     type="button"
                     onClick={() => toggleGuess(question.id)}
-                    className={`quiz-mobile-action-button px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full text-xs font-bold border transition-all flex items-center gap-1 min-h-[40px] select-none cursor-pointer ${
+                    className={`quiz-mobile-action-button px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full text-xs font-bold border transition-all flex items-center gap-1 min-h-[44px] select-none cursor-pointer ${
                       guessedQuestions.has(question.id)
                         ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/50 ring-1 ring-amber-500/30'
                         : 'dark:bg-slate-800/80 bg-slate-100 dark:text-slate-400 text-slate-600 border-slate-300 dark:border-slate-700 hover:border-amber-500/40'
                     }`}
                     title={language === 'hi' ? '50-50 / तुक्का चिह्नित करें' : 'Mark as 50-50 Guess'}
                   >
-                    <span>🎯</span>
+                    <Target size={12} className="shrink-0" />
                     <span>{guessedQuestions.has(question.id) ? (language === 'hi' ? 'तुक्का ✓' : 'Guess ✓') : (language === 'hi' ? 'तुक्का?' : 'Guess?')}</span>
                   </button>
                   <button
                     type="button"
                     onClick={clearResponse}
                     disabled={submitting || pausing}
-                    className="quiz-mobile-action-button px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full dark:bg-rose-950/30 bg-rose-50 border dark:border-rose-800/40 border-rose-200 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-xs font-bold flex items-center gap-1 min-h-[40px] transition-colors"
+                    className="quiz-mobile-action-button px-2.5 sm:px-3 py-2 sm:py-2.5 rounded-full dark:bg-rose-950/30 bg-rose-50 border dark:border-rose-800/40 border-rose-200 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-xs font-bold flex items-center gap-1 min-h-[44px] transition-colors"
                     title={language === 'hi' ? 'उत्तर हटाएं' : 'Clear Response'}
                   >
                     <RotateCcw size={12} />
@@ -3069,7 +3101,7 @@ export default function LiveQuiz() {
                 </div>
               ) : (
                 <div
-                  className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-slate-900/40 bg-slate-100 border dark:border-slate-800 border-slate-300 text-slate-500 dark:text-slate-400 text-xs font-medium flex items-center gap-1.5 min-h-[40px] select-none"
+                  className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-slate-900/40 bg-slate-100 border dark:border-slate-800 border-slate-300 text-slate-500 dark:text-slate-400 text-xs font-medium flex items-center gap-1.5 min-h-[44px] select-none"
                 >
                   <span>{language === 'hi' ? 'अनुत्तरित' : 'Unanswered'}</span>
                 </div>
@@ -3079,7 +3111,7 @@ export default function LiveQuiz() {
             {currentIndex === questions.length - 1 ? (
               <button
                 type="button"
-                className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm transition-colors min-h-[40px] shadow-[0_0_15px_rgba(79,70,229,0.3)]"
+                className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm transition-colors min-h-[44px] shadow-xs"
                 disabled={submitting}
                 onClick={confirm}
               >
@@ -3088,7 +3120,7 @@ export default function LiveQuiz() {
             ) : (
               <button
                 type="button"
-                className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm transition-colors flex items-center gap-1 min-h-[40px] shadow-glowIndigo"
+                className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm transition-colors flex items-center gap-1 min-h-[44px] shadow-xs"
                 onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
               >
                 <span>

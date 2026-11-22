@@ -13,7 +13,8 @@ import {
   Trophy,
   WalletCards,
   Wrench,
-  X
+  X,
+  Zap
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import OnboardingModal from './OnboardingModal';
@@ -21,6 +22,7 @@ import HeroCarousel from '../../components/student/HeroCarousel';
 import ShareAndEarnCard from '../../components/common/ShareAndEarnCard';
 import ContentIcon from '../../components/common/ContentIcon';
 import DailyStreakModal from '../../components/student/DailyStreakModal';
+import useModalBack from '../../hooks/useModalBack';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
@@ -102,6 +104,7 @@ export default function StudentHome() {
   const [dashboardError, setDashboardError] = useState('');
   const [overviewRetry, setOverviewRetry] = useState(0);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  useModalBack(inviteModalOpen, () => setInviteModalOpen(false), 'referral-invite');
 
   // User Greeting Info
   const fullName = profile?.full_name || profile?.name || user?.user_metadata?.full_name || '';
@@ -358,7 +361,7 @@ export default function StudentHome() {
   );
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-800 dark:text-slate-100">
+    <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-800 dark:text-slate-100">
       {shouldShowOnboarding && <OnboardingModal />}
 
       {/* ======================================================== */}
@@ -366,13 +369,12 @@ export default function StudentHome() {
       {/* ======================================================== */}
       <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
         <div>
-          <h1 className="text-xl sm:text-2xl font-black tracking-tight dark:text-white text-slate-900 flex items-center gap-2">
-            <span>{greetingPhrase}, {firstName}</span>
-            <span className="text-amber-500 select-none">⚡</span>
+          <h1 className="text-xl sm:text-2xl font-black tracking-tight dark:text-white text-slate-900">
+            {greetingPhrase}, {firstName}
           </h1>
           <p className="text-xs sm:text-sm font-medium dark:text-slate-400 text-slate-500 mt-0.5">
             {language === 'hi'
-              ? 'अपनी तैयारी जारी रखें और लक्ष्य के करीब पहुँचें।'
+              ? 'अपनी तैयारी जारी रखें और दैनिक लक्ष्य के करीब पहुँचें।'
               : 'Keep the streak, stay ahead in your preparation.'}
           </p>
         </div>
@@ -383,11 +385,11 @@ export default function StudentHome() {
           <button
             type="button"
             onClick={() => setStreakModalOpen(true)}
-            className="px-3 py-1.5 rounded-2xl dark:bg-[#1E293B]/90 bg-white border dark:border-slate-800 border-slate-200/90 shadow-xs flex items-center gap-2 text-left hover:scale-[1.02] active:scale-95 transition-all cursor-pointer"
+            className="px-3 py-1.5 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 shadow-xs flex items-center gap-2 text-left hover:scale-[1.01] active:scale-95 transition-all cursor-pointer"
             aria-label="View study streak"
           >
-            <div className="w-7 h-7 rounded-xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center shrink-0">
-              <Flame size={15} className={`text-orange-500 ${streak > 0 ? 'fill-orange-500 animate-pulse' : ''}`} />
+            <div className="w-7 h-7 rounded-xl bg-orange-500/10 border border-orange-500/25 flex items-center justify-center shrink-0">
+              <Flame size={15} className={`text-orange-500 ${streak > 0 ? 'fill-orange-500' : ''}`} />
             </div>
             <div>
               <div className="text-xs font-black dark:text-orange-400 text-orange-600 leading-none">
@@ -402,7 +404,7 @@ export default function StudentHome() {
           </button>
 
           {/* Today's Daily Target Pill */}
-          <div className="px-3 py-1.5 rounded-2xl dark:bg-[#1E293B]/90 bg-white border dark:border-slate-800 border-slate-200/90 shadow-xs flex items-center gap-2">
+          <div className="px-3 py-1.5 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 shadow-xs flex items-center gap-2">
             <div className="relative w-7 h-7 flex items-center justify-center shrink-0">
               <svg className="w-7 h-7 -rotate-90 transform" viewBox="0 0 32 32">
                 <circle cx="16" cy="16" r={ringRadius} className="dark:stroke-slate-800 stroke-slate-200" strokeWidth="2.8" fill="none" />
@@ -434,9 +436,11 @@ export default function StudentHome() {
 
       {/* Dynamic Streak & Loss-Aversion Engagement Banner */}
       {streakData?.streakAtRisk && !streakData?.isActiveToday && streak > 0 ? (
-        <div className="flex items-center justify-between gap-3 p-3 sm:px-4 rounded-2xl bg-gradient-to-r from-orange-500/15 via-amber-500/10 to-orange-500/10 border border-orange-500/30 text-xs shadow-xs animate-in fade-in duration-200">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-xl shrink-0 animate-bounce">🔥</span>
+        <div className="flex items-center justify-between gap-3 p-3.5 sm:px-4 rounded-2xl bg-orange-500/10 dark:bg-orange-500/15 border border-orange-500/30 text-xs shadow-xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-orange-500/20 border border-orange-500/40 text-orange-500 flex items-center justify-center shrink-0">
+              <Flame size={16} className="fill-orange-500 text-orange-500" />
+            </div>
             <div className="min-w-0">
               <strong className="block text-orange-600 dark:text-orange-400 font-black truncate">
                 {language === 'hi' ? `आपकी ${streak} दिन की स्ट्रीक दांव पर है!` : `Your ${streak}-day streak is at risk!`}
@@ -448,30 +452,32 @@ export default function StudentHome() {
           </div>
           <Link
             to="/tests"
-            className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-500 hover:from-orange-500 hover:to-amber-400 text-white font-black text-xs shrink-0 shadow-sm transition-all hover:scale-[1.02] active:scale-95"
+            className="px-3.5 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black text-xs shrink-0 shadow-sm transition-all hover:scale-[1.02] active:scale-95"
           >
             {language === 'hi' ? 'स्ट्रीक बचाएं' : 'Save Streak'}
           </Link>
         </div>
       ) : goalPercent >= 100 ? (
-        <div className="flex items-center justify-between gap-2 p-3 sm:px-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-amber-500/10 to-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-700 dark:text-emerald-300 font-bold shadow-xs animate-in fade-in duration-200">
+        <div className="flex items-center justify-between gap-2.5 p-3 sm:px-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 text-xs text-emerald-800 dark:text-emerald-200 font-bold shadow-xs animate-in fade-in duration-200">
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="text-lg shrink-0">🎉</span>
+            <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 font-bold text-xs">
+              ✓
+            </div>
             <span className="truncate">
               {language === 'hi'
                 ? `अद्भुत निरंतरता! आज का लक्ष्य पूर्ण हुआ (${todayQuestionsSolved}/${dailyTarget} सवाल)।`
                 : `Goal Achieved! (${todayQuestionsSolved}/${dailyTarget} questions solved today).`}
             </span>
           </div>
-          <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-black uppercase tracking-wider shrink-0">
-            {language === 'hi' ? '✓ सुरक्षित' : '✓ Secured'}
+          <span className="px-2.5 py-0.5 rounded-full bg-emerald-600 text-white text-[10px] font-black uppercase tracking-wider shrink-0">
+            {language === 'hi' ? 'सुरक्षित' : 'Secured'}
           </span>
         </div>
       ) : streakData?.nextMilestone && streak > 0 ? (
         <button
           type="button"
           onClick={() => setStreakModalOpen(true)}
-          className="w-full text-left flex items-center justify-between gap-2 p-2.5 sm:px-3.5 rounded-2xl dark:bg-[#1E293B]/70 bg-white border dark:border-slate-800 border-slate-200 text-xs shadow-xs hover:border-amber-500/40 transition-all cursor-pointer group"
+          className="w-full text-left flex items-center justify-between gap-2 p-2.5 sm:px-3.5 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 text-xs shadow-xs hover:border-amber-500/40 transition-all cursor-pointer group"
         >
           <div className="flex items-center gap-2 text-slate-600 dark:text-slate-300 min-w-0">
             <span className="text-sm shrink-0">{streakData.nextMilestone.icon}</span>
@@ -516,10 +522,10 @@ export default function StudentHome() {
         {/* 1. My Courses */}
         <Link
           to="/purchases"
-          className="p-3.5 sm:p-4 rounded-3xl dark:bg-[#111827]/85 bg-white border dark:border-slate-800/80 border-slate-200/80 hover:border-indigo-500/60 flex flex-col justify-between gap-3 transition-all hover:scale-[1.01] active:scale-[0.98] shadow-xs group"
+          className="p-3.5 sm:p-4 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 hover:border-indigo-500/60 flex flex-col justify-between gap-3 transition-all hover:scale-[1.01] active:scale-[0.98] shadow-xs group"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <GraduationCap size={20} />
             </div>
             <ArrowRight size={14} className="text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0" />
@@ -537,16 +543,16 @@ export default function StudentHome() {
         {/* 2. Mock Tests */}
         <Link
           to="/tests?tab=tests"
-          className="p-3.5 sm:p-4 rounded-3xl dark:bg-[#111827]/85 bg-white border dark:border-slate-800/80 border-slate-200/80 hover:border-emerald-500/60 flex flex-col justify-between gap-3 transition-all hover:scale-[1.01] active:scale-[0.98] shadow-xs group"
+          className="p-3.5 sm:p-4 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 hover:border-indigo-500/60 flex flex-col justify-between gap-3 transition-all hover:scale-[1.01] active:scale-[0.98] shadow-xs group"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <Target size={20} />
             </div>
-            <ArrowRight size={14} className="text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+            <ArrowRight size={14} className="text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0" />
           </div>
           <div>
-            <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors leading-tight">
+            <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight">
               {language === 'hi' ? 'मॉक टेस्ट्स' : 'Mock Tests'}
             </h4>
             <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium truncate mt-0.5">
@@ -558,16 +564,16 @@ export default function StudentHome() {
         {/* 3. Explore Syllabus */}
         <Link
           to="/explore"
-          className="p-3.5 sm:p-4 rounded-3xl dark:bg-[#111827]/85 bg-white border dark:border-slate-800/80 border-slate-200/80 hover:border-amber-500/60 flex flex-col justify-between gap-3 transition-all hover:scale-[1.01] active:scale-[0.98] shadow-xs group"
+          className="p-3.5 sm:p-4 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 hover:border-indigo-500/60 flex flex-col justify-between gap-3 transition-all hover:scale-[1.01] active:scale-[0.98] shadow-xs group"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <Compass size={20} />
             </div>
-            <ArrowRight size={14} className="text-slate-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+            <ArrowRight size={14} className="text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0" />
           </div>
           <div>
-            <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors leading-tight">
+            <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight">
               {language === 'hi' ? 'पूरा सिलेबस' : 'Explore Exams'}
             </h4>
             <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium truncate mt-0.5">
@@ -579,16 +585,16 @@ export default function StudentHome() {
         {/* 4. Study Toolbox */}
         <Link
           to="/toolbox"
-          className="p-3.5 sm:p-4 rounded-3xl dark:bg-[#111827]/85 bg-white border dark:border-slate-800/80 border-slate-200/80 hover:border-cyan-500/60 flex flex-col justify-between gap-3 transition-all hover:scale-[1.01] active:scale-[0.98] shadow-xs group"
+          className="p-3.5 sm:p-4 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 hover:border-indigo-500/60 flex flex-col justify-between gap-3 transition-all hover:scale-[1.01] active:scale-[0.98] shadow-xs group"
         >
           <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
               <Wrench size={20} />
             </div>
-            <ArrowRight size={14} className="text-slate-400 group-hover:text-cyan-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+            <ArrowRight size={14} className="text-slate-400 group-hover:text-indigo-500 group-hover:translate-x-0.5 transition-all shrink-0" />
           </div>
           <div>
-            <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors leading-tight">
+            <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors leading-tight">
               {language === 'hi' ? 'स्टडी टूल्स' : 'Study Toolbox'}
             </h4>
             <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium truncate mt-0.5">
@@ -608,9 +614,9 @@ export default function StudentHome() {
             <Link
               key={tile.id}
               to={tile.path}
-              className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl dark:bg-[#111827]/70 bg-white border dark:border-slate-800/80 border-slate-200/80 hover:border-slate-400/40 text-center transition-all active:scale-95 group shadow-xs"
+              className="flex flex-col items-center justify-center p-2.5 sm:p-3 min-h-[58px] rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 hover:border-indigo-500/40 text-center transition-all active:scale-95 group shadow-xs"
             >
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center mb-1 shrink-0 dark:bg-slate-800/80 bg-slate-100 group-hover:scale-110 transition-transform">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center mb-1 shrink-0 dark:bg-slate-800/80 bg-slate-100 group-hover:scale-105 transition-transform">
                 <Icon size={16} className={tile.color} />
               </div>
               <span className="text-[10px] sm:text-xs font-bold dark:text-slate-200 text-slate-800 tracking-tight leading-tight truncate max-w-full">
@@ -625,14 +631,14 @@ export default function StudentHome() {
       {/* 4.5 DAILY 5-MINUTE PCS BOOSTER CHALLENGE (PSYCHOLOGY HOOK) */}
       {/* ======================================================== */}
       <section className="space-y-2">
-        <div className="p-3.5 sm:p-4 rounded-3xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-indigo-500/10 border border-amber-500/30 shadow-xs flex items-center justify-between gap-3 transition-all hover:border-amber-500/50">
+        <div className="p-3.5 sm:p-4 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-amber-500/30 border-amber-300/80 shadow-xs flex items-center justify-between gap-3 transition-all hover:border-amber-500/50">
           <div className="flex items-center gap-3 min-w-0">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-500/20 border border-amber-500/40 text-amber-500 dark:text-amber-400 flex items-center justify-center text-xl shrink-0 shadow-inner">
-              ⚡
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <Zap size={20} className="fill-amber-500 text-amber-500" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-600 dark:text-amber-400 uppercase tracking-wider border border-amber-500/30">
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/15 text-amber-600 dark:text-amber-400 uppercase tracking-wider border border-amber-500/30">
                   {language === 'hi' ? 'दैनिक चुनौती' : 'Daily 5-Min Booster'}
                 </span>
                 <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
@@ -650,7 +656,7 @@ export default function StudentHome() {
 
           <Link
             to="/tests?tab=tests"
-            className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs sm:text-sm shrink-0 shadow-sm transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-1.5 min-h-[44px]"
+            className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm shrink-0 shadow-xs transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-1.5 min-h-[44px]"
           >
             <span>{language === 'hi' ? 'शुरू करें' : 'Start Booster'}</span>
             <ArrowRight size={14} strokeWidth={2.5} />
@@ -680,12 +686,12 @@ export default function StudentHome() {
         </div>
 
         {dashboardLoading ? (
-          <div className="dark:bg-[#111827]/80 bg-white border dark:border-slate-800 border-slate-200 rounded-3xl p-4 sm:p-5 min-h-[90px] animate-pulse">
+          <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 rounded-3xl p-4 sm:p-5 min-h-[90px] animate-pulse">
             <div className="h-4 w-1/2 rounded bg-indigo-500/10" />
             <div className="mt-2.5 h-3 w-1/3 rounded bg-indigo-500/10" />
           </div>
         ) : recommendation ? (
-          <div className="dark:bg-[#111827]/80 bg-white border dark:border-slate-800/80 border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-xs transition-all">
+          <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-xs transition-all">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
@@ -700,7 +706,7 @@ export default function StudentHome() {
               </div>
               <Link
                 to={recommendation.path}
-                className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl px-4 py-2 text-xs sm:text-sm font-black bg-indigo-600 hover:bg-indigo-500 text-white shadow-md active:scale-95 transition-all"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-2xl px-4 py-2 text-xs sm:text-sm font-black bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm active:scale-95 transition-all"
               >
                 <span>{recommendation.kind === 'resume' ? (language === 'hi' ? 'जारी रखें' : 'Resume') : (language === 'hi' ? 'शुरू करें' : 'Start')}</span>
                 <ArrowRight size={14} />
@@ -708,7 +714,7 @@ export default function StudentHome() {
             </div>
           </div>
         ) : (
-          <div className="dark:bg-[#111827]/80 bg-white border dark:border-slate-800/80 border-slate-200/80 rounded-3xl p-4 sm:p-5 shadow-xs transition-all">
+          <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 rounded-3xl p-4 sm:p-5 shadow-xs transition-all">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
@@ -765,7 +771,7 @@ export default function StudentHome() {
               <Link
                 key={exam.id}
                 to={exam.path}
-                className="p-4 rounded-3xl dark:bg-[#111827]/85 bg-white border dark:border-slate-800/80 border-slate-200/80 hover:border-indigo-500/50 flex flex-col justify-between transition-all hover:scale-[1.01] active:scale-[0.98] shadow-xs group min-h-[105px]"
+                className="p-4 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 hover:border-indigo-500/50 flex flex-col justify-between transition-all hover:scale-[1.01] active:scale-[0.98] shadow-xs group min-h-[105px]"
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="w-9 h-9 rounded-2xl flex items-center justify-center border bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border-indigo-500/30 p-1.5">

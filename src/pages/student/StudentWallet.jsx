@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowDownLeft, ArrowUpRight, Coins, Gift, ShoppingBag, Sparkles
+  ArrowDownLeft, ArrowLeft, ArrowUpRight, Coins, Gift, ShoppingBag, Sparkles
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import ShareAndEarnCard from '../../components/common/ShareAndEarnCard';
 import { useAuth } from '../../context/AuthContext';
@@ -69,6 +69,7 @@ function transactionDate(transaction) {
 }
 
 export default function StudentWallet() {
+  const navigate = useNavigate();
   const { user, coinBalance, supabase } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -112,12 +113,27 @@ export default function StudentWallet() {
   }, [transactions, coinBalance]);
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
-      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
-        {/* Page Heading Banner */}
+    <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-900 dark:text-slate-100">
+      {/* Page Heading Banner */}
         <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50/90 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-4 sm:p-6 shadow-sm">
-          <div className="text-[10px] uppercase font-bold text-amber-500 tracking-wider">
-            Your Rewards & Currency
+          <div className="flex items-center gap-2.5 mb-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                if (window.history.state && window.history.state.idx > 0) {
+                  navigate(-1);
+                } else {
+                  navigate('/profile', { replace: true });
+                }
+              }}
+              className="w-7 h-7 rounded-lg dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white shrink-0 shadow-xs active:scale-95 transition-all"
+              aria-label="Back"
+            >
+              <ArrowLeft size={14} />
+            </button>
+            <div className="text-[10px] uppercase font-bold text-amber-500 tracking-wider">
+              Your Rewards & Currency
+            </div>
           </div>
           <h1 className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
             Zyvra Coin Wallet
@@ -134,10 +150,10 @@ export default function StudentWallet() {
         )}
 
         {/* Hero Card: Available Balance & Totals - Bright Amber Dopamine Trigger */}
-        <section className="wallet-hero relative overflow-hidden rounded-3xl dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#0F172A] dark:to-[#0B1120] bg-gradient-to-r from-amber-100 via-slate-50 to-white border dark:border-amber-500/40 border-amber-300 p-5 sm:p-6 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <section className="wallet-hero relative overflow-hidden rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-amber-500/30 border-amber-200 p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black font-black text-2xl shadow-[0_0_20px_rgba(245,158,11,0.4)] shrink-0">
-              🪙
+            <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-500 shadow-xs shrink-0">
+              <Coins size={24} />
             </div>
             <div>
               <div className="text-[10px] uppercase font-bold dark:text-amber-400 text-amber-800 tracking-wider">
@@ -307,6 +323,5 @@ export default function StudentWallet() {
           </section>
         </div>
       </div>
-    </div>
   );
 }

@@ -34,6 +34,7 @@ import {
   splitIntoSentences
 } from '../../../lib/speechVoice';
 import { playRealisticSpeech, stopSpeech } from '../../../lib/hybridVoicePlayer';
+import useModalBack from '../../../hooks/useModalBack';
 
 export default function ZyvraAiGuruModal({
   isOpen,
@@ -42,6 +43,7 @@ export default function ZyvraAiGuruModal({
   initialContext = '',
   examTitle = ''
 }) {
+  useModalBack(isOpen, onClose, 'ai-guru');
   const { user, profile, coinBalance, supabase, refreshAccount } = useAuth();
   const { language } = useThemeLanguage();
   const [config, setConfig] = useState(DEFAULT_AI_CONFIG);
@@ -368,18 +370,18 @@ export default function ZyvraAiGuruModal({
 
   const quickPrompts = [
     {
-      labelHi: '⚡ शॉर्टकट ट्रिक बताएं',
-      labelEn: '⚡ Shortcut Trick',
+      labelHi: 'शॉर्टकट ट्रिक बताएं',
+      labelEn: 'Shortcut Trick',
       prompt: 'Is question ya concept ko sabse tez solve karne ki shortcut trick bataiye.'
     },
     {
-      labelHi: '📖 स्टेप-बाय-स्टेप कॉन्सेप्ट',
-      labelEn: '📖 Step-by-Step Concept',
+      labelHi: 'स्टेप-बाय-स्टेप कॉन्सेप्ट',
+      labelEn: 'Step-by-Step Concept',
       prompt: 'Kripya iska foundational concept saral bhasha me step-by-step samjhaiye.'
     },
     {
-      labelHi: '⚠️ सामान्य गलतियाँ (Pitfalls)',
-      labelEn: '⚠️ Common Mistakes',
+      labelHi: 'सामान्य गलतियाँ (Pitfalls)',
+      labelEn: 'Common Mistakes',
       prompt: 'Aspirants is tarah ke sawalo me aksar kya galti karte hain?'
     }
   ];
@@ -442,7 +444,7 @@ export default function ZyvraAiGuruModal({
               title={voiceLang === 'hi-IN' ? 'Switch to English' : 'हिंदी पर स्विच करें'}
             >
               <Globe size={13} className="text-indigo-400" />
-              <span>{voiceLang === 'hi-IN' ? '🇮🇳 हिन्दी' : '🇬🇧 EN'}</span>
+              <span>{voiceLang === 'hi-IN' ? 'हिन्दी' : 'English'}</span>
             </button>
 
             {/* Close Button */}
@@ -599,7 +601,7 @@ export default function ZyvraAiGuruModal({
               <span className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
                 <span>
-                  {voiceLang === 'hi-IN' ? '🔴 सुन रहा हूँ… बोलिए (हिंदी)' : '🔴 Listening… Speak now (English)'}
+                  {voiceLang === 'hi-IN' ? 'सुन रहा हूँ… बोलिए (हिंदी)' : 'Listening… Speak now (English)'}
                 </span>
               </span>
               <button
@@ -632,7 +634,7 @@ export default function ZyvraAiGuruModal({
                 <span>
                   वॉयस इनपुट भाषा:{' '}
                   <strong className="text-amber-600 dark:text-amber-400 underline underline-offset-2">
-                    {voiceLang === 'hi-IN' ? '🇮🇳 हिंदी (Hindi)' : '🇬🇧 English'}
+                    {voiceLang === 'hi-IN' ? 'हिंदी (Hindi)' : 'English'}
                   </strong>
                 </span>
               </button>

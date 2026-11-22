@@ -174,7 +174,7 @@ export default function ShareAndEarnCard({ className = '' }) {
               ) : (
                 <button
                   type="button"
-                  className="px-2 py-1 rounded-lg bg-amber-400 text-black text-[11px] font-black shadow-glowGold flex items-center gap-1"
+                  className="px-2 py-1 rounded-lg bg-amber-400 text-black text-[11px] font-black shadow-xs flex items-center gap-1"
                   onClick={handleGenerateCode}
                   disabled={generating}
                 >

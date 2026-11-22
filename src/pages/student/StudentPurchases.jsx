@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   GraduationCap, ShoppingBag, CheckCircle2, Clock, ArrowRight, ArrowLeft,
-  ShieldCheck, RefreshCw, AlertCircle, Crown, Wrench, Folder, FolderOpen,
+  ShieldCheck, RefreshCw, AlertCircle, Coins, Crown, Home, Wrench, Folder, FolderOpen,
   BookOpen, Compass, Search, FileText, Sparkles, ChevronRight, Play, ExternalLink
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
+import useModalBack from '../../hooks/useModalBack';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { formatRupees } from '../../lib/commerce';
 import { getExamCategory, isPublished, sortContentItems } from '../../lib/content';
@@ -170,6 +171,8 @@ export default function StudentPurchases() {
     }
   }, [folderStack.length, selectedExam]);
 
+  useModalBack(Boolean(selectedExam || folderStack.length > 0), handleBack, 'purchases-folder');
+
   const handleResetToRoot = useCallback(() => {
     setSelectedExam(null);
     setFolderStack([]);
@@ -243,15 +246,14 @@ export default function StudentPurchases() {
   }, [searchQuery, enrolledExams, folders, chapters, enrolledStandaloneFolders]);
 
   return (
-    <div className="purchases-page min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors pb-24">
-      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
+    <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-900 dark:text-slate-100">
 
         {/* Top Header Card */}
         <div className="rounded-3xl dark:bg-slate-900/90 bg-white border dark:border-slate-800 border-slate-200/80 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 text-sm">
-                🎓
+                <GraduationCap size={16} />
               </div>
               <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                 {language === 'hi' ? 'मेरा अध्ययन कक्ष' : 'Student Learning Dashboard'}
@@ -330,8 +332,8 @@ export default function StudentPurchases() {
             {hasFullPass && !selectedExam && folderStack.length === 0 && (
               <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500/10 via-yellow-500/5 to-indigo-500/10 border border-amber-400/30 dark:border-amber-400/20 p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-slate-950 font-bold text-xl shadow-xs shrink-0">
-                    👑
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-500 flex items-center justify-center text-slate-950 font-bold shadow-xs shrink-0">
+                    <Crown size={20} />
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
@@ -385,9 +387,9 @@ export default function StudentPurchases() {
                 <button
                   type="button"
                   onClick={handleResetToRoot}
-                  className="text-slate-500 hover:text-indigo-600 dark:hover:text-white whitespace-nowrap flex items-center gap-1"
+                  className="text-slate-500 hover:text-indigo-600 dark:hover:text-white whitespace-nowrap flex items-center gap-1.5"
                 >
-                  <span>🏠</span>
+                  <Home size={13} className="shrink-0" />
                   <span>{language === 'hi' ? 'मेरे कोर्सेज' : 'My Courses'}</span>
                 </button>
 
@@ -398,11 +400,12 @@ export default function StudentPurchases() {
                     <button
                       type="button"
                       onClick={() => handleJumpToFolderLevel(-1)}
-                      className={`whitespace-nowrap hover:text-indigo-600 dark:hover:text-white truncate max-w-[150px] ${
+                      className={`whitespace-nowrap hover:text-indigo-600 dark:hover:text-white truncate max-w-[150px] flex items-center gap-1 ${
                         folderStack.length === 0 ? 'text-indigo-600 dark:text-indigo-400 font-black' : 'text-slate-500'
                       }`}
                     >
-                      🎓 {selectedExam.title}
+                      <GraduationCap size={13} className="shrink-0" />
+                      <span>{selectedExam.title}</span>
                     </button>
                   </>
                 )}
@@ -416,11 +419,12 @@ export default function StudentPurchases() {
                       <button
                         type="button"
                         onClick={() => handleJumpToFolderLevel(index)}
-                        className={`truncate max-w-[150px] hover:text-indigo-600 dark:hover:text-white ${
+                        className={`truncate max-w-[150px] hover:text-indigo-600 dark:hover:text-white flex items-center gap-1 ${
                           isLast ? 'text-indigo-600 dark:text-indigo-400 font-black' : 'text-slate-500'
                         }`}
                       >
-                        📁 {folder.title}
+                        <Folder size={13} className="shrink-0" />
+                        <span>{folder.title}</span>
                       </button>
                     </div>
                   );
@@ -472,11 +476,11 @@ export default function StudentPurchases() {
                           key={exam.id}
                           type="button"
                           onClick={() => handleSelectExam(exam)}
-                          className="p-3.5 rounded-2xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 hover:border-indigo-500 flex items-center justify-between text-left transition-all group"
+                          className="p-3.5 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 hover:border-indigo-500 flex items-center justify-between text-left transition-all group"
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center font-black text-lg shrink-0">
-                              🎓
+                            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0">
+                              <GraduationCap size={20} />
                             </div>
                             <div className="min-w-0">
                               <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 truncate">
@@ -510,11 +514,11 @@ export default function StudentPurchases() {
                               setFolderStack([folder]);
                               setSearchQuery('');
                             }}
-                            className="p-3.5 rounded-2xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 hover:border-amber-500 flex items-center justify-between text-left transition-all group"
+                            className="p-3.5 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 hover:border-amber-500 flex items-center justify-between text-left transition-all group"
                           >
                             <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center font-black text-lg shrink-0">
-                                📁
+                              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
+                                <Folder size={20} />
                               </div>
                               <div className="min-w-0">
                                 <span className="text-[9px] font-bold uppercase text-indigo-500 block truncate">
@@ -546,11 +550,11 @@ export default function StudentPurchases() {
                           <Link
                             key={chapter.id}
                             to={`/chapter/${chapter.id}`}
-                            className="p-3.5 rounded-2xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 hover:border-emerald-500 flex items-center justify-between transition-all group"
+                            className="p-3.5 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 hover:border-emerald-500 flex items-center justify-between transition-all group"
                           >
                             <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-sm font-black shrink-0">
-                                📝
+                              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                                <FileText size={16} />
                               </div>
                               <div className="min-w-0">
                                 <span className="text-[9px] font-bold uppercase text-slate-400 block truncate">
@@ -595,9 +599,9 @@ export default function StudentPurchases() {
 
                 {enrolledCount === 0 ? (
                   /* Zero State */
-                  <div className="p-8 sm:p-10 rounded-3xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 text-center space-y-4 shadow-sm">
-                    <div className="w-16 h-16 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 mx-auto flex items-center justify-center text-3xl">
-                      🎓
+                  <div className="p-8 sm:p-10 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 text-center space-y-4 shadow-sm">
+                    <div className="w-16 h-16 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 mx-auto flex items-center justify-center">
+                      <GraduationCap size={28} />
                     </div>
                     <div className="space-y-1.5">
                       <h3 className="text-base sm:text-lg font-black dark:text-white text-slate-900">
@@ -636,7 +640,7 @@ export default function StudentPurchases() {
                       return (
                         <div
                           key={exam.id}
-                          className="p-4 sm:p-5 rounded-3xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-500/50 transition-all group"
+                          className="p-4 sm:p-5 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-indigo-500/50 transition-all group"
                         >
                           <div className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
@@ -650,8 +654,8 @@ export default function StudentPurchases() {
                             </div>
 
                             <div className="flex items-start gap-3">
-                              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-indigo-600/10 text-indigo-500 flex items-center justify-center text-2xl font-black shrink-0 border border-indigo-500/20">
-                                🎓
+                              <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 border border-indigo-500/20">
+                                <GraduationCap size={24} />
                               </div>
                               <div className="min-w-0">
                                 <h4 className="text-base font-black dark:text-white text-slate-900 tracking-tight leading-snug line-clamp-2">
@@ -664,12 +668,14 @@ export default function StudentPurchases() {
                             </div>
 
                             <div className="flex items-center gap-2 pt-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                              <span className="px-2 py-0.5 rounded-lg dark:bg-slate-800 bg-slate-100">
-                                📁 {rootCount} {language === 'hi' ? 'मुख्य विषय' : 'Main Subjects'}
+                              <span className="px-2 py-0.5 rounded-lg dark:bg-slate-800 bg-slate-100 flex items-center gap-1">
+                                <Folder size={12} className="text-indigo-400 shrink-0" />
+                                <span>{rootCount} {language === 'hi' ? 'मुख्य विषय' : 'Main Subjects'}</span>
                               </span>
                               {totalChaptersCount > 0 && (
-                                <span className="px-2 py-0.5 rounded-lg dark:bg-slate-800 bg-slate-100">
-                                  📝 {totalChaptersCount} {language === 'hi' ? 'टेस्ट व नोट्स' : 'Tests & Notes'}
+                                <span className="px-2 py-0.5 rounded-lg dark:bg-slate-800 bg-slate-100 flex items-center gap-1">
+                                  <FileText size={12} className="text-emerald-400 shrink-0" />
+                                  <span>{totalChaptersCount} {language === 'hi' ? 'टेस्ट व नोट्स' : 'Tests & Notes'}</span>
                                 </span>
                               )}
                             </div>
@@ -701,7 +707,7 @@ export default function StudentPurchases() {
                       return (
                         <div
                           key={folder.id}
-                          className="p-4 sm:p-5 rounded-3xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-amber-500/50 transition-all group"
+                          className="p-4 sm:p-5 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-amber-500/50 transition-all group"
                         >
                           <div className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
@@ -715,8 +721,8 @@ export default function StudentPurchases() {
                             </div>
 
                             <div className="flex items-start gap-3">
-                              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-2xl font-black shrink-0 border border-amber-500/20">
-                                📁
+                              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
+                                <Folder size={24} />
                               </div>
                               <div className="min-w-0">
                                 <h4 className="text-base font-black dark:text-white text-slate-900 tracking-tight leading-snug line-clamp-2">
@@ -729,8 +735,9 @@ export default function StudentPurchases() {
                             </div>
 
                             <div className="flex items-center gap-2 pt-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                              <span className="px-2 py-0.5 rounded-lg dark:bg-slate-800 bg-slate-100">
-                                📝 {chapterCount} {language === 'hi' ? 'चैप्टर व टेस्ट्स' : 'Chapters & Tests'}
+                              <span className="px-2 py-0.5 rounded-lg dark:bg-slate-800 bg-slate-100 flex items-center gap-1">
+                                <FileText size={12} className="text-amber-400 shrink-0" />
+                                <span>{chapterCount} {language === 'hi' ? 'चैप्टर व टेस्ट्स' : 'Chapters & Tests'}</span>
                               </span>
                             </div>
                           </div>
@@ -758,7 +765,7 @@ export default function StudentPurchases() {
 
                     {/* STUDY TOOLBOX CARD */}
                     {hasToolboxAccess && (
-                      <div className="p-4 sm:p-5 rounded-3xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-cyan-500/50 transition-all group">
+                      <div className="p-4 sm:p-5 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col justify-between space-y-4 hover:border-cyan-500/50 transition-all group">
                         <div className="space-y-2">
                           <div className="flex items-center justify-between gap-2">
                             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 uppercase tracking-wider">
@@ -771,8 +778,8 @@ export default function StudentPurchases() {
                           </div>
 
                           <div className="flex items-start gap-3">
-                            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center text-2xl font-black shrink-0 border border-cyan-500/20">
-                              🛠️
+                            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center shrink-0 border border-cyan-500/20">
+                              <Wrench size={24} />
                             </div>
                             <div className="min-w-0">
                               <h4 className="text-base font-black dark:text-white text-slate-900 tracking-tight leading-snug">
@@ -811,10 +818,10 @@ export default function StudentPurchases() {
               /* ============================================================ */
               <div className="space-y-4">
                 {/* Exam Banner Header */}
-                <div className="p-4 sm:p-5 rounded-3xl dark:bg-gradient-to-r dark:from-slate-900 dark:to-[#111827] bg-gradient-to-r from-indigo-50 to-white border dark:border-slate-800 border-indigo-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 sm:p-5 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl font-black shadow-md shrink-0">
-                      🎓
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <GraduationCap size={24} />
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-black tracking-wider text-indigo-500 block">
@@ -830,8 +837,9 @@ export default function StudentPurchases() {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="px-3 py-1.5 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 text-xs font-black text-indigo-500">
-                      📁 {currentExamRootFolders.length} {language === 'hi' ? 'मुख्य विषय' : 'Main Subjects'}
+                    <span className="px-3 py-1.5 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 text-xs font-black text-indigo-500 flex items-center gap-1">
+                      <Folder size={12} className="text-indigo-400 shrink-0" />
+                      <span>{currentExamRootFolders.length} {language === 'hi' ? 'मुख्य विषय' : 'Main Subjects'}</span>
                     </span>
                   </div>
                 </div>
@@ -864,7 +872,7 @@ export default function StudentPurchases() {
                       return (
                         <div
                           key={folder.id}
-                          className="p-4 sm:p-5 rounded-3xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col justify-between space-y-3 hover:border-indigo-500/50 transition-all group"
+                          className="p-4 sm:p-5 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col justify-between space-y-3 hover:border-indigo-500/50 transition-all group"
                         >
                           <div className="space-y-2">
                             <div className="flex items-center justify-between gap-2">
@@ -878,8 +886,8 @@ export default function StudentPurchases() {
                             </div>
 
                             <div className="flex items-start gap-3">
-                              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-xl font-black shrink-0 border border-indigo-500/20">
-                                📁
+                              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center shrink-0 border border-indigo-500/20">
+                                <Folder size={20} />
                               </div>
                               <div className="min-w-0">
                                 <h4 className="text-sm sm:text-base font-black dark:text-white text-slate-900 tracking-tight leading-snug line-clamp-2">
@@ -893,13 +901,15 @@ export default function StudentPurchases() {
 
                             <div className="flex items-center gap-2 pt-1 text-[11px] font-bold text-slate-500 dark:text-slate-400">
                               {subCount > 0 && (
-                                <span className="px-2 py-0.5 rounded-lg dark:bg-slate-800 bg-slate-100">
-                                  📂 {subCount} {language === 'hi' ? 'सब-फोल्डर्स' : 'Sub-folders'}
+                                <span className="px-2 py-0.5 rounded-lg dark:bg-slate-800 bg-slate-100 flex items-center gap-1">
+                                  <FolderOpen size={12} className="text-amber-400 shrink-0" />
+                                  <span>{subCount} {language === 'hi' ? 'सब-फोल्डर्स' : 'Sub-folders'}</span>
                                 </span>
                               )}
                               {chapterCount > 0 && (
-                                <span className="px-2 py-0.5 rounded-lg dark:bg-slate-800 bg-slate-100">
-                                  📝 {chapterCount} {language === 'hi' ? 'टेस्ट/चैप्टर्स' : 'Tests/Chapters'}
+                                <span className="px-2 py-0.5 rounded-lg dark:bg-slate-800 bg-slate-100 flex items-center gap-1">
+                                  <FileText size={12} className="text-indigo-400 shrink-0" />
+                                  <span>{chapterCount} {language === 'hi' ? 'टेस्ट/चैप्टर्स' : 'Tests/Chapters'}</span>
                                 </span>
                               )}
                             </div>
@@ -931,10 +941,10 @@ export default function StudentPurchases() {
               /* ============================================================ */
               <div className="space-y-4">
                 {/* Current Folder Header */}
-                <div className="p-4 sm:p-5 rounded-3xl dark:bg-gradient-to-r dark:from-slate-900 dark:to-[#111827] bg-gradient-to-r from-amber-50 to-white border dark:border-slate-800 border-amber-100 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="p-4 sm:p-5 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3.5">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center text-2xl font-black shadow-md shrink-0">
-                      📂
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-xs">
+                      <FolderOpen size={24} />
                     </div>
                     <div>
                       <span className="text-[10px] uppercase font-black tracking-wider text-amber-500 block">
@@ -984,11 +994,11 @@ export default function StudentPurchases() {
                         return (
                           <div
                             key={subFolder.id}
-                            className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 hover:border-amber-500/60 shadow-xs flex items-center justify-between gap-3 transition-all group"
+                            className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 hover:border-amber-500/60 shadow-xs flex items-center justify-between gap-3 transition-all group"
                           >
                             <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-lg font-black shrink-0 border border-amber-500/20">
-                                📁
+                              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
+                                <Folder size={20} />
                               </div>
                               <div className="min-w-0">
                                 <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 truncate">
@@ -996,10 +1006,16 @@ export default function StudentPurchases() {
                                 </h4>
                                 <div className="flex items-center gap-2 text-[10px] text-slate-400 font-semibold mt-0.5">
                                   {deeperSubCount > 0 && (
-                                    <span>📂 {deeperSubCount} Sub-topics</span>
+                                    <span className="flex items-center gap-1">
+                                      <FolderOpen size={11} className="text-amber-400 shrink-0" />
+                                      <span>{deeperSubCount} Sub-topics</span>
+                                    </span>
                                   )}
                                   {subChapterCount > 0 && (
-                                    <span>📝 {subChapterCount} Tests/Notes</span>
+                                    <span className="flex items-center gap-1">
+                                      <FileText size={11} className="text-emerald-400 shrink-0" />
+                                      <span>{subChapterCount} Tests/Notes</span>
+                                    </span>
                                   )}
                                 </div>
                               </div>
@@ -1052,7 +1068,7 @@ export default function StudentPurchases() {
                       {currentFolderChapters.map((chapter, idx) => (
                         <div
                           key={chapter.id}
-                          className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 shadow-xs flex items-center justify-between gap-3 hover:border-emerald-500/50 transition-all group"
+                          className="p-3.5 sm:p-4 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-xs flex items-center justify-between gap-3 hover:border-emerald-500/50 transition-all group"
                         >
                           <div className="flex items-center gap-3.5 min-w-0">
                             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-sm font-black shrink-0 border border-emerald-500/20">
@@ -1103,7 +1119,7 @@ export default function StudentPurchases() {
             </div>
 
             {orders.length === 0 ? (
-              <div className="p-8 rounded-3xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 text-center space-y-2 shadow-sm">
+              <div className="p-8 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 text-center space-y-2 shadow-sm">
                 <p className="text-xs dark:text-slate-400 text-slate-600 font-medium">
                   {language === 'hi' ? 'कोई पेमेंट रिकॉर्ड उपलब्ध नहीं है।' : 'No payment transactions recorded.'}
                 </p>
@@ -1113,7 +1129,7 @@ export default function StudentPurchases() {
                 {orders.map((order) => (
                   <div
                     key={order.id}
-                    className="p-4 rounded-2xl dark:bg-[#111827] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                    className="p-4 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                   >
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
@@ -1144,8 +1160,9 @@ export default function StudentPurchases() {
                         {formatRupees(order.final_amount ?? order.amount ?? 0)}
                       </div>
                       {order.coins_redeemed > 0 && (
-                        <div className="text-[10px] text-amber-500 font-bold">
-                          🪙 {order.coins_redeemed} coins redeemed
+                        <div className="text-[10px] text-amber-500 font-bold flex items-center gap-1 justify-end">
+                          <Coins size={12} className="text-amber-500" />
+                          <span>{order.coins_redeemed} coins redeemed</span>
                         </div>
                       )}
                     </div>
@@ -1156,6 +1173,5 @@ export default function StudentPurchases() {
           </div>
         )}
       </div>
-    </div>
   );
 }

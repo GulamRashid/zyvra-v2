@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  ArrowRight, BookOpen, ChevronRight, Clock3, Folder, FolderOpen, LockKeyhole
+  ArrowLeft, ArrowRight, BookOpen, ChevronRight, Clock3, Folder, FolderOpen, LockKeyhole
 } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import CheckoutModal from '../../components/common/CheckoutModal';
@@ -109,11 +109,23 @@ export default function FolderView() {
   const hasPurchasedExam = examIsPaid && accessByKey[`exam:${exam?.id}`] === true;
   const isCurrentFolderUnlocked = hasPurchasedExam || pricing.amount <= 0 || isFolderUnlocked(folder?.id, folders, purchasedFolderIds) || accessByKey[`folder:${folder?.id}`] === true;
 
+  const parentUrl = path.length > 1
+    ? `/folder/${path[path.length - 2].id}`
+    : exam
+      ? `/explore/${encodeURIComponent(exam.slug)}`
+      : '/explore';
+
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
-      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
-        {/* Breadcrumbs */}
+    <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-900 dark:text-slate-100">
+      {/* Breadcrumbs */}
         <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-indigo-400/80 overflow-x-auto no-scrollbar py-1">
+          <Link
+            to={parentUrl}
+            className="w-7 h-7 rounded-lg dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white shrink-0 mr-1 transition-colors"
+            aria-label="Back to parent"
+          >
+            <ArrowLeft size={14} />
+          </Link>
           <Link to="/explore" className="hover:text-indigo-600 dark:hover:text-white whitespace-nowrap">
             {language === 'hi' ? 'परीक्षाएं' : 'Explore'}
           </Link>
@@ -236,7 +248,7 @@ export default function FolderView() {
 
                 <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                   <button
-                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-xs font-black shadow-glowGold flex items-center justify-center gap-1.5 min-h-[44px]"
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black shadow-xs flex items-center justify-center gap-1.5 min-h-[44px] transition-colors"
                     disabled={!user || accessLoading}
                     onClick={() =>
                       setCheckoutItem({
@@ -325,7 +337,7 @@ export default function FolderView() {
                           <div className="pt-2 border-t dark:border-slate-800/80 border-slate-100 flex justify-end">
                             <button
                               type="button"
-                              className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[38px]"
+                              className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black shadow-xs flex items-center gap-1 min-h-[44px] transition-colors"
                               onClick={() => setCheckoutItem({ itemType: 'folder', itemId: child.id, itemTitle: child.title, tier: 'Folder Bundle', basePrice: childPricing.amount })}
                             >
                               <span>Buy bundle · ₹{childPricing.amount.toLocaleString('en-IN')}</span>
@@ -444,7 +456,7 @@ export default function FolderView() {
                           <div className="pt-2 border-t dark:border-slate-800/80 border-slate-100 flex justify-end">
                             <button
                               type="button"
-                              className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-black text-xs font-black shadow-glowGold flex items-center gap-1 min-h-[38px]"
+                              className="px-3 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black shadow-xs flex items-center gap-1 min-h-[44px] transition-colors"
                               onClick={() => setCheckoutItem({ itemType: 'chapter', itemId: chapter.id, itemTitle: chapter.title, tier: 'Chapter', basePrice: access.amount })}
                             >
                               <span>{language === 'hi' ? 'अध्याय खरीदें' : 'Buy chapter'} · ₹{access.amount.toLocaleString('en-IN')}</span>
@@ -473,6 +485,5 @@ export default function FolderView() {
           </>
         )}
       </div>
-    </div>
   );
 }

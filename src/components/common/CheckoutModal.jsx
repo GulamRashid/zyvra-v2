@@ -5,6 +5,7 @@ import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { formatRupees, parseCoinRedemptionConfig } from '../../lib/commerce';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 import { loadRazorpayScript } from '../../utils/razorpay';
+import useModalBack from '../../hooks/useModalBack';
 
 async function postPaymentRequest(endpoint, payload, accessToken) {
   const response = await fetch(endpoint, {
@@ -26,6 +27,7 @@ async function postPaymentRequest(endpoint, payload, accessToken) {
 }
 
 export default function CheckoutModal({ itemType, itemId, itemTitle, tier, basePrice, onClose, onCompleted }) {
+  useModalBack(true, onClose, 'checkout');
   const { user, supabase, refreshAccount } = useAuth();
   const { t, language } = useThemeLanguage();
   const [walletBalance, setWalletBalance] = useState(0);
@@ -294,7 +296,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
             </p>
             <button
               type="button"
-              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-glowIndigo min-h-[44px]"
+              className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-xs min-h-[44px]"
               onClick={onClose}
             >
               {simulated ? t('closePreview') : t('continueLearning')}
@@ -477,7 +479,7 @@ export default function CheckoutModal({ itemType, itemId, itemTitle, tier, baseP
 
                 <button
                   type="button"
-                  className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm shadow-glowIndigo flex items-center justify-center gap-2 min-h-[44px] transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
+                  className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm shadow-xs flex items-center justify-center gap-2 min-h-[44px] transition-transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none"
                   onClick={checkout}
                   disabled={busy || !user || !purchasesEnabled}
                 >

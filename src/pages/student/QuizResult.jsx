@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle, ArrowLeft, ArrowRight, BarChart3, Bookmark, BookOpen,
   Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
-  CircleX, Filter, Headphones, Lightbulb, MinusCircle, Pause, Play, Plus, Printer, RotateCcw, Share2, Sparkles, Square, Target, Trophy, Volume2, X
+  CircleX, Coins, Filter, Headphones, Lightbulb, MinusCircle, Pause, Play, Plus, Printer, RotateCcw, Share2, Sparkles, Square, Swords, Target, Trophy, Volume2, X
 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -71,6 +71,36 @@ export default function QuizResult() {
   const [aiModalOpen, setAiModalOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiContext, setAiContext] = useState('');
+  const aiModalOpenRef = useRef(false);
+  aiModalOpenRef.current = aiModalOpen;
+
+  // Intercept Browser & Hardware Back button on Quiz Result page
+  useEffect(() => {
+    // Push sentinel state so hardware back triggers popstate instead of popping into the completed quiz route
+    window.history.pushState({ zyvraPage: 'quiz_result' }, '', window.location.href);
+
+    const handlePopState = () => {
+      if (window.__zyvra_suppress_modal_pop) {
+        window.__zyvra_suppress_modal_pop = false;
+        return;
+      }
+      // 1. If AI Guru modal is open, dismiss it first without leaving the result page
+      if (aiModalOpenRef.current) {
+        setAiModalOpen(false);
+        window.history.pushState({ zyvraPage: 'quiz_result' }, '', window.location.href);
+        return;
+      }
+
+      // 2. Otherwise, navigate cleanly to returnTo with replace: true
+      // This guarantees the student never sees the quiz submit page again
+      navigate(returnTo, { replace: true });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [navigate, returnTo]);
 
   // Challenger 1v1 Match State
   const challenger = useMemo(() => {
@@ -854,13 +884,14 @@ export default function QuizResult() {
           <div className="space-y-4">
             {/* 1v1 Challenger Battle Result Card (When in a 1v1 Match) */}
             {challenger && (
-              <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-indigo-500/20 border-2 border-amber-500/40 shadow-md space-y-3 animate-in zoom-in-95 duration-200">
+              <div className="p-4 sm:p-5 rounded-3xl bg-amber-500/10 border border-amber-500/30 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500 text-slate-950 uppercase tracking-wider">
-                    ⚔️ 1v1 मुकाबला परिणाम
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500 text-slate-950 uppercase tracking-wider flex items-center gap-1">
+                    <Swords size={13} />
+                    <span>1v1 मुकाबला परिणाम</span>
                   </span>
                   <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
-                    {score > challenger.cScore ? '🎉 आप जीत गए!' : score === challenger.cScore ? '🤝 मुकाबला टाई रहा!' : '⚔️ चैलेंजर आगे रहा'}
+                    {score > challenger.cScore ? 'आप जीत गए!' : score === challenger.cScore ? 'मुकाबला टाई रहा!' : 'चैलेंजर आगे रहा'}
                   </span>
                 </div>
 
@@ -880,19 +911,16 @@ export default function QuizResult() {
 
                 <p className="text-xs font-bold text-center dark:text-amber-300 text-amber-800">
                   {score > challenger.cScore
-                    ? `🔥 अद्भुत प्रदर्शन! आपने ${challenger.cName} को ${formatScore(Math.abs(score - challenger.cScore))} अंकों से पछाड़ दिया!`
+                    ? `अद्भुत प्रदर्शन! आपने ${challenger.cName} को ${formatScore(Math.abs(score - challenger.cScore))} अंकों से पछाड़ दिया!`
                     : score === challenger.cScore
-                    ? `🤝 दोनों के बीच बराबरी की टक्कर! दोनों ने ${formatScore(score)} अंक प्राप्त किए।`
-                    : `⚔️ कड़ा मुकाबला! ${challenger.cName} आपसे ${formatScore(Math.abs(challenger.cScore - score))} अंक आगे रहे। दोबारा प्रयास करके स्कोर बीट करें!`}
+                    ? `दोनों के बीच बराबरी की टक्कर! दोनों ने ${formatScore(score)} अंक प्राप्त किए।`
+                    : `कड़ा मुकाबला! ${challenger.cName} आपसे ${formatScore(Math.abs(challenger.cScore - score))} अंक आगे रहे। दोबारा प्रयास करके स्कोर बीट करें!`}
                 </p>
               </div>
             )}
 
             {/* Celebration Card with Dopamine, Coins, & Motivation */}
-            <div className="relative overflow-hidden dark:bg-gradient-to-r dark:from-[#1E293B] dark:via-[#1e1b4b] dark:to-[#0B1120] bg-gradient-to-r from-indigo-50 via-amber-50/40 to-emerald-50/50 border dark:border-indigo-500/30 border-indigo-200/80 rounded-3xl p-4 sm:p-6 shadow-sm dark:shadow-xl transition-all">
-              {/* Subtle decorative glow */}
-              <div className="absolute top-0 right-0 w-48 h-48 bg-amber-500/10 dark:bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
-
+            <div className="relative overflow-hidden dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm transition-all">
               {/* Lottie Confetti Burst for Good Scores */}
               {percentage >= 60 && (
                 <div className="absolute -top-4 -right-4 sm:right-10 pointer-events-none z-0 opacity-80">
@@ -906,8 +934,14 @@ export default function QuizResult() {
 
               <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0 text-2xl sm:text-3xl shadow-inner animate-in zoom-in-95 duration-300">
-                    {percentage >= 80 ? '🏆' : percentage >= 50 ? '🌟' : '🎯'}
+                  <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0 shadow-inner">
+                    {percentage >= 80 ? (
+                      <Trophy size={28} className="text-amber-500 dark:text-amber-400" />
+                    ) : percentage >= 50 ? (
+                      <Sparkles size={28} className="text-indigo-500 dark:text-indigo-400" />
+                    ) : (
+                      <Target size={28} className="text-indigo-500 dark:text-indigo-400" />
+                    )}
                   </div>
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -927,9 +961,9 @@ export default function QuizResult() {
                 </div>
 
                 {/* Coins Earned Dopamine Badge */}
-                <div className="w-full sm:w-auto flex items-center sm:flex-col items-end justify-between sm:justify-center p-2.5 sm:px-4 sm:py-2 rounded-2xl bg-gradient-to-r from-amber-500/20 to-yellow-500/15 border border-amber-400/40 shadow-xs shrink-0 animate-in fade-in duration-300">
+                <div className="w-full sm:w-auto flex items-center sm:flex-col items-end justify-between sm:justify-center p-2.5 sm:px-4 sm:py-2 rounded-2xl bg-amber-500/10 border border-amber-400/30 shadow-xs shrink-0">
                   <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-black text-xs sm:text-sm">
-                    <span className="text-base sm:text-lg animate-bounce">🪙</span>
+                    <Coins size={16} className="text-amber-500" />
                     <span>+{percentage >= 70 ? '15' : '10'} ZYVRA {appLanguage === 'hi' ? 'कॉइन्स' : 'Coins'}</span>
                   </div>
                   <span className="text-[10px] font-bold text-amber-700/80 dark:text-amber-300/80">
@@ -942,7 +976,7 @@ export default function QuizResult() {
               {peerStats?.percentile !== undefined && peerStats.total_attempts > 1 && (
                 <div className="mt-3.5 pt-3 border-t dark:border-slate-800 border-slate-200/80 flex items-center justify-between gap-2 text-xs">
                   <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-bold min-w-0">
-                    <span className="text-base shrink-0">🎯</span>
+                    <Target size={15} className="shrink-0 text-indigo-500" />
                     <span className="truncate">
                       {appLanguage === 'hi'
                         ? `लीडरबोर्ड: आप शीर्ष ${Math.max(1, Math.round(100 - peerStats.percentile))}% अभ्यर्थियों में हैं (${peerStats.percentile}% परसेंटाइल)`
@@ -962,10 +996,10 @@ export default function QuizResult() {
             </div>
 
             {/* WhatsApp 1v1 Challenge Action Card */}
-            <div className="p-3.5 sm:p-4 rounded-3xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-indigo-500/10 border border-emerald-500/30 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all hover:border-emerald-500/50">
+            <div className="p-3.5 sm:p-4 rounded-3xl dark:bg-emerald-950/20 bg-emerald-50/60 border border-emerald-500/25 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all hover:border-emerald-500/40">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-xl shrink-0 shadow-inner">
-                  ⚔️
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-inner">
+                  <Swords size={20} />
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
@@ -1031,10 +1065,10 @@ export default function QuizResult() {
 
             {/* Guesswork Risk Analyzer Card (Tukke ka Sach) */}
             {guessworkReport && (
-              <div className="p-4 rounded-3xl bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 border border-amber-500/30 shadow-xs space-y-2.5 animate-in fade-in duration-200">
+              <div className="p-4 rounded-3xl dark:bg-amber-950/20 bg-amber-50/60 border border-amber-500/25 shadow-xs space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-lg">🎯</span>
+                    <Target size={18} className="text-amber-500" />
                     <h4 className="text-xs sm:text-sm font-black dark:text-amber-300 text-amber-800 uppercase tracking-wide">
                       {appLanguage === 'hi' ? 'तुक्के का सच (Guesswork Risk Analyzer)' : 'Guesswork Risk Analyzer'}
                     </h4>
@@ -1069,9 +1103,9 @@ export default function QuizResult() {
 
             {/* Silly Mistake X-Ray Diagnostic Card */}
             {sillyMistakeSummary && sillyMistakeSummary.sillyCount > 0 && (
-              <div className="p-3.5 sm:p-4 rounded-3xl bg-gradient-to-r from-indigo-500/15 via-purple-500/10 to-indigo-500/15 border border-indigo-500/30 shadow-xs flex items-center justify-between gap-3 animate-in fade-in duration-200">
+              <div className="p-3.5 sm:p-4 rounded-3xl dark:bg-indigo-950/20 bg-indigo-50/60 border border-indigo-500/25 shadow-xs flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="text-xl shrink-0">💡</span>
+                  <Lightbulb size={20} className="text-indigo-500 shrink-0" />
                   <div className="min-w-0">
                     <strong className="block text-xs sm:text-sm font-black dark:text-indigo-300 text-indigo-950 truncate">
                       {appLanguage === 'hi' ? 'सिल्ली मिस्टेक डायग्नोस्टिक (X-Ray)' : 'Silly Mistake Diagnostic'}
@@ -1214,9 +1248,9 @@ export default function QuizResult() {
                           className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 transition-all active:scale-[0.98] group/btn cursor-pointer shadow-2xs"
                         >
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <Sparkles size={13} className="text-amber-500 shrink-0 animate-pulse" />
+                            <Sparkles size={13} className="text-amber-500 shrink-0" />
                             <span className="truncate">
-                              {appLanguage === 'hi' ? '⚡ 1 क्लिक में डाउट क्लियर करें → AI Guru से समझें' : '⚡ Clear Doubt in 1-Click with AI Guru'}
+                              {appLanguage === 'hi' ? '1-क्लिक में डाउट क्लियर करें → AI Guru से समझें' : 'Clear Doubt in 1-Click with AI Guru'}
                             </span>
                           </div>
                           <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 group-hover/btn:translate-x-0.5 transition-transform shrink-0">
@@ -1242,7 +1276,7 @@ export default function QuizResult() {
                                   : 'dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600 border-slate-300 dark:border-slate-700 hover:border-indigo-500/40'
                               }`}
                             >
-                              🧠 {appLanguage === 'hi' ? 'कॉन्सेप्ट' : 'Concept'}
+                              {appLanguage === 'hi' ? 'कॉन्सेप्ट' : 'Concept'}
                             </button>
                             <button
                               type="button"
@@ -1256,7 +1290,7 @@ export default function QuizResult() {
                                   : 'dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600 border-slate-300 dark:border-slate-700 hover:border-amber-500/40'
                               }`}
                             >
-                              ⚠️ {appLanguage === 'hi' ? "'नहीं' छूटा" : "Missed 'NOT'"}
+                              {appLanguage === 'hi' ? "'नहीं' छूटा" : "Missed 'NOT'"}
                             </button>
                             <button
                               type="button"
@@ -1270,7 +1304,7 @@ export default function QuizResult() {
                                   : 'dark:bg-slate-800 bg-slate-100 dark:text-slate-400 text-slate-600 border-slate-300 dark:border-slate-700 hover:border-rose-500/40'
                               }`}
                             >
-                              ⚡ {appLanguage === 'hi' ? 'जल्दबाजी' : 'Rushed'}
+                              {appLanguage === 'hi' ? 'जल्दबाजी' : 'Rushed'}
                             </button>
                           </div>
                         )}
@@ -1313,7 +1347,7 @@ export default function QuizResult() {
                   setCurrentSolutionIndex(0);
                   setActiveTab('solutions');
                 }}
-                className="w-full sm:flex-1 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm shadow-glowIndigo transition-transform hover:scale-105 active:scale-95 flex items-center justify-center gap-2 min-h-[44px]"
+                className="w-full sm:flex-1 py-3 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm shadow-xs transition-colors flex items-center justify-center gap-2 min-h-[44px]"
               >
                 <span>{appLanguage === 'hi' ? 'विस्तृत समाधान देखें' : 'View Detailed Solutions'}</span>
                 <ArrowRight size={16} />
@@ -1451,7 +1485,7 @@ export default function QuizResult() {
                         let badgeClasses = 'dark:bg-slate-800 bg-slate-200 border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-700';
 
                         if (isThisCorrect) {
-                          optionClasses = 'border-2 border-emerald-500 dark:bg-emerald-500/10 bg-emerald-50/90 dark:text-white text-slate-900 shadow-[0_0_20px_rgba(16,185,129,0.18)]';
+                          optionClasses = 'border-2 border-emerald-500 dark:bg-emerald-500/10 bg-emerald-50/90 dark:text-white text-slate-900 shadow-xs';
                           badgeClasses = 'bg-emerald-500 text-slate-950 font-black border-emerald-500';
                         } else if (isThisSelected && !isThisCorrect) {
                           optionClasses = 'border-2 border-red-500/80 dark:bg-red-950/40 bg-red-50 dark:text-red-100 text-red-900';
@@ -1508,7 +1542,7 @@ export default function QuizResult() {
                   {/* 1-Click Mistake Notebook Action Bar (Mobile First) */}
                   <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-indigo-950/40 bg-indigo-50/80 border dark:border-indigo-500/30 border-indigo-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-xl shrink-0">📓</span>
+                      <BookOpen size={18} className="text-indigo-500 shrink-0" />
                       <div className="min-w-0">
                         <strong className="block text-xs sm:text-sm font-bold dark:text-indigo-200 text-indigo-950 truncate">
                           {language === 'hi' ? 'गलती नोटबुक (Mistake Vault)' : 'Mistake Notebook Revision'}
@@ -1528,7 +1562,7 @@ export default function QuizResult() {
                       className={`w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shrink-0 min-h-[44px] ${
                         isSavedInMistakes
                           ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 cursor-default'
-                          : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-glowIndigo active:scale-95'
+                          : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs active:scale-95'
                       }`}
                     >
                       {isSavedInMistakes ? (
@@ -1645,7 +1679,7 @@ export default function QuizResult() {
                       type="button"
                       onClick={() => setCurrentSolutionIndex((prev) => Math.min(solutions.length - 1, prev + 1))}
                       disabled={currentSolutionIndex === solutions.length - 1}
-                      className="px-4 sm:px-5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs shadow-glowIndigo transition-transform hover:scale-105 active:scale-95 flex items-center gap-1 min-h-[44px]"
+                      className="px-4 sm:px-5 py-2.5 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs shadow-xs hover:bg-indigo-500 transition-colors flex items-center gap-1 min-h-[44px]"
                     >
                       <span>Next</span> <ChevronRight size={16} />
                     </button>
@@ -1785,7 +1819,7 @@ export default function QuizResult() {
                       {score} <span className="text-xs font-semibold text-slate-400">vs {peerStats?.highest_score || Math.max(score, Math.round(totalMarks * 0.95)) || totalQuestions}</span>
                     </div>
                     <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
-                      {score >= (peerStats?.highest_score || totalMarks) ? '🏆 You are the Topper!' : `Diff: -${Math.max(0, (peerStats?.highest_score || Math.max(score, Math.round(totalMarks * 0.95))) - score)} marks`}
+                      {score >= (peerStats?.highest_score || totalMarks) ? 'You are the Topper!' : `Diff: -${Math.max(0, (peerStats?.highest_score || Math.max(score, Math.round(totalMarks * 0.95))) - score)} marks`}
                     </span>
                   </div>
 
@@ -1810,10 +1844,10 @@ export default function QuizResult() {
       {toastMessage && (
         <aside
           aria-live="polite"
-          className={`fixed bottom-20 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 max-w-sm mx-auto sm:mx-0 z-50 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs sm:text-sm font-bold border transition-all animate-bounce ${
+          className={`fixed bottom-20 sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 max-w-sm mx-auto sm:mx-0 z-50 px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2.5 text-xs sm:text-sm font-bold border transition-all ${
             toastMessage.type === 'warning'
-              ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-glowGold'
-              : 'bg-emerald-600 text-white border-emerald-400 shadow-glowGreen'
+              ? 'bg-amber-500 text-slate-950 border-amber-400'
+              : 'bg-emerald-600 text-white border-emerald-400'
           }`}
         >
           {toastMessage.type === 'warning' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
@@ -1829,7 +1863,7 @@ export default function QuizResult() {
         >
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-500 dark:text-indigo-400 flex items-center justify-center shrink-0">
-              <Headphones size={20} className={walkmanPlaying ? 'animate-bounce' : ''} />
+              <Headphones size={20} className={walkmanPlaying ? 'text-indigo-400' : ''} />
             </div>
             <div className="min-w-0">
               <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400 block">

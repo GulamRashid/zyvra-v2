@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, BarChart3, CalendarDays, CheckCircle2, Clock3, Target, Trophy } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, BarChart3, CalendarDays, CheckCircle2, Clock3, Target, Trophy } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
@@ -73,6 +73,7 @@ function streakDays(attempts) {
 }
 
 export default function StudentAnalytics() {
+  const navigate = useNavigate();
   const { user, supabase } = useAuth();
   const [attempts, setAttempts] = useState([]);
   const [responses, setResponses] = useState([]);
@@ -153,13 +154,28 @@ export default function StudentAnalytics() {
   }, [responses, questions]);
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
-      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
-        {/* Page Heading Banner */}
+    <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-900 dark:text-slate-100">
+      {/* Page Heading Banner */}
         <div className="relative overflow-hidden rounded-3xl dark:bg-gradient-to-br dark:from-[#1E293B] dark:to-[#0B1120] bg-gradient-to-br from-indigo-50 via-slate-50 to-white border dark:border-indigo-500/25 border-slate-200 p-4 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <div className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 tracking-wider">
-              Your Learning Journey
+            <div className="flex items-center gap-2 mb-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.history.state && window.history.state.idx > 0) {
+                    navigate(-1);
+                  } else {
+                    navigate('/tests', { replace: true });
+                  }
+                }}
+                className="w-7 h-7 rounded-lg dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white shrink-0 shadow-xs active:scale-95 transition-all"
+                aria-label="Back"
+              >
+                <ArrowLeft size={14} />
+              </button>
+              <span className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 tracking-wider">
+                Your Learning Journey
+              </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
               Performance Analytics
@@ -230,7 +246,7 @@ export default function StudentAnalytics() {
               </article>
 
               <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-orange-500/30 border-orange-200 flex flex-col justify-between">
-                <div className="w-8 h-8 rounded-xl dark:bg-orange-500/20 bg-orange-100 text-orange-500 flex items-center justify-center mb-1 shadow-glowOrange">
+                <div className="w-8 h-8 rounded-xl dark:bg-orange-500/20 bg-orange-100 text-orange-500 flex items-center justify-center mb-1 shadow-xs">
                   <Trophy size={16} />
                 </div>
                 <small className="text-[10px] uppercase font-bold text-orange-500 dark:text-orange-400">
@@ -372,6 +388,5 @@ export default function StudentAnalytics() {
           </>
         )}
       </div>
-    </div>
   );
 }

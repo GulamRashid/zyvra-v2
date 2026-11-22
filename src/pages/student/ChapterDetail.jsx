@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft, ArrowRight, Bookmark, BookmarkCheck, BookOpen, CheckCircle2,
-  ChevronRight, Clock3, FileText, LoaderCircle, LockKeyhole, Play, Sparkles
+  ChevronRight, Clock3, FileText, LoaderCircle, LockKeyhole, Play, Sparkles, Target
 } from 'lucide-react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -427,10 +427,16 @@ export default function ChapterDetail() {
   }, [chapter?.id, hasTests, user, isLocked]);
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
-      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
-        {/* Breadcrumb Navigation */}
+    <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-900 dark:text-slate-100">
+      {/* Breadcrumb Navigation */}
         <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-indigo-400/80 overflow-x-auto no-scrollbar py-1">
+          <Link
+            to={folder ? `/folder/${folder.id}` : '/explore'}
+            className="w-7 h-7 rounded-lg dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white shrink-0 mr-1 transition-colors"
+            aria-label="Back to folder"
+          >
+            <ArrowLeft size={14} />
+          </Link>
           <Link to="/explore" className="hover:text-indigo-600 dark:hover:text-white whitespace-nowrap">
             {t('exploreExams')}
           </Link>
@@ -564,8 +570,8 @@ export default function ChapterDetail() {
 
             {/* Clear Mode Explainer Banner */}
             <div className="p-3 rounded-2xl border dark:border-slate-800 border-slate-200 dark:bg-slate-900/60 bg-slate-50 text-xs flex items-center gap-2.5 text-slate-700 dark:text-slate-300">
-              <div className="shrink-0 text-base">
-                {activeTab === 'practice' ? '🎯' : activeTab === 'tests' ? '⏱️' : '📄'}
+              <div className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-500 dark:text-indigo-400">
+                {activeTab === 'practice' ? <Target size={16} /> : activeTab === 'tests' ? <Clock3 size={16} /> : <FileText size={16} />}
               </div>
               <div className="min-w-0">
                 <span className="font-bold block uppercase tracking-wider text-[10px] text-slate-900 dark:text-slate-100">
@@ -615,7 +621,7 @@ export default function ChapterDetail() {
 
                 <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                   <button
-                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-black text-xs font-black shadow-glowGold flex items-center justify-center gap-1.5 min-h-[44px]"
+                    className="w-full sm:w-auto px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black shadow-xs flex items-center justify-center gap-1.5 min-h-[44px] transition-colors"
                     disabled={!user || accessLoading}
                     onClick={() =>
                       setCheckoutItem({
@@ -962,7 +968,7 @@ export default function ChapterDetail() {
                             type="button"
                             className={`px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 min-h-[44px] ${
                               canRead
-                                ? 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white shadow-glowIndigo'
+                                ? 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white shadow-xs'
                                 : 'dark:bg-slate-800 bg-slate-100 text-slate-400 border border-slate-300'
                             }`}
                             disabled={!canRead || readerLoading === resource.id}
@@ -1008,6 +1014,5 @@ export default function ChapterDetail() {
           />
         )}
       </div>
-    </div>
   );
 }

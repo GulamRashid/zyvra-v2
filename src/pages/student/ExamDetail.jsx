@@ -88,9 +88,19 @@ export default function ExamDetail() {
     };
   };
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-900 transition-colors">
-      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6">
-        <nav className="student-breadcrumbs"><Link to="/explore">{language === 'hi' ? 'परीक्षाएं' : 'Explore'}</Link><ChevronRight size={14} /><span>{exam?.title || (language === 'hi' ? 'पाठ्यक्रम' : 'Exam syllabus')}</span></nav>
+    <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-900 dark:text-slate-100">
+      <nav className="student-breadcrumbs flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-indigo-400/80 overflow-x-auto no-scrollbar py-1">
+        <Link
+          to="/explore"
+          className="w-7 h-7 rounded-lg dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white shrink-0 mr-1 transition-colors"
+          aria-label="Back to explore"
+        >
+          <ArrowLeft size={14} />
+        </Link>
+        <Link to="/explore">{language === 'hi' ? 'परीक्षाएं' : 'Explore'}</Link>
+        <ChevronRight size={13} className="shrink-0 text-slate-400" />
+        <span className="dark:text-white text-slate-900 font-extrabold truncate">{exam?.title || (language === 'hi' ? 'पाठ्यक्रम' : 'Exam syllabus')}</span>
+      </nav>
     {error && <div className="feedback error-feedback">{error}</div>}
     {loading && <LoadingSkeleton rows={4} />}
     {!loading && !error && !exam && <div className="empty-content"><GraduationCap size={25} /><strong>{language === 'hi' ? 'यह परीक्षा नहीं मिली।' : 'We couldn’t find this exam.'}</strong><span>{language === 'hi' ? 'यह अभी अप्रकाशित हो सकती है।' : 'It may be unpublished or no longer available.'}</span><Link className="button button-outline" to="/explore"><ArrowLeft size={15} /> {language === 'hi' ? 'सभी परीक्षाएं देखें' : 'Browse exams'}</Link></div>}
@@ -195,6 +205,5 @@ export default function ExamDetail() {
       {checkoutItem && <CheckoutModal {...checkoutItem} onClose={() => setCheckoutItem(null)} onCompleted={() => setRefreshKey((value) => value + 1)} />}
       </>}
     </div>
-  </div>
   );
 }

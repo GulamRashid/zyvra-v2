@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ArrowRight, BookOpen, CheckCircle2, Layers, Play, Search,
+  ArrowRight, BookOpen, CheckCircle2, GraduationCap, Layers, Play, Search,
   SlidersHorizontal, Target
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -344,29 +344,27 @@ export default function TestHub() {
   }, [tests, getTestHierarchy, selectedExamId, selectedClassId, searchQuery, testFilter]);
 
   return (
-    <div className="min-h-screen dark:bg-[#0B1120] bg-[#F8FAFC] dark:text-slate-100 text-slate-800 transition-colors duration-200 overflow-x-hidden">
+    <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-800 dark:text-slate-100 relative">
       {/* Top Ambient Tech Data Grid Aura */}
-      <div className="relative">
-        <MountainSunsetAura height={190} mobileHeight={88} showSun={true} />
+      <MountainSunsetAura height={190} mobileHeight={88} showSun={true} />
 
-        {/* Practice Hub Header */}
-        <div className="px-3.5 sm:px-6 pt-4 pb-2 relative z-10 max-w-5xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-xl sm:text-3xl font-black tracking-tight dark:text-white text-slate-900 flex items-center gap-2">
-                <span>{language === 'hi' ? 'अभ्यास' : 'Practice Hub'}</span>
-              </h1>
-              <p className="dark:text-slate-400 text-slate-600 text-xs sm:text-sm mt-0.5 font-medium">
-                {language === 'hi'
-                  ? 'अध्याय-वार अभ्यास, विषय परीक्षण और कस्टम टेस्ट।'
-                  : 'Chapter-wise practice, topic tests and full syllabus assessments.'}
-              </p>
-            </div>
+      {/* Practice Hub Header */}
+      <div className="pt-2 pb-1 relative z-10">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight dark:text-white text-slate-900 flex items-center gap-2">
+              <span>{language === 'hi' ? 'अभ्यास' : 'Practice Hub'}</span>
+            </h1>
+            <p className="dark:text-slate-400 text-slate-600 text-xs sm:text-sm mt-0.5 font-medium">
+              {language === 'hi'
+                ? 'अध्याय-वार अभ्यास, विषय परीक्षण और कस्टम टेस्ट।'
+                : 'Chapter-wise practice, topic tests and full syllabus assessments.'}
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 relative z-10">
+      <div className="space-y-4 sm:space-y-6 relative z-10">
         {loadError && (
           <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-200" role="alert">
             <span>{loadError}</span>
@@ -454,8 +452,8 @@ export default function TestHub() {
             onClick={() => navigate('/tests?tab=subjects', { replace: true })}
             className={`flex-1 min-w-[75px] sm:min-w-[90px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'subjects'
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
             }`}
           >
             <Layers size={14} />
@@ -467,12 +465,12 @@ export default function TestHub() {
             onClick={() => navigate('/tests?tab=chapters', { replace: true })}
             className={`flex-1 min-w-[75px] sm:min-w-[90px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'chapters'
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
             }`}
           >
             <BookOpen size={14} />
-            <span>{language === 'hi' ? '🎯 अभ्यास' : '🎯 Practice'}</span>
+            <span>{language === 'hi' ? 'अध्याय अभ्यास' : 'Chapter Practice'}</span>
           </button>
 
           <button
@@ -480,12 +478,12 @@ export default function TestHub() {
             onClick={() => navigate('/tests?tab=tests', { replace: true })}
             className={`flex-1 min-w-[75px] sm:min-w-[90px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'tests'
-                ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
             }`}
           >
             <Target size={14} />
-            <span>{language === 'hi' ? '⏱️ मॉक टेस्ट' : '⏱️ Mock Tests'}</span>
+            <span>{language === 'hi' ? 'मॉक टेस्ट' : 'Mock Tests'}</span>
           </button>
 
           <button
@@ -493,30 +491,22 @@ export default function TestHub() {
             onClick={() => navigate('/tests?tab=custom', { replace: true })}
             className={`flex-1 min-w-[75px] sm:min-w-[90px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'custom'
-                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-sm'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-indigo-600 text-white shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
             }`}
           >
             <SlidersHorizontal size={14} />
-            <span>{language === 'hi' ? 'कस्टम' : 'Custom'}</span>
+            <span>{language === 'hi' ? 'कस्टम टेस्ट' : 'Custom Test'}</span>
           </button>
         </div>
 
         {/* Clear Mode Context Banner */}
-        <div className={`p-2.5 sm:p-3 rounded-2xl border text-xs flex items-center gap-2.5 shadow-xs ${
-          activeTab === 'chapters'
-            ? 'dark:bg-emerald-950/30 bg-emerald-50/80 border-emerald-500/30 text-emerald-800 dark:text-emerald-200'
-            : activeTab === 'tests'
-            ? 'dark:bg-indigo-950/30 bg-indigo-50/80 border-indigo-500/30 text-indigo-800 dark:text-indigo-200'
-            : activeTab === 'custom'
-            ? 'dark:bg-purple-950/30 bg-purple-50/80 border-purple-500/30 text-purple-800 dark:text-purple-200'
-            : 'dark:bg-slate-900/40 bg-slate-100/80 border-slate-300 dark:border-slate-800 text-slate-700 dark:text-slate-300'
-        }`}>
-          <div className="shrink-0 text-base">
-            {activeTab === 'chapters' ? '🎯' : activeTab === 'tests' ? '⏱️' : activeTab === 'custom' ? '🛠️' : '📁'}
+        <div className="p-3 sm:p-3.5 rounded-2xl dark:bg-[#1E293B] bg-slate-50 border dark:border-slate-800 border-slate-200 text-xs flex items-center gap-3 shadow-xs">
+          <div className="w-8 h-8 rounded-xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+            {activeTab === 'chapters' ? <BookOpen size={16} /> : activeTab === 'tests' ? <Target size={16} /> : activeTab === 'custom' ? <SlidersHorizontal size={16} /> : <Layers size={16} />}
           </div>
           <div className="min-w-0">
-            <span className="font-black block uppercase tracking-wider text-[10px]">
+            <span className="font-black block uppercase tracking-wider text-[10px] text-slate-800 dark:text-slate-200">
               {activeTab === 'chapters'
                 ? (language === 'hi' ? 'अध्याय-वार अभ्यास (Self-Paced Practice)' : 'Chapter-Wise Practice')
                 : activeTab === 'tests'
@@ -525,7 +515,7 @@ export default function TestHub() {
                 ? (language === 'hi' ? 'कस्टम टेस्ट जनरेटर (Personalized Test Builder)' : 'Custom Test Builder')
                 : (language === 'hi' ? 'विषय-वार अध्ययन संरचना (Subject Hierarchy)' : 'Subject Learning Hierarchy')}
             </span>
-            <span className="text-[11px] opacity-90 block mt-0.5 truncate">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5 truncate">
               {activeTab === 'chapters'
                 ? (language === 'hi' ? 'अपनी गति से सीखें, हर सवाल का विस्तृत समाधान तुरंत देखें।' : 'Learn at your own pace with instant step-by-step solutions.')
                 : activeTab === 'tests'
@@ -547,8 +537,8 @@ export default function TestHub() {
               <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 rounded-2xl p-3.5 sm:p-5 transition-colors">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5 sm:gap-3.5">
-                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl dark:bg-indigo-500/20 bg-indigo-100 border dark:border-indigo-400/30 border-indigo-200 flex items-center justify-center text-lg sm:text-xl shrink-0">
-                      🎓
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                      <GraduationCap size={20} />
                     </div>
                     <div>
                       <h3 className="text-xs sm:text-base font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-1.5 sm:gap-2">
@@ -565,7 +555,7 @@ export default function TestHub() {
 
                   <Link
                     to={`/explore/${exams[0]?.slug || exams[0]?.id}`}
-                    className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-bold text-xs transition-colors shadow-glowIndigo"
+                    className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-bold text-xs transition-colors shadow-sm"
                   >
                     <span>{language === 'hi' ? 'सिलेबस देखें' : 'View Syllabus'}</span>
                     <ArrowRight size={13} />
@@ -625,7 +615,7 @@ export default function TestHub() {
                       {/* Play Action */}
                       <Link
                         to={subject.firstTestId ? `/quiz/${subject.firstTestId}` : `/folder/${subject.folderId}`}
-                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white flex items-center justify-center transition-colors shrink-0 shadow-glowIndigo"
+                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white flex items-center justify-center transition-colors shrink-0 shadow-xs"
                         title="Start Practice"
                       >
                         <Play size={13} fill="currentColor" className="ml-0.5 text-white" />
@@ -749,7 +739,7 @@ export default function TestHub() {
                     onClick={() => setTestFilter(f)}
                     className={`px-3 py-1 rounded-xl text-xs font-bold transition-colors min-h-[44px] ${
                       testFilter === f
-                        ? 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white shadow-glowIndigo'
+                        ? 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white shadow-xs'
                         : 'dark:bg-slate-800 bg-white border dark:border-slate-700/60 border-slate-300 dark:text-slate-300 text-slate-700 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
@@ -843,10 +833,10 @@ export default function TestHub() {
                               : `/quiz/${test.id}`}
                           className={`px-4 py-2 rounded-xl text-sm font-black transition-colors flex items-center gap-1.5 min-h-[44px] ${
                             resumableAttempt
-                              ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
+                              ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-xs'
                               : completedAttempt
                                 ? 'dark:bg-slate-800 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-600'
-                                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-glowIndigo'
+                                : 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-xs'
                           }`}
                           onMouseEnter={warmQuiz}
                           onTouchStart={warmQuiz}
@@ -868,7 +858,7 @@ export default function TestHub() {
         {/* ======================================================== */}
         {activeTab === 'custom' && (
           <div className="p-6 sm:p-8 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 max-w-xl mx-auto text-center space-y-4">
-            <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+            <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-500/15 border border-indigo-500/25 flex items-center justify-center text-indigo-500 dark:text-indigo-400">
               <SlidersHorizontal size={23} />
             </div>
             <div className="space-y-1">
@@ -879,7 +869,7 @@ export default function TestHub() {
             </div>
             <Link
               to="/tests?tab=tests"
-              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-black text-sm min-h-[44px] shadow-glowIndigo"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-black text-sm min-h-[44px] shadow-xs"
             >
               <Play size={15} fill="currentColor" />
               <span>Choose an available test</span>
