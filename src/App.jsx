@@ -1,47 +1,49 @@
-import { lazy, Suspense, useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { Navigate, Outlet, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import StudentLayout from './components/layouts/StudentLayout';
 import AdminLayout from './components/layouts/AdminLayout';
 import ProtectedRoute from './components/layouts/ProtectedRoute';
 import LoadingSkeleton from './components/common/LoadingSkeleton';
 import QuizErrorBoundary from './components/common/QuizErrorBoundary';
+import AppErrorBoundary from './components/common/AppErrorBoundary';
 import PwaInstallBanner from './components/common/PwaInstallBanner';
 import PwaUpdatePrompt from './components/common/PwaUpdatePrompt';
 import { useAuth } from './context/AuthContext';
+import { lazyWithRetry } from './lib/lazyWithRetry';
 
-const LandingPage = lazy(() => import('./pages/landing/LandingPage'));
-const AuthPage = lazy(() => import('./pages/auth/AuthPage'));
-const LegalPage = lazy(() => import('./pages/legal/LegalPage'));
-const StudentHome = lazy(() => import('./pages/student/StudentHome'));
-const StudentProfile = lazy(() => import('./pages/student/StudentProfile'));
-const StudentWallet = lazy(() => import('./pages/student/StudentWallet'));
-const StudentAnalytics = lazy(() => import('./pages/student/StudentAnalytics'));
-const ContentManager = lazy(() => import('./pages/admin/ContentManager'));
-const QBankManager = lazy(() => import('./pages/admin/QBankManager'));
-const TestManager = lazy(() => import('./pages/admin/TestManager'));
-const ExploreExams = lazy(() => import('./pages/student/ExploreExams'));
-const ExamDetail = lazy(() => import('./pages/student/ExamDetail'));
-const FolderView = lazy(() => import('./pages/student/FolderView'));
-const ChapterDetail = lazy(() => import('./pages/student/ChapterDetail'));
-const StudentToolbox = lazy(() => import('./pages/student/StudentToolbox'));
-const TestHub = lazy(() => import('./pages/student/TestHub'));
-const LiveQuiz = lazy(() => import('./pages/student/LiveQuiz'));
-const QuizResult = lazy(() => import('./pages/student/QuizResult'));
-const StudentPurchases = lazy(() => import('./pages/student/StudentPurchases'));
-const StudentBookmarks = lazy(() => import('./pages/student/StudentBookmarks'));
-const StudentNotifications = lazy(() => import('./pages/student/StudentNotifications'));
-const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
-const PricingManager = lazy(() => import('./pages/admin/PricingManager'));
-const UserManager = lazy(() => import('./pages/admin/UserManager'));
-const AdminCoins = lazy(() => import('./pages/admin/AdminCoins'));
-const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
-const AdminSubscriptions = lazy(() => import('./pages/admin/AdminSubscriptions'));
-const AdminNotifications = lazy(() => import('./pages/admin/AdminNotifications'));
-const AdminTools = lazy(() => import('./pages/admin/AdminTools'));
-const AdminReports = lazy(() => import('./pages/admin/AdminReports'));
-const AdminEngagement = lazy(() => import('./pages/admin/AdminEngagement'));
-const AdminSupportChat = lazy(() => import('./pages/admin/AdminSupportChat'));
-const SupportChatWidget = lazy(() => import('./components/common/SupportChatWidget'));
+const LandingPage = lazyWithRetry(() => import('./pages/landing/LandingPage'));
+const AuthPage = lazyWithRetry(() => import('./pages/auth/AuthPage'));
+const LegalPage = lazyWithRetry(() => import('./pages/legal/LegalPage'));
+const StudentHome = lazyWithRetry(() => import('./pages/student/StudentHome'));
+const StudentProfile = lazyWithRetry(() => import('./pages/student/StudentProfile'));
+const StudentWallet = lazyWithRetry(() => import('./pages/student/StudentWallet'));
+const StudentAnalytics = lazyWithRetry(() => import('./pages/student/StudentAnalytics'));
+const ContentManager = lazyWithRetry(() => import('./pages/admin/ContentManager'));
+const QBankManager = lazyWithRetry(() => import('./pages/admin/QBankManager'));
+const TestManager = lazyWithRetry(() => import('./pages/admin/TestManager'));
+const ExploreExams = lazyWithRetry(() => import('./pages/student/ExploreExams'));
+const ExamDetail = lazyWithRetry(() => import('./pages/student/ExamDetail'));
+const FolderView = lazyWithRetry(() => import('./pages/student/FolderView'));
+const ChapterDetail = lazyWithRetry(() => import('./pages/student/ChapterDetail'));
+const StudentToolbox = lazyWithRetry(() => import('./pages/student/StudentToolbox'));
+const TestHub = lazyWithRetry(() => import('./pages/student/TestHub'));
+const LiveQuiz = lazyWithRetry(() => import('./pages/student/LiveQuiz'));
+const QuizResult = lazyWithRetry(() => import('./pages/student/QuizResult'));
+const StudentPurchases = lazyWithRetry(() => import('./pages/student/StudentPurchases'));
+const StudentBookmarks = lazyWithRetry(() => import('./pages/student/StudentBookmarks'));
+const StudentNotifications = lazyWithRetry(() => import('./pages/student/StudentNotifications'));
+const AdminDashboard = lazyWithRetry(() => import('./pages/admin/AdminDashboard'));
+const PricingManager = lazyWithRetry(() => import('./pages/admin/PricingManager'));
+const UserManager = lazyWithRetry(() => import('./pages/admin/UserManager'));
+const AdminCoins = lazyWithRetry(() => import('./pages/admin/AdminCoins'));
+const AdminOrders = lazyWithRetry(() => import('./pages/admin/AdminOrders'));
+const AdminSubscriptions = lazyWithRetry(() => import('./pages/admin/AdminSubscriptions'));
+const AdminNotifications = lazyWithRetry(() => import('./pages/admin/AdminNotifications'));
+const AdminTools = lazyWithRetry(() => import('./pages/admin/AdminTools'));
+const AdminReports = lazyWithRetry(() => import('./pages/admin/AdminReports'));
+const AdminEngagement = lazyWithRetry(() => import('./pages/admin/AdminEngagement'));
+const AdminSupportChat = lazyWithRetry(() => import('./pages/admin/AdminSupportChat'));
+const SupportChatWidget = lazyWithRetry(() => import('./components/common/SupportChatWidget'));
 
 function RootRoute() {
   const { user, loading, guest } = useAuth();
@@ -176,7 +178,7 @@ function RouteStatePreserver() {
 
 export default function App() {
   return (
-    <>
+    <AppErrorBoundary>
       <RouteStatePreserver />
       <AppRoutes />
       <Suspense fallback={null}>
@@ -184,6 +186,6 @@ export default function App() {
       </Suspense>
       <PwaUpdatePrompt />
       <PwaInstallBanner />
-    </>
+    </AppErrorBoundary>
   );
 }

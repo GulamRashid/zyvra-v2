@@ -421,7 +421,7 @@ export default function LiveQuiz() {
       setIsOnline(true);
       setShowOnlineToast(true);
       if (typeof saveProgressSnapshotRef.current === 'function') {
-        saveProgressSnapshotRef.current({ status: 'in_progress' }, true);
+        saveProgressSnapshotRef.current({ status: 'in_progress' }, 'immediate');
       }
       if (onlineToastTimerRef.current) clearTimeout(onlineToastTimerRef.current);
       onlineToastTimerRef.current = setTimeout(() => setShowOnlineToast(false), 4500);
@@ -458,6 +458,9 @@ export default function LiveQuiz() {
   const autoSubmitTriggeredRef = useRef(false);
   const lastViolationAt = useRef(0);
   const violationCountRef = useRef(0);
+  const hasWarned5MinRef = useRef(false);
+  const hasWarned1MinRef = useRef(false);
+  const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('ALL');
   const [timeExpired, setTimeExpired] = useState(false);
   const [language, setLanguage] = useState('en');
   const [translatedData, setTranslatedData] = useState({});
@@ -539,6 +542,15 @@ export default function LiveQuiz() {
   }, [testPhase, pausing, confirmSubmit, showPauseModal, submitting, currentIndex, questions]);
 
   const question = questions?.[currentIndex] || null;
+
+  const availableSubjects = useMemo(() => {
+    const set = new Set();
+    (questions || []).forEach((q) => {
+      const s = q.subject || q.section;
+      if (typeof s === 'string' && s.trim()) set.add(s.trim());
+    });
+    return Array.from(set);
+  }, [questions]);
 
   const returnTo = location.state?.returnTo
     || sessionStorage.getItem('last_quiz_return_url')
@@ -1015,6 +1027,8 @@ export default function LiveQuiz() {
       writeQuizCache(user.id, testId, { test, attemptId: activeAttemptId, questions: finalQuestions });
       lockedAnswersRef.current.clear();
       autoSubmitTriggeredRef.current = false;
+      hasWarned5MinRef.current = false;
+      hasWarned1MinRef.current = false;
       setResponses({});
       setCurrentIndex(0);
       if (finalQuestions.length > 0) {
@@ -1061,6 +1075,8 @@ export default function LiveQuiz() {
     }
     setError(null);
     autoSubmitTriggeredRef.current = false;
+    hasWarned5MinRef.current = false;
+    hasWarned1MinRef.current = false;
     const endAt = Date.now() + Math.max(10, remaining) * 1000;
     setDeadline(endAt);
     setTestPhase('active');
@@ -1154,23 +1170,32 @@ export default function LiveQuiz() {
   }, [testPhase, submitting, pausing, recordDropoffEvent]);
 
   const recordViolation = useCallback(() => {
+    if (testPhase !== 'active' || submitting || pausing) return;
     const now = Date.now();
     if (now - lastViolationAt.current < 1500) return;
     lastViolationAt.current = now;
     const nextCount = violationCountRef.current + 1;
     violationCountRef.current = nextCount;
     setViolationCount(nextCount);
-    setAntiCheatWarning(`Focus warning: leaving the test window was detected (${nextCount}). Stay on this screen to protect your attempt.`);
+    setAntiCheatWarning(
+      language === 'hi'
+        ? `⚠️ परीक्षा चेतावनी: विंडो से बाहर जाना दर्ज हुआ (स्ट्राइक ${nextCount})। अपने टेस्ट को सुरक्षित रखने के लिए इसी स्क्रीन पर रहें।`
+        : `⚠️ Focus warning: leaving test window detected (Strike ${nextCount}). Stay on this screen to protect your attempt.`
+    );
     saveProgressSnapshot({ violationCount: nextCount }, true);
-  }, [saveProgressSnapshot]);
+  }, [testPhase, submitting, pausing, language, saveProgressSnapshot]);
 
   useEffect(() => {
-    if (testPhase !== 'active') return undefined;
+    if (testPhase !== 'active' || confirmSubmit || showPauseModal || showInstructionsModal || submitting) return undefined;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') recordViolation();
     };
-    const handleWindowBlur = () => recordViolation();
+    const handleWindowBlur = () => {
+      if (!confirmSubmit && !showPauseModal && !showInstructionsModal && !submitting) {
+        recordViolation();
+      }
+    };
     const preventClipboardShortcuts = (event) => {
       if ((event.ctrlKey || event.metaKey) && ['a', 'c', 'v', 'x'].includes(event.key.toLowerCase())) {
         event.preventDefault();
@@ -1185,7 +1210,7 @@ export default function LiveQuiz() {
       window.removeEventListener('blur', handleWindowBlur);
       window.removeEventListener('keydown', preventClipboardShortcuts, true);
     };
-  }, [testPhase, recordViolation]);
+  }, [testPhase, confirmSubmit, showPauseModal, showInstructionsModal, submitting, recordViolation]);
 
   // Hindi translation on question change
   useEffect(() => {
@@ -1396,6 +1421,19 @@ export default function LiveQuiz() {
     const checkTimer = () => {
       const next = getRemaining(deadline);
       setRemaining(next);
+
+      // 5-Minute Warning Toast
+      if (next <= 300 && next > 280 && !hasWarned5MinRef.current) {
+        hasWarned5MinRef.current = true;
+        setToast(language === 'hi' ? '⏳ 5 मिनट शेष हैं! कृपया अपने उत्तरों की समीक्षा करें।' : '⏳ 5 minutes remaining! Please review your answers.');
+      }
+
+      // 1-Minute Warning Toast
+      if (next <= 60 && next > 45 && !hasWarned1MinRef.current) {
+        hasWarned1MinRef.current = true;
+        setToast(language === 'hi' ? '⚠️ अंतिम 1 मिनट शेष! टेस्ट जल्द ही स्वतः जमा हो जाएगा।' : '⚠️ Final 1 minute remaining! Test will be auto-submitted shortly.');
+      }
+
       if (next === 0) {
         if (!autoSubmitTriggeredRef.current) {
           autoSubmitTriggeredRef.current = true;
@@ -2581,7 +2619,13 @@ export default function LiveQuiz() {
 
           <div className="quiz-header-sub-right">
             <div
-              className={`quiz-timer-pill ${remaining < 300 ? 'timer-warning' : ''}`}
+              className={`quiz-timer-pill transition-all ${
+                remaining < 60
+                  ? 'timer-danger bg-rose-500/25 text-rose-400 border border-rose-500 animate-pulse font-black'
+                  : remaining < 300
+                  ? 'timer-warning bg-amber-500/20 text-amber-400 border border-amber-500 font-bold'
+                  : ''
+              }`}
               aria-live="polite"
             >
               <Clock3 size={13} className="timer-icon" />
@@ -3124,6 +3168,37 @@ export default function LiveQuiz() {
           {/* Standard 5-State Legend in Sidebar */}
           <PaletteLegend compact={true} stats={stats} language={language} />
 
+          {/* Multi-Section / Subject Tabs (if test has multiple subjects) */}
+          {availableSubjects.length > 1 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto py-1 my-1.5 no-scrollbar">
+              <button
+                type="button"
+                onClick={() => setSelectedSubjectFilter('ALL')}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 transition-colors ${
+                  selectedSubjectFilter === 'ALL'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'dark:bg-slate-800 bg-slate-100 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {language === 'hi' ? 'सभी विषय' : 'All Subjects'}
+              </button>
+              {availableSubjects.map((subj) => (
+                <button
+                  key={subj}
+                  type="button"
+                  onClick={() => setSelectedSubjectFilter(subj)}
+                  className={`px-2.5 py-1 rounded-full text-[11px] font-bold shrink-0 transition-colors ${
+                    selectedSubjectFilter === subj
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'dark:bg-slate-800 bg-slate-100 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  {subj}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* Quick Palette Filter Tabs */}
           <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl my-2 text-[11px] font-bold">
             <button
@@ -3183,6 +3258,11 @@ export default function LiveQuiz() {
               if (paletteFilter === 'answered' && !hasAnswer) return null;
               if (paletteFilter === 'unanswered' && hasAnswer) return null;
               if (paletteFilter === 'marked' && !isMarked) return null;
+
+              if (selectedSubjectFilter !== 'ALL') {
+                const itemSubj = String(item.subject || item.section || '').trim();
+                if (itemSubj !== selectedSubjectFilter) return null;
+              }
 
               const isOptionE = response?.selected_option === 'E';
               const isVisited = visitedQuestions.has(qId) || hasAnswer || isMarked || currentIndex === index;

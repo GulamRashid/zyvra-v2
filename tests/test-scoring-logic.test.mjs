@@ -12,7 +12,9 @@ import {
   hasLatin,
   formatScore,
   calculateTestScore,
-  resolveSolutionStatus
+  resolveSolutionStatus,
+  formatTime,
+  calculateSubjectWiseScores
 } from '../src/lib/tests.js';
 
 test('getAnsweredQuestionCount uses response data and never treats score/total as answered questions', () => {
@@ -310,4 +312,78 @@ test('resolveSolutionStatus: accurately classifies correct, incorrect, unattempt
   assert.equal(nullStatus.isUnattempted, true);
   assert.equal(nullStatus.hasSelection, false);
 });
+
+test('formatTime: correctly formats seconds into HH:MM:SS with non-negative clamping', () => {
+  assert.equal(formatTime(0), '00:00:00');
+  assert.equal(formatTime(-15), '00:00:00');
+  assert.equal(formatTime(null), '00:00:00');
+  assert.equal(formatTime(undefined), '00:00:00');
+  assert.equal(formatTime(NaN), '00:00:00');
+  assert.equal(formatTime(45), '00:00:45');
+  assert.equal(formatTime(60), '00:01:00');
+  assert.equal(formatTime(125), '00:02:05');
+  assert.equal(formatTime(3600), '01:00:00');
+  assert.equal(formatTime(3665), '01:01:05');
+  assert.equal(formatTime(7322), '02:02:02');
+});
+
+test('calculateSubjectWiseScores: calculates scores by subject and handles negative marks without drift', () => {
+  const questions = [
+    { id: 'q1', subject: 'History', correct_answer: 'A' },
+    { id: 'q2', subject: 'History', correct_answer: 'B' },
+    { id: 'q3', subject: 'Science', correct_answer: 'C' },
+    { id: 'q4', subject: 'Science', correct_answer: 'D' },
+    { id: 'q5', section: 'Science', correct_answer: 'A' },
+    { id: 'q6', correct_answer: 'B' } // should default to 'General'
+  ];
+
+  const responses = {
+    q1: { selected_option: 'A' }, // History: correct (+1)
+    q2: { selected_option: 'C' }, // History: incorrect (-0.25) => net 0.75
+    q3: { selected_option: 'C' }, // Science: correct (+1)
+    q4: { selected_option: 'D' }, // Science: correct (+1)
+    q5: null,                     // Science: unattempted (0) => net 2.0
+    q6: { selected_option: 'B' }  // General: correct (+1) => net 1.0
+  };
+
+  const results = calculateSubjectWiseScores({
+    questions,
+    responses,
+    positiveMarks: 1,
+    negativeMarks: 0.25
+  });
+
+  assert.equal(results.length, 3);
+
+  const history = results.find((r) => r.subject === 'History');
+  assert.ok(history);
+  assert.equal(history.total, 2);
+  assert.equal(history.answered, 2);
+  assert.equal(history.correct, 1);
+  assert.equal(history.incorrect, 1);
+  assert.equal(history.unattempted, 0);
+  assert.equal(history.score, 0.75);
+  assert.equal(history.accuracy, 50);
+  assert.equal(history.formattedScore, '0.75');
+
+  const science = results.find((r) => r.subject === 'Science');
+  assert.ok(science);
+  assert.equal(science.total, 3);
+  assert.equal(science.answered, 2);
+  assert.equal(science.correct, 2);
+  assert.equal(science.incorrect, 0);
+  assert.equal(science.unattempted, 1);
+  assert.equal(science.score, 2);
+  assert.equal(science.accuracy, 100);
+  assert.equal(science.formattedScore, '2');
+
+  const general = results.find((r) => r.subject === 'General');
+  assert.ok(general);
+  assert.equal(general.total, 1);
+  assert.equal(general.answered, 1);
+  assert.equal(general.correct, 1);
+  assert.equal(general.score, 1);
+  assert.equal(general.formattedScore, '1');
+});
+
 

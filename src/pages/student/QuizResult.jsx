@@ -95,18 +95,6 @@ export default function QuizResult() {
     return null;
   }, [location.state, location.search, attemptId]);
 
-  const handleWhatsAppChallenge = () => {
-    const studentName = user?.user_metadata?.full_name || user?.user_metadata?.name || (appLanguage === 'hi' ? 'आपके साथी छात्र' : 'Your study partner');
-    const challengeUrl = `${window.location.origin}/quiz/${result?.test_id || ''}?challengerId=${attemptId}&cName=${encodeURIComponent(studentName)}&cScore=${formatScore(score)}&cTotal=${totalMarks || totalQuestions}`;
-    
-    const msg = appLanguage === 'hi'
-      ? `🔥 मैंने Zyvra पर '${testTitle}' में ${formatScore(score)}/${totalMarks || totalQuestions} (${percentage}%) अंक प्राप्त किए!\n\nक्या तुम मुझे 1v1 मुकाबले में हरा सकते हो? यहाँ क्लिक करके ठीक यही टेस्ट दो और अपने स्कोर की तुलना करो:\n${challengeUrl}`
-      : `🔥 I scored ${formatScore(score)}/${totalMarks || totalQuestions} (${percentage}%) in '${testTitle}' on Zyvra!\n\nCan you beat my score? Click the link to take the exact same test in a 1v1 challenge:\n${challengeUrl}`;
-
-    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-  };
-
   const handleReattemptMistakes = () => {
     const mistakeQuestionIds = solutions
       .filter((item) => resolveSolutionStatus(item).isIncorrect)
@@ -705,6 +693,18 @@ export default function QuizResult() {
   }, [currentSolution, language]);
 
   const testTitle = result?.test_title || result?.title || 'Human Physiology • Chapter Test';
+
+  const handleWhatsAppChallenge = () => {
+    const studentName = user?.user_metadata?.full_name || user?.user_metadata?.name || (appLanguage === 'hi' ? 'आपके साथी छात्र' : 'Your study partner');
+    const challengeUrl = `${window.location.origin}/quiz/${result?.test_id || ''}?challengerId=${attemptId}&cName=${encodeURIComponent(studentName)}&cScore=${formatScore(score)}&cTotal=${totalMarks || totalQuestions}`;
+    
+    const msg = appLanguage === 'hi'
+      ? `🔥 मैंने Zyvra पर '${testTitle}' में ${formatScore(score)}/${totalMarks || totalQuestions} (${percentage}%) अंक प्राप्त किए!\n\nक्या तुम मुझे 1v1 मुकाबले में हरा सकते हो? यहाँ क्लिक करके ठीक यही टेस्ट दो और अपने स्कोर की तुलना करो:\n${challengeUrl}`
+      : `🔥 I scored ${formatScore(score)}/${totalMarks || totalQuestions} (${percentage}%) in '${testTitle}' on Zyvra!\n\nCan you beat my score? Click the link to take the exact same test in a 1v1 challenge:\n${challengeUrl}`;
+
+    const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+  };
 
   if (loading) {
     return (

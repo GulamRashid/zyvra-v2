@@ -871,4 +871,65 @@ export function resolveSolutionStatus(item) {
   };
 }
 
+export function formatTime(seconds) {
+  const safeSecs = Math.max(0, Number(seconds) || 0);
+  const hrs = Math.floor(safeSecs / 3600);
+  const mins = Math.floor((safeSecs % 3600) / 60);
+  const secs = Math.floor(safeSecs % 60);
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+export function calculateSubjectWiseScores({
+  questions = [],
+  responses = {},
+  positiveMarks = 1,
+  negativeMarks = 0.25
+} = {}) {
+  const map = new Map();
+
+  (questions || []).forEach((q) => {
+    const subject = String(q.subject || q.section || 'General').trim() || 'General';
+    if (!map.has(subject)) {
+      map.set(subject, {
+        subject,
+        total: 0,
+        answered: 0,
+        correct: 0,
+        incorrect: 0,
+        unattempted: 0,
+        score: 0
+      });
+    }
+    const entry = map.get(subject);
+    entry.total += 1;
+
+    const qId = q.id || q.question_id;
+    const resp = responses?.[qId];
+    const selected = resp?.selected_option ?? resp?.selectedOption ?? (typeof resp === 'string' ? resp : null);
+    const normSelected = normalizeOptionKey(selected);
+    const rawCorrect = q.correct_answer ?? q.correct_option ?? q.answer;
+    const normCorrect = normalizeCorrectAnswer(rawCorrect, q.options);
+
+    if (normSelected) {
+      entry.answered += 1;
+      if (normCorrect && normSelected === normCorrect) {
+        entry.correct += 1;
+        entry.score += Number(positiveMarks) || 1;
+      } else {
+        entry.incorrect += 1;
+        entry.score -= Number(negativeMarks) || 0;
+      }
+    } else {
+      entry.unattempted += 1;
+    }
+  });
+
+  return Array.from(map.values()).map((s) => ({
+    ...s,
+    score: Math.round((s.score + Number.EPSILON) * 100) / 100,
+    accuracy: s.answered > 0 ? Math.round((s.correct / s.answered) * 100) : 0,
+    formattedScore: formatScore(s.score)
+  }));
+}
+
 
