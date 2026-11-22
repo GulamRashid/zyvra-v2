@@ -455,6 +455,7 @@ export default function LiveQuiz() {
   };
 
   const submitLock = useRef(false);
+  const autoSubmitTriggeredRef = useRef(false);
   const lastViolationAt = useRef(0);
   const violationCountRef = useRef(0);
   const [timeExpired, setTimeExpired] = useState(false);
@@ -527,7 +528,7 @@ export default function LiveQuiz() {
 
   // Per-question time tracking timer
   useEffect(() => {
-    if (testPhase !== 'active' || pausing || confirmSubmit || showPauseModal) return;
+    if (testPhase !== 'active' || pausing || confirmSubmit || showPauseModal || submitting) return;
     const interval = setInterval(() => {
       const qId = questions?.[currentIndex]?.id;
       if (qId) {
@@ -535,7 +536,7 @@ export default function LiveQuiz() {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [testPhase, pausing, confirmSubmit, showPauseModal, currentIndex, questions]);
+  }, [testPhase, pausing, confirmSubmit, showPauseModal, submitting, currentIndex, questions]);
 
   const question = questions?.[currentIndex] || null;
 
@@ -846,9 +847,12 @@ export default function LiveQuiz() {
           let finalQuestions = safeQuestions;
           if (isMistakesMode) {
             try {
-              const rawIds = sessionStorage.getItem('zyvra_mistake_quiz_ids');
-              if (rawIds) {
-                const idSet = new Set(JSON.parse(rawIds).map(String));
+              const stateMistakeIds = location.state?.mistakeIds;
+              const rawIds = Array.isArray(stateMistakeIds)
+                ? stateMistakeIds
+                : (sessionStorage.getItem('zyvra_mistake_quiz_ids') ? JSON.parse(sessionStorage.getItem('zyvra_mistake_quiz_ids')) : null);
+              if (rawIds && Array.isArray(rawIds) && rawIds.length > 0) {
+                const idSet = new Set(rawIds.map(String));
                 const filtered = safeQuestions.filter((q) => idSet.has(String(q.id || q.question_id)));
                 if (filtered.length > 0) finalQuestions = filtered;
               }
@@ -900,7 +904,7 @@ export default function LiveQuiz() {
             || localSnapshot?.visitedQuestions
             || stateJson.visited
             || stateJson.visitedQuestions
-            || (safeQuestions[0]?.id ? [safeQuestions[0].id] : [])
+            || (finalQuestions[0]?.id ? [finalQuestions[0].id] : [])
           );
 
           const restoredRemaining = localSnapshot?.remainingSeconds
@@ -919,7 +923,7 @@ export default function LiveQuiz() {
           if (restoredLang) setLanguage(restoredLang);
 
           setResponses(restoredResponses);
-          setCurrentIndex(Math.min(restoredIndex, Math.max(0, safeQuestions.length - 1)));
+          setCurrentIndex(isMistakesMode ? 0 : Math.min(restoredIndex, Math.max(0, finalQuestions.length - 1)));
           setVisitedQuestions(restoredVisited);
           setRemaining(restoredRemaining);
 
@@ -992,9 +996,12 @@ export default function LiveQuiz() {
       let finalQuestions = safeQuestions;
       if (isMistakesMode) {
         try {
-          const rawIds = sessionStorage.getItem('zyvra_mistake_quiz_ids');
-          if (rawIds) {
-            const idSet = new Set(JSON.parse(rawIds).map(String));
+          const stateMistakeIds = location.state?.mistakeIds;
+          const rawIds = Array.isArray(stateMistakeIds)
+            ? stateMistakeIds
+            : (sessionStorage.getItem('zyvra_mistake_quiz_ids') ? JSON.parse(sessionStorage.getItem('zyvra_mistake_quiz_ids')) : null);
+          if (rawIds && Array.isArray(rawIds) && rawIds.length > 0) {
+            const idSet = new Set(rawIds.map(String));
             const filtered = safeQuestions.filter((q) => idSet.has(String(q.id || q.question_id)));
             if (filtered.length > 0) finalQuestions = filtered;
           }
@@ -1007,10 +1014,11 @@ export default function LiveQuiz() {
       setQuestions(finalQuestions);
       writeQuizCache(user.id, testId, { test, attemptId: activeAttemptId, questions: finalQuestions });
       lockedAnswersRef.current.clear();
+      autoSubmitTriggeredRef.current = false;
       setResponses({});
       setCurrentIndex(0);
-      if (safeQuestions.length > 0) {
-        setVisitedQuestions(new Set([safeQuestions[0].id]));
+      if (finalQuestions.length > 0) {
+        setVisitedQuestions(new Set([finalQuestions[0].id]));
       }
 
       const durationMinutes = Number(test.duration_minutes || 60);
@@ -1052,6 +1060,7 @@ export default function LiveQuiz() {
       return;
     }
     setError(null);
+    autoSubmitTriggeredRef.current = false;
     const endAt = Date.now() + Math.max(10, remaining) * 1000;
     setDeadline(endAt);
     setTestPhase('active');
@@ -1382,13 +1391,16 @@ export default function LiveQuiz() {
 
   // Countdown timer effect
   useEffect(() => {
-    if (testPhase !== 'active' || !deadline || submitting || pausing) return undefined;
+    if (testPhase !== 'active' || !deadline || submitting || pausing || timeExpired) return undefined;
 
     const checkTimer = () => {
       const next = getRemaining(deadline);
       setRemaining(next);
       if (next === 0) {
-        submit(true);
+        if (!autoSubmitTriggeredRef.current) {
+          autoSubmitTriggeredRef.current = true;
+          submit(true);
+        }
       }
     };
 
@@ -1785,6 +1797,66 @@ export default function LiveQuiz() {
     else setConfirmSubmit(true);
   };
 
+  // CBT Examination Keyboard Shortcuts (A-E, 1-5, Arrows, N/P, Review, Clear)
+  useEffect(() => {
+    if (testPhase !== 'active' || confirmSubmit || showPauseModal || showInstructionsModal || submitting || submitFailed || paletteOpen) {
+      return undefined;
+    }
+
+    const handleKeyDown = (event) => {
+      const targetTag = event.target?.tagName?.toUpperCase();
+      if (['INPUT', 'TEXTAREA', 'SELECT'].includes(targetTag) || event.target?.isContentEditable) {
+        return;
+      }
+
+      if (event.ctrlKey || event.altKey || event.metaKey) {
+        return;
+      }
+
+      const key = event.key;
+
+      if (key === 'ArrowRight' || key === 'PageDown' || key === 'n' || key === 'N') {
+        event.preventDefault();
+        if (currentIndex < (questions?.length || 0) - 1) {
+          goTo(currentIndex + 1);
+        }
+      } else if (key === 'ArrowLeft' || key === 'PageUp' || key === 'p' || key === 'P') {
+        event.preventDefault();
+        if (currentIndex > 0) {
+          goTo(currentIndex - 1);
+        }
+      } else if (key === 'm' || key === 'M') {
+        event.preventDefault();
+        toggleReview();
+      } else if (key === 'Backspace') {
+        if (test?.solution_mode !== 'immediate') {
+          event.preventDefault();
+          clearResponse();
+        }
+      } else {
+        const optMap = {
+          '1': 'A', 'a': 'A', 'A': 'A',
+          '2': 'B', 'b': 'B', 'B': 'B',
+          '3': 'C', 'c': 'C', 'C': 'C',
+          '4': 'D', 'd': 'D', 'D': 'D',
+          '5': 'E', 'e': 'E', 'E': 'E'
+        };
+        const opt = optMap[key];
+        if (opt && question) {
+          const optEntries = question.options ? getOptionEntries(question.options) : [];
+          const validKeys = optEntries.length > 0 ? optEntries.map(([k]) => k) : ['A', 'B', 'C', 'D'];
+          if (validKeys.includes(opt) || (opt === 'E' && (question.option_e || question.option_e_en || question.option_e_hi))) {
+            event.preventDefault();
+            answer(opt);
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [testPhase, confirmSubmit, showPauseModal, showInstructionsModal, submitting, submitFailed, paletteOpen, currentIndex, questions, test?.solution_mode, question, answer, clearResponse, toggleReview, goTo]);
+
   // Loading Screen
   if (loading) {
     return (
@@ -1858,44 +1930,80 @@ export default function LiveQuiz() {
               </div>
             </div>
 
-            <div className="instructions-stat-grid">
-              <div className="instruction-stat-card">
-                <Clock3 className="stat-icon text-accent" size={20} />
-                <div>
-                  <strong>{test?.duration_minutes || 60} Mins</strong>
-                  <span>Total Duration</span>
+            {isMistakesMode && (
+              <div className="mb-4 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-500/20 to-rose-500/15 border border-amber-500/40 flex items-center gap-3">
+                <RotateCcw size={20} className="text-amber-400 shrink-0" />
+                <div className="text-xs">
+                  <strong className="text-amber-300 font-bold block text-sm">
+                    {language === 'hi' ? '🔥 केवल गलत प्रश्नों का री-अटेम्प्ट मोड' : '🔥 Mistakes Re-attempt Mode Active'}
+                  </strong>
+                  <span className="text-slate-300">
+                    {language === 'hi'
+                      ? 'इस सत्र में केवल वे प्रश्न शामिल हैं जो आपने पिछले टेस्ट में गलत किए थे। अपनी गलतियों को सुधारें और 100% सटीकता प्राप्त करें।'
+                      : 'This session includes only the questions answered incorrectly in your previous attempt. Master your mistakes and achieve 100% accuracy.'}
+                  </span>
                 </div>
               </div>
-              <div className="instruction-stat-card">
-                <Target className="stat-icon text-accent" size={20} />
-                <div>
-                  <strong>{totalQuestionCount || questions?.length || 0} Questions</strong>
-                  <span>Total Questions</span>
+            )}
+
+            {(() => {
+              const mistakeStoredCount = (() => {
+                try {
+                  const stateIds = location.state?.mistakeIds;
+                  if (Array.isArray(stateIds)) return stateIds.length;
+                  const raw = sessionStorage.getItem('zyvra_mistake_quiz_ids');
+                  return raw ? JSON.parse(raw).length : 0;
+                } catch { return 0; }
+              })();
+              const effectiveCount = isMistakesMode
+                ? (mistakeStoredCount || questions?.length || totalQuestionCount)
+                : (totalQuestionCount || questions?.length || 0);
+
+              return (
+                <div className="instructions-stat-grid">
+                  <div className="instruction-stat-card">
+                    <Clock3 className="stat-icon text-accent" size={20} />
+                    <div>
+                      <strong>{test?.duration_minutes || 60} Mins</strong>
+                      <span>Total Duration</span>
+                    </div>
+                  </div>
+                  <div className="instruction-stat-card">
+                    <Target className="stat-icon text-accent" size={20} />
+                    <div>
+                      <strong>{effectiveCount} Questions</strong>
+                      <span>{isMistakesMode ? 'Mistake Questions' : 'Total Questions'}</span>
+                    </div>
+                  </div>
+                  <div className="instruction-stat-card">
+                    <Award className="stat-icon text-accent" size={20} />
+                    <div>
+                      <strong>{(effectiveCount * (test?.positive_marks || 1)).toFixed(0)} Marks</strong>
+                      <span>Maximum Score</span>
+                    </div>
+                  </div>
+                  <div className="instruction-stat-card">
+                    <ListChecks className="stat-icon text-text" size={20} />
+                    <div>
+                      <strong>+{test?.positive_marks ?? 1} / -{test?.negative_marks ?? 0}</strong>
+                      <span>Marking Scheme</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="instruction-stat-card">
-                <Award className="stat-icon text-accent" size={20} />
-                <div>
-                  <strong>{((totalQuestionCount || questions?.length || 0) * (test?.positive_marks || 1)).toFixed(0)} Marks</strong>
-                  <span>Maximum Score</span>
-                </div>
-              </div>
-              <div className="instruction-stat-card">
-                <ListChecks className="stat-icon text-text" size={20} />
-                <div>
-                  <strong>+{test?.positive_marks ?? 1} / -{test?.negative_marks ?? 0}</strong>
-                  <span>Marking Scheme</span>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
           </div>
 
           {test?.mandatory_option_e_penalty && (
             <div className="bpsc-notice-banner">
               <AlertTriangle size={18} className="text-gold flex-shrink-0" />
               <div>
-                <strong>BPSC Mandatory Option E Rule Active:</strong>
-                <span> Leaving both an answer and Option E unselected carries a negative penalty of -{test.negative_marks} marks. If unsure, select Option E to avoid penalty.</span>
+                <strong>{language === 'hi' ? 'BPSC अनिवार्य विकल्प E नियम सक्रिय:' : 'BPSC Mandatory Option E Rule Active:'}</strong>
+                <span>
+                  {language === 'hi'
+                    ? ` किसी भी प्रश्न को खाली छोड़ने पर -${test.mandatory_option_e_penalty || test.negative_marks || 0.25} अंक की पेनल्टी लगेगी। यदि आप उत्तर के बारे में निश्चित नहीं हैं, तो पेनल्टी से बचने के लिए विकल्प E चुनें।`
+                    : ` Leaving both an answer and Option E unselected carries a negative penalty of -${test.mandatory_option_e_penalty || test.negative_marks || 0.25} marks. If unsure, select Option E to avoid penalty.`}
+                </span>
               </div>
             </div>
           )}
@@ -2666,7 +2774,7 @@ export default function LiveQuiz() {
                 const isImmediate = test?.solution_mode === 'immediate';
                 const isLocked = isImmediate && Boolean(userSelectedOption);
                 const isEvaluating = evaluatingQuestionIds.has(question?.id);
-                const selected = userSelectedOption === key;
+                const selected = normalizeOptionKey(userSelectedOption) === key;
                 const hasAuthoritativeKey = Boolean(qCorrectAnswer);
                 const isCorrectAnswer = isImmediate && hasAuthoritativeKey && (qCorrectAnswer === key);
                 const isWrongSelected = isImmediate && hasAuthoritativeKey && selected && (qCorrectAnswer !== key);
@@ -3379,16 +3487,18 @@ export default function LiveQuiz() {
                   <RefreshCw size={15} />
                   <span>{language === 'hi' ? 'पुनः प्रयास करें (Retry Submission)' : 'Retry Submission Now'}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSubmitFailed(false);
-                    setError(null);
-                  }}
-                  className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
-                >
-                  {language === 'hi' ? 'टेस्ट पर वापस जाएं' : 'Return to Test'}
-                </button>
+                {!timeExpired && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubmitFailed(false);
+                      setError(null);
+                    }}
+                    className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+                  >
+                    {language === 'hi' ? 'टेस्ट पर वापस जाएं' : 'Return to Test'}
+                  </button>
+                )}
               </div>
             </div>
           )}

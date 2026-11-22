@@ -15,10 +15,12 @@ import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 import { readMistakesLocal, saveMistakeToNotebook } from '../../lib/studentToolbox';
 import {
+  formatScore,
   getOptionEntries,
   normalizeCorrectAnswer,
   normalizeRpcObject,
   parseStructuredExplanation,
+  resolveSolutionStatus,
   unwrapRpcPayload
 } from '../../lib/tests';
 import { playRealisticSpeech, preloadAudio, stopSpeech } from '../../lib/hybridVoicePlayer';
@@ -95,11 +97,11 @@ export default function QuizResult() {
 
   const handleWhatsAppChallenge = () => {
     const studentName = user?.user_metadata?.full_name || user?.user_metadata?.name || (appLanguage === 'hi' ? 'आपके साथी छात्र' : 'Your study partner');
-    const challengeUrl = `${window.location.origin}/quiz/${result?.test_id || ''}?challengerId=${attemptId}&cName=${encodeURIComponent(studentName)}&cScore=${score}&cTotal=${totalMarks || totalQuestions}`;
+    const challengeUrl = `${window.location.origin}/quiz/${result?.test_id || ''}?challengerId=${attemptId}&cName=${encodeURIComponent(studentName)}&cScore=${formatScore(score)}&cTotal=${totalMarks || totalQuestions}`;
     
     const msg = appLanguage === 'hi'
-      ? `🔥 मैंने Zyvra पर '${testTitle}' में ${score}/${totalMarks || totalQuestions} (${percentage}%) अंक प्राप्त किए!\n\nक्या तुम मुझे 1v1 मुकाबले में हरा सकते हो? यहाँ क्लिक करके ठीक यही टेस्ट दो और अपने स्कोर की तुलना करो:\n${challengeUrl}`
-      : `🔥 I scored ${score}/${totalMarks || totalQuestions} (${percentage}%) in '${testTitle}' on Zyvra!\n\nCan you beat my score? Click the link to take the exact same test in a 1v1 challenge:\n${challengeUrl}`;
+      ? `🔥 मैंने Zyvra पर '${testTitle}' में ${formatScore(score)}/${totalMarks || totalQuestions} (${percentage}%) अंक प्राप्त किए!\n\nक्या तुम मुझे 1v1 मुकाबले में हरा सकते हो? यहाँ क्लिक करके ठीक यही टेस्ट दो और अपने स्कोर की तुलना करो:\n${challengeUrl}`
+      : `🔥 I scored ${formatScore(score)}/${totalMarks || totalQuestions} (${percentage}%) in '${testTitle}' on Zyvra!\n\nCan you beat my score? Click the link to take the exact same test in a 1v1 challenge:\n${challengeUrl}`;
 
     const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
@@ -107,15 +109,7 @@ export default function QuizResult() {
 
   const handleReattemptMistakes = () => {
     const mistakeQuestionIds = solutions
-      .filter((item) => {
-        const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? null;
-        const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? null;
-        const correctKey = normalizeCorrectAnswer(rawCorrect, item.options || item.question?.options);
-        const chosenKey = Array.isArray(selected) ? selected[0] : selected;
-        const hasSelection = Boolean(chosenKey);
-        const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
-        return hasSelection && !isCorrect;
-      })
+      .filter((item) => resolveSolutionStatus(item).isIncorrect)
       .map((item) => String(item.question?.id || item.id || item.question_id))
       .filter(Boolean);
 
@@ -183,15 +177,7 @@ export default function QuizResult() {
   const [walkmanIndex, setWalkmanIndex] = useState(0);
 
   const mistakeSolutions = useMemo(() => {
-    return solutions.filter((item) => {
-      const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? null;
-      const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? null;
-      const correctKey = normalizeCorrectAnswer(rawCorrect, item.options || item.question?.options);
-      const chosenKey = Array.isArray(selected) ? selected[0] : selected;
-      const hasSelection = Boolean(chosenKey);
-      const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
-      return !isCorrect;
-    });
+    return solutions.filter((item) => !resolveSolutionStatus(item).isCorrect);
   }, [solutions]);
 
   const speakCurrentMistake = useCallback((idx) => {
@@ -565,16 +551,9 @@ export default function QuizResult() {
     let unattemptedCount = 0;
 
     solutions.forEach((item) => {
-      const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? item.selected_answers ?? null;
-      const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? item.question?.correct_answer ?? null;
-      const correctKey = normalizeCorrectAnswer(rawCorrect, item.options || item.question?.options);
-      const chosenKey = Array.isArray(selected) ? selected[0] : selected;
-      const hasSelection = Array.isArray(selected) ? selected.length > 0 : Boolean(selected);
-
-      const isCorrect = item.is_correct ?? item.response?.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).trim().toUpperCase() === correctKey);
-
-      if (isCorrect) correctCount += 1;
-      else if (hasSelection) incorrectCount += 1;
+      const status = resolveSolutionStatus(item);
+      if (status.isCorrect) correctCount += 1;
+      else if (status.isIncorrect) incorrectCount += 1;
       else unattemptedCount += 1;
     });
 
@@ -599,15 +578,9 @@ export default function QuizResult() {
       const qId = String(item.question?.id || item.id || item.question_id || `q-${idx}`);
       if (!guesses.has(qId)) return;
 
-      const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? null;
-      const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? null;
-      const correctKey = normalizeCorrectAnswer(rawCorrect, item.options || item.question?.options);
-      const chosenKey = Array.isArray(selected) ? selected[0] : selected;
-      const hasSelection = Boolean(chosenKey);
-      const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
-
-      if (isCorrect) guessedCorrect += 1;
-      else if (hasSelection) guessedIncorrect += 1;
+      const status = resolveSolutionStatus(item);
+      if (status.isCorrect) guessedCorrect += 1;
+      else if (status.isIncorrect) guessedIncorrect += 1;
     });
 
     const totalGuessed = guessedCorrect + guessedIncorrect;
@@ -615,9 +588,9 @@ export default function QuizResult() {
 
     const marksPerQuestion = totalMarks > 0 && totalQuestions > 0 ? totalMarks / totalQuestions : 1;
     const penaltyPerQuestion = marksPerQuestion / 3;
-    const gainedMarks = Math.round(guessedCorrect * marksPerQuestion * 10) / 10;
-    const lostMarks = Math.round(guessedIncorrect * penaltyPerQuestion * 10) / 10;
-    const netMarks = Math.round((gainedMarks - lostMarks) * 10) / 10;
+    const gainedMarks = Math.round((guessedCorrect * marksPerQuestion + Number.EPSILON) * 10) / 10;
+    const lostMarks = Math.round((guessedIncorrect * penaltyPerQuestion + Number.EPSILON) * 10) / 10;
+    const netMarks = Math.round((gainedMarks - lostMarks + Number.EPSILON) * 10) / 10;
     const accuracy = Math.round((guessedCorrect / totalGuessed) * 100);
 
     return { totalGuessed, guessedCorrect, guessedIncorrect, gainedMarks, lostMarks, netMarks, accuracy };
@@ -629,31 +602,20 @@ export default function QuizResult() {
     if (!solutions.length || autoSavedRef.current || !user?.id) return;
     autoSavedRef.current = true;
 
-    const wrongList = solutions.filter((item) => {
-      const selected = item.student_selected ?? item.selected_option ?? null;
-      const rawCorrect = item.correct_answer ?? item.answer_key ?? null;
-      const correctKey = normalizeCorrectAnswer(rawCorrect, item.options || item.question?.options);
-      const chosenKey = Array.isArray(selected) ? selected[0] : selected;
-      const hasSelection = Boolean(chosenKey);
-      const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
-      return hasSelection && !isCorrect;
-    });
+    const wrongList = solutions.filter((item) => resolveSolutionStatus(item).isIncorrect);
 
     if (wrongList.length > 0) {
       const toSave = wrongList.slice(0, 10);
       Promise.all(toSave.map(async (item, idx) => {
         const question = item.question || item;
         const qId = String(question.id || item.question_id || `q-${idx}`);
-        const selected = item.student_selected ?? item.selected_option ?? null;
-        const rawCorrect = item.correct_answer ?? item.answer_key ?? null;
-        const correctKey = normalizeCorrectAnswer(rawCorrect, question.options);
-        const chosenKey = Array.isArray(selected) ? selected[0] : selected;
+        const status = resolveSolutionStatus(item);
 
         await saveMistakeToNotebook({
           userId: user.id,
           topic: question.subject || result?.title || 'Exam Revision',
-          mistake: `Selected: Option ${chosenKey}\nQ: ${(question.question_text || question.text || '').slice(0, 150)}`,
-          correctAnswer: `Correct: Option ${correctKey}\n${(item.explanation || '').slice(0, 150)}`,
+          mistake: `Selected: Option ${status.chosenKey || 'None'}\nQ: ${(question.question_text || question.text || '').slice(0, 150)}`,
+          correctAnswer: `Correct: Option ${status.correctKey || 'N/A'}\n${(item.explanation || '').slice(0, 150)}`,
           questionId: qId,
           testTitle: result?.test_title || 'Mock Test'
         }).catch(() => {});
@@ -702,15 +664,10 @@ export default function QuizResult() {
       const entry = map.get(topic);
       entry.total += 1;
 
-      const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? null;
-      const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? question.correct_answer ?? null;
-      const correctKey = normalizeCorrectAnswer(rawCorrect, question.options);
-      const chosenKey = Array.isArray(selected) ? selected[0] : selected;
-      const hasSelection = Boolean(chosenKey);
-      const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
+      const status = resolveSolutionStatus(item);
 
-      if (isCorrect) entry.correct += 1;
-      else if (hasSelection) entry.incorrect += 1;
+      if (status.isCorrect) entry.correct += 1;
+      else if (status.isIncorrect) entry.incorrect += 1;
       else entry.unattempted += 1;
     });
 
@@ -728,16 +685,10 @@ export default function QuizResult() {
   // Filtered Questions for Review List
   const filteredSolutions = useMemo(() => {
     return solutions.filter((item) => {
-      const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? null;
-      const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? null;
-      const correctKey = normalizeCorrectAnswer(rawCorrect, item.options || item.question?.options);
-      const chosenKey = Array.isArray(selected) ? selected[0] : selected;
-      const hasSelection = Boolean(chosenKey);
-      const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
-
-      if (reviewFilter === 'correct') return isCorrect;
-      if (reviewFilter === 'incorrect') return hasSelection && !isCorrect;
-      if (reviewFilter === 'unattempted') return !hasSelection;
+      const status = resolveSolutionStatus(item);
+      if (reviewFilter === 'correct') return status.isCorrect;
+      if (reviewFilter === 'incorrect') return status.isIncorrect;
+      if (reviewFilter === 'unattempted') return status.isUnattempted;
       return true;
     });
   }, [solutions, reviewFilter]);
@@ -916,23 +867,23 @@ export default function QuizResult() {
                 <div className="grid grid-cols-2 gap-2.5 pt-1">
                   <div className="p-3 rounded-2xl dark:bg-slate-900/80 bg-white/90 border dark:border-slate-800 border-slate-200 text-center">
                     <span className="text-[10px] font-bold text-slate-500 uppercase block truncate">चैलेंजर ({challenger.cName})</span>
-                    <span className="text-xl sm:text-2xl font-black dark:text-white text-slate-900">{challenger.cScore}</span>
+                    <span className="text-xl sm:text-2xl font-black dark:text-white text-slate-900">{formatScore(challenger.cScore)}</span>
                     <span className="text-[11px] text-slate-400 block font-semibold">/ {challenger.cTotal || totalMarks || totalQuestions}</span>
                   </div>
 
                   <div className={`p-3 rounded-2xl border text-center ${score >= challenger.cScore ? 'dark:bg-emerald-950/40 bg-emerald-50/80 border-emerald-500/40' : 'dark:bg-slate-900/80 bg-white/90 dark:border-slate-800 border-slate-200'}`}>
                     <span className="text-[10px] font-bold text-slate-500 uppercase block">आप (You)</span>
-                    <span className="text-xl sm:text-2xl font-black text-emerald-500 dark:text-emerald-400">{score}</span>
+                    <span className="text-xl sm:text-2xl font-black text-emerald-500 dark:text-emerald-400">{formatScore(score)}</span>
                     <span className="text-[11px] text-slate-400 block font-semibold">/ {totalMarks || totalQuestions}</span>
                   </div>
                 </div>
 
                 <p className="text-xs font-bold text-center dark:text-amber-300 text-amber-800">
                   {score > challenger.cScore
-                    ? `🔥 अद्भुत प्रदर्शन! आपने ${challenger.cName} को ${score - challenger.cScore} अंकों से पछाड़ दिया!`
+                    ? `🔥 अद्भुत प्रदर्शन! आपने ${challenger.cName} को ${formatScore(Math.abs(score - challenger.cScore))} अंकों से पछाड़ दिया!`
                     : score === challenger.cScore
-                    ? `🤝 दोनों के बीच बराबरी की टक्कर! दोनों ने ${score} अंक प्राप्त किए।`
-                    : `⚔️ कड़ा मुकाबला! ${challenger.cName} आपसे ${challenger.cScore - score} अंक आगे रहे। दोबारा प्रयास करके स्कोर बीट करें!`}
+                    ? `🤝 दोनों के बीच बराबरी की टक्कर! दोनों ने ${formatScore(score)} अंक प्राप्त किए।`
+                    : `⚔️ कड़ा मुकाबला! ${challenger.cName} आपसे ${formatScore(Math.abs(challenger.cScore - score))} अंक आगे रहे। दोबारा प्रयास करके स्कोर बीट करें!`}
                 </p>
               </div>
             )}
@@ -1046,7 +997,7 @@ export default function QuizResult() {
               <div className="text-center">
                 <div className="text-[9px] sm:text-[10px] font-bold dark:text-slate-400 text-slate-500 uppercase">{appLanguage === 'hi' ? 'आपका स्कोर' : 'Your Score'}</div>
                 <div className="text-base sm:text-2xl font-black dark:text-white text-slate-900 mt-0.5">
-                  {score} <span className="text-xs font-semibold dark:text-slate-400 text-slate-500">/ {totalMarks || totalQuestions}</span>
+                  {formatScore(score)} <span className="text-xs font-semibold dark:text-slate-400 text-slate-500">/ {totalMarks || totalQuestions}</span>
                 </div>
                 <span className="inline-block mt-1 px-1.5 sm:px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   {percentage}%
@@ -1185,12 +1136,11 @@ export default function QuizResult() {
                 const origIndex = solutions.indexOf(item);
                 const qText = question.question_text_hi || getStoredHindi(question.question_text) || question.question_text_en || getLocalizedEnglish(question.question_text) || question.text || 'Question text';
 
-                const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? null;
-                const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? null;
-                const correctKey = normalizeCorrectAnswer(rawCorrect, question.options);
-                const chosenKey = Array.isArray(selected) ? selected[0] : selected;
-                const hasSelection = Boolean(chosenKey);
-                const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
+                const status = resolveSolutionStatus(item);
+                const chosenKey = status.chosenKey;
+                const correctKey = status.correctKey;
+                const hasSelection = status.hasSelection;
+                const isCorrect = status.isCorrect;
 
                 return (
                   <div
@@ -1391,12 +1341,9 @@ export default function QuizResult() {
 
                 <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 flex-1 no-scrollbar">
                   {solutions.map((item, idx) => {
-                    const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? null;
-                    const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? null;
-                    const correctKey = normalizeCorrectAnswer(rawCorrect, item.options || item.question?.options);
-                    const chosenKey = Array.isArray(selected) ? selected[0] : selected;
-                    const hasSelection = Boolean(chosenKey);
-                    const isCorrect = item.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
+                    const status = resolveSolutionStatus(item);
+                    const hasSelection = status.hasSelection;
+                    const isCorrect = status.isCorrect;
                     const isCurrent = currentSolutionIndex === idx;
 
                     let badgeClasses = 'dark:bg-slate-800 bg-slate-200 dark:text-slate-400 text-slate-600 dark:border-slate-700 border-slate-300';
@@ -1458,12 +1405,11 @@ export default function QuizResult() {
             {(() => {
               const question = currentSolution.question || currentSolution;
               const options = getOptionEntries(question.options);
-              const selected = currentSolution.student_selected ?? currentSolution.selected_option ?? currentSolution.response?.selected_option ?? null;
-              const rawCorrect = currentSolution.correct_answer ?? currentSolution.answer_key ?? currentSolution.correct_option ?? question.correct_answer ?? 'B';
-              const correctKey = normalizeCorrectAnswer(rawCorrect, question.options);
-              const chosenKey = Array.isArray(selected) ? selected[0] : selected;
-              const hasSelection = Boolean(chosenKey);
-              const isCorrect = currentSolution.is_correct ?? (hasSelection && Boolean(correctKey) && String(chosenKey).toUpperCase() === correctKey);
+              const status = resolveSolutionStatus(currentSolution);
+              const chosenKey = status.chosenKey;
+              const correctKey = status.correctKey || 'B';
+              const hasSelection = status.hasSelection;
+              const isCorrect = status.isCorrect;
               const qId = String(question.id || currentSolution?.question_id || `q-${currentSolutionIndex}`);
               const isSavedInMistakes = mistakeSavedIds.has(qId);
 

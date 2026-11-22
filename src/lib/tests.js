@@ -768,4 +768,107 @@ export function getAnsweredQuestionCount(attempt = {}) {
   return count;
 }
 
+export function formatScore(score) {
+  if (score === null || score === undefined || Number.isNaN(Number(score))) return '0';
+  const num = Number(score);
+  if (Math.abs(num) < 0.0001) return '0';
+  const rounded = Math.round((num + Number.EPSILON) * 100) / 100;
+  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(2).replace(/\.?0+$/, '');
+}
+
+export function calculateTestScore({
+  questions = [],
+  responses = {},
+  positiveMarks = 1,
+  negativeMarks = 0.25,
+  mandatoryOptionEPenalty = 0
+} = {}) {
+  const posMark = Math.max(0, Number(positiveMarks) || 1);
+  const negMark = Math.max(0, Number(negativeMarks) || 0);
+  const optionEPenalty = Math.max(0, Number(mandatoryOptionEPenalty) || 0);
+
+  let correctCount = 0;
+  let incorrectCount = 0;
+  let unattemptedCount = 0;
+  let optionEPenaltyCount = 0;
+
+  (questions || []).forEach((q) => {
+    const qId = q.id || q.question_id;
+    const resp = responses?.[qId];
+    const selected = resp?.selected_option ?? resp?.selectedOption ?? (typeof resp === 'string' ? resp : null);
+    const normSelected = normalizeOptionKey(selected);
+    const rawCorrect = q.correct_answer ?? q.correct_option ?? q.answer;
+    const normCorrect = normalizeCorrectAnswer(rawCorrect, q.options);
+
+    if (normSelected) {
+      if (normCorrect && normSelected === normCorrect) {
+        correctCount += 1;
+      } else {
+        incorrectCount += 1;
+      }
+    } else {
+      unattemptedCount += 1;
+      if (optionEPenalty > 0) {
+        optionEPenaltyCount += 1;
+      }
+    }
+  });
+
+  const grossPositive = correctCount * posMark;
+  const grossNegative = (incorrectCount * negMark) + (optionEPenaltyCount * optionEPenalty);
+  const rawScore = grossPositive - grossNegative;
+  const netScore = Math.round((rawScore + Number.EPSILON) * 100) / 100;
+  const maxScore = Math.round((questions.length * posMark + Number.EPSILON) * 100) / 100;
+  const percentage = maxScore > 0 ? Math.max(0, Math.round((netScore / maxScore) * 100)) : 0;
+
+  return {
+    correctCount,
+    incorrectCount,
+    unattemptedCount,
+    optionEPenaltyCount,
+    totalQuestions: questions.length,
+    grossPositive: Math.round((grossPositive + Number.EPSILON) * 100) / 100,
+    grossNegative: Math.round((grossNegative + Number.EPSILON) * 100) / 100,
+    score: netScore,
+    maxScore,
+    percentage,
+    formattedScore: formatScore(netScore)
+  };
+}
+
+export function resolveSolutionStatus(item) {
+  if (!item || typeof item !== 'object') {
+    return {
+      selected: null,
+      chosenKey: null,
+      hasSelection: false,
+      correctKey: '',
+      isCorrect: false,
+      isIncorrect: false,
+      isUnattempted: true
+    };
+  }
+
+  const selected = item.student_selected ?? item.selected_option ?? item.response?.selected_option ?? item.selected_answers ?? null;
+  const rawCorrect = item.correct_answer ?? item.answer_key ?? item.correct_option ?? item.question?.correct_answer ?? item.question?.answer ?? item.question?.correct_option ?? null;
+  const correctKey = normalizeCorrectAnswer(rawCorrect, item.options || item.question?.options);
+  const chosenKey = Array.isArray(selected) ? selected[0] : selected;
+  const hasSelection = Array.isArray(selected) ? selected.length > 0 : (chosenKey !== null && chosenKey !== undefined && String(chosenKey).trim() !== '');
+
+  const normChosen = chosenKey ? normalizeOptionKey(chosenKey) : null;
+  const normCorrect = correctKey ? normalizeOptionKey(correctKey) : '';
+
+  const isCorrect = item.is_correct ?? item.response?.is_correct ?? (hasSelection && Boolean(normCorrect) && normChosen === normCorrect);
+
+  return {
+    selected,
+    chosenKey: normChosen,
+    hasSelection: Boolean(hasSelection),
+    correctKey: normCorrect,
+    isCorrect: Boolean(isCorrect),
+    isIncorrect: Boolean(hasSelection && !isCorrect),
+    isUnattempted: !hasSelection
+  };
+}
+
 
