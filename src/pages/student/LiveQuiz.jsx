@@ -2718,7 +2718,10 @@ export default function LiveQuiz() {
               <ChevronLeft size={16} />
             </button>
 
-            <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 flex-1 no-scrollbar">
+            <div
+              className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 flex-1 no-scrollbar"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
               {questions.map((item, idx) => {
                 const qId = item.id;
                 const resp = responses[qId];
@@ -2852,8 +2855,9 @@ export default function LiveQuiz() {
                 const isEvaluating = evaluatingQuestionIds.has(question?.id);
                 const selected = normalizeOptionKey(userSelectedOption) === key;
                 const hasAuthoritativeKey = Boolean(qCorrectAnswer);
-                const isCorrectAnswer = isImmediate && hasAuthoritativeKey && (qCorrectAnswer === key);
-                const isWrongSelected = isImmediate && hasAuthoritativeKey && selected && (qCorrectAnswer !== key);
+                const hasAnswered = Boolean(userSelectedOption);
+                const isCorrectAnswer = isImmediate && hasAnswered && hasAuthoritativeKey && (qCorrectAnswer === key);
+                const isWrongSelected = isImmediate && hasAnswered && hasAuthoritativeKey && selected && (qCorrectAnswer !== key);
 
                 return (
                   <button
