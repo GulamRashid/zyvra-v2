@@ -11,7 +11,8 @@ import { prepareSpeechText, splitIntoSentences } from '../src/lib/speechVoice.js
 
 /**
  * High-fidelity Gemini Neural TTS generator
- * Uses studio quality Google neural voice model
+ * Uses gemini-3.8-flash-tts — the most expressive, studio-quality Google voice model.
+ * Voices: Sulafat (Hindi, warm female), Kore (English, authoritative female).
  */
 async function generateGeminiSpeech(text, lang) {
   const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
@@ -19,17 +20,18 @@ async function generateGeminiSpeech(text, lang) {
 
   const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
   const isHindi = String(lang).toLowerCase().startsWith('hi');
+  // Sulafat: warm, expressive Hindi female. Kore: authoritative English female.
   const voiceName = isHindi ? 'Sulafat' : 'Kore';
   const style = isHindi
-    ? 'confident, articulate Indian teacher speaking clear Hindi at standard 1x conversational speed with crisp pronunciation and fluent tempo'
-    : 'confident, articulate educator speaking clear English at standard 1x conversational speed with crisp pronunciation and fluent tempo';
+    ? 'confident, warm Indian teacher speaking clear, expressive Hindi at a natural conversational pace with perfect pronunciation'
+    : 'confident, warm educator speaking clear, expressive English at a natural conversational pace with crisp pronunciation';
 
   try {
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemini-3.8-flash-lite-tts',
+        model: 'gemini-3.8-flash-tts',
         input: [{
           type: 'user_input',
           content: [{

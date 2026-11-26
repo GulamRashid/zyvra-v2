@@ -63,16 +63,17 @@ async function fetchNeuralSpeechBlob(cleaned, lang) {
   if (apiKey) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
+      // Sulafat: warm, expressive Hindi female. Kore: authoritative English female.
       const voiceName = isHindi ? 'Sulafat' : 'Kore';
       const style = isHindi
-        ? 'confident, articulate Indian teacher speaking clear Hindi at standard 1x conversational speed with crisp pronunciation and fluent tempo'
-        : 'confident, articulate educator speaking clear English at standard 1x conversational speed with crisp pronunciation and fluent tempo';
+        ? 'confident, warm Indian teacher speaking clear, expressive Hindi at a natural conversational pace with perfect pronunciation'
+        : 'confident, warm educator speaking clear, expressive English at a natural conversational pace with crisp pronunciation';
 
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'gemini-3.8-flash-lite-tts',
+          model: 'gemini-3.8-flash-tts',
           input: [{
             type: 'user_input',
             content: [{
