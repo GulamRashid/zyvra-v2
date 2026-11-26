@@ -7,21 +7,69 @@
  * and immutable CDN caching.
  */
 
-import { prepareSpeechText, splitIntoSentences } from '../src/lib/speechVoice.js';
+import { pcm16ToWav, prepareSpeechText, splitIntoSentences } from '../src/lib/speechVoice.js';
 
 /**
  * High-fidelity Gemini Neural TTS generator
- * Uses gemini-3.8-flash-tts — the most expressive, studio-quality Google voice model.
+ * Primary: gemini-2.5-flash-preview-tts (AI Studio speech model, ~4s latency)
+ * Fallback: gemini-3.8-flash-tts (Interactions API)
  * Voices: Sulafat (Hindi, warm female), Kore (English, authoritative female).
  */
 async function generateGeminiSpeech(text, lang) {
   const apiKey = (process.env.GEMINI_API_KEY || process.env.VITE_GEMINI_API_KEY || '').trim();
   if (!apiKey) return null;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
   const isHindi = String(lang).toLowerCase().startsWith('hi');
-  // Sulafat: warm, expressive Hindi female. Kore: authoritative English female.
   const voiceName = isHindi ? 'Sulafat' : 'Kore';
+
+  // 1. Primary: gemini-2.5-flash-preview-tts via generateContent
+  try {
+    const prompt = isHindi
+      ? `एक आत्मविश्वासी और स्पष्ट भारतीय शिक्षक की तरह सहज गति से पढ़ें: ${text}`
+      : `Read clearly in a confident, warm educator voice at a natural pace: ${text}`;
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName }
+              }
+            }
+          }
+        })
+      }
+    );
+
+    if (res.ok) {
+      const data = await res.json();
+      const inlineData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
+      if (inlineData?.data) {
+        const rawBytes = Buffer.from(inlineData.data, 'base64');
+        const mime = String(inlineData.mimeType || '').toLowerCase();
+        const rateMatch = mime.match(/rate=(\d+)/);
+        const sampleRate = rateMatch ? Number(rateMatch[1]) : 24000;
+        const wavBytes = mime.includes('wav') ? rawBytes : Buffer.from(pcm16ToWav(rawBytes, sampleRate, 1));
+        return {
+          buffer: wavBytes,
+          mimeType: 'audio/wav'
+        };
+      }
+    } else {
+      console.warn('Gemini 2.5 TTS non-200 response:', res.status);
+    }
+  } catch (err) {
+    console.warn('Gemini 2.5 TTS exception:', err.message);
+  }
+
+  // 2. Secondary Gemini fallback: gemini-3.8-flash-tts via interactions
+  const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
   const style = isHindi
     ? 'confident, warm Indian teacher speaking clear, expressive Hindi at a natural conversational pace with perfect pronunciation'
     : 'confident, warm educator speaking clear, expressive English at a natural conversational pace with crisp pronunciation';
@@ -53,7 +101,7 @@ async function generateGeminiSpeech(text, lang) {
     });
 
     if (!res.ok) {
-      console.warn('Gemini TTS non-200 response:', res.status);
+      console.warn('Gemini 3.8 TTS non-200 response:', res.status);
       return null;
     }
 
@@ -70,7 +118,7 @@ async function generateGeminiSpeech(text, lang) {
     }
     return null;
   } catch (err) {
-    console.warn('Gemini TTS generator exception:', err.message);
+    console.warn('Gemini 3.8 TTS generator exception:', err.message);
     return null;
   }
 }

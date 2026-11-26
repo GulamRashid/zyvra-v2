@@ -127,3 +127,47 @@ export function pickBestVoice(voices, lang = 'hi-IN') {
   // Fallback to default system voice
   return voices.find((v) => v.default) || voices[0];
 }
+
+/**
+ * Wrap raw 16-bit signed little-endian PCM bytes in a standard 44-byte RIFF/WAVE header.
+ * If the input already starts with "RIFF", returns it unchanged.
+ */
+export function pcm16ToWav(pcmBytes, sampleRate = 24000, channels = 1) {
+  const bytes = pcmBytes instanceof Uint8Array ? pcmBytes : new Uint8Array(pcmBytes);
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46
+  ) {
+    return bytes;
+  }
+
+  const bitsPerSample = 16;
+  const byteRate = sampleRate * channels * (bitsPerSample / 8);
+  const blockAlign = channels * (bitsPerSample / 8);
+  const dataSize = bytes.length;
+  const wav = new Uint8Array(44 + dataSize);
+  const view = new DataView(wav.buffer);
+
+  const writeStr = (offset, str) => {
+    for (let i = 0; i < str.length; i++) {
+      wav[offset + i] = str.charCodeAt(i);
+    }
+  };
+
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true); // PCM chunk size
+  view.setUint16(20, 1, true); // PCM format
+  view.setUint16(22, channels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  writeStr(36, 'data');
+  view.setUint32(40, dataSize, true);
+  wav.set(bytes, 44);
+
+  return wav;
+}
