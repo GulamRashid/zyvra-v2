@@ -10,13 +10,34 @@
 
 import { prepareSpeechText, pickBestVoice, splitIntoSentences } from './speechVoice.js';
 
-// Global cache for audio blob object URLs
+// Global cache for audio { objectUrl, arrayBuffer }
 const audioBlobCache = new Map();
 
 // Active playback handle
 let currentAudio = null;
+let currentBufferSource = null;
 let currentUtteranceStop = null;
 let currentPlayingId = null;
+
+// Shared Web Audio API context — unlocked synchronously during user gesture
+let sharedAudioCtx = null;
+
+function getUnlockedAudioContext() {
+  if (typeof window === 'undefined') return null;
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) return null;
+  try {
+    if (!sharedAudioCtx || sharedAudioCtx.state === 'closed') {
+      sharedAudioCtx = new AudioCtx();
+    }
+    if (sharedAudioCtx.state === 'suspended') {
+      sharedAudioCtx.resume().catch(() => {});
+    }
+    return sharedAudioCtx;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Generate a lightweight cache key from text and language
@@ -27,18 +48,90 @@ function getCacheKey(text, lang) {
 }
 
 /**
+ * Direct client-side Gemini Neural TTS (gemini-3.8-flash-tts)
+ */
+async function fetchClientGeminiSpeech(cleaned, isHindi) {
+  const apiKey = (import.meta.env?.VITE_GEMINI_API_KEY || '').trim();
+  if (!apiKey) return null;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 28000);
+    const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
+    // Sulafat: warm, expressive Hindi female. Kore: authoritative English female.
+    const voiceName = isHindi ? 'Sulafat' : 'Kore';
+    const style = isHindi
+      ? 'confident, warm Indian teacher speaking clear, expressive Hindi at a natural conversational pace with perfect pronunciation'
+      : 'confident, warm educator speaking clear, expressive English at a natural conversational pace with crisp pronunciation';
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: 'gemini-3.8-flash-tts',
+        input: [{
+          type: 'user_input',
+          content: [{
+            type: 'text',
+            text: cleaned,
+            annotations: [{
+              type: 'speech_metadata',
+              style
+            }]
+          }]
+        }],
+        response_format: { type: 'audio' },
+        generation_config: {
+          speech_config: [{ voice: voiceName }]
+        }
+      })
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json();
+      for (const step of (data.steps || [])) {
+        for (const item of (step.content || [])) {
+          if (item.type === 'audio' && item.data) {
+            const byteCharacters = atob(item.data);
+            const byteArray = new Uint8Array(byteCharacters.length);
+            for (let i = 0; i < byteCharacters.length; i++) {
+              byteArray[i] = byteCharacters.charCodeAt(i);
+            }
+            const blob = new Blob([byteArray], { type: item.mime_type || 'audio/wav' });
+            return {
+              objectUrl: URL.createObjectURL(blob),
+              arrayBuffer: byteArray.buffer
+            };
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Client Gemini TTS note:', err.message);
+  }
+  return null;
+}
+
+/**
  * Fetch studio-grade Neural Speech Audio
- * 1. Checks /api/tts endpoint (running Gemini Neural TTS)
- * 2. Falls back to direct client-side Gemini Neural TTS with VITE_GEMINI_API_KEY
+ * 1. Direct client-side Gemini 3.8 Flash TTS if VITE_GEMINI_API_KEY is available
+ *    (avoids serverless 10s timeouts and Netlify HTML rewrites)
+ * 2. Falls back to /api/tts serverless endpoint
  */
 async function fetchNeuralSpeechBlob(cleaned, lang) {
   const isHindi = String(lang).toLowerCase().startsWith('hi');
   const targetLang = isHindi ? 'hi' : 'en-IN';
 
-  // 1. First attempt: call /api/tts endpoint
+  // 1. Direct Gemini Neural TTS when client key is configured
+  const clientAudio = await fetchClientGeminiSpeech(cleaned, isHindi);
+  if (clientAudio) return clientAudio;
+
+  // 2. Fallback: call /api/tts endpoint
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
 
     const res = await fetch(`/api/tts?lang=${targetLang}&text=${encodeURIComponent(cleaned)}`, {
       method: 'GET',
@@ -49,69 +142,17 @@ async function fetchNeuralSpeechBlob(cleaned, lang) {
 
     const contentType = res.headers.get('content-type') || '';
     if (res.ok && !contentType.includes('text/html')) {
-      const blob = await res.blob();
-      if (blob.size > 200) {
-        return URL.createObjectURL(blob);
+      const arrayBuffer = await res.arrayBuffer();
+      if (arrayBuffer.byteLength > 200) {
+        const blob = new Blob([arrayBuffer], { type: contentType || 'audio/wav' });
+        return {
+          objectUrl: URL.createObjectURL(blob),
+          arrayBuffer
+        };
       }
     }
   } catch (err) {
     console.warn('API TTS fetch note:', err.message);
-  }
-
-  // 2. Direct client-side Gemini Neural TTS call if API route didn't return audio
-  const apiKey = (import.meta.env?.VITE_GEMINI_API_KEY || '').trim();
-  if (apiKey) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
-      // Sulafat: warm, expressive Hindi female. Kore: authoritative English female.
-      const voiceName = isHindi ? 'Sulafat' : 'Kore';
-      const style = isHindi
-        ? 'confident, warm Indian teacher speaking clear, expressive Hindi at a natural conversational pace with perfect pronunciation'
-        : 'confident, warm educator speaking clear, expressive English at a natural conversational pace with crisp pronunciation';
-
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gemini-3.8-flash-tts',
-          input: [{
-            type: 'user_input',
-            content: [{
-              type: 'text',
-              text: cleaned,
-              annotations: [{
-                type: 'speech_metadata',
-                style
-              }]
-            }]
-          }],
-          response_format: { type: 'audio' },
-          generation_config: {
-            speech_config: [{ voice: voiceName }]
-          }
-        })
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        for (const step of (data.steps || [])) {
-          for (const item of (step.content || [])) {
-            if (item.type === 'audio' && item.data) {
-              const byteCharacters = atob(item.data);
-              const byteNumbers = new Array(byteCharacters.length);
-              for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
-              }
-              const byteArray = new Uint8Array(byteNumbers);
-              const blob = new Blob([byteArray], { type: item.mime_type || 'audio/wav' });
-              return URL.createObjectURL(blob);
-            }
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('Client Gemini TTS note:', err.message);
-    }
   }
 
   return null;
@@ -129,9 +170,9 @@ export async function preloadAudio(rawText, lang = 'hi') {
   if (audioBlobCache.has(key)) return;
 
   try {
-    const objectUrl = await fetchNeuralSpeechBlob(cleaned, lang);
-    if (objectUrl) {
-      audioBlobCache.set(key, objectUrl);
+    const entry = await fetchNeuralSpeechBlob(cleaned, lang);
+    if (entry) {
+      audioBlobCache.set(key, entry);
     }
   } catch (_) {
     // Non-fatal, silent background preload catch
@@ -139,10 +180,21 @@ export async function preloadAudio(rawText, lang = 'hi') {
 }
 
 /**
- * Stop any ongoing speech playback (both HTML5 audio and browser synthesis)
+ * Stop any ongoing speech playback (Web Audio, HTML5 audio, and browser synthesis)
  */
 export function stopSpeech() {
   currentPlayingId = null;
+
+  if (currentBufferSource) {
+    try {
+      currentBufferSource.onended = null;
+      currentBufferSource.stop(0);
+      currentBufferSource.disconnect();
+    } catch {
+      // Ignored
+    }
+    currentBufferSource = null;
+  }
 
   if (currentAudio) {
     try {
@@ -261,6 +313,10 @@ export async function playRealisticSpeech(rawText, options = {}) {
     voices = []
   } = options;
 
+  // Synchronously unlock Web Audio API during the user's tap/click gesture
+  // so mobile Safari/Chrome won't block playback after the async TTS fetch (7-12s).
+  const audioCtx = getUnlockedAudioContext();
+
   stopSpeech();
 
   const cleaned = prepareSpeechText(rawText);
@@ -273,24 +329,57 @@ export async function playRealisticSpeech(rawText, options = {}) {
   currentPlayingId = playbackId;
 
   const key = getCacheKey(cleaned, lang);
-  let audioSrc = audioBlobCache.get(key) || null;
+  let audioEntry = audioBlobCache.get(key) || null;
 
   // 1. Try to fetch from Neural TTS if not in cache
-  if (!audioSrc) {
-    audioSrc = await fetchNeuralSpeechBlob(cleaned, lang);
-    if (audioSrc) {
-      audioBlobCache.set(key, audioSrc);
+  if (!audioEntry) {
+    audioEntry = await fetchNeuralSpeechBlob(cleaned, lang);
+    if (audioEntry) {
+      audioBlobCache.set(key, audioEntry);
     }
   }
 
   // Check if cancelled while fetching
   if (currentPlayingId !== playbackId) return;
 
-  // 2. If Neural Audio is ready, play via HTML5 Audio element
+  // 2A. Primary playback: Web Audio API (bypasses mobile 5s user-gesture expiry)
+  if (audioEntry && audioEntry.arrayBuffer && audioCtx) {
+    try {
+      if (audioCtx.state === 'suspended') {
+        await audioCtx.resume();
+      }
+      // Pass a cloned buffer because decodeAudioData detaches the ArrayBuffer
+      const decoded = await audioCtx.decodeAudioData(audioEntry.arrayBuffer.slice(0));
+      if (currentPlayingId !== playbackId) return;
+
+      const source = audioCtx.createBufferSource();
+      source.buffer = decoded;
+      source.playbackRate.value = 1.06;
+      source.connect(audioCtx.destination);
+      currentBufferSource = source;
+
+      source.onended = () => {
+        if (currentPlayingId === playbackId) {
+          currentBufferSource = null;
+          onEnd();
+        }
+      };
+
+      onStart();
+      source.start(0);
+      return;
+    } catch (webAudioErr) {
+      console.warn('Web Audio playback note, trying HTML5 Audio:', webAudioErr.message);
+      currentBufferSource = null;
+    }
+  }
+
+  // 2B. Secondary playback: HTML5 Audio element
+  const audioSrc = audioEntry?.objectUrl || (typeof audioEntry === 'string' ? audioEntry : null);
   if (audioSrc) {
     try {
       const audio = new Audio(audioSrc);
-      audio.playbackRate = 1.08;
+      audio.playbackRate = 1.06;
       currentAudio = audio;
 
       audio.onplay = () => {

@@ -165,6 +165,7 @@ export default async function handler(req, res) {
           headers: {
             'Content-Type': geminiAudio.mimeType,
             'Content-Length': String(geminiAudio.buffer.byteLength),
+            'X-TTS-Engine': 'gemini',
             'Cache-Control': 'public, max-age=604800, s-maxage=604800, immutable'
           }
         });
@@ -172,6 +173,7 @@ export default async function handler(req, res) {
 
       res.setHeader('Content-Type', geminiAudio.mimeType);
       res.setHeader('Content-Length', geminiAudio.buffer.byteLength);
+      res.setHeader('X-TTS-Engine', 'gemini');
       res.setHeader('Cache-Control', 'public, max-age=604800, s-maxage=604800, immutable');
       res.status(200).send(geminiAudio.buffer);
       return;
@@ -206,6 +208,7 @@ export default async function handler(req, res) {
         headers: {
           'Content-Type': 'audio/mpeg',
           'Content-Length': String(combinedMp3.byteLength),
+          'X-TTS-Engine': 'google-translate',
           'Cache-Control': 'public, max-age=604800, s-maxage=604800, immutable'
         }
       });
@@ -213,6 +216,7 @@ export default async function handler(req, res) {
 
     res.setHeader('Content-Type', 'audio/mpeg');
     res.setHeader('Content-Length', combinedMp3.byteLength);
+    res.setHeader('X-TTS-Engine', 'google-translate');
     res.setHeader('Cache-Control', 'public, max-age=604800, s-maxage=604800, immutable');
     res.status(200).send(combinedMp3);
   } catch (err) {
