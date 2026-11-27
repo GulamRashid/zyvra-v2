@@ -44,14 +44,14 @@
 
 html {
   font-size: 14px;
-  overflow-x: hidden;
+  overflow-x: clip;
   width: 100%;
   max-width: 100%;
   -webkit-text-size-adjust: 100%;
 }
 
 body {
-  overflow-x: hidden;
+  overflow-x: clip;
   width: 100%;
   max-width: 100%;
   min-height: 100vh;
@@ -67,7 +67,7 @@ body {
 }
 
 #root {
-  overflow-x: hidden;
+  overflow-x: clip;
   width: 100%;
   max-width: 100%;
   min-height: 100vh;
@@ -2253,47 +2253,188 @@ body.light .folder-item-footer { border-top-color: rgba(0, 0, 0, .05); }
 }
 .live-quiz.quiz-theme-light .quiz-question-panel,
 .live-quiz.quiz-theme-light .quiz-palette {
-  background: #FFFFFF;
-  color: #0F172A;
-  border-color: #E2E8F0;
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: #E2E8F0 !important;
 }
 .live-quiz.quiz-theme-sepia .quiz-question-panel,
 .live-quiz.quiz-theme-sepia .quiz-palette {
-  background: #FFF9EE;
-  color: #2C241B;
-  border-color: #E5D5B8;
+  background: #FFF9EE !important;
+  color: #2C241B !important;
+  border-color: #E5D5B8 !important;
 }
 .live-quiz.quiz-theme-dark .quiz-question-panel,
 .live-quiz.quiz-theme-dark .quiz-palette {
-  background: #0F172A;
-  color: #F8FAFC;
-  border-color: #1E293B;
+  background: #0F172A !important;
+  color: #F8FAFC !important;
+  border-color: #1E293B !important;
+}
+
+/* Explicit stem, statement, table, option & explanation contrast in all 3 quiz themes */
+.live-quiz.quiz-theme-light .quiz-question-meta,
+.live-quiz.quiz-theme-light .quiz-question-text,
+.live-quiz.quiz-theme-light .question-formatted-container,
+.live-quiz.quiz-theme-light .question-preamble,
+.live-quiz.quiz-theme-light .question-postamble,
+.live-quiz.quiz-theme-light .statement-content,
+.live-quiz.quiz-theme-light .matching-table-card,
+.live-quiz.quiz-theme-light .matching-table-card * {
+  color: #0F172A !important;
+}
+.live-quiz.quiz-theme-light .matching-table-card {
+  background: #F8FAFC !important;
+  border-color: #CBD5E1 !important;
+}
+.live-quiz.quiz-theme-light .statement-badge {
+  background: #FEF3C7 !important;
+  color: #78350F !important;
+  border-color: #F59E0B !important;
+}
+.live-quiz.quiz-theme-light .quiz-option {
+  background: #FFFFFF !important;
+  color: #0F172A !important;
+  border-color: #CBD5E1 !important;
+}
+.live-quiz.quiz-theme-light .quiz-option .quiz-option-text,
+.live-quiz.quiz-theme-light .quiz-option .quiz-option-text * {
+  color: #0F172A !important;
+}
+.live-quiz.quiz-theme-light .quiz-option .quiz-option-letter {
+  background: #F1F5F9 !important;
+  color: #334155 !important;
+  border-color: #CBD5E1 !important;
+}
+.live-quiz.quiz-theme-light .quiz-option.selected,
+.live-quiz.quiz-theme-light .quiz-option.selected-option {
+  background: #EEF2FF !important;
+  color: #1E1B4B !important;
+  border-color: #4F46E5 !important;
+}
+.live-quiz.quiz-theme-light .quiz-option.selected .quiz-option-text,
+.live-quiz.quiz-theme-light .quiz-option.selected .quiz-option-text * {
+  color: #1E1B4B !important;
+}
+.live-quiz.quiz-theme-light .quiz-option.selected .quiz-option-letter {
+  background: #4F46E5 !important;
+  color: #FFFFFF !important;
+  border-color: #4F46E5 !important;
+}
+.live-quiz.quiz-theme-light .immediate-explanation,
+.live-quiz.quiz-theme-light .immediate-explanation *,
+.live-quiz.quiz-theme-light .immediate-explanation-box {
+  color: #0F172A !important;
+}
+
+.live-quiz.quiz-theme-sepia .quiz-question-meta,
+.live-quiz.quiz-theme-sepia .quiz-question-text,
+.live-quiz.quiz-theme-sepia .question-formatted-container,
+.live-quiz.quiz-theme-sepia .question-preamble,
+.live-quiz.quiz-theme-sepia .question-postamble,
+.live-quiz.quiz-theme-sepia .statement-content,
+.live-quiz.quiz-theme-sepia .matching-table-card,
+.live-quiz.quiz-theme-sepia .matching-table-card * {
+  color: #2C241B !important;
+}
+.live-quiz.quiz-theme-sepia .matching-table-card {
+  background: #FBF3E4 !important;
+  border-color: #DEC8A4 !important;
+}
+.live-quiz.quiz-theme-sepia .statement-badge {
+  background: #F3E1BE !important;
+  color: #4A3519 !important;
+  border-color: #C9A66B !important;
+}
+.live-quiz.quiz-theme-sepia .quiz-option {
+  background: #FFF9EE !important;
+  color: #2C241B !important;
+  border-color: #DEC8A4 !important;
+}
+.live-quiz.quiz-theme-sepia .quiz-option .quiz-option-text,
+.live-quiz.quiz-theme-sepia .quiz-option .quiz-option-text * {
+  color: #2C241B !important;
+}
+.live-quiz.quiz-theme-sepia .quiz-option .quiz-option-letter {
+  background: #F4E8D1 !important;
+  color: #4A3519 !important;
+  border-color: #D2B88D !important;
+}
+.live-quiz.quiz-theme-sepia .quiz-option.selected,
+.live-quiz.quiz-theme-sepia .quiz-option.selected-option {
+  background: #EFE4CE !important;
+  color: #1F170F !important;
+  border-color: #4F46E5 !important;
+}
+.live-quiz.quiz-theme-sepia .quiz-option.selected .quiz-option-text,
+.live-quiz.quiz-theme-sepia .quiz-option.selected .quiz-option-text * {
+  color: #1F170F !important;
+}
+.live-quiz.quiz-theme-sepia .quiz-option.selected .quiz-option-letter {
+  background: #4F46E5 !important;
+  color: #FFFFFF !important;
+  border-color: #4F46E5 !important;
+}
+.live-quiz.quiz-theme-sepia .immediate-explanation,
+.live-quiz.quiz-theme-sepia .immediate-explanation *,
+.live-quiz.quiz-theme-sepia .immediate-explanation-box {
+  color: #2C241B !important;
+}
+
+.live-quiz.quiz-theme-dark .quiz-question-meta,
+.live-quiz.quiz-theme-dark .quiz-question-text,
+.live-quiz.quiz-theme-dark .question-formatted-container,
+.live-quiz.quiz-theme-dark .question-preamble,
+.live-quiz.quiz-theme-dark .question-postamble,
+.live-quiz.quiz-theme-dark .statement-content,
+.live-quiz.quiz-theme-dark .matching-table-card,
+.live-quiz.quiz-theme-dark .matching-table-card * {
+  color: #F8FAFC !important;
+}
+.live-quiz.quiz-theme-dark .matching-table-card {
+  background: #1E293B !important;
+  border-color: #334155 !important;
+}
+.live-quiz.quiz-theme-dark .statement-badge {
+  background: rgba(245, 158, 11, 0.2) !important;
+  color: #FCD34D !important;
+  border-color: rgba(245, 158, 11, 0.4) !important;
 }
 .live-quiz.quiz-theme-dark .quiz-option {
-  background: #1E293B;
-  color: #F8FAFC;
-  border-color: #334155;
+  background: #1E293B !important;
+  color: #F8FAFC !important;
+  border-color: #334155 !important;
+}
+.live-quiz.quiz-theme-dark .quiz-option .quiz-option-text,
+.live-quiz.quiz-theme-dark .quiz-option .quiz-option-text * {
+  color: #F8FAFC !important;
+}
+.live-quiz.quiz-theme-dark .quiz-option .quiz-option-letter {
+  background: #0F172A !important;
+  color: #CBD5E1 !important;
+  border-color: #475569 !important;
 }
 .live-quiz.quiz-theme-dark .quiz-option.selected,
 .live-quiz.quiz-theme-dark .quiz-option.selected-option {
-  background: rgba(99, 102, 241, 0.28);
-  color: #FFFFFF;
-  border-color: #818CF8;
+  background: #312E81 !important;
+  color: #FFFFFF !important;
+  border-color: #818CF8 !important;
+}
+.live-quiz.quiz-theme-dark .quiz-option.selected .quiz-option-text,
+.live-quiz.quiz-theme-dark .quiz-option.selected .quiz-option-text * {
+  color: #FFFFFF !important;
+}
+.live-quiz.quiz-theme-dark .quiz-option.selected .quiz-option-letter {
+  background: #4F46E5 !important;
+  color: #FFFFFF !important;
+  border-color: #818CF8 !important;
+}
+.live-quiz.quiz-theme-dark .immediate-explanation,
+.live-quiz.quiz-theme-dark .immediate-explanation *,
+.live-quiz.quiz-theme-dark .immediate-explanation-box {
+  color: #E2E8F0 !important;
 }
 .live-quiz.quiz-theme-dark .immediate-explanation-box {
-  background: #1E293B;
-  color: #E2E8F0;
-  border-color: #334155;
-}
-.live-quiz.quiz-theme-light .quiz-option,
-.live-quiz.quiz-theme-sepia .quiz-option {
-  color: var(--text);
-}
-.live-quiz.quiz-theme-light .quiz-option.selected,
-.live-quiz.quiz-theme-sepia .quiz-option.selected {
-  background: rgba(79, 70, 229, 0.12);
-  color: var(--text);
-  border-color: #4F46E5;
+  background: #1E293B !important;
+  border-color: #334155 !important;
 }
 .quiz-header { position: sticky; z-index: 20; top: 0; display: flex; min-height: 66px; align-items: center; gap: 17px; padding: 0 clamp(16px, 3vw, 42px); border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--panel) 95%, transparent); backdrop-filter: blur(15px); }
 

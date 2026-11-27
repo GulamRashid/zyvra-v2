@@ -315,7 +315,7 @@ export default function StudentHome() {
                 <div className="h-3.5 w-12 rounded bg-orange-500/20 animate-pulse" aria-hidden="true" />
               ) : (
                 <div className="text-xs font-black dark:text-orange-400 text-orange-600 leading-none">
-                  {profileError ? '—' : streak} {language === 'hi' ? 'दिन' : 'Days'}
+                  {profileError ? '—' : streak} {language === 'hi' ? 'दिन' : (streak === 1 ? 'Day' : 'Days')}
                 </div>
               )}
               <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
@@ -574,9 +574,19 @@ export default function StudentHome() {
               </div>
               <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 mt-0.5">
                 {(() => {
-                  const targets = Array.isArray(profile?.target_exams) ? profile.target_exams.map((t) => String(t).toUpperCase()) : [];
-                  const hasBpsc = targets.some((t) => t.includes('BPSC') || t.includes('PCS'));
-                  const activeTrack = hasBpsc ? 'BPSC & PCS' : (dynamicExams?.[0]?.title || 'NCERT');
+                  if (!profile && (statsLoading || testsLoading)) {
+                    return language === 'hi' ? '5 प्रश्नों का त्वरित अभ्यास' : '5 Quick Practice Questions';
+                  }
+                  const targets = Array.isArray(profile?.target_exams)
+                    ? profile.target_exams.map((t) => String(t).trim()).filter(Boolean)
+                    : [];
+                  const hasBpsc = targets.some((t) => {
+                    const up = t.toUpperCase();
+                    return up.includes('BPSC') || up.includes('PCS');
+                  });
+                  const activeTrack = hasBpsc
+                    ? 'BPSC & PCS'
+                    : (targets[0] || dynamicExams?.[0]?.title || 'NCERT');
                   return language === 'hi'
                     ? `5 प्रश्नों का त्वरित ${activeTrack} अभ्यास`
                     : `5 Quick ${activeTrack} Practice Questions`;

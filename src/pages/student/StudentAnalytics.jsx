@@ -226,7 +226,9 @@ export default function StudentAnalytics() {
                 Overall accuracy
               </small>
               <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
-                {Number(stats.accuracy || 0).toFixed(1)}%
+                {stats.completedAttempts > 0 && Number.isFinite(Number(stats.accuracy))
+                  ? `${Number(stats.accuracy).toFixed(1)}%`
+                  : '—'}
               </strong>
               <span className="text-xs dark:text-slate-400 text-slate-500">Correct ÷ Attempted Qs</span>
             </article>
@@ -239,7 +241,9 @@ export default function StudentAnalytics() {
                 Average score
               </small>
               <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
-                {Number(stats.averageScore || 0).toFixed(1)}%
+                {stats.completedAttempts > 0 && Number.isFinite(Number(stats.averageScore))
+                  ? `${Number(stats.averageScore).toFixed(1)}%`
+                  : '—'}
               </strong>
               <span className="text-xs dark:text-slate-400 text-slate-500">Net marks % (after negative)</span>
             </article>

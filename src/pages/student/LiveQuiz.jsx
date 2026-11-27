@@ -466,6 +466,7 @@ export default function LiveQuiz() {
   const submitLock = useRef(false);
   const autoSubmitTriggeredRef = useRef(false);
   const touchStartRef = useRef(null);
+  const questionStripRef = useRef(null);
   const [expiredAttemptInfo, setExpiredAttemptInfo] = useState(null);
   const lastViolationAt = useRef(0);
   const violationCountRef = useRef(0);
@@ -851,21 +852,42 @@ export default function LiveQuiz() {
 
       const dbIncomplete = (latestAttempt && !isAttemptCompleted) ? latestAttempt : null;
 
-      // Check localStorage snapshot
+      // Check localStorage snapshot (never reuse a completed attempt or stale reattempt cache)
       let localSnapshot = null;
-      try {
-        const rawLocal = localStorage.getItem(`zyvra_test_progress_${user.id}_${testId}`)
-          || localStorage.getItem(`zyvra-paused-attempt-${user.id}-${testId}`);
-        if (rawLocal) localSnapshot = JSON.parse(rawLocal);
-      } catch { /* fullscreen ignore */ }
+      if (location.state?.reattempt) {
+        try {
+          localStorage.removeItem(`zyvra_test_progress_${user.id}_${testId}`);
+          localStorage.removeItem(`zyvra-paused-attempt-${user.id}-${testId}`);
+          sessionStorage.removeItem(`zyvra-active-attempt-${user.id}-${testId}`);
+        } catch { /* ignore */ }
+      } else {
+        try {
+          const rawLocal = localStorage.getItem(`zyvra_test_progress_${user.id}_${testId}`)
+            || localStorage.getItem(`zyvra-paused-attempt-${user.id}-${testId}`);
+          if (rawLocal) {
+            const parsed = JSON.parse(rawLocal);
+            const matchesCompleted = isAttemptCompleted && parsed?.attemptId && latestAttempt?.id && parsed.attemptId === latestAttempt.id;
+            if (matchesCompleted) {
+              localStorage.removeItem(`zyvra_test_progress_${user.id}_${testId}`);
+              localStorage.removeItem(`zyvra-paused-attempt-${user.id}-${testId}`);
+            } else {
+              localSnapshot = parsed;
+            }
+          }
+        } catch { /* fullscreen ignore */ }
+      }
+
+      const validCachedAttemptId = (!location.state?.reattempt && !(isAttemptCompleted && cachedQuiz?.attemptId === latestAttempt?.id))
+        ? cachedQuiz?.attemptId
+        : null;
 
       const hasResumeAttempt = (dbIncomplete && dbIncomplete.status !== 'completed' && dbIncomplete.status !== 'submitted')
         || localSnapshot
-        || cachedQuiz?.attemptId;
+        || validCachedAttemptId;
 
       if (hasResumeAttempt && !isMistakesMode) {
         // Paused or in-progress attempt found: pre-load questions and prompt resume
-        const activeAttemptId = dbIncomplete?.id || localSnapshot?.attemptId || cachedQuiz?.attemptId;
+        const activeAttemptId = dbIncomplete?.id || localSnapshot?.attemptId || validCachedAttemptId;
         let safeQuestions = [];
         try {
           const { data: questionData, error: questionError } = await supabase.rpc('get_live_test_questions', {
@@ -1669,6 +1691,7 @@ export default function LiveQuiz() {
         locked_at: new Date().toISOString()
       }
     };
+    stateRef.current.responses = nextResponses;
     setResponses(nextResponses);
     saveProgressSnapshot({ responses: nextResponses }, true);
 
@@ -1767,6 +1790,7 @@ export default function LiveQuiz() {
         selected_option: null
       }
     };
+    stateRef.current.responses = nextResponses;
     setResponses(nextResponses);
     saveProgressSnapshot({ responses: nextResponses }, true);
 
@@ -1896,6 +1920,16 @@ export default function LiveQuiz() {
     setPaletteOpen(false);
     saveProgressSnapshot({ currentIndex: index }, false);
   };
+
+  useEffect(() => {
+    if (testPhase !== 'active') return;
+    const strip = questionStripRef.current;
+    if (!strip) return;
+    const activeBtn = strip.querySelector(`[data-strip-index="${currentIndex}"]`);
+    if (activeBtn && typeof activeBtn.scrollIntoView === 'function') {
+      activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+  }, [currentIndex, questions.length, testPhase]);
 
   const confirm = () => {
     if (remaining === 0) submit(true);
@@ -2780,18 +2814,22 @@ export default function LiveQuiz() {
           style={{ touchAction: 'pan-y' }}
           onTouchStart={(e) => {
             if (e.touches?.length !== 1) return;
-            if (e.target?.closest?.('.no-scrollbar')) return;
-            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, pointer: false };
+            if (e.target?.closest?.('.no-scrollbar, button, input, label, a, select, textarea')) return;
+            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), pointer: false };
+          }}
+          onTouchCancel={() => {
+            if (touchStartRef.current && !touchStartRef.current.pointer) {
+              touchStartRef.current = null;
+            }
           }}
           onTouchEnd={(e) => {
             const start = touchStartRef.current;
             touchStartRef.current = null;
-            if (!start || !e.changedTouches?.length) return;
-            const sel = typeof window !== 'undefined' ? window.getSelection?.()?.toString()?.trim() : '';
-            if (sel) return;
+            if (!start || start.pointer || !e.changedTouches?.length) return;
             const dx = e.changedTouches[0].clientX - start.x;
             const dy = e.changedTouches[0].clientY - start.y;
-            if (Math.abs(dx) >= 48 && Math.abs(dx) > Math.abs(dy) * 1.35) {
+            if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+              window.getSelection?.()?.removeAllRanges?.();
               if (dx < 0 && currentIndex < questions.length - 1) {
                 goTo(currentIndex + 1);
               } else if (dx > 0 && currentIndex > 0) {
@@ -2801,18 +2839,25 @@ export default function LiveQuiz() {
           }}
           onPointerDown={(e) => {
             if (e.pointerType === 'touch') return;
-            if (e.target?.closest?.('.no-scrollbar, button, input, label, a')) return;
-            touchStartRef.current = { x: e.clientX, y: e.clientY, pointer: true };
+            if (e.target?.closest?.('.no-scrollbar, button, input, label, a, select, textarea')) return;
+            touchStartRef.current = { x: e.clientX, y: e.clientY, t: Date.now(), pointer: true };
+          }}
+          onPointerCancel={() => {
+            if (touchStartRef.current?.pointer) {
+              touchStartRef.current = null;
+            }
           }}
           onPointerUp={(e) => {
             const start = touchStartRef.current;
             if (!start || !start.pointer) return;
             touchStartRef.current = null;
-            const sel = typeof window !== 'undefined' ? window.getSelection?.()?.toString()?.trim() : '';
-            if (sel) return;
             const dx = e.clientX - start.x;
             const dy = e.clientY - start.y;
-            if (Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            const dt = Date.now() - (start.t || 0);
+            const sel = typeof window !== 'undefined' ? window.getSelection?.()?.toString()?.trim() : '';
+            const isClearHorizontalSwipe = Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy) * 1.25;
+            if (isClearHorizontalSwipe && (!sel || dt < 600 || Math.abs(dx) >= 75)) {
+              window.getSelection?.()?.removeAllRanges?.();
               if (dx < 0 && currentIndex < questions.length - 1) {
                 goTo(currentIndex + 1);
               } else if (dx > 0 && currentIndex > 0) {
@@ -2834,7 +2879,8 @@ export default function LiveQuiz() {
             </button>
 
             <div
-              className="flex items-center gap-2 overflow-x-auto py-1 px-1 flex-1 no-scrollbar snap-x snap-mandatory"
+              ref={questionStripRef}
+              className="flex items-center gap-2 overflow-x-auto py-1 px-2.5 flex-1 no-scrollbar snap-x snap-mandatory"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {questions.map((item, idx) => {
@@ -2864,8 +2910,9 @@ export default function LiveQuiz() {
                   <button
                     key={qId || idx}
                     type="button"
+                    data-strip-index={idx}
                     onClick={() => goTo(idx)}
-                    className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full text-xs flex items-center justify-center shrink-0 snap-start transition-all hover:scale-105 active:scale-95 ${badgeClasses} ${currentRing}`}
+                    className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full text-xs flex items-center justify-center shrink-0 snap-center transition-all hover:scale-105 active:scale-95 ${badgeClasses} ${currentRing}`}
                     aria-label={`Question ${idx + 1}`}
                   >
                     {idx + 1}
@@ -2981,20 +3028,18 @@ export default function LiveQuiz() {
                     disabled={isLocked || isEvaluating}
                     className={`quiz-option py-3.5 px-4 min-h-[56px] transition-all rounded-2xl touch-manipulation select-none ${
                       selected
-                        ? 'selected border-2 border-indigo-500 dark:border-indigo-400 dark:bg-[#312E81] bg-indigo-50 shadow-md'
-                        : 'border dark:border-slate-700/60 border-slate-200 dark:bg-[#1E293B] bg-white hover:border-indigo-500/40'
+                        ? 'selected border-2 border-indigo-500 shadow-md'
+                        : 'border hover:border-indigo-500/40'
                     } ${key === 'E' ? 'option-e' : ''} ${isCorrectAnswer ? 'correct-answer' : ''} ${isWrongSelected ? 'wrong-answer' : ''} ${isLocked ? 'cursor-default' : ''}`}
                     onClick={() => !isLocked && !isEvaluating && answer(key)}
                     aria-pressed={selected}
                   >
                     <span className={`quiz-option-letter w-8 h-8 min-w-[2rem] text-sm font-black rounded-full flex items-center justify-center shrink-0 ${
-                      selected
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'dark:bg-slate-800 bg-slate-100 border dark:border-slate-600 border-slate-300 dark:text-slate-300 text-slate-700'
+                      selected ? 'shadow-sm' : 'border'
                     }`}>
                       {key}
                     </span>
-                    <span className={`quiz-option-text ${fontSizeLevel === 'sm' ? 'text-sm sm:text-base' : fontSizeLevel === 'lg' ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'} leading-relaxed flex-1 dark:text-white text-slate-900`}>
+                    <span className={`quiz-option-text ${fontSizeLevel === 'sm' ? 'text-sm sm:text-base' : fontSizeLevel === 'lg' ? 'text-lg sm:text-xl' : 'text-base sm:text-lg'} leading-relaxed flex-1`}>
                       <span lang={language}>
                         <MathRenderer>{displayedOption}</MathRenderer>
                         {!isEn && !displayedOption && translatingQuestionId === questionId && (

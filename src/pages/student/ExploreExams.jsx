@@ -311,7 +311,7 @@ export default function ExploreExams() {
                       </span>
                     </div>
 
-                    <p className="text-xs dark:text-slate-400 text-slate-500 font-medium line-clamp-2 mt-0.5 leading-relaxed">
+                    <p className="text-xs dark:text-slate-400 text-slate-500 font-medium mt-0.5 leading-relaxed">
                       {exam.description || 'A structured learning path with topics, practice and tests to help you prepare.'}
                     </p>
 
