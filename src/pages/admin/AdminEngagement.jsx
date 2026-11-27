@@ -188,10 +188,16 @@ export default function AdminEngagement() {
     setBannerForm({
       badge_text: 'NEW MOCK',
       title: '',
+      alt_text: '',
       subtitle: '',
       cta_text: 'Explore Now',
       cta_link: '/explore',
       show_text_overlay: true,
+      text_color: '#FFFFFF',
+      overlay_opacity: 75,
+      start_date: '',
+      end_date: '',
+      target_audience: 'all',
       custom_image_url: '',
       is_active: true,
       display_order: banners.length
@@ -205,10 +211,16 @@ export default function AdminEngagement() {
     setBannerForm({
       badge_text: banner.badge_text || '',
       title: banner.title || '',
+      alt_text: banner.alt_text || '',
       subtitle: banner.subtitle || '',
       cta_text: banner.cta_text || 'Explore Now',
       cta_link: banner.cta_link || '/explore',
       show_text_overlay: banner.show_text_overlay !== false && banner.banner_mode !== 'full_image',
+      text_color: banner.text_color || '#FFFFFF',
+      overlay_opacity: banner.overlay_opacity ?? 75,
+      start_date: banner.start_date ? String(banner.start_date).slice(0, 10) : '',
+      end_date: banner.end_date ? String(banner.end_date).slice(0, 10) : '',
+      target_audience: banner.target_audience || 'all',
       custom_image_url: banner.custom_image_url || '',
       is_active: banner.is_active ?? true,
       display_order: banner.display_order ?? 0
@@ -258,11 +270,17 @@ export default function AdminEngagement() {
       const payload = {
         badge_text: bannerForm.badge_text?.trim() || '',
         title: bannerForm.title.trim(),
+        alt_text: bannerForm.alt_text?.trim() || null,
         subtitle: bannerForm.subtitle?.trim() || '',
         cta_text: bannerForm.cta_text?.trim() || 'Explore Now',
         cta_link: bannerForm.cta_link.trim(),
         show_text_overlay: Boolean(bannerForm.show_text_overlay),
         banner_mode: bannerForm.show_text_overlay ? 'card' : 'full_image',
+        text_color: bannerForm.text_color || '#FFFFFF',
+        overlay_opacity: Math.max(0, Math.min(100, Number(bannerForm.overlay_opacity ?? 75))),
+        start_date: bannerForm.start_date ? new Date(`${bannerForm.start_date}T00:00:00Z`).toISOString() : null,
+        end_date: bannerForm.end_date ? new Date(`${bannerForm.end_date}T23:59:59Z`).toISOString() : null,
+        target_audience: bannerForm.target_audience?.trim() || 'all',
         custom_image_url: bannerForm.custom_image_url || null,
         is_active: bannerForm.is_active,
         display_order: Number(bannerForm.display_order) || 0,
@@ -961,19 +979,107 @@ export default function AdminEngagement() {
                 </label>
               </div>
 
-              {/* 3. Banner Title */}
-              <div>
-                <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
-                  Banner Title {bannerForm.show_text_overlay ? '*' : '(Internal Name / Alt Text) *'}
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. UPSC Prelims 2026 Test Series"
-                  value={bannerForm.title}
-                  onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
-                  className="w-full px-3 py-2 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
-                />
+              {/* 3. Banner Title & Image Alt Text */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
+                    Banner Title {bannerForm.show_text_overlay ? '*' : '(Internal Name) *'}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. UPSC Prelims 2026 Test Series"
+                    value={bannerForm.title}
+                    onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
+                    Image Alt Text (Accessibility)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Describe the banner visual for screen readers"
+                    value={bannerForm.alt_text}
+                    onChange={(e) => setBannerForm({ ...bannerForm, alt_text: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              {/* Overlay Scrim & Text Color Controls */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
+                    Overlay Scrim Opacity ({bannerForm.overlay_opacity}%)
+                  </label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="95"
+                    step="5"
+                    value={bannerForm.overlay_opacity}
+                    onChange={(e) => setBannerForm({ ...bannerForm, overlay_opacity: Number(e.target.value) })}
+                    className="w-full accent-indigo-600"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
+                    Overlay Text Colour
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={bannerForm.text_color || '#FFFFFF'}
+                      onChange={(e) => setBannerForm({ ...bannerForm, text_color: e.target.value })}
+                      className="h-8 w-12 rounded-lg border dark:border-slate-700 border-slate-300 bg-transparent cursor-pointer"
+                    />
+                    <span className="text-xs font-mono text-slate-400">{bannerForm.text_color || '#FFFFFF'}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Start / End Date & Audience Targeting */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div>
+                  <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={bannerForm.start_date}
+                    onChange={(e) => setBannerForm({ ...bannerForm, start_date: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={bannerForm.end_date}
+                    onChange={(e) => setBannerForm({ ...bannerForm, end_date: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold dark:text-slate-300 text-slate-700 block mb-1">
+                    Target Audience
+                  </label>
+                  <select
+                    value={bannerForm.target_audience}
+                    onChange={(e) => setBannerForm({ ...bannerForm, target_audience: e.target.value })}
+                    className="w-full px-2.5 py-1.5 rounded-xl dark:bg-slate-900 bg-slate-50 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-white text-slate-900"
+                  >
+                    <option value="all">All Learners</option>
+                    <option value="free">Free Users</option>
+                    <option value="paid">Paid / Pass Holders</option>
+                    <option value="bpsc">BPSC Aspirants</option>
+                    <option value="ncert">NCERT Foundation</option>
+                  </select>
+                </div>
               </div>
 
               {/* 4. Text Overlay Fields (Badge & Subtitle) */}
@@ -1074,7 +1180,7 @@ export default function AdminEngagement() {
                 </div>
               </div>
 
-              <div className="pt-3 flex items-center justify-end gap-2 border-t dark:border-slate-800 border-slate-200">
+              <div className="sticky bottom-0 z-10 bg-white dark:bg-[#1E293B] pt-3 pb-1 flex items-center justify-end gap-2 border-t dark:border-slate-800 border-slate-200">
                 <button
                   type="button"
                   onClick={() => setBannerModalOpen(false)}

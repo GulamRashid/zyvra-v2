@@ -14,7 +14,7 @@ export default function LoadingSkeleton({
   count,
   variant = 'list',
   className = '',
-  message = 'सामग्री लोड हो रही है…'
+  message = 'Loading content…'
 }) {
   const rowCount = Math.max(1, Math.min(10, Number(count ?? rows) || 3));
 

@@ -6,6 +6,7 @@ import {
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import AdminWorkflowGuide from '../../components/admin/AdminWorkflowGuide';
+import { getISTGreeting } from '../../lib/studentStats';
 
 const metrics = [
   { key: 'users', label: 'Total users', icon: Users, tone: 'green', trend: 'All registered accounts' },
@@ -26,12 +27,7 @@ export default function AdminDashboard() {
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 17) return 'Good afternoon';
-    return 'Good evening';
-  };
+  const getGreeting = () => getISTGreeting('en');
   const adminName = profile?.full_name ? profile.full_name.trim().split(' ')[0] : 'Admin';
 
   const fetchStats = useCallback(async (active = () => true) => {

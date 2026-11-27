@@ -1240,7 +1240,7 @@ export default function PricingManager() {
                 {[
                   { id: 'free', label: 'Free (Everyone)', desc: 'Instant access without payment' },
                   { id: 'paid', label: 'Paid (One-time)', desc: 'Requires purchase or bundle' },
-                  { id: 'subscription', label: 'Subscription Only', desc: 'Included in Zyvra Pro' },
+                  { id: 'subscription', label: 'Full Pass Included', desc: 'Included in Zyvra Full Pass' },
                   { id: 'inherit', label: 'Inherit from Parent', desc: 'Use parent access & price' }
                 ].map((type) => (
                   <label
@@ -1406,6 +1406,7 @@ export default function PricingManager() {
             <button
               type="button"
               onClick={() => {
+                if (!window.confirm('Make this item FREE (₹0) and remove discount? Click Save Changes to persist.')) return;
                 setFormAccessType('free');
                 setFormPrice(0);
                 setFormDiscountValue(0);
@@ -1419,6 +1420,7 @@ export default function PricingManager() {
             <button
               type="button"
               onClick={() => {
+                if (!window.confirm('Apply Standard ₹99 Pack (₹99, 20% discount, 800 coins)? Click Save Changes to persist.')) return;
                 setFormAccessType('paid');
                 setFormPrice(99);
                 setFormDiscountValue(20);

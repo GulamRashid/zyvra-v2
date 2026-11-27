@@ -426,6 +426,10 @@ export default function AdminTools() {
       setStatusMessage({ text: 'This item is not connected to a live student tool. It cannot be changed here.', type: 'error' });
       return;
     }
+    const target = tools.find((t) => t.id === toolId);
+    if (target?.active && !window.confirm(`Disable "${target.name}" for all students?`)) {
+      return;
+    }
     const updated = tools.map((t) => (t.id === toolId ? { ...t, active: !t.active } : t));
     persistToolsToDatabase(updated);
   };
@@ -741,7 +745,7 @@ export default function AdminTools() {
                 className="px-2 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 text-xs font-bold focus:outline-none"
               >
                 <option value="all">All Categories</option>
-                <option value="Quantitative Aptitude">Math</option>
+                <option value="Quantitative Aptitude">Quantitative Aptitude (Math)</option>
                 <option value="Reasoning">Reasoning</option>
                 <option value="General Studies">GS</option>
                 <option value="Productivity">Productivity</option>

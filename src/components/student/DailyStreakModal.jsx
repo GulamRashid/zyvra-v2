@@ -68,7 +68,7 @@ export default function DailyStreakModal({ isOpen, onClose, streakData }) {
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-2xl p-5 sm:p-7 text-left dark:text-slate-100 text-slate-800 transition-all custom-scrollbar"
+        className="relative w-full max-w-[min(32rem,calc(100vw-1.5rem))] max-h-[calc(100dvh-2rem)] overflow-y-auto overflow-x-hidden rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-2xl p-4 sm:p-6 text-left dark:text-slate-100 text-slate-800 transition-all custom-scrollbar"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close Button */}

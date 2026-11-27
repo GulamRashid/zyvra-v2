@@ -47,7 +47,15 @@ export default function QuizResult() {
   const location = useLocation();
   const { user, supabase, refreshAccount } = useAuth();
   const { language: appLanguage } = useThemeLanguage();
-  const [language, setLanguage] = useState(appLanguage || 'en');
+  const [language, setLanguage] = useState(() => {
+    const fromState = location.state?.quizLanguage;
+    if (fromState === 'en' || fromState === 'hi') return fromState;
+    try {
+      const stored = localStorage.getItem(`zyvra_attempt_lang_${attemptId}`) || sessionStorage.getItem(`zyvra_attempt_lang_${attemptId}`);
+      if (stored === 'en' || stored === 'hi') return stored;
+    } catch {}
+    return appLanguage || 'en';
+  });
 
   const rawReturn = location.state?.returnTo || sessionStorage.getItem('last_quiz_return_url');
   const returnTo = (rawReturn && !rawReturn.startsWith('/quiz/')) ? rawReturn : '/tests';
@@ -368,7 +376,9 @@ export default function QuizResult() {
       ? (question.question_text_hi || getStoredHindi(question.question_text) || question.text_hi || question.text || '')
       : (question.question_text_en || getLocalizedEnglish(question.question_text) || question.text || '');
 
-    const mistakeDesc = chosenKey
+    const mistakeDesc = isCorrect
+      ? `Q: ${String(qText).slice(0, 220)}`
+      : chosenKey
       ? `Selected: Option ${chosenKey} ("${String(chosenText).slice(0, 80)}")\nQ: ${String(qText).slice(0, 200)}`
       : `Question Skipped / Not Attempted\nQ: ${String(qText).slice(0, 200)}`;
 
@@ -380,7 +390,9 @@ export default function QuizResult() {
       mistake: mistakeDesc,
       correctAnswer: correctDesc,
       questionId: qId,
-      testTitle: result?.title || result?.test_title || 'Mock Test'
+      testTitle: result?.title || result?.test_title || 'Mock Test',
+      entryType: isCorrect ? 'review' : 'mistake',
+      isCorrect: Boolean(isCorrect)
     });
 
     if (res.limitReached) {
@@ -645,7 +657,26 @@ export default function QuizResult() {
     }
   }, [solutions, user?.id, result]);
 
-  // Topic Analysis Aggregate: Real Question Grouping by Tags/Subject/Topic
+  // Stored per-question time fallback from LiveQuiz localStorage
+  const storedTimeMap = useMemo(() => {
+    try {
+      const raw = localStorage.getItem(`zyvra_attempt_timespent_${attemptId}`);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }, [attemptId]);
+
+  // Helper to resolve per-question time_spent_seconds
+  const getQuestionTimeSpent = (item) => {
+    const qId = item?.question_id || item?.question?.id || item?.id;
+    const dbTime = Number(item?.time_spent_seconds || 0);
+    if (dbTime > 0) return dbTime;
+    const localTime = qId ? Number(storedTimeMap?.[qId] || 0) : 0;
+    return localTime > 0 ? localTime : 0;
+  };
+
+  // Topic Analysis Aggregate: Real Question Grouping by Tags/Subject/Topic + Time
   const topicAnalysis = useMemo(() => {
     const map = new Map();
     solutions.forEach((item) => {
@@ -677,10 +708,11 @@ export default function QuizResult() {
       }
 
       if (!map.has(topic)) {
-        map.set(topic, { total: 0, correct: 0, incorrect: 0, unattempted: 0 });
+        map.set(topic, { total: 0, correct: 0, incorrect: 0, unattempted: 0, timeSpent: 0 });
       }
       const entry = map.get(topic);
       entry.total += 1;
+      entry.timeSpent += getQuestionTimeSpent(item);
 
       const status = resolveSolutionStatus(item);
 
@@ -696,9 +728,62 @@ export default function QuizResult() {
     return Array.from(map.entries()).map(([topic, data]) => ({
       topic,
       ...data,
+      avgTime: data.total > 0 ? Math.round(data.timeSpent / data.total) : 0,
       accuracy: Math.round((data.correct / Math.max(1, data.total)) * 100)
     })).sort((a, b) => b.total - a.total);
-  }, [solutions, result]);
+  }, [solutions, result, storedTimeMap]);
+
+  // Difficulty Breakdown: Easy / Medium / Hard / Standard
+  const difficultyAnalysis = useMemo(() => {
+    const map = new Map();
+    solutions.forEach((item) => {
+      const question = item.question || item;
+      const rawDiff = String(question.difficulty || question.difficulty_level || item.difficulty || '').trim().toLowerCase();
+      let label = 'Standard';
+      if (['easy', 'basic', 'beginner', 'simple'].includes(rawDiff)) label = 'Easy';
+      else if (['medium', 'moderate', 'intermediate'].includes(rawDiff)) label = 'Medium';
+      else if (['hard', 'difficult', 'tough', 'advanced'].includes(rawDiff)) label = 'Hard';
+
+      if (!map.has(label)) {
+        map.set(label, { difficulty: label, total: 0, correct: 0, incorrect: 0, unattempted: 0, timeSpent: 0 });
+      }
+      const entry = map.get(label);
+      entry.total += 1;
+      entry.timeSpent += getQuestionTimeSpent(item);
+
+      const status = resolveSolutionStatus(item);
+      if (status.isCorrect) entry.correct += 1;
+      else if (status.isIncorrect) entry.incorrect += 1;
+      else entry.unattempted += 1;
+    });
+
+    const order = { Easy: 1, Medium: 2, Hard: 3, Standard: 4 };
+    return Array.from(map.values())
+      .map((d) => ({
+        ...d,
+        avgTime: d.total > 0 ? Math.round(d.timeSpent / d.total) : 0,
+        accuracy: Math.round((d.correct / Math.max(1, d.total)) * 100)
+      }))
+      .sort((a, b) => (order[a.difficulty] || 9) - (order[b.difficulty] || 9));
+  }, [solutions, storedTimeMap]);
+
+  // Per-question time breakdown
+  const questionTimingRows = useMemo(() => {
+    return solutions.map((item, idx) => {
+      const question = item.question || item;
+      const status = resolveSolutionStatus(item);
+      const timeSpent = getQuestionTimeSpent(item);
+      const rawDiff = String(question.difficulty || question.difficulty_level || item.difficulty || '').trim();
+      const topic = question.topic || question.subject || 'General';
+      return {
+        index: idx,
+        timeSpent,
+        topic,
+        difficulty: rawDiff ? rawDiff.charAt(0).toUpperCase() + rawDiff.slice(1).toLowerCase() : 'Standard',
+        status
+      };
+    });
+  }, [solutions, storedTimeMap]);
 
   // Filtered Questions for Review List
   const filteredSolutions = useMemo(() => {
@@ -751,7 +836,7 @@ export default function QuizResult() {
           <AlertCircle size={28} className="mx-auto text-red-500 mb-2" />
           <h2 className="text-lg font-bold">Result Unavailable</h2>
           <p className="text-xs dark:text-slate-400 text-slate-600 mt-1 mb-4">{error}</p>
-          <Link to={returnTo} replace className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs inline-flex items-center gap-1.5">
+          <Link to="/tests" replace className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs inline-flex items-center gap-1.5">
             <ArrowLeft size={14} /> Back to Tests
           </Link>
         </div>
@@ -767,7 +852,7 @@ export default function QuizResult() {
           <div className="flex items-center gap-2.5 sm:gap-3">
             <button
               type="button"
-              onClick={() => navigate(returnTo, { replace: true })}
+              onClick={() => navigate('/tests', { replace: true })}
               className="w-8 h-8 sm:w-9 sm:h-9 rounded-full dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-white text-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
               aria-label="Back to tests"
             >
@@ -960,16 +1045,18 @@ export default function QuizResult() {
                   </div>
                 </div>
 
-                {/* Coins Earned Dopamine Badge */}
-                <div className="w-full sm:w-auto flex items-center sm:flex-col items-end justify-between sm:justify-center p-2.5 sm:px-4 sm:py-2 rounded-2xl bg-amber-500/10 border border-amber-400/30 shadow-xs shrink-0">
-                  <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-black text-xs sm:text-sm">
-                    <Coins size={16} className="text-amber-500" />
-                    <span>+{percentage >= 70 ? '15' : '10'} ZYVRA {appLanguage === 'hi' ? 'कॉइन्स' : 'Coins'}</span>
+                {/* Coins Earned Dopamine Badge (only when actually credited) */}
+                {Number(result?.coins_awarded || 0) > 0 && (
+                  <div className="w-full sm:w-auto flex items-center sm:flex-col items-end justify-between sm:justify-center p-2.5 sm:px-4 sm:py-2 rounded-2xl bg-amber-500/10 border border-amber-400/30 shadow-xs shrink-0">
+                    <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-black text-xs sm:text-sm">
+                      <Coins size={16} className="text-amber-500" />
+                      <span>+{Number(result.coins_awarded)} ZYVRA {appLanguage === 'hi' ? 'कॉइन्स' : 'Coins'}</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-amber-700/80 dark:text-amber-300/80">
+                      {appLanguage === 'hi' ? 'वॉलेट में जोड़े गए' : 'Added to Wallet'}
+                    </span>
                   </div>
-                  <span className="text-[10px] font-bold text-amber-700/80 dark:text-amber-300/80">
-                    {appLanguage === 'hi' ? 'वॉलेट में जोड़े गए' : 'Added to Wallet'}
-                  </span>
-                </div>
+                )}
               </div>
 
               {/* Leaderboard & Percentile Highlight Strip */}
@@ -1123,11 +1210,33 @@ export default function QuizResult() {
               </div>
             )}
 
-            {/* Question Review Section Header with Filter & Walkman */}
+            {/* Question Review Section Header with Filter, Language Toggle & Walkman */}
             <div className="flex items-center justify-between pt-1 gap-2 flex-wrap">
-              <h3 className="text-sm sm:text-base font-extrabold dark:text-white text-slate-900">{appLanguage === 'hi' ? 'प्रश्नों की समीक्षा' : 'Question Review'}</h3>
+              <h3 className="text-sm sm:text-base font-extrabold dark:text-white text-slate-900">{language === 'hi' ? 'प्रश्नों की समीक्षा' : 'Question Review'}</h3>
 
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                {/* Shared EN / HI Language Toggle */}
+                <div className="flex items-center gap-1 p-1 rounded-full dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 text-xs font-extrabold">
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('en')}
+                    className={`px-2.5 py-1 rounded-full transition-colors ${
+                      language === 'en' ? 'bg-indigo-600 text-white' : 'dark:text-slate-400 text-slate-600'
+                    }`}
+                  >
+                    EN
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLanguage('hi')}
+                    className={`px-2.5 py-1 rounded-full transition-colors ${
+                      language === 'hi' ? 'bg-indigo-600 text-white' : 'dark:text-slate-400 text-slate-600'
+                    }`}
+                  >
+                    हिंदी
+                  </button>
+                </div>
+
                 {/* Audio Walkman Toggle Button */}
                 {mistakeSolutions.length > 0 && (
                   <button
@@ -1140,7 +1249,7 @@ export default function QuizResult() {
                     title="Listen to mistakes in audio format"
                   >
                     <Headphones size={14} className="text-indigo-500" />
-                    <span>{appLanguage === 'hi' ? 'गलतियां सुनें' : 'Audio Walkman'}</span>
+                    <span>{language === 'hi' ? 'गलतियां सुनें' : 'Audio Walkman'}</span>
                   </button>
                 )}
 
@@ -1150,10 +1259,10 @@ export default function QuizResult() {
                   onChange={(e) => setReviewFilter(e.target.value)}
                   className="px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 dark:text-slate-200 text-slate-800 text-xs font-bold focus:outline-none min-h-[44px]"
                 >
-                  <option value="all">{appLanguage === 'hi' ? 'सभी' : 'All'} ({solutions.length})</option>
-                  <option value="correct">{appLanguage === 'hi' ? 'सही' : 'Correct'} ({stats.correctCount})</option>
-                  <option value="incorrect">{appLanguage === 'hi' ? 'गलत' : 'Incorrect'} ({stats.incorrectCount})</option>
-                  <option value="unattempted">{appLanguage === 'hi' ? 'छोड़े गए' : 'Skipped'} ({stats.unattemptedCount})</option>
+                  <option value="all">{language === 'hi' ? 'सभी' : 'All'} ({solutions.length})</option>
+                  <option value="correct">{language === 'hi' ? 'सही' : 'Correct'} ({stats.correctCount})</option>
+                  <option value="incorrect">{language === 'hi' ? 'गलत' : 'Incorrect'} ({stats.incorrectCount})</option>
+                  <option value="unattempted">{language === 'hi' ? 'छोड़े गए' : 'Skipped'} ({stats.unattemptedCount})</option>
                 </select>
               </div>
             </div>
@@ -1168,7 +1277,9 @@ export default function QuizResult() {
               {filteredSolutions.map((item, idx) => {
                 const question = item.question || item;
                 const origIndex = solutions.indexOf(item);
-                const qText = question.question_text_hi || getStoredHindi(question.question_text) || question.question_text_en || getLocalizedEnglish(question.question_text) || question.text || 'Question text';
+                const qEn = question.question_text_en || getLocalizedEnglish(question.question_text) || question.text || '';
+                const qHi = question.question_text_hi || getStoredHindi(question.question_text) || '';
+                const qText = (language === 'hi' ? (qHi || qEn) : (qEn || qHi)) || 'Question text';
 
                 const status = resolveSolutionStatus(item);
                 const chosenKey = status.chosenKey;
@@ -1204,15 +1315,15 @@ export default function QuizResult() {
                           <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] font-bold">
                             {hasSelection ? (
                               <span className="px-2 py-0.5 rounded-md dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 dark:text-slate-300 text-slate-700">
-                                {appLanguage === 'hi' ? 'आपका' : 'Your'}: {chosenKey}
+                                {language === 'hi' ? 'आपका' : 'Your'}: {chosenKey}
                               </span>
                             ) : (
                               <span className="px-2 py-0.5 rounded-md dark:bg-slate-900 bg-slate-100 border dark:border-slate-700 border-slate-200 text-slate-400">
-                                {appLanguage === 'hi' ? 'छोड़ा' : 'Skipped'}
+                                {language === 'hi' ? 'छोड़ा' : 'Skipped'}
                               </span>
                             )}
                             <span className="px-2 py-0.5 rounded-md dark:bg-emerald-500/15 bg-emerald-50 border dark:border-emerald-500/30 border-emerald-200 text-emerald-600 dark:text-emerald-400">
-                              {appLanguage === 'hi' ? 'उत्तर' : 'Ans'}: {correctKey || 'B'} ✓
+                              {language === 'hi' ? 'उत्तर' : 'Ans'}: {correctKey || 'B'} ✓
                             </span>
                           </div>
                         </div>
@@ -1221,15 +1332,15 @@ export default function QuizResult() {
                       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                         {isCorrect ? (
                           <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                            <Check size={12} strokeWidth={3} /> {appLanguage === 'hi' ? 'सही' : 'Correct'}
+                            <Check size={12} strokeWidth={3} /> {language === 'hi' ? 'सही' : 'Correct'}
                           </span>
                         ) : hasSelection ? (
                           <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-black bg-red-500/20 text-red-400 border border-red-500/30 flex items-center gap-1">
-                            <CircleX size={12} /> {appLanguage === 'hi' ? 'गलत' : 'Incorrect'}
+                            <CircleX size={12} /> {language === 'hi' ? 'गलत' : 'Incorrect'}
                           </span>
                         ) : (
                           <span className="px-2 sm:px-2.5 py-1 rounded-full text-xs font-bold dark:bg-slate-800 bg-slate-100 text-slate-400 border dark:border-slate-700 border-slate-200">
-                            {appLanguage === 'hi' ? 'छोड़ा' : 'Skipped'}
+                            {language === 'hi' ? 'छोड़ा' : 'Skipped'}
                           </span>
                         )}
                         <ChevronRight size={16} className="text-slate-400 dark:text-slate-500 group-hover:text-slate-800 dark:group-hover:text-white group-hover:translate-x-0.5 transition-all" />
@@ -1531,7 +1642,7 @@ export default function QuizResult() {
                       {hasSelection ? (
                         <span>
                           {language === 'hi' ? 'आपका उत्तर: ' : 'Your answer: '}
-                          <strong>{chosenKey}</strong> ({isCorrect ? '✓ सही' : '✗ गलत'})
+                          <strong>{chosenKey}</strong> ({language === 'hi' ? (isCorrect ? '✓ सही' : '✗ गलत') : (isCorrect ? '✓ Correct' : '✗ Incorrect')})
                         </span>
                       ) : (
                         <span className="text-slate-400">Not Attempted</span>
@@ -1696,21 +1807,27 @@ export default function QuizResult() {
         )}
 
         {/* ======================================================== */}
-        {/* TAB 3: TOPIC ANALYSIS */}
+        {/* TAB 3: TOPIC, DIFFICULTY & TIME ANALYSIS */}
         {/* ======================================================== */}
         {activeTab === 'analysis' && (
           <div className="space-y-4">
             <div className="p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 backdrop-blur-md">
               <h3 className="text-base font-extrabold dark:text-white text-slate-900 flex items-center gap-2">
                 <BarChart3 size={18} className="text-indigo-400" />
-                <span>Topic-wise Performance Breakdown</span>
+                <span>{language === 'hi' ? 'विषय, कठिनाई और समय विश्लेषण' : 'Topic, Difficulty & Time Breakdown'}</span>
               </h3>
               <p className="text-xs dark:text-slate-400 text-slate-600 mt-1">
-                Pinpoint strengths and areas that need revision from this test attempt.
+                {language === 'hi'
+                  ? 'प्रत्येक विषय, कठिनाई स्तर और प्रश्न पर बिताए गए समय का विवरण देखें।'
+                  : 'Pinpoint strengths, difficulty accuracy, and per-question time from this test attempt.'}
               </p>
             </div>
 
-            <div className="space-y-3">
+            {/* 1. Topic Breakdown */}
+            <div className="space-y-2.5">
+              <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">
+                {language === 'hi' ? 'विषयवार प्रदर्शन' : 'Topic Breakdown'}
+              </h4>
               {topicAnalysis.map((item, idx) => (
                 <div
                   key={idx}
@@ -1718,10 +1835,15 @@ export default function QuizResult() {
                 >
                   <div className="flex items-center justify-between gap-2 flex-wrap">
                     <h4 className="text-sm font-bold dark:text-white text-slate-900 tracking-tight">{item.topic}</h4>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-2">
+                      {item.timeSpent > 0 && (
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full dark:bg-slate-800 bg-slate-100 text-slate-600 dark:text-slate-300 border dark:border-slate-700 border-slate-200">
+                          {item.avgTime}s / Q
+                        </span>
+                      )}
                       {item.accuracy < 50 && (
                         <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30">
-                          {appLanguage === 'hi' ? 'कमज़ोर क्षेत्र (Needs Revision)' : 'Needs Revision'}
+                          {language === 'hi' ? 'कमज़ोर क्षेत्र' : 'Needs Revision'}
                         </span>
                       )}
                       <span className={`text-xs font-black ${item.accuracy >= 70 ? 'text-emerald-400' : item.accuracy >= 50 ? 'text-amber-500 dark:text-amber-400' : 'text-red-500'}`}>
@@ -1756,6 +1878,94 @@ export default function QuizResult() {
                 </div>
               )}
             </div>
+
+            {/* 2. Difficulty Breakdown */}
+            {difficultyAnalysis.length > 0 && (
+              <div className="space-y-2.5">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">
+                  {language === 'hi' ? 'कठिनाई स्तर विश्लेषण' : 'Difficulty Breakdown'}
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {difficultyAnalysis.map((diff) => (
+                    <div
+                      key={diff.difficulty}
+                      className="p-3.5 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black dark:text-white text-slate-900">{diff.difficulty}</span>
+                        <span className={`text-xs font-black ${diff.accuracy >= 70 ? 'text-emerald-500' : diff.accuracy >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>
+                          {diff.accuracy}%
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 dark:bg-slate-900 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${diff.accuracy >= 70 ? 'bg-emerald-500' : diff.accuracy >= 50 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                          style={{ width: `${diff.accuracy}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] dark:text-slate-400 text-slate-600 font-medium">
+                        <span>{diff.correct}/{diff.total} Correct</span>
+                        <span>{diff.timeSpent > 0 ? `${diff.avgTime}s avg` : `${diff.incorrect} Wrong`}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 3. Per-Question Time Breakdown */}
+            {questionTimingRows.length > 0 && (
+              <div className="space-y-2.5">
+                <h4 className="text-xs font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 px-1">
+                  {language === 'hi' ? 'प्रति प्रश्न समय विवरण' : 'Per-Question Time Breakdown'}
+                </h4>
+                <div className="rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 divide-y dark:divide-slate-800 divide-slate-100 overflow-hidden">
+                  {questionTimingRows.map((row) => {
+                    const maxTime = Math.max(1, ...questionTimingRows.map((r) => r.timeSpent));
+                    const barWidth = row.timeSpent > 0 ? Math.max(6, Math.round((row.timeSpent / maxTime) * 100)) : 0;
+                    return (
+                      <button
+                        key={row.index}
+                        type="button"
+                        onClick={() => {
+                          setCurrentSolutionIndex(row.index);
+                          setActiveTab('solutions');
+                        }}
+                        className="w-full text-left px-3.5 py-2.5 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                          <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black shrink-0 ${
+                            row.status.isCorrect
+                              ? 'bg-emerald-500/20 text-emerald-500 border border-emerald-500/30'
+                              : row.status.isIncorrect
+                              ? 'bg-rose-500/20 text-rose-500 border border-rose-500/30'
+                              : 'dark:bg-slate-800 bg-slate-100 text-slate-400 border dark:border-slate-700 border-slate-200'
+                          }`}>
+                            Q{row.index + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5 text-xs font-bold dark:text-slate-200 text-slate-800 truncate">
+                              <span className="truncate">{row.topic}</span>
+                              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
+                                {row.difficulty}
+                              </span>
+                            </div>
+                            {row.timeSpent > 0 && (
+                              <div className="mt-1 w-full max-w-[180px] h-1.5 rounded-full dark:bg-slate-800 bg-slate-200 overflow-hidden">
+                                <div className="h-full rounded-full bg-indigo-500" style={{ width: `${barWidth}%` }} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs font-black tabular-nums dark:text-slate-300 text-slate-700 shrink-0">
+                          {row.timeSpent > 0 ? (row.timeSpent >= 60 ? formatTime(row.timeSpent) : `${row.timeSpent}s`) : '—'}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1779,47 +1989,62 @@ export default function QuizResult() {
                 <LoadingSkeleton rows={3} />
               </div>
             ) : (() => {
-              const totalAttempts = peerStats?.total_attempts ?? 1;
-              const hasPeers = totalAttempts > 1;
-              const timeSpent = Number(result?.time_spent_seconds || scorecard?.time_spent_seconds || 0);
-              const avgTimePerQuestion = totalQuestions > 0 ? Math.round(timeSpent / totalQuestions) : 0;
+              const totalAttempts = Number(peerStats?.total_attempts ?? 1);
+              const hasEnoughPeers = totalAttempts >= 3;
+              const sumSolutionTime = questionTimingRows.reduce((sum, r) => sum + r.timeSpent, 0);
+              const timeSpent = Math.max(
+                Number(result?.time_spent_seconds || 0),
+                Number(scorecard?.time_spent_seconds || 0),
+                sumSolutionTime
+              );
+              const divisor = totalQuestions > 0 ? totalQuestions : Math.max(1, solutions.length);
+              const avgTimePerQuestion = timeSpent > 0 && divisor > 0 ? Math.round(timeSpent / divisor) : null;
               const userScore = score;
-              const avgScore = peerStats?.average_score ?? userScore;
+              const avgScore = peerStats?.average_score;
               const scoreDiff = peerStats?.score_diff ?? 0;
-              const percentile = peerStats?.percentile ?? 100;
+              const percentile = peerStats?.percentile;
+              const highestScore = peerStats?.highest_score;
 
               return (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
                   {/* Card 1: Percentile */}
                   <div className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
                     <div className="text-[10px] sm:text-xs uppercase font-bold dark:text-slate-400 text-slate-500">Your Percentile</div>
-                    <div className="text-xl sm:text-2xl font-black dark:text-amber-400 text-amber-600 my-1">
-                      {hasPeers ? `${percentile}%` : '1st Attempt'}
+                    <div className="text-base sm:text-xl font-black dark:text-amber-400 text-amber-600 my-1">
+                      {hasEnoughPeers && percentile !== undefined && percentile !== null ? `${percentile}%` : 'Not enough data yet'}
                     </div>
                     <span className="text-[11px] font-semibold dark:text-indigo-400 text-indigo-600">
-                      {hasPeers ? `Top ${Math.max(1, Math.round(100 - percentile))}% (${totalAttempts} attempts)` : 'Awaiting more attempts'}
+                      {hasEnoughPeers
+                        ? `Top ${Math.max(1, Math.round(100 - Number(percentile || 0)))}% (${totalAttempts} attempts)`
+                        : `${totalAttempts}/3 attempts recorded`}
                     </span>
                   </div>
 
                   {/* Card 2: Average Score */}
                   <div className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
                     <div className="text-[10px] sm:text-xs uppercase font-bold dark:text-slate-400 text-slate-500">Average Score</div>
-                    <div className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 my-1">
-                      {hasPeers ? avgScore : userScore}
+                    <div className="text-base sm:text-xl font-black dark:text-white text-slate-900 my-1">
+                      {hasEnoughPeers && avgScore !== undefined && avgScore !== null ? avgScore : 'Not enough data yet'}
                     </div>
-                    <span className={`text-[11px] font-semibold ${!hasPeers ? 'dark:text-slate-400 text-slate-500' : scoreDiff >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                      {hasPeers ? `${scoreDiff >= 0 ? `+${scoreDiff}` : scoreDiff} vs Avg` : 'Your score'}
+                    <span className={`text-[11px] font-semibold ${!hasEnoughPeers ? 'dark:text-slate-400 text-slate-500' : scoreDiff >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                      {hasEnoughPeers ? `${scoreDiff >= 0 ? `+${scoreDiff}` : scoreDiff} vs Avg` : `Your score: ${userScore}`}
                     </span>
                   </div>
 
                   {/* Card 3: Topper vs You */}
                   <div className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
                     <div className="text-[10px] sm:text-xs uppercase font-bold dark:text-slate-400 text-slate-500">Topper vs You</div>
-                    <div className="text-lg sm:text-xl font-black text-amber-500 dark:text-amber-400 my-1">
-                      {score} <span className="text-xs font-semibold text-slate-400">vs {peerStats?.highest_score || Math.max(score, Math.round(totalMarks * 0.95)) || totalQuestions}</span>
+                    <div className="text-base sm:text-xl font-black text-amber-500 dark:text-amber-400 my-1">
+                      {hasEnoughPeers && highestScore !== undefined && highestScore !== null ? (
+                        <>{score} <span className="text-xs font-semibold text-slate-400">vs {highestScore}</span></>
+                      ) : (
+                        'Not enough data yet'
+                      )}
                     </div>
                     <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 truncate">
-                      {score >= (peerStats?.highest_score || totalMarks) ? 'You are the Topper!' : `Diff: -${Math.max(0, (peerStats?.highest_score || Math.max(score, Math.round(totalMarks * 0.95))) - score)} marks`}
+                      {hasEnoughPeers && highestScore !== undefined && highestScore !== null
+                        ? (score >= highestScore ? 'You are the Topper!' : `Diff: -${Math.max(0, highestScore - score)} marks`)
+                        : 'Needs 3+ peer attempts'}
                     </span>
                   </div>
 
@@ -1827,10 +2052,16 @@ export default function QuizResult() {
                   <div className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center flex flex-col justify-between min-h-[110px]">
                     <div className="text-[10px] sm:text-xs uppercase font-bold dark:text-slate-400 text-slate-500">Avg Time / Q</div>
                     <div className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 my-1">
-                      {avgTimePerQuestion}s
+                      {avgTimePerQuestion !== null ? `${avgTimePerQuestion}s` : '—'}
                     </div>
                     <span className="text-[11px] font-semibold dark:text-slate-400 text-slate-500">
-                      {timeSpent <= 0 ? 'Timing unavailable' : avgTimePerQuestion <= 35 ? 'Fast & Steady' : avgTimePerQuestion <= 70 ? 'Optimal Pace' : 'Moderate Pace'}
+                      {avgTimePerQuestion === null
+                        ? 'Timing unavailable'
+                        : avgTimePerQuestion <= 35
+                        ? 'Fast & Steady'
+                        : avgTimePerQuestion <= 70
+                        ? 'Optimal Pace'
+                        : 'Moderate Pace'}
                     </span>
                   </div>
                 </div>

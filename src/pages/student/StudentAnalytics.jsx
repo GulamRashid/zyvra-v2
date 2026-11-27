@@ -3,8 +3,9 @@ import { ArrowLeft, ArrowRight, BarChart3, CalendarDays, CheckCircle2, Clock3, T
 import { Link, useNavigate } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';
+import { useStudentStats } from '../../context/StudentStatsContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
-import { calculateStreakData } from '../../lib/streak';
+import { computeAttemptScorePercentage } from '../../lib/studentStats';
 
 const QUERY_PAGE_SIZE = 1000;
 const ID_BATCH_SIZE = 500;
@@ -35,25 +36,8 @@ function numberFrom(row, keys, fallback = 0) {
   return fallback;
 }
 
-function isComplete(attempt) {
-  const status = String(attempt.status || '').toLowerCase();
-  return ['completed', 'submitted', 'graded', 'finished'].includes(status)
-    || Boolean(attempt.completed_at || attempt.submitted_at || attempt.finished_at);
-}
-
-function asPercent(value) {
-  return value > 0 && value <= 1 ? value * 100 : value;
-}
-
 function scorePercentage(attempt) {
-  for (const key of ['percentage', 'score_percentage', 'percentage_score']) {
-    if (attempt[key] !== undefined && attempt[key] !== null && Number.isFinite(Number(attempt[key]))) {
-      return asPercent(Number(attempt[key]));
-    }
-  }
-  const score = numberFrom(attempt, ['score', 'total_score', 'final_score'], NaN);
-  const total = numberFrom(attempt, ['total_marks', 'maximum_marks'], NaN);
-  return Number.isFinite(score) && Number.isFinite(total) && total > 0 ? score / total * 100 : null;
+  return computeAttemptScorePercentage(attempt);
 }
 
 function optionECount(attempt, responses) {
@@ -67,56 +51,74 @@ function optionECount(attempt, responses) {
   ).length;
 }
 
-function streakDays(attempts) {
-  const dates = (attempts || []).map((attempt) => attempt.completed_at || attempt.submitted_at || attempt.finished_at || attempt.created_at).filter(Boolean);
-  return calculateStreakData(dates).currentStreak;
-}
-
 export default function StudentAnalytics() {
   const navigate = useNavigate();
   const { user, supabase } = useAuth();
-  const [attempts, setAttempts] = useState([]);
-  const [responses, setResponses] = useState([]);
+  const {
+    completedAttempts: attempts,
+    responses,
+    testsAttempted,
+    accuracy,
+    averageScore,
+    currentStreak,
+    loading: statsLoading,
+    error: statsError
+  } = useStudentStats();
   const [questions, setQuestions] = useState({});
   const [tests, setTests] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [metaLoading, setMetaLoading] = useState(false);
+  const [metaError, setMetaError] = useState('');
 
   useEffect(() => {
     let active = true;
-    const loadAnalytics = async () => {
-      if (!supabase || !user) throw new Error('Sign in to view your learning analytics.');
-      const attemptRows = await fetchAllPages((start, end) => supabase.from('test_attempts').select('*')
-        .eq('user_id', user.id).order('created_at', { ascending: false }).range(start, end));
-      const completed = (attemptRows || []).filter(isComplete);
-      const attemptIds = completed.map((attempt) => attempt.id).filter(Boolean);
-      if (!attemptIds.length) {
-        if (active) { setAttempts([]); setResponses([]); setLoading(false); }
+    const loadMetadata = async () => {
+      if (statsLoading) return;
+      if (!supabase || !user) {
+        if (active) {
+          setMetaError('Sign in to view your learning analytics.');
+          setMetaLoading(false);
+        }
         return;
       }
-      const responseRows = await fetchByIds((batch) => supabase.from('test_responses').select('*').in('attempt_id', batch), attemptIds);
-      const responseList = responseRows || [];
-      const questionIds = [...new Set(responseList.map((response) => response.question_id).filter(Boolean))];
-      const testIds = [...new Set(completed.map((attempt) => attempt.test_id).filter(Boolean))];
-      const [questionRows, testRows] = await Promise.all([
-        fetchByIds((batch) => supabase.rpc('get_published_question_metadata', { p_question_ids: batch }), questionIds),
-        fetchByIds((batch) => supabase.from('tests').select('id,title').in('id', batch), testIds)
-      ]);
-      if (!active) return;
-      setAttempts(completed);
-      setResponses(responseList);
-      setQuestions(Object.fromEntries(questionRows.map((question) => [question.id, question])));
-      setTests(Object.fromEntries(testRows.map((test) => [test.id, test])));
-      setLoading(false);
-    };
-    loadAnalytics().catch((loadError) => {
-      if (active) {
-        setError(getFriendlyErrorMessage(loadError, 'Unable to load your performance analytics.'));
-        setLoading(false);
+      if (!attempts.length) {
+        if (active) {
+          setQuestions({});
+          setTests({});
+          setMetaLoading(false);
+        }
+        return;
       }
-    });
+
+      setMetaLoading(true);
+      setMetaError('');
+      try {
+        const questionIds = [...new Set(responses.map((response) => response.question_id).filter(Boolean))];
+        const testIds = [...new Set(attempts.map((attempt) => attempt.test_id).filter(Boolean))];
+        const [questionRows, testRows] = await Promise.all([
+          questionIds.length
+            ? fetchByIds((batch) => supabase.rpc('get_published_question_metadata', { p_question_ids: batch }), questionIds)
+            : Promise.resolve([]),
+          testIds.length
+            ? fetchByIds((batch) => supabase.from('tests').select('id,title').in('id', batch), testIds)
+            : Promise.resolve([])
+        ]);
+        if (!active) return;
+        setQuestions(Object.fromEntries(questionRows.map((question) => [question.id, question])));
+        setTests(Object.fromEntries(testRows.map((test) => [test.id, test])));
+      } catch (loadError) {
+        if (active) {
+          setMetaError(getFriendlyErrorMessage(loadError, 'Unable to load your performance analytics.'));
+        }
+      } finally {
+        if (active) setMetaLoading(false);
+      }
+    };
+    loadMetadata();
     return () => { active = false; };
-  }, [supabase, user]);
+  }, [supabase, user, attempts, responses, statsLoading]);
+
+  const loading = statsLoading || metaLoading;
+  const error = metaError || statsError;
 
   const responseByAttempt = useMemo(() => responses.reduce((map, response) => {
     const key = response.attempt_id;
@@ -124,16 +126,13 @@ export default function StudentAnalytics() {
     map.get(key).push(response);
     return map;
   }, new Map()), [responses]);
-  const stats = useMemo(() => {
-    const allResponses = responses;
-    const answered = allResponses.filter((response) => response.selected_option !== null && response.selected_option !== undefined && response.selected_option !== '');
-    const correct = allResponses.filter((response) => response.is_correct === true || response.correct === true || response.was_correct === true).length;
-    const storedAccuracy = attempts.map((attempt) => numberFrom(attempt, ['accuracy_percentage', 'accuracy'])).filter((value) => value > 0);
-    const accuracy = answered.length ? correct / answered.length * 100 : storedAccuracy.length ? storedAccuracy.reduce((sum, value) => sum + asPercent(value), 0) / storedAccuracy.length : 0;
-    const percentages = attempts.map(scorePercentage).filter((value) => value !== null);
-    const averageScore = percentages.length ? percentages.reduce((sum, value) => sum + value, 0) / percentages.length : 0;
-    return { total: attempts.length, accuracy, averageScore, streak: streakDays(attempts) };
-  }, [attempts, responses]);
+
+  const stats = useMemo(() => ({
+    total: testsAttempted,
+    accuracy,
+    averageScore,
+    streak: currentStreak
+  }), [testsAttempted, accuracy, averageScore, currentStreak]);
 
   const subjectStats = useMemo(() => {
     const subjects = new Map();

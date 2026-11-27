@@ -47,7 +47,7 @@ export default function HierarchicalFolderSelect({
         pathParts,
         breadcrumb: fullBreadcrumb,
         groupLabel,
-        displayName: folder.title
+        displayName: pathTitles.length > 1 ? pathTitles.join(' › ') : folder.title
       };
     });
   }, [folders, examsMap]);

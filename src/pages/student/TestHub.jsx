@@ -770,6 +770,10 @@ export default function TestHub() {
                   const completedAttempt = attempts.find(isComplete);
                   const qCount = questionCounts[test.id] ?? (Number(test.question_count) || 0);
                   const hInfo = getTestHierarchy(test);
+                  const contextLabel = hInfo.chapterTitle || hInfo.subjectTitle;
+                  const displayTitle = contextLabel && !String(test.title || '').toLowerCase().includes(contextLabel.toLowerCase())
+                    ? `${contextLabel} — ${test.title}`
+                    : test.title;
 
                   return (
                     <div
@@ -783,7 +787,7 @@ export default function TestHub() {
                           </span>
                         )}
                         <div className="flex items-center gap-2">
-                          <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900">{test.title}</h4>
+                          <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900">{displayTitle}</h4>
                           {test.is_free ? (
                             <span className="px-2 py-0.5 rounded text-[9px] font-black dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-600 border dark:border-emerald-500/30 border-emerald-300">
                               FREE

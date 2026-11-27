@@ -68,7 +68,7 @@ export default function ToolUnlockModal({ title, price, validityDays, comboPrice
             >
               <Sparkles size={14} className="text-amber-500" />
               <span>
-                {t('tbGetAllTools')} · ₹${Number(comboPrice).toLocaleString(locale)} / {comboValidityDays || 30} {t('tbDays')}
+                {t('tbGetAllTools')} · ₹{Number(comboPrice).toLocaleString(locale)} / {comboValidityDays || 30} {t('tbDays')}
               </span>
             </button>
           )}

@@ -184,7 +184,7 @@ export default function FolderView() {
             <section className="relative overflow-hidden rounded-2xl dark:bg-[#1E293B]/70 bg-white border dark:border-slate-800 border-slate-200/80 p-4 sm:p-5 shadow-xs space-y-2.5">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl dark:bg-slate-800/80 bg-slate-100 border dark:border-slate-700/60 border-slate-200 flex items-center justify-center text-indigo-500 dark:text-indigo-400 shrink-0">
-                  <ContentIcon icon={folder.icon_url || folder.icon} className="w-5 h-5 text-indigo-500 dark:text-indigo-400" fallback={FolderOpen} />
+                  <ContentIcon icon={folder.icon_url || folder.icon} title={folder.title} className="w-5 h-5 text-indigo-500 dark:text-indigo-400" fallback={FolderOpen} />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 tracking-wider">
@@ -315,7 +315,7 @@ export default function FolderView() {
                         <Link to={`/folder/${child.id}`} className="flex items-start justify-between gap-2.5">
                           <div className="flex items-start gap-2.5 min-w-0">
                             <div className="w-9 h-9 rounded-xl dark:bg-slate-800/80 bg-slate-100 border dark:border-slate-700/60 border-slate-200 flex items-center justify-center text-indigo-500 dark:text-indigo-400 shrink-0 group-hover:scale-105 transition-transform mt-0.5">
-                              <ContentIcon icon={child.icon_url || child.icon} className="w-4 h-4 text-indigo-500 dark:text-indigo-400" fallback={Folder} />
+                              <ContentIcon icon={child.icon_url || child.icon} title={child.title} className="w-4 h-4 text-indigo-500 dark:text-indigo-400" fallback={Folder} />
                             </div>
                             <div className="min-w-0">
                               <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate group-hover:text-indigo-400 transition-colors">

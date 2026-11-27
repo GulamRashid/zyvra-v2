@@ -1415,11 +1415,14 @@ export default function LiveQuiz() {
       recordStudyActivity(supabase, user?.id, 'test_completed');
       if (typeof window !== 'undefined' && typeof window.CustomEvent === 'function') {
         window.dispatchEvent(new window.CustomEvent('zyvra:coins-updated'));
+        window.dispatchEvent(new window.CustomEvent('zyvra:test-submitted'));
       }
 
       const guessArray = Array.from(guessedQuestions);
       if (attemptId) {
         try {
+          localStorage.setItem(`zyvra_attempt_lang_${attemptId}`, language);
+          sessionStorage.setItem(`zyvra_attempt_lang_${attemptId}`, language);
           if (challengerInfo) {
             sessionStorage.setItem(`zyvra_challenge_${attemptId}`, JSON.stringify(challengerInfo));
           }
@@ -1432,7 +1435,7 @@ export default function LiveQuiz() {
           }
         } catch {}
       }
-      navigate(`/quiz/result/${attemptId}`, { replace: true, state: { returnTo, challenger: challengerInfo, guesses: guessArray } });
+      navigate(`/quiz/result/${attemptId}`, { replace: true, state: { returnTo, challenger: challengerInfo, guesses: guessArray, quizLanguage: language } });
     } else {
       submitLock.current = false;
       setSubmitting(false);
@@ -1442,7 +1445,7 @@ export default function LiveQuiz() {
         technical: lastError?.message || (typeof lastError === 'object' ? JSON.stringify(lastError) : String(lastError))
       });
     }
-  }, [attemptId, supabase, questions, user, testId, navigate, returnTo, refreshAccount]);
+  }, [attemptId, supabase, questions, user, testId, navigate, returnTo, refreshAccount, language]);
 
   // Countdown timer effect
   useEffect(() => {
@@ -1845,15 +1848,6 @@ export default function LiveQuiz() {
     window.setTimeout(() => setBookmarkSaving(false), 250);
   };
 
-  const handleFeedbackAction = (action) => {
-    if (feedbackAction) return;
-    setFeedbackAction(action);
-    setToast(action === 'notes'
-      ? 'Quick notes are coming soon for this question.'
-      : 'Question reporting is coming soon.');
-    window.setTimeout(() => setFeedbackAction(''), 350);
-  };
-
   const goTo = (index) => {
     setCurrentIndex(index);
     setPaletteOpen(false);
@@ -2062,7 +2056,7 @@ export default function LiveQuiz() {
             })()}
           </div>
 
-          {test?.mandatory_option_e_penalty && (
+          {Number(test?.mandatory_option_e_penalty) > 0 && (
             <div className="bpsc-notice-banner">
               <AlertTriangle size={18} className="text-gold flex-shrink-0" />
               <div>
@@ -3162,28 +3156,6 @@ export default function LiveQuiz() {
               {bookmarkSaving ? <LoaderCircle size={16} className="animate-spin" /> : <Bookmark size={16} className={responses[question.id]?.marked_for_review ? 'fill-amber-400 text-amber-500' : ''} />}
               <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">
                 {responses[question.id]?.marked_for_review ? (language === 'hi' ? 'चिह्नित' : 'Marked') : (language === 'hi' ? 'रिव्यू' : 'Review')}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleFeedbackAction('notes')}
-              disabled={feedbackAction !== ''}
-              className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
-            >
-              {feedbackAction === 'notes' ? <LoaderCircle size={16} className="animate-spin" /> : <FileText size={16} />}
-              <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">
-                {language === 'hi' ? 'नोट्स' : 'Notes'}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => handleFeedbackAction('report')}
-              disabled={feedbackAction !== ''}
-              className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
-            >
-              {feedbackAction === 'report' ? <LoaderCircle size={16} className="animate-spin" /> : <AlertTriangle size={16} />}
-              <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">
-                {language === 'hi' ? 'रिपोर्ट' : 'Report'}
               </span>
             </button>
           </div>

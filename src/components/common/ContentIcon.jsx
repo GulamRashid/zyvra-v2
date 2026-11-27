@@ -64,10 +64,22 @@ export function isIconUrl(val) {
  */
 export default function ContentIcon({
   icon,
+  title = '',
   className = 'w-6 h-6',
   size = 24,
   fallback: FallbackIcon = GraduationCap
 }) {
+  // Never show a science microscope/flask icon for History or Geography subjects/folders
+  const normalizedTitle = String(title || '').toLowerCase();
+  if (normalizedTitle && (!icon || String(icon) === 'FlaskConical')) {
+    if (/(history|इतिहास|ancient|medieval|modern|polity|civics)/i.test(normalizedTitle)) {
+      return <Landmark size={size} className={className} />;
+    }
+    if (/(geography|भूगोल|earth|map|climate|environment)/i.test(normalizedTitle)) {
+      return <Globe2 size={size} className={className} />;
+    }
+  }
+
   if (!icon) {
     return <FallbackIcon size={size} className={className} />;
   }

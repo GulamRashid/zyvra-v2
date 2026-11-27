@@ -792,6 +792,7 @@ export default function ContentManager() {
     }
   });
   const [search, setSearch] = useState('');
+  const [showEmptyExams, setShowEmptyExams] = useState(false);
   const [dialog, setDialog] = useState(() => {
     try {
       const saved = sessionStorage.getItem('zyvra_cm_dialog');
@@ -1242,15 +1243,43 @@ export default function ContentManager() {
         <div className="content-rail-title"><div><span className="eyebrow">YOUR CATALOGUE</span><h2>Exam hierarchy</h2></div><button className="icon-button" title="Add exam" onClick={() => setDialog({ kind: 'exam', item: null })}><Plus size={17} /></button></div>
         <label className="content-search"><Search size={15} /><input placeholder="Find an exam…" value={search} onChange={(event) => { setSearch(event.target.value); setSelectedExamId(''); setPathIds([]); }} /></label>
         {loading && <div className="field-hint">Loading exams, folders and chapters…</div>}
-        {!loading && exams.filter((exam) => !normalizedSearch || `${exam.title} ${exam.slug}`.toLowerCase().includes(normalizedSearch)).map((exam) => {
-          const counts = hierarchyCounts(exam.id);
-          const hasImg = isIconUrl(exam?.icon_url || exam?.icon);
-          return <div key={exam.id} className={`exam-rail-row ${selectedExamId === exam.id ? 'selected' : ''}`}>
-            <button className="exam-rail-main" onClick={() => beginExam(exam)}><span className={`exam-rail-icon ${hasImg ? 'has-image-logo' : ''}`}>{examIcon(exam, 'w-7 h-7')}</span><span className="exam-rail-copy"><strong>{exam.title}</strong><small>{counts.folders} folders · {counts.chapters} chapters</small></span><ChevronRight size={15} /></button>
-            <span className={`content-status status-${String(exam.status || 'draft').toLowerCase()}`}>{exam.status || 'draft'}</span>
-            <div className="row-actions"><CopyIdButton id={exam.id} label="exam_id" /><button type="button" title="Edit exam" aria-label={`Edit ${exam.title}`} onClick={(event) => { event.stopPropagation(); setDialog({ kind: 'exam', item: exam }); }}><Pencil size={14} /></button><button type="button" title="Delete exam" aria-label={`Delete ${exam.title}`} disabled={deletingExam} onClick={(event) => { event.stopPropagation(); handleDeleteClick(exam); }}><Trash2 size={14} /></button><button type="button" title="Archive exam" aria-label={`Archive ${exam.title}`} disabled={savingArchive === exam.id} onClick={(event) => { event.stopPropagation(); archive('exam', exam); }}><Archive size={14} /></button></div>
-          </div>;
-        })}
+        {!loading && (() => {
+          const matchingExams = exams.filter((exam) => !normalizedSearch || `${exam.title} ${exam.slug}`.toLowerCase().includes(normalizedSearch));
+          const nonEmptyExams = matchingExams.filter((exam) => {
+            const c = hierarchyCounts(exam.id);
+            return c.folders > 0 || c.chapters > 0;
+          });
+          const emptyExams = matchingExams.filter((exam) => {
+            const c = hierarchyCounts(exam.id);
+            return c.folders === 0 && c.chapters === 0;
+          });
+          const visibleExams = (showEmptyExams || normalizedSearch || nonEmptyExams.length === 0)
+            ? matchingExams
+            : nonEmptyExams;
+
+          return (
+            <>
+              {visibleExams.map((exam) => {
+                const counts = hierarchyCounts(exam.id);
+                const hasImg = isIconUrl(exam?.icon_url || exam?.icon);
+                return <div key={exam.id} className={`exam-rail-row ${selectedExamId === exam.id ? 'selected' : ''}`}>
+                  <button className="exam-rail-main" onClick={() => beginExam(exam)}><span className={`exam-rail-icon ${hasImg ? 'has-image-logo' : ''}`}>{examIcon(exam, 'w-7 h-7')}</span><span className="exam-rail-copy"><strong>{exam.title}</strong><small>{counts.folders} total folders · {counts.chapters} total chapters</small></span><ChevronRight size={15} /></button>
+                  <span className={`content-status status-${String(exam.status || 'draft').toLowerCase()}`}>{exam.status || 'draft'}</span>
+                  <div className="row-actions"><CopyIdButton id={exam.id} label="exam_id" /><button type="button" title="Edit exam" aria-label={`Edit ${exam.title}`} onClick={(event) => { event.stopPropagation(); setDialog({ kind: 'exam', item: exam }); }}><Pencil size={14} /></button><button type="button" title="Delete exam" aria-label={`Delete ${exam.title}`} disabled={deletingExam} onClick={(event) => { event.stopPropagation(); handleDeleteClick(exam); }}><Trash2 size={14} /></button><button type="button" title="Archive exam" aria-label={`Archive ${exam.title}`} disabled={savingArchive === exam.id} onClick={(event) => { event.stopPropagation(); archive('exam', exam); }}><Archive size={14} /></button></div>
+                </div>;
+              })}
+              {emptyExams.length > 0 && !normalizedSearch && nonEmptyExams.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowEmptyExams((prev) => !prev)}
+                  className="w-full mt-2 py-1.5 px-3 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 border border-dashed dark:border-slate-700 border-slate-300 transition-colors"
+                >
+                  {showEmptyExams ? `Hide empty exams (${emptyExams.length})` : `Show empty exams (${emptyExams.length})`}
+                </button>
+              )}
+            </>
+          );
+        })()}
         {!loading && !exams.length && <div className="empty-content"><GraduationCap size={24} /><strong>Your catalogue is ready</strong><span>Create your first exam to start building the hierarchy.</span><button className="button button-outline" onClick={() => setDialog({ kind: 'exam', item: null })}><Plus size={14} /> Create exam</button></div>}
       </aside>
       <section className="content-workspace panel-card">
@@ -1258,7 +1287,7 @@ export default function ContentManager() {
           <div className="workspace-title-row"><div><div className="eyebrow">SELECTED EXAM</div><h2><span className={`selected-exam-badge ${isIconUrl(selectedExam?.icon_url || selectedExam?.icon) ? 'has-image-logo' : ''}`}>{examIcon(selectedExam, 'w-7 h-7')}</span> {selectedExam.title}</h2><p>{selectedExam.description || 'Add a short exam overview for students.'}</p></div><span className={`content-status status-${String(selectedExam.status || 'draft').toLowerCase()}`}>{selectedExam.status || 'draft'}</span></div>
           <nav className="content-breadcrumbs" aria-label="Content hierarchy"><button onClick={() => setPathIds([])} className={!path.length ? 'current' : ''}>{selectedExam.title}</button>{folderCrumbs.map((folder, index) => <span className="breadcrumb-part" key={folder.id}><ChevronRight size={13} /><button className={index === folderCrumbs.length - 1 ? 'current' : ''} onClick={() => navigateToPath(index)}>{folder.title}</button></span>)}</nav>
           {currentFolder && <div className="selected-folder-meta"><FolderOpen size={17} /><span>{currentFolder.title}</span><CopyIdButton id={currentFolder.id} label="current folder_id" /><span>{getFolderPricing(currentFolder, folders).label}</span></div>}
-          <div className="workspace-toolbar"><div><h3>{currentFolder ? 'Folder contents' : 'Main folders'}</h3><span>{filteredFolders.length} folders · {filteredChapters.length} chapters</span></div><div className="workspace-actions"><label className="content-search"><Search size={14} /><input placeholder="Search here…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>{currentFolder && <button className="button button-outline" onClick={() => setDialog({ kind: 'chapter', item: null })}><Plus size={14} /> Chapter</button>}<button className="button button-outline" onClick={() => setDialog({ kind: 'folder', item: null })}><Plus size={14} /> {currentFolder ? 'Subfolder' : 'Folder'}</button></div></div>
+          <div className="workspace-toolbar"><div><h3>{currentFolder ? 'Folder contents' : 'Main folders'}</h3><span>{filteredFolders.length} direct folders · {filteredChapters.length} direct chapters</span></div><div className="workspace-actions"><label className="content-search"><Search size={14} /><input aria-label="Search folder contents" placeholder="Search here…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>{currentFolder && <button className="button button-outline" onClick={() => setDialog({ kind: 'chapter', item: null })}><Plus size={14} /> Chapter</button>}<button className="button button-outline" onClick={() => setDialog({ kind: 'folder', item: null })}><Plus size={14} /> {currentFolder ? 'Subfolder' : 'Folder'}</button></div></div>
           {loading && <div className="field-hint">Refreshing catalogue…</div>}
           <div className="content-entry-list">
             {filteredFolders.map((folder) => {

@@ -53,6 +53,8 @@ export async function saveMistakeToNotebook({
   correctAnswer = '',
   questionId = null,
   testTitle = '',
+  entryType = 'mistake',
+  isCorrect = false,
   isPremium = false
 }) {
   const key = getMistakesStorageKey(userId);
@@ -83,6 +85,8 @@ export async function saveMistakeToNotebook({
     topic: String(topic || 'General Revision').slice(0, 80),
     mistake: String(mistake || '').slice(0, 500),
     correctAnswer: String(correctAnswer || '').slice(0, 600),
+    entryType: entryType === 'review' || isCorrect ? 'review' : 'mistake',
+    isCorrect: Boolean(isCorrect),
     nextReview: today,
     reviewCount: 0,
     createdAt: new Date().toISOString()

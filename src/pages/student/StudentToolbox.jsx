@@ -408,9 +408,12 @@ export default function StudentToolbox() {
   const currentCategoryTitle = currentCategory ? t(currentCategory.titleKey) : '';
   const currentToolTitle = currentTool ? t(currentTool.titleKey) : '';
   const visibleCategories = CATEGORY_CONFIG.filter((category) => (CATEGORY_TOOLS[category.id] || []).some(isToolVisible));
-  const searchResultCount = visibleCategories
-    .filter((category) => !activeCategory || category.id === activeCategory)
-    .reduce((count, category) => count + (CATEGORY_TOOLS[category.id] || []).filter((tool) => isToolVisible(tool) && matchesToolSearch(tool)).length, 0);
+  const activeToolPool = searchText
+    ? allTools
+    : (activeCategory ? (CATEGORY_TOOLS[activeCategory] || []) : allTools);
+  const searchResultCount = activeToolPool
+    .filter((tool) => isToolVisible(tool) && matchesToolSearch(tool))
+    .length;
 
   const renderReasoningHub = () => (
     <section className="space-y-4">
@@ -686,7 +689,7 @@ export default function StudentToolbox() {
                     <strong className="block text-xs sm:text-sm font-bold dark:text-white text-slate-900 truncate">
                       {language === 'hi'
                         ? `आज दोहराने के लिए ${dueMistakesCount} गलतियां पेंडिंग हैं`
-                        : `${dueMistakesCount} errors need spaced review today`}
+                        : `${dueMistakesCount} ${dueMistakesCount === 1 ? 'error needs' : 'errors need'} spaced review today`}
                     </strong>
                   </div>
                 </div>
@@ -769,7 +772,7 @@ export default function StudentToolbox() {
 
             {/* Unified Flat Tool Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {(activeCategory ? (CATEGORY_TOOLS[activeCategory] || []) : allTools)
+              {activeToolPool
                 .filter((tool) => isToolVisible(tool) && matchesToolSearch(tool))
                 .map((tool) => {
                   const locked = isToolLocked(tool);
@@ -835,7 +838,7 @@ export default function StudentToolbox() {
                     </div>
                   );
                 })}
-              {(activeCategory ? (CATEGORY_TOOLS[activeCategory] || []) : allTools).filter((tool) => isToolVisible(tool) && matchesToolSearch(tool)).length === 0 && (
+              {activeToolPool.filter((tool) => isToolVisible(tool) && matchesToolSearch(tool)).length === 0 && (
                 <div className="col-span-full rounded-2xl border border-dashed dark:border-slate-800 border-slate-300 p-8 text-center text-sm text-slate-500">
                   {t('tbNoSearchResults')}
                 </div>

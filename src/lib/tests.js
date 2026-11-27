@@ -744,7 +744,7 @@ export function mergeLockedAnswers(existingAnswers = {}, incomingAnswers = {}) {
 }
 
 export function getAnsweredQuestionCount(attempt = {}) {
-  const explicit = Number(attempt.answered_count ?? attempt.total_answered);
+  const explicit = Number(attempt.attempted_count ?? attempt.answered_count ?? attempt.total_answered);
   if (Number.isFinite(explicit) && explicit >= 0) return explicit;
 
   let state = attempt.state_json || {};

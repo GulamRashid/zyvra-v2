@@ -22,6 +22,7 @@ export default function StudentPurchases() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('courses'); // 'courses' | 'orders'
+  const [showAllOrders, setShowAllOrders] = useState(false);
   const [error, setError] = useState('');
 
   // Hierarchical Drill-down Navigation State
@@ -1110,67 +1111,95 @@ export default function StudentPurchases() {
           /* ============================================================ */
           /* PAYMENT ORDERS & RECEIPTS TAB                                */
           /* ============================================================ */
-          <div className="space-y-3">
-            <div className="px-1 flex items-center justify-between">
-              <h3 className="text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500">
-                {language === 'hi' ? 'लेनदेन और भुगतान रसीदें' : 'Transactions & Order Invoices'}
-              </h3>
-              <span className="text-[11px] text-slate-400 font-semibold">{orders.length} orders</span>
-            </div>
+          (() => {
+            const seenKeys = new Set();
+            const dedupedOrders = orders.filter((o) => {
+              const key = o.razorpay_order_id || o.gateway_order_id || o.id;
+              if (seenKeys.has(key)) return false;
+              seenKeys.add(key);
+              return true;
+            });
+            const paidOrders = dedupedOrders.filter((o) => String(o.status || '').toLowerCase() === 'paid');
+            const inactiveOrders = dedupedOrders.filter((o) => String(o.status || '').toLowerCase() !== 'paid');
+            const displayedOrders = showAllOrders ? dedupedOrders : paidOrders;
 
-            {orders.length === 0 ? (
-              <div className="p-8 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 text-center space-y-2 shadow-sm">
-                <p className="text-xs dark:text-slate-400 text-slate-600 font-medium">
-                  {language === 'hi' ? 'कोई पेमेंट रिकॉर्ड उपलब्ध नहीं है।' : 'No payment transactions recorded.'}
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                {orders.map((order) => (
-                  <div
-                    key={order.id}
-                    className="p-4 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-black dark:text-white text-slate-900 text-sm">
-                          {order.item_title || order.item_id || 'Course Package'}
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                            order.status === 'paid'
-                              ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
-                              : order.status === 'created'
-                              ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
-                              : 'bg-rose-500/15 text-rose-500 border border-rose-500/30'
-                          }`}
-                        >
-                          {order.status === 'paid' ? 'Paid ✓' : order.status}
-                        </span>
-                      </div>
-                      <div className="dark:text-slate-400 text-slate-500 text-[11px] space-x-2">
-                        <span>Receipt ID: {order.razorpay_order_id || order.id.slice(0, 10)}</span>
-                        <span>•</span>
-                        <span>{new Date(order.created_at).toLocaleString()}</span>
-                      </div>
-                    </div>
-
-                    <div className="text-right sm:shrink-0">
-                      <div className="font-black text-sm dark:text-emerald-400 text-emerald-600">
-                        {formatRupees(order.final_amount ?? order.amount ?? 0)}
-                      </div>
-                      {order.coins_redeemed > 0 && (
-                        <div className="text-[10px] text-amber-500 font-bold flex items-center gap-1 justify-end">
-                          <Coins size={12} className="text-amber-500" />
-                          <span>{order.coins_redeemed} coins redeemed</span>
-                        </div>
-                      )}
-                    </div>
+            return (
+              <div className="space-y-3">
+                <div className="px-1 flex items-center justify-between gap-2 flex-wrap">
+                  <h3 className="text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500">
+                    {language === 'hi' ? 'लेनदेन और भुगतान रसीदें' : 'Transactions & Order Invoices'}
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    {inactiveOrders.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowAllOrders((prev) => !prev)}
+                        className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
+                      >
+                        {showAllOrders
+                          ? (language === 'hi' ? 'अपूर्ण / समाप्त ऑर्डर छिपाएं' : 'Hide unpaid / expired')
+                          : (language === 'hi' ? `अपूर्ण / समाप्त दिखाएं (${inactiveOrders.length})` : `Show unpaid / expired (${inactiveOrders.length})`)}
+                      </button>
+                    )}
+                    <span className="text-[11px] text-slate-400 font-semibold">{displayedOrders.length} orders</span>
                   </div>
-                ))}
+                </div>
+
+                {displayedOrders.length === 0 ? (
+                  <div className="p-8 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 text-center space-y-2 shadow-sm">
+                    <p className="text-xs dark:text-slate-400 text-slate-600 font-medium">
+                      {language === 'hi' ? 'कोई सफल पेमेंट रिकॉर्ड उपलब्ध नहीं है।' : 'No completed payment transactions recorded.'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2.5">
+                    {displayedOrders.map((order) => (
+                      <div
+                        key={order.id}
+                        className="p-4 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                      >
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-black dark:text-white text-slate-900 text-sm">
+                              {order.item_title || order.item_id || 'Course Package'}
+                            </span>
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                order.status === 'paid'
+                                  ? 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30'
+                                  : order.status === 'created'
+                                  ? 'bg-amber-500/15 text-amber-500 border border-amber-500/30'
+                                  : 'bg-rose-500/15 text-rose-500 border border-rose-500/30'
+                              }`}
+                            >
+                              {order.status === 'paid' ? 'Paid ✓' : order.status}
+                            </span>
+                          </div>
+                          <div className="dark:text-slate-400 text-slate-500 text-[11px] space-x-2">
+                            <span>Receipt ID: {order.razorpay_order_id || order.id.slice(0, 10)}</span>
+                            <span>•</span>
+                            <span>{new Date(order.created_at).toLocaleString()}</span>
+                          </div>
+                        </div>
+
+                        <div className="text-right sm:shrink-0">
+                          <div className="font-black text-sm dark:text-emerald-400 text-emerald-600">
+                            {formatRupees(order.final_amount ?? order.amount ?? 0)}
+                          </div>
+                          {order.coins_redeemed > 0 && (
+                            <div className="text-[10px] text-amber-500 font-bold flex items-center gap-1 justify-end">
+                              <Coins size={12} className="text-amber-500" />
+                              <span>{order.coins_redeemed} coins redeemed</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })()
         )}
       </div>
   );

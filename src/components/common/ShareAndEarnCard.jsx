@@ -165,11 +165,21 @@ export default function ShareAndEarnCard({ className = '' }) {
               {hasRealCode ? (
                 <button
                   type="button"
-                  className="w-7 h-7 rounded-lg dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white transition-colors"
+                  className="px-2.5 h-7 rounded-lg dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 flex items-center justify-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white transition-colors"
                   onClick={copyCodeOnly}
                   title="Copy code"
                 >
-                  {copiedCode ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                  {copiedCode ? (
+                    <>
+                      <Check size={13} className="text-emerald-500" />
+                      <span className="text-emerald-500 text-[11px] font-black">Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={13} />
+                      <span className="text-[11px] font-bold">Copy</span>
+                    </>
+                  )}
                 </button>
               ) : (
                 <button

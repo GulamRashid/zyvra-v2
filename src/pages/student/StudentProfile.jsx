@@ -13,9 +13,9 @@ import DailyStreakModal from '../../components/student/DailyStreakModal';
 import useModalBack from '../../hooks/useModalBack';
 import { uploadAsset } from '../../lib/storage';
 import { useAuth } from '../../context/AuthContext';
+import { useStudentStats } from '../../context/StudentStatsContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 import { ensureReferralCode } from '../../lib/referrals';
-import { syncAttemptsWithStreak } from '../../lib/streak';
 
 const POPULAR_EXAMS = [
   'SSC CGL / CHSL',
@@ -29,7 +29,15 @@ const POPULAR_EXAMS = [
 ];
 
 export default function StudentProfile() {
-  const { user, profile, guest, coinBalance, accountAccess, supabase, signOut, refreshAccount } = useAuth();
+  const { user, profile, guest, coinBalance, walletLoaded, accountAccess, supabase, signOut, refreshAccount } = useAuth();
+  const {
+    completedAttempts: attempts,
+    testsAttempted: testsAttemptedCount,
+    accuracy: rawAccuracy,
+    streakData,
+    currentStreak: streakDays,
+    loading: statsLoading
+  } = useStudentStats();
   const navigate = useNavigate();
 
   // Modals state
@@ -38,13 +46,6 @@ export default function StudentProfile() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [supportModalOpen, setSupportModalOpen] = useState(false);
   const [streakModalOpen, setStreakModalOpen] = useState(false);
-  const [streakVersion, setStreakVersion] = useState(0);
-
-  useEffect(() => {
-    const handleStreakUpdate = () => setStreakVersion((v) => v + 1);
-    window.addEventListener('zyvra:streak-updated', handleStreakUpdate);
-    return () => window.removeEventListener('zyvra:streak-updated', handleStreakUpdate);
-  }, []);
 
   // Edit profile form state
   const [fullName, setFullName] = useState('');
@@ -163,8 +164,7 @@ export default function StudentProfile() {
     }
   };
 
-  // User Stats & Access State
-  const [attempts, setAttempts] = useState([]);
+  // Access State
   const accessStatus = accountAccess?.userId === user?.id
     ? accountAccess.ready ? 'ready' : accountAccess.loading ? 'loading' : 'error'
     : 'loading';
@@ -233,50 +233,8 @@ export default function StudentProfile() {
     }
   }, [user?.id]);
 
-  // Load User Stats & Access strictly from Supabase
-  useEffect(() => {
-    let active = true;
-    const fetchUserData = async () => {
-      if (!supabase || !user) return;
-      try {
-        const { data: attemptRows } = await supabase
-          .from('test_attempts')
-          .select('id,score,total_questions,status,completed_at,created_at')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(500);
-
-        if (!active) return;
-        setAttempts(attemptRows || []);
-      } catch (err) {
-        console.warn('Unable to load user profile stats:', err);
-      }
-    };
-
-    fetchUserData();
-    return () => { active = false; };
-  }, [supabase, user]);
-
-  // Real Derived Stats
-  const testsAttemptedCount = useMemo(() => attempts.length, [attempts]);
-
-  const questionsSolvedCount = useMemo(() => {
-    return attempts.reduce((acc, att) => acc + (Number(att.score || att.total_questions || 0)), 0);
-  }, [attempts]);
-
-  const accuracyPercent = useMemo(() => {
-    if (!attempts.length) return 0;
-    const scoredAttempts = attempts.filter((att) => Number(att.score) > 0 && Number(att.total_questions) > 0);
-    if (!scoredAttempts.length) return 0;
-    const avg = scoredAttempts.reduce((acc, att) => acc + (att.score / att.total_questions) * 100, 0) / scoredAttempts.length;
-    return Math.min(100, Math.round(avg));
-  }, [attempts]);
-
-  const streakData = useMemo(() => {
-    return syncAttemptsWithStreak(user?.id || 'guest', attempts, profile);
-  }, [attempts, profile?.current_streak, profile?.last_active_date, user?.id, streakVersion]);
-
-  const streakDays = streakData.currentStreak;
+  // Unified Accuracy %
+  const accuracyPercent = Number(Number(rawAccuracy || 0).toFixed(1));
 
   const displayName = fullName || profile?.full_name || profile?.name || user?.user_metadata?.full_name || (guest ? 'Guest Student' : 'Student');
   const displayEmail = user?.email || (guest ? 'guest@zyvra.in' : '');
@@ -797,7 +755,7 @@ export default function StudentProfile() {
           <div className="flex items-center justify-between mb-2 px-1">
             <h3 className="text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500 flex items-center gap-1.5">
               <BarChart3 size={14} className="text-indigo-500" />
-              <span>Tayyari Tracker (प्रगति रिपोर्ट)</span>
+              <span>Progress Tracker</span>
             </h3>
             <Link to="/analytics" className="text-[11px] text-indigo-500 hover:text-indigo-400 font-bold flex items-center gap-0.5">
               <span>Full Analytics</span>
@@ -817,7 +775,11 @@ export default function StudentProfile() {
                 <Flame size={16} className={streakDays > 0 ? 'fill-orange-500 animate-pulse' : 'text-slate-400'} />
               </div>
               <div className="text-base sm:text-xl font-black dark:text-orange-400 text-orange-600 tracking-tight">
-                {streakDays} <span className="text-[10px] font-bold">days</span>
+                {statsLoading ? (
+                  <span className="inline-block h-5 w-12 rounded bg-orange-500/20 animate-pulse" aria-hidden="true" />
+                ) : (
+                  <>{streakDays} <span className="text-[10px] font-bold">days</span></>
+                )}
               </div>
               <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 flex items-center gap-1">
                 <span>Streak</span>
@@ -859,7 +821,11 @@ export default function StudentProfile() {
                 <FileText size={16} />
               </div>
               <div className="text-base sm:text-xl font-black dark:text-white text-slate-900 tracking-tight">
-                {testsAttemptedCount}
+                {statsLoading ? (
+                  <span className="inline-block h-5 w-8 rounded bg-slate-300 dark:bg-slate-700 animate-pulse" aria-hidden="true" />
+                ) : (
+                  testsAttemptedCount
+                )}
               </div>
               <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">
                 Tests Given
@@ -872,7 +838,11 @@ export default function StudentProfile() {
                 <CheckCircle2 size={16} />
               </div>
               <div className="text-base sm:text-xl font-black dark:text-emerald-400 text-emerald-600 tracking-tight">
-                {accuracyPercent}%
+                {statsLoading ? (
+                  <span className="inline-block h-5 w-10 rounded bg-emerald-500/20 animate-pulse" aria-hidden="true" />
+                ) : (
+                  `${accuracyPercent}%`
+                )}
               </div>
               <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">
                 Accuracy
@@ -909,7 +879,11 @@ export default function StudentProfile() {
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-700 dark:text-amber-300 font-black text-xs group-hover:scale-105 transition-transform">
                 <span>🪙</span>
-                <span>{Number(coinBalance || 0).toLocaleString()}</span>
+                {!walletLoaded ? (
+                  <span className="inline-block h-3.5 w-8 rounded bg-amber-500/25 animate-pulse" aria-hidden="true" />
+                ) : (
+                  <span>{Number(coinBalance || 0).toLocaleString()}</span>
+                )}
               </div>
               <ChevronRight size={16} className="text-amber-500 group-hover:translate-x-0.5 transition-transform" />
             </div>
@@ -920,7 +894,7 @@ export default function StudentProfile() {
         <section className="space-y-2">
           <div className="px-1 flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500 flex items-center gap-1.5">
-              <span>📚 Mera Adhyayan (अध्ययन और अभ्यास)</span>
+              <span>Study & Practice</span>
             </h3>
             <span className="text-[10px] text-slate-400 font-semibold">Your Study Content</span>
           </div>
@@ -1699,7 +1673,7 @@ export default function StudentProfile() {
             <div>
               <h3 className="text-base font-black">Invite Friends & Earn Free Coins</h3>
               <p className="text-xs dark:text-slate-400 text-slate-600 mt-1">
-                Share your referral link with study friends. Jab wo Zyvra par judenge, aap dono ko bonus coins milenge!
+                Share your referral link with study friends. When they join Zyvra, you both earn bonus coins!
               </p>
             </div>
 
@@ -1815,7 +1789,7 @@ export default function StudentProfile() {
 
             <div className="space-y-3 text-xs dark:text-slate-300 text-slate-600">
               <p>
-                Kisi bhi sawal, test issue, pass activation ya billing ke liye hamari student support team se turant sampark karein:
+                Reach out to our student support team anytime for help with questions, tests, pass activation, or billing:
               </p>
 
               {/* Start In-App Live Chat Button */}
@@ -1830,7 +1804,7 @@ export default function StudentProfile() {
                 className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
               >
                 <MessageCircle size={17} />
-                <span>💬 Start Live Chat (लाइव चैट शुरू करें)</span>
+                <span>Start Live Chat</span>
               </button>
 
               <div className="p-3.5 rounded-2xl dark:bg-slate-900/90 bg-slate-50 border dark:border-slate-800 border-slate-200 space-y-2.5">

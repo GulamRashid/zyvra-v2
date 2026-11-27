@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import AppErrorBoundary from './components/common/AppErrorBoundary';
 import { AuthProvider } from './context/AuthContext';
+import { StudentStatsProvider } from './context/StudentStatsContext';
 import { ThemeLanguageProvider } from './context/ThemeLanguageContext';
 import './styles.css';
 
@@ -25,7 +26,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <QueryClientProvider client={queryClient}>
         <ThemeLanguageProvider>
           <AuthProvider>
-            <BrowserRouter><App /></BrowserRouter>
+            <StudentStatsProvider>
+              <BrowserRouter><App /></BrowserRouter>
+            </StudentStatsProvider>
           </AuthProvider>
         </ThemeLanguageProvider>
       </QueryClientProvider>

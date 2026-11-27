@@ -68,6 +68,7 @@ export default function StudentNotifications() {
     setReadIds(newSet);
     try {
       localStorage.setItem(storageKey, JSON.stringify(Array.from(newSet)));
+      window.dispatchEvent(new window.CustomEvent('zyvra:notifications-updated'));
     } catch { /* ignore storage write error */ }
   };
 
@@ -78,6 +79,7 @@ export default function StudentNotifications() {
     setReadIds(newSet);
     try {
       localStorage.setItem(storageKey, JSON.stringify(Array.from(newSet)));
+      window.dispatchEvent(new window.CustomEvent('zyvra:notifications-updated'));
     } catch { /* ignore storage write error */ }
   };
 

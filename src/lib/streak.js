@@ -19,6 +19,33 @@ export const STREAK_MILESTONES = [
 ];
 
 /**
+ * Format any Date or ISO timestamp into an IST ('Asia/Kolkata') 'YYYY-MM-DD' key
+ */
+export function toISTDateString(dateInput = new Date()) {
+  if (!dateInput) return null;
+  if (typeof dateInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateInput)) {
+    return dateInput;
+  }
+  const d = new Date(dateInput);
+  if (Number.isNaN(d.getTime())) return null;
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Kolkata',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(d);
+  } catch {
+    const istOffsetMs = 330 * 60 * 1000;
+    const istDate = new Date(d.getTime() + istOffsetMs);
+    const year = istDate.getUTCFullYear();
+    const month = String(istDate.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(istDate.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+}
+
+/**
  * Format any Date or ISO timestamp into a local 'YYYY-MM-DD' key
  */
 export function toLocalDateString(dateInput = new Date()) {
@@ -201,34 +228,46 @@ export function saveStoredActivityDates(userId = 'guest', dates = []) {
  * Synchronize database test attempts, profile data, and local storage dates
  */
 export function syncAttemptsWithStreak(userId = 'guest', attempts = [], profile = null) {
-  const stored = getStoredActivityDates(userId);
-  const dateSet = new Set(stored);
+  const safeUserId = typeof userId === 'string' && userId.trim() ? userId : 'guest';
+  const stored = getStoredActivityDates(safeUserId);
+  const dateSet = new Set(stored.map((d) => toISTDateString(d)).filter(Boolean));
 
-  // Extract from test attempts
+  // Extract from test attempts (using IST date keys)
   (Array.isArray(attempts) ? attempts : []).forEach((att) => {
     const ts = att?.completed_at || att?.submitted_at || att?.finished_at || att?.created_at;
     if (ts) {
-      const key = toLocalDateString(ts);
+      const key = toISTDateString(ts);
       if (key) dateSet.add(key);
     }
   });
 
   // Extract from profile's last_active_date
   if (profile?.last_active_date) {
-    const key = toLocalDateString(profile.last_active_date);
+    const key = toISTDateString(profile.last_active_date);
     if (key) dateSet.add(key);
   }
 
   const mergedDates = Array.from(dateSet);
-  saveStoredActivityDates(userId, mergedDates);
+  saveStoredActivityDates(safeUserId, mergedDates);
 
-  const streakData = calculateStreakData(mergedDates);
+  const todayISTKey = toISTDateString(new Date());
+  const refDate = todayISTKey ? new Date(`${todayISTKey}T12:00:00`) : new Date();
+  const streakData = calculateStreakData(mergedDates, refDate);
 
-  // If profile has a higher streak recorded, take the maximum for user encouragement
-  if (profile?.current_streak && Number(profile.current_streak) > streakData.currentStreak) {
-    streakData.currentStreak = Number(profile.current_streak);
-    if (streakData.currentStreak > streakData.longestStreak) {
-      streakData.longestStreak = streakData.currentStreak;
+  // If profile has a higher streak recorded and last_active_date is today or yesterday, preserve it
+  const profileStreak = Number(profile?.current_streak || 0);
+  if (profileStreak > streakData.currentStreak) {
+    const lastActiveKey = profile?.last_active_date ? toISTDateString(profile.last_active_date) : null;
+    const yesterdayISTKey = toISTDateString(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    if (!lastActiveKey || lastActiveKey === todayISTKey || lastActiveKey === yesterdayISTKey) {
+      streakData.currentStreak = profileStreak;
+      if (streakData.currentStreak > streakData.longestStreak) {
+        streakData.longestStreak = streakData.currentStreak;
+      }
+      if (lastActiveKey === todayISTKey) {
+        streakData.isActiveToday = true;
+        streakData.streakAtRisk = false;
+      }
     }
   }
 
@@ -239,27 +278,53 @@ export function syncAttemptsWithStreak(userId = 'guest', attempts = [], profile 
  * Record a study activity (test submission, tool usage, chapter practice)
  */
 export async function recordStudyActivity(supabase = null, userId = 'guest', activityType = 'study_session') {
-  const todayKey = toLocalDateString();
-  const stored = getStoredActivityDates(userId);
-  const dateSet = new Set(stored);
-  dateSet.add(todayKey);
+  const safeUserId = typeof userId === 'string' && userId.trim() ? userId : 'guest';
+  const todayKey = toISTDateString(new Date());
+  const yesterdayKey = toISTDateString(new Date(Date.now() - 24 * 60 * 60 * 1000));
+  const stored = getStoredActivityDates(safeUserId);
+  const dateSet = new Set(stored.map((d) => toISTDateString(d)).filter(Boolean));
+  if (todayKey) dateSet.add(todayKey);
 
   const mergedDates = Array.from(dateSet);
-  saveStoredActivityDates(userId, mergedDates);
+  saveStoredActivityDates(safeUserId, mergedDates);
 
-  const streakData = calculateStreakData(mergedDates);
+  const refDate = todayKey ? new Date(`${todayKey}T12:00:00`) : new Date();
+  const streakData = calculateStreakData(mergedDates, refDate);
 
-  // Sync with Supabase profiles table if authenticated
-  if (supabase && userId && userId !== 'guest') {
+  // Sync with Supabase profiles table if authenticated, never downgrading an active DB streak
+  if (supabase && safeUserId !== 'guest') {
     try {
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('current_streak, last_active_date')
+        .eq('id', safeUserId)
+        .maybeSingle();
+
+      let nextStreak = Math.max(1, streakData.currentStreak);
+      const dbStreak = Number(existingProfile?.current_streak || 0);
+      const dbLastActive = existingProfile?.last_active_date ? toISTDateString(existingProfile.last_active_date) : null;
+
+      if (dbStreak > 0) {
+        if (dbLastActive === todayKey) {
+          nextStreak = Math.max(nextStreak, dbStreak);
+        } else if (dbLastActive === yesterdayKey) {
+          nextStreak = Math.max(nextStreak, dbStreak + 1);
+        }
+      }
+
+      streakData.currentStreak = nextStreak;
+      if (nextStreak > streakData.longestStreak) {
+        streakData.longestStreak = nextStreak;
+      }
+
       await supabase
         .from('profiles')
         .update({
-          current_streak: streakData.currentStreak,
+          current_streak: nextStreak,
           last_active_date: todayKey,
           updated_at: new Date().toISOString()
         })
-        .eq('id', userId);
+        .eq('id', safeUserId);
     } catch (err) {
       console.warn('Could not update streak in Supabase profiles:', err);
     }

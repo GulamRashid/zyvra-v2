@@ -70,7 +70,7 @@ function transactionDate(transaction) {
 
 export default function StudentWallet() {
   const navigate = useNavigate();
-  const { user, coinBalance, supabase } = useAuth();
+  const { user, coinBalance, walletLoaded, supabase } = useAuth();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -149,38 +149,52 @@ export default function StudentWallet() {
           </div>
         )}
 
-        {/* Hero Card: Available Balance & Totals - Bright Amber Dopamine Trigger */}
-        <section className="wallet-hero relative overflow-hidden rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-amber-500/30 border-amber-200 p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* Hero Card: Available Balance & Totals - High Contrast on Dark Navy */}
+        <section className="wallet-hero relative overflow-hidden rounded-3xl border border-amber-500/30 p-5 sm:p-6 shadow-sm flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-white">
           <div className="flex items-center gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-500 shadow-xs shrink-0">
+            <div className="w-12 h-12 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shadow-xs shrink-0">
               <Coins size={24} />
             </div>
             <div>
-              <div className="text-[10px] uppercase font-bold dark:text-amber-400 text-amber-800 tracking-wider">
+              <div className="text-[10px] uppercase font-bold text-amber-300 tracking-wider">
                 Available Balance
               </div>
-              <h2 className="text-2xl sm:text-4xl font-black text-amber-600 dark:text-amber-400 tracking-tight">
-                {Number(coinBalance || 0).toLocaleString()}{' '}
-                <span className="text-xs font-bold text-amber-600 dark:text-amber-300">coins</span>
+              <h2 className="text-2xl sm:text-4xl font-black !text-white tracking-tight">
+                {!walletLoaded ? (
+                  <span className="inline-block h-8 w-24 rounded-lg bg-white/15 animate-pulse align-middle" aria-hidden="true" />
+                ) : (
+                  <>
+                    {Number(coinBalance || 0).toLocaleString()}{' '}
+                    <span className="text-xs font-bold text-amber-300">coins</span>
+                  </>
+                )}
               </h2>
-              <p className="wallet-hero-copy text-xs dark:text-slate-300 text-slate-600 font-medium mt-0.5">
+              <p className="text-xs !text-slate-200 font-medium mt-0.5">
                 Ready to redeem on eligible Zyvra purchases (10 Coins = ₹1).
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 dark:border-slate-700/60 border-slate-200">
-            <div className="p-2.5 rounded-xl dark:bg-slate-800/80 bg-white shadow-xs border dark:border-slate-700/60 border-slate-200 text-left flex-1 sm:flex-initial">
-              <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-400 block">Total Earned</span>
-              <strong className="text-sm font-extrabold text-[#10B981] flex items-center gap-1">
-                <ArrowDownLeft size={13} /> {summary.earned.toLocaleString()}
+          <div className="flex items-center gap-3 w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-700/60">
+            <div className="p-2.5 rounded-xl bg-slate-900/70 shadow-xs border border-slate-700/70 text-left flex-1 sm:flex-initial">
+              <span className="text-[10px] uppercase font-bold text-slate-300 block">Total Earned</span>
+              <strong className="text-sm font-extrabold text-emerald-400 flex items-center gap-1">
+                {loading ? (
+                  <span className="inline-block h-4 w-10 rounded bg-emerald-400/20 animate-pulse" aria-hidden="true" />
+                ) : (
+                  <><ArrowDownLeft size={13} /> {summary.earned.toLocaleString()}</>
+                )}
               </strong>
             </div>
 
-            <div className="p-2.5 rounded-xl dark:bg-slate-800/80 bg-white shadow-xs border dark:border-slate-700/60 border-slate-200 text-left flex-1 sm:flex-initial">
-              <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-400 block">Total Spent</span>
-              <strong className="text-sm font-extrabold text-amber-600 dark:text-amber-400 flex items-center gap-1">
-                <ArrowUpRight size={13} /> {summary.spent.toLocaleString()}
+            <div className="p-2.5 rounded-xl bg-slate-900/70 shadow-xs border border-slate-700/70 text-left flex-1 sm:flex-initial">
+              <span className="text-[10px] uppercase font-bold text-slate-300 block">Total Spent</span>
+              <strong className="text-sm font-extrabold text-amber-300 flex items-center gap-1">
+                {loading ? (
+                  <span className="inline-block h-4 w-10 rounded bg-amber-300/20 animate-pulse" aria-hidden="true" />
+                ) : (
+                  <><ArrowUpRight size={13} /> {summary.spent.toLocaleString()}</>
+                )}
               </strong>
             </div>
           </div>

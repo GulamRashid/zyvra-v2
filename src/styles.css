@@ -125,14 +125,14 @@ body.light {
 }
 
 /* Light mode primary headings and titles: #0F172A (Slate 900) */
-body.light h1:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
-body.light h2:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
-body.light h3:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
-body.light h4:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
-body.light h5:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
-body.light h6:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
-body.light strong:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
-body.light b:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *),
+body.light h1:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *):not(.hero-carousel-banner *):not(.wallet-hero *),
+body.light h2:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *):not(.hero-carousel-banner *):not(.wallet-hero *),
+body.light h3:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *):not(.hero-carousel-banner *):not(.wallet-hero *),
+body.light h4:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *):not(.hero-carousel-banner *):not(.wallet-hero *),
+body.light h5:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *):not(.hero-carousel-banner *):not(.wallet-hero *),
+body.light h6:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *):not(.hero-carousel-banner *):not(.wallet-hero *),
+body.light strong:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *):not(.hero-carousel-banner *):not(.wallet-hero *),
+body.light b:not([role="dialog"] *):not(.dark-dialog *):not(.modal-dialog *):not(.hero-carousel-banner *):not(.wallet-hero *),
 body.light .card-heading h3,
 body.light .section-heading h2,
 body.light .quiz-question-text,

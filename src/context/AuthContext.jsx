@@ -5,7 +5,24 @@ import { ensureReferralCode, processReferralAward } from '../lib/referrals';
 import { getFriendlyErrorMessage } from '../lib/errors';
 
 const AuthContext = createContext(null);
-const ACCOUNT_QUERY_TIMEOUT_MS = 7000;
+const ACCOUNT_QUERY_TIMEOUT_MS = 3500;
+const ACCESS_CACHE_PREFIX = 'zyvra_cached_access_';
+const WALLET_CACHE_PREFIX = 'zyvra_cached_wallet_';
+
+function readCachedJson(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedJson(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {}
+}
 
 function withTimeout(request, label) {
   return new Promise((resolve, reject) => {
@@ -22,6 +39,7 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null);
   const [profileError, setProfileError] = useState('');
   const [coinBalance, setCoinBalance] = useState(0);
+  const [walletLoaded, setWalletLoaded] = useState(!supabase);
   const [accountAccess, setAccountAccess] = useState({ userId: null, loading: Boolean(supabase), ready: false, isPremium: false, unlockedCount: 0, validTill: 'Free plan' });
   const [loading, setLoading] = useState(Boolean(supabase));
   const [guest, setGuest] = useState(() => {
@@ -40,14 +58,27 @@ export function AuthProvider({ children }) {
     if (!activeSession?.user || !supabase) {
       setProfile(null);
       setCoinBalance(0);
+      setWalletLoaded(true);
       setAccountAccess({ userId: null, loading: false, ready: true, isPremium: false, unlockedCount: 0, validTill: 'Free plan' });
       return;
     }
     const userId = activeSession.user.id;
     setProfileError('');
-    setAccountAccess((current) => current.userId === userId && current.ready
-      ? { ...current, loading: true }
-      : { userId, loading: true, ready: false, isPremium: false, unlockedCount: 0, validTill: 'Free plan' });
+
+    // Hydrate cached entitlement & wallet immediately (<1s) while fresh queries run in background
+    const cachedAccess = readCachedJson(`${ACCESS_CACHE_PREFIX}${userId}`);
+    const cachedWallet = readCachedJson(`${WALLET_CACHE_PREFIX}${userId}`);
+    if (cachedWallet && Number.isFinite(Number(cachedWallet.balance))) {
+      setCoinBalance(Number(cachedWallet.balance));
+      setWalletLoaded(true);
+    }
+    if (cachedAccess && cachedAccess.userId === userId) {
+      setAccountAccess({ ...cachedAccess, loading: false, ready: true });
+    } else {
+      setAccountAccess((current) => current.userId === userId && current.ready
+        ? { ...current, loading: false }
+        : { userId, loading: true, ready: false, isPremium: false, unlockedCount: 0, validTill: 'Free plan' });
+    }
     const results = await Promise.allSettled([
       withTimeout(supabase.from('profiles').select('account_status,avatar_url,created_at,current_streak,daily_goal_progress,daily_goal_target,daily_goal_type,email,email_verified,full_name,id,last_active_date,mobile,mobile_verified,onboarding_completed,preferred_language,referral_code,role,target_exams,theme,updated_at').eq('id', userId).maybeSingle(), 'Profile lookup'),
       withTimeout(supabase.from('coin_wallets').select('balance').eq('user_id', userId).maybeSingle(), 'Coin balance lookup'),
@@ -70,15 +101,18 @@ export function AuthProvider({ children }) {
     }
     if (!walletResult || (walletResult.error && walletResult.error.code !== 'PGRST116')) {
       console.warn('Unable to load wallet balance:', walletResult?.error || results[1].reason);
-      setCoinBalance(0);
+      if (!cachedWallet) setCoinBalance(0);
     } else {
-      setCoinBalance(Number(walletResult.data?.balance || 0));
+      const nextBalance = Number(walletResult.data?.balance || 0);
+      setCoinBalance(nextBalance);
+      writeCachedJson(`${WALLET_CACHE_PREFIX}${userId}`, { balance: nextBalance, cachedAt: Date.now() });
     }
+    setWalletLoaded(true);
 
     if (!accessResult || accessResult.error) {
       console.warn('Unable to load account access:', accessResult?.error || results[2].reason);
       setAccountAccess((current) => current.userId === userId
-        ? { ...current, loading: false, ready: false }
+        ? { ...current, loading: false, ready: current.ready || false }
         : current);
     } else {
       const now = Date.now();
@@ -92,7 +126,9 @@ export function AuthProvider({ children }) {
       const validTill = latestExpiry
         ? new Date(latestExpiry).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
         : isPremium ? 'Lifetime Access' : 'Free plan';
-      setAccountAccess({ userId, loading: false, ready: true, isPremium, unlockedCount: activeGrants.length, validTill });
+      const nextAccess = { userId, loading: false, ready: true, isPremium, unlockedCount: activeGrants.length, validTill };
+      setAccountAccess(nextAccess);
+      writeCachedJson(`${ACCESS_CACHE_PREFIX}${userId}`, nextAccess);
     }
 
     if (profileResult?.data && !profileResult.data.referral_code) {
@@ -143,7 +179,7 @@ export function AuthProvider({ children }) {
     const initialize = async () => {
       try {
         const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Session hydration timeout')), 8000);
+          setTimeout(() => reject(new Error('Session hydration timeout')), 4000);
         });
         const { data, error } = await Promise.race([
           supabase.auth.getSession(),
@@ -266,10 +302,10 @@ export function AuthProvider({ children }) {
   const refreshAccount = useCallback(() => loadAccount(session), [loadAccount, session]);
   const role = profile?.role || (guest ? 'guest' : 'student');
   const value = useMemo(() => ({
-    supabase, session, user: session?.user || null, profile, profileError, coinBalance, accountAccess, loading, guest,
+    supabase, session, user: session?.user || null, profile, profileError, coinBalance, walletLoaded, accountAccess, loading, guest,
     guestDemoEnabled, role, isAdmin: ['admin', 'super_admin'].includes(role),
     enterGuestMode, signOut, refreshAccount, configurationError: supabaseConfigurationError
-  }), [session, profile, profileError, coinBalance, accountAccess, loading, guest, guestDemoEnabled, role, enterGuestMode, signOut, refreshAccount]);
+  }), [session, profile, profileError, coinBalance, walletLoaded, accountAccess, loading, guest, guestDemoEnabled, role, enterGuestMode, signOut, refreshAccount]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

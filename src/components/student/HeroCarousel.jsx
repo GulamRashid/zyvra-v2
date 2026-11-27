@@ -40,7 +40,13 @@ export default function HeroCarousel() {
         .order('created_at', { ascending: false });
 
       if (!error && data && data.length > 0) {
-        setBanners(data);
+        const now = Date.now();
+        const activeList = data.filter((b) => {
+          if (b.start_date && new Date(b.start_date).getTime() > now) return false;
+          if (b.end_date && new Date(b.end_date).getTime() < now) return false;
+          return true;
+        });
+        setBanners(activeList);
       } else {
         setBanners([]);
       }
@@ -130,15 +136,17 @@ export default function HeroCarousel() {
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
-      className="group relative overflow-hidden rounded-2xl w-full h-[165px] sm:h-[185px] md:h-[220px] lg:h-[235px] cursor-pointer select-none transition-all duration-300 shadow-md hover:shadow-xl dark:shadow-indigo-950/40 border dark:border-indigo-500/25 border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+      className="hero-carousel-banner group relative overflow-hidden rounded-2xl w-full h-[165px] sm:h-[185px] md:h-[220px] lg:h-[235px] cursor-pointer select-none transition-all duration-300 shadow-md hover:shadow-xl dark:shadow-indigo-950/40 border dark:border-indigo-500/25 border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
     >
       {/* 1. FULL-BLEED BACKGROUND IMAGE (SVG, PNG, WebP) */}
       {hasCustomImage ? (
-        <img
-          src={activeBanner.custom_image_url}
-          alt={activeBanner.title || 'Banner Artwork'}
-          className="absolute inset-0 w-full h-full object-cover object-center group-hover:scale-[1.015] transition-transform duration-500 ease-out pointer-events-none"
-        />
+        <div className="absolute inset-0 bg-[#0F172A] flex items-center justify-center pointer-events-none">
+          <img
+            src={activeBanner.custom_image_url}
+            alt={activeBanner.alt_text || 'Promotional banner'}
+            className={`w-full h-full ${showTextOverlay ? 'object-cover object-center' : 'object-contain object-center'} group-hover:scale-[1.015] transition-transform duration-500 ease-out`}
+          />
+        </div>
       ) : (
         /* Fallback Clean Geometric Tech Gradient */
         <div className="absolute inset-0 dark:bg-gradient-to-br dark:from-[#1E293B] dark:via-[#0F172A] dark:to-[#0B1120] bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 pointer-events-none">
@@ -159,10 +167,13 @@ export default function HeroCarousel() {
       {/* 2. MODE A: BACKGROUND + TEXT + BUTTON OVERLAY */}
       {showTextOverlay ? (
         <>
-          {/* Dark gradient scrim over the background image for high contrast readability */}
-          {hasCustomImage && (
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/60 to-transparent pointer-events-none" />
-          )}
+          {/* Dark gradient scrim over the background image/card for high contrast readability */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: `linear-gradient(90deg, rgba(2,6,23,${Math.max(0.2, Math.min(0.95, Number(activeBanner.overlay_opacity ?? 75) / 100))}) 0%, rgba(2,6,23,${Math.max(0.1, Math.min(0.85, (Number(activeBanner.overlay_opacity ?? 75) / 100) * 0.7))}) 55%, rgba(2,6,23,0.18) 100%)`
+            }}
+          />
 
           {/* Text and Action Content (No right icon box!) */}
           <div className="relative z-10 w-full h-full p-4 sm:p-6 md:p-8 flex flex-col justify-between max-w-xl md:max-w-2xl">
@@ -173,12 +184,18 @@ export default function HeroCarousel() {
                 </span>
               )}
 
-              <h2 className="text-base sm:text-xl md:text-2xl font-black text-white tracking-tight leading-snug line-clamp-2 drop-shadow-md">
+              <h2
+                className="text-base sm:text-xl md:text-2xl font-black !text-white tracking-tight leading-snug line-clamp-2 drop-shadow-md"
+                style={activeBanner.text_color ? { color: activeBanner.text_color } : undefined}
+              >
                 {activeBanner.title}
               </h2>
 
               {activeBanner.subtitle && (
-                <p className="text-xs sm:text-sm text-slate-200 line-clamp-2 font-medium max-w-lg drop-shadow-sm">
+                <p
+                  className="text-xs sm:text-sm !text-slate-100 line-clamp-2 font-medium max-w-lg drop-shadow-sm"
+                  style={activeBanner.text_color ? { color: activeBanner.text_color, opacity: 0.92 } : undefined}
+                >
                   {activeBanner.subtitle}
                 </p>
               )}

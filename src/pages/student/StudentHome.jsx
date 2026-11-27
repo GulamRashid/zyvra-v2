@@ -24,22 +24,12 @@ import ContentIcon from '../../components/common/ContentIcon';
 import DailyStreakModal from '../../components/student/DailyStreakModal';
 import useModalBack from '../../hooks/useModalBack';
 import { useAuth } from '../../context/AuthContext';
+import { useStudentStats } from '../../context/StudentStatsContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getExamCategory, isPublished, sortContentItems } from '../../lib/content';
 import { getRecommendedPractice } from '../../lib/recommendations';
-import { getAnsweredQuestionCount } from '../../lib/tests';
-import { syncAttemptsWithStreak, calculateStreakData, getStoredActivityDates, toLocalDateString } from '../../lib/streak';
-
-function isComplete(attempt) {
-  const status = String(attempt?.status || '').toLowerCase();
-  return ['completed', 'submitted', 'graded', 'finished'].includes(status)
-    || Boolean(attempt?.completed_at || attempt?.submitted_at || attempt?.finished_at);
-}
-
-function localDateKey(date = new Date()) {
-  return toLocalDateString(date);
-}
+import { getISTGreeting } from '../../lib/studentStats';
 
 function loadSavedChapter(userId) {
   if (!userId) return null;
@@ -93,14 +83,20 @@ const quickActionTiles = [
 
 export default function StudentHome() {
   const { profile, profileError, guest, user, supabase, refreshAccount } = useAuth();
+  const {
+    allAttempts,
+    completedAttempts: attempts,
+    todayQuestionsSolved,
+    streakData,
+    currentStreak: streak,
+    loading: statsLoading,
+    refreshStats
+  } = useStudentStats();
   const { language } = useThemeLanguage();
   const { exams, chapters } = useContentCatalog();
 
-  const [attempts, setAttempts] = useState([]);
-  const [allAttempts, setAllAttempts] = useState([]);
   const [availableTests, setAvailableTests] = useState([]);
-  const [resumeAttempt, setResumeAttempt] = useState(null);
-  const [dashboardLoading, setDashboardLoading] = useState(Boolean(supabase && user));
+  const [testsLoading, setTestsLoading] = useState(Boolean(supabase));
   const [dashboardError, setDashboardError] = useState('');
   const [overviewRetry, setOverviewRetry] = useState(0);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
@@ -110,14 +106,8 @@ export default function StudentHome() {
   const fullName = profile?.full_name || profile?.name || user?.user_metadata?.full_name || '';
   const firstName = fullName ? fullName.split(' ')[0] : 'Learner';
 
-  // Time-based greeting
-  const greetingPhrase = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return language === 'hi' ? 'शुभ प्रभात' : 'Good Morning';
-    if (hour < 17) return language === 'hi' ? 'शुभ दोपहर' : 'Good Afternoon';
-    if (hour < 21) return language === 'hi' ? 'शुभ संध्या' : 'Good Evening';
-    return language === 'hi' ? 'शुभ रात्रि' : 'Good Night';
-  }, [language]);
+  // IST Time-based greeting (Asia/Kolkata)
+  const greetingPhrase = useMemo(() => getISTGreeting(language), [language]);
 
   // Saved chapter from local storage
   const [savedChapter, setSavedChapter] = useState(() => loadSavedChapter(user?.id));
@@ -125,147 +115,69 @@ export default function StudentHome() {
   useEffect(() => {
     if (user && supabase) {
       refreshAccount().catch((err) => console.error('Unable to refresh account:', err));
+      refreshStats();
     }
-  }, [user, supabase, refreshAccount]);
+  }, [user, supabase, refreshAccount, refreshStats]);
 
   useEffect(() => {
     setSavedChapter(loadSavedChapter(user?.id));
   }, [user?.id]);
 
-  // Load test attempts & available tests strictly from Supabase
+  // Load available tests from Supabase
   useEffect(() => {
     let active = true;
-    const loadOverview = async () => {
+    const loadTests = async () => {
       if (!supabase) {
-        setDashboardLoading(false);
+        setTestsLoading(false);
         return;
       }
-      setDashboardLoading(true);
+      setTestsLoading(true);
       setDashboardError('');
 
       try {
-        let attemptsQuery = supabase
-          .from('test_attempts')
-          .select('id, test_id, score, total_questions, status, started_at, completed_at, submitted_at')
-          .order('started_at', { ascending: false });
-
-        if (user?.id) {
-          attemptsQuery = attemptsQuery.eq('user_id', user.id);
-        }
-
-        const [attemptsRes, testsRes] = await Promise.all([
-          attemptsQuery,
-          supabase
-            .from('tests')
-            .select('id, title, chapter_id, status, duration_minutes, total_marks, is_free, coin_reward_enabled, created_at')
-            .in('status', ['published', 'live', 'available'])
-        ]);
+        const testsRes = await supabase
+          .from('tests')
+          .select('id, title, chapter_id, status, duration_minutes, total_marks, is_free, coin_reward_enabled, created_at')
+          .in('status', ['published', 'live', 'available']);
 
         if (!active) return;
-
-        if (attemptsRes.error) {
-          console.warn('Dashboard attempts query error:', attemptsRes.error);
-        }
         if (testsRes.error) {
           console.warn('Dashboard tests query error:', testsRes.error);
         }
-
-        const loadedAttempts = attemptsRes.data || [];
-        const loadedTests = testsRes.data || [];
-
-        setAllAttempts(loadedAttempts);
-        setAvailableTests(loadedTests);
-
-        // Resume candidate: latest in-progress attempt that hasn't expired
-        const inProgress = loadedAttempts.find((a) => {
-          const status = String(a.status || '').toLowerCase();
-          return status === 'in_progress' || status === 'paused' || status === 'active';
-        });
-
-        if (inProgress) {
-          const matchedTest = loadedTests.find((t) => t.id === inProgress.test_id);
-          if (matchedTest) {
-            setResumeAttempt({ ...inProgress, testTitle: matchedTest.title });
-          } else {
-            setResumeAttempt(null);
-          }
-        } else {
-          setResumeAttempt(null);
-        }
-
-        // Completed attempts for scoring & activity
-        const completedAttempts = loadedAttempts.filter(isComplete);
-        setAttempts(completedAttempts);
-
-        // Sync attempts with study streak
-        if (user?.id) {
-          syncAttemptsWithStreak(supabase, user.id, loadedAttempts);
-        }
+        setAvailableTests(testsRes.data || []);
       } catch (err) {
         console.error('Overview loading failed:', err);
         if (active) {
           setDashboardError('Could not load dashboard data.');
         }
       } finally {
-        if (active) setDashboardLoading(false);
+        if (active) setTestsLoading(false);
       }
     };
 
-    loadOverview();
-
+    loadTests();
     return () => {
       active = false;
     };
-  }, [supabase, user?.id, overviewRetry]);
+  }, [supabase, overviewRetry]);
+
+  const dashboardLoading = statsLoading || testsLoading;
+
+  const resumeAttempt = useMemo(() => {
+    const inProgress = (allAttempts || []).find((a) => {
+      const status = String(a.status || '').toLowerCase();
+      return status === 'in_progress' || status === 'paused' || status === 'active';
+    });
+    if (!inProgress) return null;
+    const matchedTest = availableTests.find((t) => t.id === inProgress.test_id);
+    return matchedTest ? { ...inProgress, testTitle: matchedTest.title } : null;
+  }, [allAttempts, availableTests]);
 
   // Compute Daily Questions Target Progress
   const dailyTarget = Number(profile?.daily_goal_target || 20);
-
-  const todayQuestionsSolved = useMemo(() => {
-    const todayKey = localDateKey();
-    let count = 0;
-
-    for (const attempt of allAttempts) {
-      const attemptDate = attempt.started_at || attempt.completed_at || attempt.submitted_at;
-      if (attemptDate && localDateKey(new Date(attemptDate)) === todayKey) {
-        count += getAnsweredQuestionCount(attempt);
-      }
-    }
-    return count;
-  }, [allAttempts]);
-
   const goalPercent = Math.min(100, Math.round((todayQuestionsSolved / Math.max(1, dailyTarget)) * 100));
 
-  // Study Streak Data
-  const [streakData, setStreakData] = useState(() => {
-    const dates = getStoredActivityDates(user?.id || 'guest');
-    const data = calculateStreakData(dates);
-    if (profile?.current_streak && Number(profile.current_streak) > data.currentStreak) {
-      data.currentStreak = Number(profile.current_streak);
-    }
-    return data;
-  });
-
   const [streakModalOpen, setStreakModalOpen] = useState(false);
-
-  useEffect(() => {
-    const updateStreak = () => {
-      const dates = getStoredActivityDates(user?.id || 'guest');
-      const data = calculateStreakData(dates);
-      if (profile?.current_streak && Number(profile.current_streak) > data.currentStreak) {
-        data.currentStreak = Number(profile.current_streak);
-      }
-      setStreakData(data);
-    };
-    updateStreak();
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('zyvra:streak-updated', updateStreak);
-      return () => window.removeEventListener('zyvra:streak-updated', updateStreak);
-    }
-  }, [user?.id, profile?.current_streak]);
-
-  const streak = Number(streakData?.currentStreak || 0);
 
   // Circular progress ring calculation
   const ringRadius = 12;
@@ -338,6 +250,13 @@ export default function StudentHome() {
     chapters
   }), [allAttempts, availableTests, chapters]);
 
+  // Direct Daily 5-Min Booster destination (launches a real quick quiz)
+  const boosterPath = useMemo(() => {
+    if (recommendation?.path) return recommendation.path;
+    const freeTest = availableTests.find((t) => t.is_free) || availableTests[0];
+    return freeTest ? `/quiz/${freeTest.id}` : '/tests?tab=tests';
+  }, [recommendation, availableTests]);
+
   // Real Dynamic Exams mapped strictly from Database
   const dynamicExams = useMemo(() => {
     const published = exams.filter(isPublished);
@@ -392,9 +311,13 @@ export default function StudentHome() {
               <Flame size={15} className={`text-orange-500 ${streak > 0 ? 'fill-orange-500' : ''}`} />
             </div>
             <div>
-              <div className="text-xs font-black dark:text-orange-400 text-orange-600 leading-none">
-                {profileError ? '—' : streak} {language === 'hi' ? 'दिन' : 'Days'}
-              </div>
+              {statsLoading ? (
+                <div className="h-3.5 w-12 rounded bg-orange-500/20 animate-pulse" aria-hidden="true" />
+              ) : (
+                <div className="text-xs font-black dark:text-orange-400 text-orange-600 leading-none">
+                  {profileError ? '—' : streak} {language === 'hi' ? 'दिन' : 'Days'}
+                </div>
+              )}
               <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
                 {streakData?.isActiveToday
                   ? (language === 'hi' ? '✓ आज पूर्ण' : 'active')
@@ -413,19 +336,23 @@ export default function StudentHome() {
                   className="stroke-amber-500 transition-all duration-700 ease-out"
                   strokeWidth="2.8"
                   strokeDasharray={ringCircumference}
-                  strokeDashoffset={ringOffset}
+                  strokeDashoffset={statsLoading ? ringCircumference : ringOffset}
                   strokeLinecap="round"
                   fill="none"
                 />
               </svg>
               <span className="absolute inset-0 flex items-center justify-center text-[8px] font-black dark:text-amber-400 text-amber-600">
-                {profileError ? '0' : goalPercent}%
+                {statsLoading ? '·' : profileError ? '0' : `${goalPercent}%`}
               </span>
             </div>
             <div>
-              <div className="text-xs font-black dark:text-white text-slate-900 leading-none">
-                {profileError ? '—' : todayQuestionsSolved} / {dailyTarget}
-              </div>
+              {statsLoading ? (
+                <div className="h-3.5 w-12 rounded bg-slate-300 dark:bg-slate-700 animate-pulse" aria-hidden="true" />
+              ) : (
+                <div className="text-xs font-black dark:text-white text-slate-900 leading-none">
+                  {profileError ? '—' : todayQuestionsSolved} / {dailyTarget}
+                </div>
+              )}
               <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
                 {language === 'hi' ? 'आज का लक्ष्य' : 'Daily Goal'}
               </div>
@@ -646,7 +573,7 @@ export default function StudentHome() {
                 </span>
               </div>
               <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 truncate mt-0.5">
-                {language === 'hi' ? '5 प्रश्नों का त्वरित पीसीएस अभ्यास' : '5 Quick PCS Exam Questions'}
+                {language === 'hi' ? '5 प्रश्नों का त्वरित BPSC व PCS अभ्यास' : '5 Quick BPSC & PCS Questions'}
               </h4>
               <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium truncate">
                 {language === 'hi' ? 'कम समय में स्ट्रीक सुरक्षित करें और दिन का लक्ष्य आगे बढ़ाएं।' : 'Save your streak in just 5 mins & advance your daily goal.'}
@@ -655,7 +582,8 @@ export default function StudentHome() {
           </div>
 
           <Link
-            to="/tests?tab=tests"
+            to={boosterPath}
+            state={{ returnTo: '/', isBooster: true }}
             className="px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs sm:text-sm shrink-0 shadow-xs transition-all hover:scale-[1.02] active:scale-95 flex items-center gap-1.5 min-h-[44px]"
           >
             <span>{language === 'hi' ? 'शुरू करें' : 'Start Booster'}</span>

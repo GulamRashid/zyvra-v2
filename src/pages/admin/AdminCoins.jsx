@@ -31,6 +31,8 @@ export default function AdminCoins() {
   const [referralSearch, setReferralSearch] = useState('');
 
   // Recent transactions table
+  const [ledgerSearch, setLedgerSearch] = useState('');
+  const [ledgerFilter, setLedgerFilter] = useState('all'); // 'all' | 'credit' | 'debit'
   const [recentTransactions, setRecentTransactions] = useState([]);
 
   const loadData = useCallback(async (active = () => true) => {
@@ -105,34 +107,67 @@ export default function AdminCoins() {
         setReferrals(enrichedReferrals);
       }
 
-      // 4. Load recent coin ledger transactions with fallback
-      let ledgerRows = null;
-      try {
-        const { data } = await supabase
+      // 4. Load full coin ledger from coin_ledger + coin_transactions and enrich with user profiles
+      const [ledgerRes, txRes] = await Promise.allSettled([
+        supabase
           .from('coin_ledger')
-          .select('id, user_id, amount, transaction_type, reason, created_at')
+          .select('*')
           .order('created_at', { ascending: false })
-          .limit(20);
-        ledgerRows = data;
-      } catch (lErr) {
-        console.warn('Error reading coin_ledger:', lErr);
-      }
+          .limit(200),
+        supabase
+          .from('coin_transactions')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(200)
+      ]);
 
-      if (!ledgerRows || ledgerRows.length === 0) {
-        try {
-          const { data: txRows } = await supabase
-            .from('coin_transactions')
-            .select('id, user_id, amount, transaction_type, reason, created_at')
-            .order('created_at', { ascending: false })
-            .limit(20);
-          if (txRows?.length) ledgerRows = txRows;
-        } catch {
-          // ignore fallback error
+      const ledgerData = ledgerRes.status === 'fulfilled' && !ledgerRes.value.error ? (ledgerRes.value.data || []) : [];
+      const txData = txRes.status === 'fulfilled' && !txRes.value.error ? (txRes.value.data || []) : [];
+
+      const mergedMap = new Map();
+      [...ledgerData, ...txData].forEach((row) => {
+        const tsSec = row.created_at ? Math.floor(new Date(row.created_at).getTime() / 1000) : 0;
+        const dedupeKey = `${row.user_id || ''}:${tsSec}:${Number(row.amount || 0)}:${String(row.transaction_type || row.type || 'credit').toLowerCase()}`;
+        if (!mergedMap.has(dedupeKey)) {
+          mergedMap.set(dedupeKey, row);
         }
+      });
+
+      const mergedLedger = Array.from(mergedMap.values()).sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      );
+
+      // Enrich ledger rows with user & granter profiles
+      const ledgerUserIds = [...new Set([
+        ...mergedLedger.map((tx) => tx.user_id),
+        ...mergedLedger.map((tx) => tx.granted_by || tx.admin_id)
+      ])].filter(Boolean);
+
+      let ledgerProfileMap = {};
+      if (ledgerUserIds.length > 0) {
+        const { data: ledgerProfiles } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', ledgerUserIds);
+        (ledgerProfiles || []).forEach((p) => {
+          ledgerProfileMap[p.id] = p;
+        });
       }
 
-      if (active() && ledgerRows) {
-        setRecentTransactions(ledgerRows);
+      const enrichedLedger = mergedLedger.map((tx) => {
+        const u = ledgerProfileMap[tx.user_id];
+        const granterId = tx.granted_by || tx.admin_id;
+        const granter = granterId ? ledgerProfileMap[granterId] : null;
+        return {
+          ...tx,
+          user_name: u?.full_name || (tx.user_id ? `User ${tx.user_id.slice(0, 6)}` : '—'),
+          user_email: u?.email || '—',
+          granted_by_label: granter?.full_name || granter?.email || (tx.source === 'admin' ? 'Admin' : 'System')
+        };
+      });
+
+      if (active()) {
+        setRecentTransactions(enrichedLedger);
       }
     } catch (err) {
       console.warn('Error loading admin coin data:', err);
@@ -284,7 +319,7 @@ export default function AdminCoins() {
                     />
                   </label>
                   <p style={{ fontSize: '0.775rem', color: 'var(--text-muted, #94a3b8)', marginTop: '4px' }}>
-                    Awarded to the existing student when their invited friend signs up. (Default: 50)
+                    Awarded to the existing student when their invited friend signs up. (Configured: {settings.referrerCoins} coins)
                   </p>
                 </div>
 
@@ -302,7 +337,7 @@ export default function AdminCoins() {
                     />
                   </label>
                   <p style={{ fontSize: '0.775rem', color: 'var(--text-muted, #94a3b8)', marginTop: '4px' }}>
-                    Welcome bonus credited to the new learner's wallet upon joining. (Default: 20)
+                    Welcome bonus credited to the new learner's wallet upon joining. (Configured: {settings.referredCoins} coins)
                   </p>
                 </div>
 
@@ -388,61 +423,116 @@ export default function AdminCoins() {
             </section>
           </div>
 
-          {/* Recent Global Ledger Activity */}
+          {/* Full Global Coin Ledger */}
           <section className="panel-card p-5 sm:p-6 mt-6 min-w-0 overflow-hidden">
-            <div className="section-heading">
+            <div className="section-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <div className="eyebrow">GLOBAL LEDGER</div>
-                <h2>Recent Coin Transactions</h2>
+                <h2>Coin Transactions Ledger</h2>
               </div>
-              <span className="chapter-item-count">{recentTransactions.length} latest entries</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div className="input-with-icon" style={{ maxWidth: '220px' }}>
+                  <Search size={15} />
+                  <input
+                    type="search"
+                    aria-label="Search coin ledger"
+                    placeholder="Search user, reason…"
+                    value={ledgerSearch}
+                    onChange={(e) => setLedgerSearch(e.target.value)}
+                    className="text-input"
+                    style={{ fontSize: '0.85rem', padding: '6px 10px 6px 30px' }}
+                  />
+                </div>
+                {['all', 'credit', 'debit'].map((kind) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    className={`button button-small ${ledgerFilter === kind ? 'button-primary' : 'button-outline'}`}
+                    onClick={() => setLedgerFilter(kind)}
+                  >
+                    {kind.toUpperCase()}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {recentTransactions.length === 0 ? (
-              <div className="empty-content" style={{ padding: '30px', textAlign: 'center' }}>
-                <Coins size={24} style={{ opacity: 0.4, margin: '0 auto 8px' }} />
-                <span>No coin activity logged yet.</span>
-              </div>
-            ) : (
-              <div className="data-table-wrap" style={{ overflowX: 'auto', marginTop: '14px' }}>
-                <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.08))', textAlign: 'left', color: 'var(--text-muted, #94a3b8)' }}>
-                      <th style={{ padding: '10px 12px' }}>Type</th>
-                      <th style={{ padding: '10px 12px' }}>User ID</th>
-                      <th style={{ padding: '10px 12px' }}>Reason / Reference</th>
-                      <th style={{ padding: '10px 12px' }}>Amount</th>
-                      <th style={{ padding: '10px 12px' }}>Timestamp</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentTransactions.map((tx) => {
-                      const isCredit = ['credit', 'earned', 'reward'].includes(String(tx.transaction_type || '').toLowerCase());
-                      return (
-                        <tr key={tx.id} style={{ borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.04))' }}>
-                          <td style={{ padding: '10px 12px' }}>
-                            <StatusBadge
-                              variant={isCredit ? 'success' : 'failed'}
-                              label={tx.transaction_type || 'credit'}
-                            />
-                          </td>
-                          <td style={{ padding: '10px 12px', fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)' }}>
-                            {tx.user_id ? `${tx.user_id.slice(0, 8)}…` : '—'}
-                          </td>
-                          <td style={{ padding: '10px 12px' }}>{tx.reason || 'Coin reward'}</td>
-                          <td style={{ padding: '10px 12px', fontWeight: 600, color: isCredit ? '#34d399' : '#f87171' }}>
-                            {isCredit ? '+' : '−'}{Math.abs(Number(tx.amount || 0)).toLocaleString()} coins
-                          </td>
-                          <td style={{ padding: '10px 12px', fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)', whiteSpace: 'nowrap' }}>
-                            {tx.created_at ? new Date(tx.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '—'}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            {(() => {
+              const q = ledgerSearch.trim().toLowerCase();
+              const filteredLedger = recentTransactions.filter((tx) => {
+                const kind = String(tx.transaction_type || tx.type || 'credit').toLowerCase();
+                const isCredit = ['credit', 'earned', 'reward', 'bonus', 'referral', 'refund'].some((k) => kind.includes(k));
+                if (ledgerFilter === 'credit' && !isCredit) return false;
+                if (ledgerFilter === 'debit' && isCredit) return false;
+                if (!q) return true;
+                return (
+                  String(tx.user_name || '').toLowerCase().includes(q) ||
+                  String(tx.user_email || '').toLowerCase().includes(q) ||
+                  String(tx.reason || tx.description || '').toLowerCase().includes(q) ||
+                  String(tx.granted_by_label || '').toLowerCase().includes(q)
+                );
+              });
+
+              if (filteredLedger.length === 0) {
+                return (
+                  <div className="empty-content" style={{ padding: '30px', textAlign: 'center' }}>
+                    <Coins size={24} style={{ opacity: 0.4, margin: '0 auto 8px' }} />
+                    <span>No coin activity logged yet.</span>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="data-table-wrap" style={{ overflowX: 'auto', marginTop: '14px' }}>
+                  <table className="data-table" style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.08))', textAlign: 'left', color: 'var(--text-muted, #94a3b8)' }}>
+                        <th style={{ padding: '10px 12px' }}>Type</th>
+                        <th style={{ padding: '10px 12px' }}>User</th>
+                        <th style={{ padding: '10px 12px' }}>Reason / Description</th>
+                        <th style={{ padding: '10px 12px' }}>Amount</th>
+                        <th style={{ padding: '10px 12px' }}>Granted By</th>
+                        <th style={{ padding: '10px 12px' }}>Date</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredLedger.map((tx) => {
+                        const kind = String(tx.transaction_type || tx.type || 'credit').toLowerCase();
+                        const isCredit = ['credit', 'earned', 'reward', 'bonus', 'referral', 'refund'].some((k) => kind.includes(k));
+                        return (
+                          <tr key={tx.id || `${tx.user_id}-${tx.created_at}`} style={{ borderBottom: '1px solid var(--border-color, rgba(255,255,255,0.04))' }}>
+                            <td style={{ padding: '10px 12px' }}>
+                              <StatusBadge
+                                variant={isCredit ? 'success' : 'failed'}
+                                label={isCredit ? 'CREDIT' : 'DEBIT'}
+                              />
+                            </td>
+                            <td style={{ padding: '10px 12px' }}>
+                              <strong style={{ display: 'block' }}>{tx.user_name}</strong>
+                              <small style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.75rem' }}>{tx.user_email}</small>
+                            </td>
+                            <td style={{ padding: '10px 12px' }}>
+                              <div>{tx.reason || 'Coin reward'}</div>
+                              {tx.description && (
+                                <small style={{ color: 'var(--text-muted, #94a3b8)', fontSize: '0.75rem' }}>{tx.description}</small>
+                              )}
+                            </td>
+                            <td style={{ padding: '10px 12px', fontWeight: 600, color: isCredit ? '#34d399' : '#f87171', whiteSpace: 'nowrap' }}>
+                              {isCredit ? '+' : '−'}{Math.abs(Number(tx.amount || 0)).toLocaleString()} coins
+                            </td>
+                            <td style={{ padding: '10px 12px', fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)' }}>
+                              {tx.granted_by_label || 'System'}
+                            </td>
+                            <td style={{ padding: '10px 12px', fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)', whiteSpace: 'nowrap' }}>
+                              {tx.created_at ? new Date(tx.created_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'medium', timeStyle: 'short' }) : '—'}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
           </section>
         </>
       )}

@@ -62,9 +62,12 @@ export default function ZyvraAiGuruModal({
   // Speech Recognition (Voice Input) state
   const [isListening, setIsListening] = useState(false);
   const [speechSupported, setSpeechSupported] = useState(false);
-  // Default to Hindi ('hi-IN') for Indian competitive exam aspirants
-  const [voiceLang, setVoiceLang] = useState('hi-IN');
+  const [voiceLang, setVoiceLang] = useState(() => (language === 'hi' ? 'hi-IN' : 'en-IN'));
   const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    setVoiceLang(language === 'hi' ? 'hi-IN' : 'en-IN');
+  }, [language]);
   const baseTextRef = useRef('');
   const chatScrollRef = useRef(null);
   const inputRef = useRef(null);
@@ -677,7 +680,11 @@ export default function ZyvraAiGuruModal({
                       : 'text-slate-400 hover:text-amber-500 hover:bg-slate-200/50 dark:hover:bg-slate-800'
                   }`}
                   aria-label={isListening ? 'Stop listening' : 'Speak doubt'}
-                  title={isListening ? 'माइक बंद करें (Stop)' : `माइक से बोलें (${voiceLang === 'hi-IN' ? 'हिंदी' : 'English'})`}
+                  title={
+                    language === 'hi'
+                      ? (isListening ? 'माइक बंद करें' : `माइक से बोलें (${voiceLang === 'hi-IN' ? 'हिंदी' : 'English'})`)
+                      : (isListening ? 'Stop microphone' : `Speak (${voiceLang === 'hi-IN' ? 'Hindi' : 'English'})`)
+                  }
                 >
                   {isListening ? <MicOff size={16} /> : <Mic size={16} />}
                 </button>

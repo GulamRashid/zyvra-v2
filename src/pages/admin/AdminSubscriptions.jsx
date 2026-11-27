@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import StatusBadge from '../../components/common/StatusBadge';
-
+import useContentCatalog from '../../hooks/useContentCatalog';
 import { useAuth } from '../../context/AuthContext';
 
 export default function AdminSubscriptions() {
@@ -118,8 +118,31 @@ export default function AdminSubscriptions() {
     });
   }, [grants, search, filterType]);
 
+  const productMap = useMemo(() => {
+    const map = new Map();
+    (exams || []).forEach((e) => map.set(`exam:${e.id}`, e.title));
+    (folders || []).forEach((f) => map.set(`folder:${f.id}`, f.title));
+    (chapters || []).forEach((c) => map.set(`chapter:${c.id}`, c.title));
+    return map;
+  }, [exams, folders, chapters]);
+
+  const resolveGrantName = (grant) => {
+    if (grant.item_title) return grant.item_title;
+    const type = String(grant.item_type || '').toLowerCase();
+    const id = String(grant.item_id || '');
+    if (type === 'full_pass' || id === 'global') return 'Zyvra Full Pass (All Exams)';
+    return productMap.get(`${type}:${id}`) || (id ? `${type.toUpperCase()}: ${id.slice(0, 10)}…` : 'Global Pass');
+  };
+
   const toggleGrantStatus = async (grant) => {
     const willActive = grant.is_active === false;
+    const label = resolveGrantName(grant);
+    const confirmed = window.confirm(
+      willActive
+        ? `Reinstate access for "${label}" (${grant.user?.full_name || grant.user?.email || 'Learner'})?`
+        : `Revoke access for "${label}" (${grant.user?.full_name || grant.user?.email || 'Learner'})?`
+    );
+    if (!confirmed) return;
     try {
       const { error } = await supabase
         .from('user_access')
@@ -264,19 +287,19 @@ export default function AdminSubscriptions() {
                           <td style={{ padding: '12px' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
                               <BookOpen size={14} style={{ color: 'var(--gold, #f59e0b)' }} />
-                              {grant.item_type ? grant.item_type.toUpperCase() : 'PASS'}:
+                              <span>{resolveGrantName(grant)}</span>
                             </span>
-                            <span style={{ marginLeft: '4px', fontFamily: 'monospace', fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)' }}>
-                              {grant.item_id ? `${grant.item_id.slice(0, 10)}…` : 'Global'}
-                            </span>
+                            <small style={{ display: 'block', fontSize: '0.7rem', color: 'var(--text-muted, #94a3b8)', textTransform: 'uppercase' }}>
+                              {grant.item_type || 'pass'}
+                            </small>
                           </td>
                           <td style={{ padding: '12px', fontSize: '0.8rem', color: 'var(--text-muted, #94a3b8)', whiteSpace: 'nowrap' }}>
-                            {grant.created_at ? new Date(grant.created_at).toLocaleDateString() : '—'}
+                            {grant.created_at ? new Date(grant.created_at).toLocaleDateString('en-IN') : '—'}
                           </td>
                           <td style={{ padding: '12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
                             {grant.expires_at ? (
                               <span style={{ color: isExpired ? '#f87171' : 'inherit' }}>
-                                {new Date(grant.expires_at).toLocaleDateString()}
+                                {new Date(grant.expires_at).toLocaleDateString('en-IN')}
                               </span>
                             ) : (
                               <span style={{ color: '#34d399' }}>Lifetime</span>

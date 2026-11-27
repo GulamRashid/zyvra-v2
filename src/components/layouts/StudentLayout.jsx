@@ -6,8 +6,8 @@ import {
   Shield, LogOut, Flame, ShoppingBag, Bookmark, GraduationCap
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useStudentStats } from '../../context/StudentStatsContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
-import { calculateStreakData, getStoredActivityDates } from '../../lib/streak';
 import CoinBadge from '../common/CoinBadge';
 import LanguageToggle from '../common/LanguageToggle';
 import ThemeToggle from '../common/ThemeToggle';
@@ -29,7 +29,9 @@ const sections = [
 export default function StudentLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [streakModalOpen, setStreakModalOpen] = useState(false);
-  const { user, profile, profileError, coinBalance, isAdmin, guest, signOut } = useAuth();
+  const [unreadNotificationsCount, setUnreadNotificationsCount] = useState(0);
+  const { user, profile, profileError, coinBalance, walletLoaded, isAdmin, guest, signOut, supabase } = useAuth();
+  const { streakData, currentStreak: streak, loading: statsLoading } = useStudentStats();
   const { t, language, theme } = useThemeLanguage();
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,39 +39,61 @@ export default function StudentLayout() {
   const visibleSections = sections.filter(({ key }) => !(assessmentActive && key === 'toolbox'));
   const name = profile?.full_name || profile?.name || 'Learner';
 
-  const [streakData, setStreakData] = useState(() => {
-    const dates = getStoredActivityDates(user?.id || 'guest');
-    const data = calculateStreakData(dates);
-    if (profile?.current_streak && Number(profile.current_streak) > data.currentStreak) {
-      data.currentStreak = Number(profile.current_streak);
-    }
-    return data;
-  });
-
+  // Real unread notification count for header bell dot
   useEffect(() => {
-    const updateStreak = () => {
-      const dates = getStoredActivityDates(user?.id || 'guest');
-      const data = calculateStreakData(dates);
-      if (profile?.current_streak && Number(profile.current_streak) > data.currentStreak) {
-        data.currentStreak = Number(profile.current_streak);
+    let active = true;
+    const computeUnread = async () => {
+      if (!supabase) {
+        if (active) setUnreadNotificationsCount(0);
+        return;
       }
-      setStreakData(data);
+      try {
+        const { data, error } = await supabase
+          .from('platform_settings')
+          .select('key,setting_key,value,setting_value')
+          .or('key.eq.platform_announcements,setting_key.eq.platform_announcements');
+
+        if (error || !active) return;
+        const row = data?.[0];
+        const val = row?.setting_value !== undefined ? row.setting_value : row?.value;
+        const audience = new Set((profile?.target_exams || []).map((exam) => String(exam).toLowerCase()));
+        const list = (Array.isArray(val) ? val : []).filter((notice) =>
+          !notice.audience || String(notice.audience).toLowerCase() === 'all' || audience.has(String(notice.audience).toLowerCase())
+        );
+
+        let readSet = new Set();
+        try {
+          const storageKey = `zyvra_read_announcement_ids:${user?.id || 'guest'}`;
+          readSet = new Set(JSON.parse(localStorage.getItem(storageKey) || '[]'));
+        } catch {}
+
+        if (active) {
+          setUnreadNotificationsCount(list.filter((n) => !readSet.has(n.id)).length);
+        }
+      } catch {
+        if (active) setUnreadNotificationsCount(0);
+      }
     };
-    updateStreak();
 
-    if (typeof window !== 'undefined') {
-      window.addEventListener('zyvra:streak-updated', updateStreak);
-      return () => window.removeEventListener('zyvra:streak-updated', updateStreak);
-    }
-  }, [user?.id, profile?.current_streak]);
-
-  const streak = Number(streakData?.currentStreak || 0);
+    computeUnread();
+    const handleUpdate = () => computeUnread();
+    window.addEventListener('zyvra:notifications-updated', handleUpdate);
+    return () => {
+      active = false;
+      window.removeEventListener('zyvra:notifications-updated', handleUpdate);
+    };
+  }, [supabase, user?.id, profile?.target_exams]);
 
   const navKeys = {
     '/analytics': 'analytics', '/explore': 'exploreExams', '/profile': 'profileSettings'
   };
   const linkLabel = (item) => item.key ? t(item.key) : t(navKeys[item.to]) || item.label;
   const closeDrawer = () => setDrawerOpen(false);
+
+  // Never keep the sidebar drawer open across route navigations
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [location.pathname]);
 
   const logout = async () => {
     try {
@@ -240,14 +264,18 @@ export default function StudentLayout() {
               aria-label="View daily study streak"
             >
               <Flame size={14} className={streak > 0 ? 'fill-orange-500 text-orange-500' : 'text-slate-400'} />
-              <span className="font-extrabold">{profileError ? '—' : streak}</span>
-              {streakData?.streakAtRisk && (
+              {statsLoading ? (
+                <span className="inline-block h-3.5 w-4 rounded bg-slate-400/30 animate-pulse" aria-hidden="true" />
+              ) : (
+                <span className="font-extrabold">{profileError ? '—' : streak}</span>
+              )}
+              {!statsLoading && streakData?.streakAtRisk && (
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" title="Study today to keep streak" />
               )}
             </button>
 
             {/* Coin Badge */}
-            <CoinBadge balance={coinBalance} />
+            <CoinBadge balance={coinBalance} loading={!walletLoaded} />
 
             <NavLink
               className="icon-button notification-button relative"
@@ -255,7 +283,9 @@ export default function StudentLayout() {
               to="/notifications"
             >
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400" />
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400" />
+              )}
             </NavLink>
 
             {isAdmin && (

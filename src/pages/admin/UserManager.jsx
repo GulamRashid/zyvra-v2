@@ -229,10 +229,31 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
     return grant.item_title || item?.title || `${type} · ${id || 'access'}`;
   };
 
+  const toggleEmailVerification = async () => {
+    if (!supabase || busy) return;
+    setBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const nextVerified = !profile.email_verified;
+      const { error: verifyErr } = await supabase
+        .from('profiles')
+        .update({ email_verified: nextVerified, updated_at: new Date().toISOString() })
+        .eq('id', profile.id);
+      if (verifyErr) throw verifyErr;
+      setMessage(nextVerified ? 'User email marked as verified.' : 'User email marked as pending verification.');
+      await onUpdated();
+    } catch (err) {
+      setError(err.message || 'Unable to update verification status.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return <div className="user-drawer-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) onClose(); }}>
     <aside className="user-drawer" role="dialog" aria-modal="true" aria-labelledby="user-drawer-title">
       <header className="user-drawer-header"><div><div className="eyebrow">USER ACCOUNT</div><h2 id="user-drawer-title">Account details</h2></div><button className="icon-button" aria-label="Close user details" onClick={onClose}><X size={18} /></button></header>
-      <section className="user-drawer-identity"><span className="user-avatar-large">{(profile.full_name || profile.email || 'S').slice(0, 1).toUpperCase()}</span><div><strong>{profile.full_name || 'Student'}</strong><small>{profile.email || 'Email unavailable'}</small>{profile.mobile ? <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}><span style={{ fontSize: '12px', fontWeight: 'bold', color: '#34d399', fontFamily: 'monospace' }}>+91 {profile.mobile}</span><a href={`https://wa.me/91${profile.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent('Namaste ' + (profile.full_name || 'Student') + '! Zyvra ki taraf se aapke liye vishesh update.')}`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: 'bold', background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', border: '1px solid rgba(16, 185, 129, 0.4)', textDecoration: 'none' }} title="Send message on WhatsApp">💬 WhatsApp</a></div> : <small style={{ color: 'var(--muted)', fontSize: '10px' }}>No mobile number</small>}<span className={`user-role-badge ${profile.role === 'super_admin' || profile.role === 'admin' ? 'admin' : ''}`}>{profile.role || 'student'}</span></div></section>
+      <section className="user-drawer-identity"><span className="user-avatar-large">{(profile.full_name || profile.email || 'S').slice(0, 1).toUpperCase()}</span><div><strong>{profile.full_name || 'Student'}</strong><small>{profile.email || 'Email unavailable'}</small>{profile.mobile ? <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}><span style={{ fontSize: '12px', fontWeight: 'bold', color: '#34d399', fontFamily: 'monospace' }}>+91 {profile.mobile}</span><a href={`https://wa.me/91${profile.mobile.replace(/\D/g, '').slice(-10)}?text=${encodeURIComponent('Namaste ' + (profile.full_name || 'Student') + '! Zyvra ki taraf se aapke liye vishesh update.')}`} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '999px', fontSize: '10px', fontWeight: 'bold', background: 'rgba(16, 185, 129, 0.2)', color: '#6ee7b7', border: '1px solid rgba(16, 185, 129, 0.4)', textDecoration: 'none' }} title="Send message on WhatsApp">💬 WhatsApp</a></div> : <small style={{ color: 'var(--muted)', fontSize: '10px' }}>No mobile number</small>}<div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}><span className={`user-role-badge ${profile.role === 'super_admin' || profile.role === 'admin' ? 'admin' : ''}`}>{profile.role || 'student'}</span><button type="button" onClick={toggleEmailVerification} disabled={busy} style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', border: profile.email_verified ? '1px solid rgba(16,185,129,0.4)' : '1px solid rgba(245,158,11,0.4)', background: profile.email_verified ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)', color: profile.email_verified ? '#34d399' : '#fbbf24', cursor: 'pointer' }}>{profile.email_verified ? '✓ Verified' : '⏳ Verify Email'}</button></div></div></section>
       {error && <div className="feedback error-feedback">{error}</div>}
       {message && <div className="feedback success-feedback">{message}</div>}
       <section className="user-drawer-section"><div className="section-heading"><div><div className="eyebrow">CONTENT ACCESS</div><h3>Active grants</h3></div><span className="chapter-item-count">{activeAccess.length}</span></div>{accessLoading ? <p className="field-hint">Loading access grants…</p> : !activeAccess.length ? <p className="field-hint">No active access grants.</p> : <div className="user-detail-list">{activeAccess.map((grant) => <div key={grant.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><BookOpen size={15} /><span><strong>{accessLabel(grant)}</strong><small>{grant.status || (grant.expires_at ? `Expires ${new Date(grant.expires_at).toLocaleDateString()}` : 'Lifetime / active')}</small></span></div><button type="button" onClick={() => revokeAccess(grant.id)} disabled={busy} style={{ fontSize: '11px', color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '6px', padding: '2px 8px', cursor: 'pointer' }} title="Revoke access">Revoke</button></div>)}</div>}</section>
@@ -267,7 +288,7 @@ export default function UserManager() {
     if (!supabase) { setError('Supabase is not configured.'); setLoading(false); return; }
     setError('');
     const [profilesResult, walletsResult] = await Promise.all([
-      supabase.from('profiles').select('id,full_name,email,mobile,role,target_exams,created_at').order('created_at', { ascending: false }).limit(1000),
+      supabase.from('profiles').select('id,full_name,email,mobile,role,target_exams,email_verified,created_at').order('created_at', { ascending: false }).limit(1000),
       supabase.from('coin_wallets').select('user_id,balance')
     ]);
     const failed = [profilesResult, walletsResult].find((result) => result.error);
@@ -326,7 +347,7 @@ export default function UserManager() {
       {loading ? <LoadingSkeleton variant="table" count={5} /> : !filteredUsers.length ? <div className="empty-content"><UserRound size={23} /><strong>No matching users.</strong><span>Adjust your search or filters to see more accounts.</span></div> : <div className="user-directory-list">{filteredUsers.map((profile) => {
         const name = profile.full_name || 'Student';
         const isAdmin = ['admin', 'super_admin'].includes(profile.role);
-        return <button className="user-directory-row" key={profile.id} onClick={() => setSelected(profile)}><span className={`user-avatar ${isAdmin ? 'admin' : ''}`}>{name.slice(0, 1).toUpperCase()}</span><span className="user-directory-name"><strong>{name}</strong><small>{profile.email || 'Email unavailable'}{profile.mobile ? ` · 📱 +91 ${profile.mobile}` : ''}</small></span><span className={`user-role-badge ${isAdmin ? 'admin' : ''}`}>{isAdmin ? 'super_admin' : 'student'}</span><span className="user-target-tags">{(profile.target_exams || []).length ? profile.target_exams.map((exam) => <i key={exam}>{exam}</i>) : <small>No target exam</small>}</span><span className="user-wallet-pill"><Coins size={14} /> {(wallets[profile.id] || 0).toLocaleString()}</span><span className="user-join-date">{profile.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '—'}</span></button>;
+        return <button className="user-directory-row" key={profile.id} onClick={() => setSelected(profile)}><span className={`user-avatar ${isAdmin ? 'admin' : ''}`}>{name.slice(0, 1).toUpperCase()}</span><span className="user-directory-name"><strong>{name}</strong><small>{profile.email || 'Email unavailable'}{profile.mobile ? ` · 📱 +91 ${profile.mobile}` : ''}</small></span><span className={`user-role-badge ${isAdmin ? 'admin' : ''}`}>{isAdmin ? 'super_admin' : 'student'}</span><span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '999px', background: profile.email_verified ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)', color: profile.email_verified ? '#34d399' : '#fbbf24' }}>{profile.email_verified ? 'Verified' : 'Pending'}</span><span className="user-target-tags">{(profile.target_exams || []).length ? profile.target_exams.map((exam) => <i key={exam}>{exam}</i>) : <small>No target exam</small>}</span><span className="user-wallet-pill"><Coins size={14} /> {(wallets[profile.id] || 0).toLocaleString()}</span><span className="user-join-date">{profile.created_at ? new Date(profile.created_at).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '—'}</span></button>;
       })}</div>}
     </section>
     {selected && <UserDrawer key={selected.id} profile={selected} balance={wallets[selected.id]} catalog={catalog} onClose={() => setSelected(null)} onUpdated={refreshUsers} />}

@@ -442,7 +442,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleForceTakeoverLogin = async () => {
+  const handleForceTakeoverLogin = async (mode = 'oldest') => {
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !password || !supabase) return;
 
@@ -464,12 +464,22 @@ export default function AuthPage() {
       }
 
       // 2. Sign in on this device now that slot is open
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: cleanEmail,
         password
       });
 
       if (signInError) throw signInError;
+
+      // If user chose Manage Devices, also sign out all other active sessions cleanly and open Profile Device Security
+      if (mode === 'manage') {
+        try {
+          await supabase.auth.signOut({ scope: 'others' });
+        } catch {}
+        setDeviceConflictModal(false);
+        navigate('/profile', { replace: true });
+        return;
+      }
 
       // Close modal on success & proceed to app
       setDeviceConflictModal(false);
@@ -1233,12 +1243,12 @@ export default function AuthPage() {
             </div>
             <div className="space-y-1">
               <div role="heading" aria-level="3" className="text-white font-black text-base" style={{ color: '#ffffff' }}>
-                {language === 'hi' ? 'खाता अन्य डिवाइस पर सक्रिय है' : 'Account Active on Other Devices'}
+                {language === 'hi' ? '2-डिवाइस सीमा पूर्ण हुई' : '2-Device Limit Reached'}
               </div>
               <p className="text-slate-300 text-xs leading-relaxed" style={{ color: '#cbd5e1' }}>
                 {language === 'hi'
-                  ? 'आपका Zyvra खाता पहले से दूसरे डिवाइस पर लॉग इन है। जैसे ही आप यहाँ लॉग इन करेंगे, आपके पुराने डिवाइस से खाता स्वतः लॉग आउट हो जाएगा।'
-                  : 'Your Zyvra account is currently signed in on other devices. Logging in here will automatically sign out your oldest device.'}
+                  ? 'आपका Zyvra खाता पहले से 2 डिवाइस पर सक्रिय है। आप अपने डिवाइस मैनेज कर सकते हैं (सभी अन्य डिवाइस से लॉगआउट) या केवल सबसे पुराने डिवाइस को बदल सकते हैं।'
+                  : 'Your Zyvra account is already active on 2 devices. Choose whether to manage devices (sign out all other devices) or replace only your oldest session.'}
               </p>
             </div>
 
@@ -1251,22 +1261,35 @@ export default function AuthPage() {
             <div className="flex flex-col gap-2 pt-2">
               <button
                 type="button"
-                onClick={handleForceTakeoverLogin}
+                onClick={() => handleForceTakeoverLogin('manage')}
                 disabled={takeoverBusy}
-                className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px] cursor-pointer"
+                className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px] cursor-pointer"
               >
                 {takeoverBusy ? (
                   <span className="inline-flex items-center gap-2">
                     <Loader2 className="animate-spin" size={16} />
-                    <span>{language === 'hi' ? 'पुराने डिवाइस से लॉगआउट कर रहे हैं...' : 'Signing out old device...'}</span>
+                    <span>{language === 'hi' ? 'प्रोसेस हो रहा है...' : 'Updating devices...'}</span>
                   </span>
                 ) : (
                   <span>
                     {language === 'hi'
-                      ? 'पुराने डिवाइस से लॉगआउट कर यहाँ लॉगिन करें'
-                      : 'Log Out Old Device & Sign In Here'}
+                      ? 'डिवाइस मैनेज करें (सभी अन्य से लॉगआउट)'
+                      : 'Manage Devices (Sign Out All Other Devices)'}
                   </span>
                 )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleForceTakeoverLogin('oldest')}
+                disabled={takeoverBusy}
+                className="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black text-xs shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50 min-h-[44px] cursor-pointer"
+              >
+                <span>
+                  {language === 'hi'
+                    ? 'केवल सबसे पुराना डिवाइस बदलें'
+                    : 'Replace Oldest Device Only'}
+                </span>
               </button>
 
               <button

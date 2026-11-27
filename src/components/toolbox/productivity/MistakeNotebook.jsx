@@ -230,9 +230,16 @@ export default function MistakeNotebook({ isPremium = false, onUnlock = null }) 
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <strong className="block break-words text-sm font-bold dark:text-white text-slate-900">
-                      {item.topic || t('tbMistakeTopic')}
-                    </strong>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <strong className="block break-words text-sm font-bold dark:text-white text-slate-900">
+                        {item.topic || t('tbMistakeTopic')}
+                      </strong>
+                      {(item.entryType === 'review' || item.isCorrect === true) && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30">
+                          {isHindi ? 'समीक्षा हेतु सहेजा गया' : 'Saved for Review'}
+                        </span>
+                      )}
+                    </div>
                     {item.testTitle && (
                       <span className="text-[10px] text-indigo-500 font-bold block truncate">
                         📝 {item.testTitle}
@@ -256,10 +263,17 @@ export default function MistakeNotebook({ isPremium = false, onUnlock = null }) 
                   </button>
                 </div>
 
-                <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
-                  <b className="text-rose-600 dark:text-rose-400">{t('tbWhatWentWrong')}: </b>
-                  <span>{item.mistake}</span>
-                </div>
+                {item.entryType === 'review' || item.isCorrect === true ? (
+                  <div className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 p-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                    <b className="text-indigo-600 dark:text-indigo-300">{isHindi ? 'प्रश्न / कॉन्सेप्ट:' : 'Question / Concept:'} </b>
+                    <span>{item.mistake}</span>
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
+                    <b className="text-rose-600 dark:text-rose-400">{t('tbWhatWentWrong')}: </b>
+                    <span>{item.mistake}</span>
+                  </div>
+                )}
 
                 <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
                   <b className="text-emerald-600 dark:text-emerald-400">{t('tbCorrectMethod')}: </b>

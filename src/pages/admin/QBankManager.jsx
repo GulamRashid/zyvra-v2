@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { getOptionEntries, hasDevanagari, hasLatin, normalizeImportQuestionText, parseImportCsv, validateImportQuestion } from '../../lib/tests';
 import { AI_CSV_GENERATION_PROMPT, CSV_TEMPLATE, JSON_TEMPLATE } from '../../lib/question-templates';
 import { getContentErrorMessage, getFolderPath } from '../../lib/content';
+import { fetchAllSupabaseRows } from '../../lib/supabaseQuery';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -80,9 +81,28 @@ export function getChapterHierarchyPath(chapterId, chaptersMap, foldersMap, exam
   };
 }
 
+const CONTROLLED_SUBJECTS = [
+  'History',
+  'Geography',
+  'Polity',
+  'Economics',
+  'Science',
+  'Physics',
+  'Chemistry',
+  'Biology',
+  'Mathematics',
+  'Reasoning',
+  'Current Affairs',
+  'Bihar Special',
+  'Social Science',
+  'Hindi',
+  'English',
+  'General Studies'
+];
+
 const emptyQuestion = {
   question_text: '', question_text_hi: '', options: [{ en: '', hi: '' }, { en: '', hi: '' }, { en: '', hi: '' }, { en: '', hi: '' }],
-  correct_answer: 'A', explanation: '', distractor_notes: {}, subject: '', difficulty: 'medium', chapter_id: '', status: 'draft', usage_scope: 'both', tags: ''
+  correct_answer: '', explanation: '', distractor_notes: {}, subject: '', difficulty: 'medium', chapter_id: '', status: 'draft', usage_scope: 'both', tags: ''
 };
 const usageScopes = ['both', 'practice_only', 'test_only'];
 const usageScopeLabel = (scope) => ({
@@ -103,7 +123,7 @@ function normalizeQuestion(row) {
     question_text: qEn || (typeof row.question_text === 'string' ? row.question_text : ''),
     question_text_hi: qHi || '',
     options: entries.length ? entries.map(([, option]) => typeof option === 'string' ? { en: option, hi: '' } : { en: option?.en || option?.text || '', hi: option?.hi || '' }) : emptyQuestion.options,
-    correct_answer: String(Array.isArray(row.correct_answer) ? row.correct_answer[0] : row.correct_answer || 'A').toUpperCase(),
+    correct_answer: String(Array.isArray(row.correct_answer) ? row.correct_answer[0] : row.correct_answer || '').toUpperCase(),
     distractor_notes: row.distractor_notes || {},
     usage_scope: normalizeUsageScope(row.usage_scope),
     tags: Array.isArray(row.tags) ? row.tags.join(', ') : row.tags || ''
@@ -119,7 +139,7 @@ function QuestionDialog({ question, chapters, folders, exams, onClose, onSaved, 
   const setOptionCount = (count) => setValues((current) => ({
     ...current,
     options: Array.from({ length: count }, (_, index) => current.options[index] || { en: '', hi: '' }),
-    correct_answer: ['A', 'B', 'C', 'D', 'E'].slice(0, count).includes(current.correct_answer) ? current.correct_answer : 'A'
+    correct_answer: ['A', 'B', 'C', 'D', 'E'].slice(0, count).includes(current.correct_answer) ? current.correct_answer : ''
   }));
   const save = async (event) => {
     event.preventDefault();
@@ -141,7 +161,7 @@ function QuestionDialog({ question, chapters, folders, exams, onClose, onSaved, 
         const optHi = String(option.hi || '').trim();
         return { en: optEn || optHi, hi: optHi || optEn };
       }),
-      correct_answer: String(values.correct_answer || 'A').trim().toUpperCase(),
+      correct_answer: String(values.correct_answer || '').trim().toUpperCase(),
       explanation: String(values.explanation || '').trim() || null,
       distractor_notes: Object.fromEntries(optionKeys.filter((key) => key !== values.correct_answer && values.distractor_notes[key]?.trim()).map((key) => [key, values.distractor_notes[key].trim()])),
       subject: String(values.subject || '').trim(),
@@ -175,7 +195,17 @@ function QuestionDialog({ question, chapters, folders, exams, onClose, onSaved, 
       return <div className={`qbank-option-row ${values.correct_answer === key ? 'correct-option' : ''}`} key={key}><span className="option-key">{key}</span><div className="qbank-option-fields"><input className="text-input" value={option.en} onChange={(event) => setOption(index, 'en', event.target.value)} placeholder={`Option ${key} (English)`} /><input className="text-input" value={option.hi} onChange={(event) => setOption(index, 'hi', event.target.value)} placeholder={`Option ${key} (Hindi)`} /></div><label className="correct-radio" title={`Set ${key} as the answer`}><input type="radio" name="correct-answer" value={key} checked={values.correct_answer === key} onChange={() => setField('correct_answer', key)} /><Check size={14} /></label></div>;
     })}</div>
     <div className="qbank-form-grid">
-      <label className="field-label">Subject *<input className="text-input" value={values.subject} onChange={(event) => setField('subject', event.target.value)} required placeholder="e.g. Polity" /></label>
+      <label className="field-label">Subject *
+        <select className="text-input" value={values.subject} onChange={(event) => setField('subject', event.target.value)} required>
+          <option value="">Select subject…</option>
+          {CONTROLLED_SUBJECTS.map((subj) => (
+            <option key={subj} value={subj}>{subj}</option>
+          ))}
+          {values.subject && !CONTROLLED_SUBJECTS.includes(values.subject) && (
+            <option value={values.subject}>{values.subject}</option>
+          )}
+        </select>
+      </label>
       <label className="field-label">Difficulty<select className="text-input" value={values.difficulty} onChange={(event) => setField('difficulty', event.target.value)}><option value="easy">Easy (सरल)</option><option value="medium">Medium (मध्यम)</option><option value="hard">Hard (कठिन)</option></select></label>
       <div className="field-label">
         <span>Chapter mapping *</span>
@@ -193,9 +223,29 @@ function QuestionDialog({ question, chapters, folders, exams, onClose, onSaved, 
       <label className="field-label">Usage scope<select className="text-input" value={values.usage_scope} onChange={(event) => setField('usage_scope', event.target.value)}><option value="both">Both (मॉक टेस्ट + प्रैक्टिस दोनों में)</option><option value="practice_only">Practice Only (केवल अध्याय अभ्यास)</option><option value="test_only">Test Only (केवल मॉक टेस्ट)</option></select></label>
     </div>
     <label className="field-label">Explanation<textarea className="text-input content-textarea" rows="3" value={values.explanation || ''} onChange={(event) => setField('explanation', event.target.value)} placeholder="Explain why the selected answer is correct." /></label>
-    <details className="distractor-details"><summary>Distractor notes <ChevronDown size={15} /></summary><div className="distractor-grid">{values.options.map((_, index) => { const key = String.fromCharCode(65 + index); return key !== values.correct_answer && <label className="field-label" key={key}>Option {key}<textarea className="text-input" rows="2" value={values.distractor_notes[key] || ''} onChange={(event) => setValues((current) => ({ ...current, distractor_notes: { ...current.distractor_notes, [key]: event.target.value } }))} placeholder="Why this option is incorrect." /></label>; })}</div></details>
-    <label className="field-label">Tags<input className="text-input" value={values.tags} onChange={(event) => setField('tags', event.target.value)} placeholder="constitution, fundamental-rights (comma separated)" /></label>
-    {error && <div className="feedback error-feedback">{error}</div>}
+    {showAuthorPreview && (
+      <div className="p-3.5 rounded-2xl dark:bg-slate-900/80 bg-slate-50 border dark:border-indigo-500/30 border-indigo-200 space-y-2 text-xs">
+        <div className="font-black uppercase tracking-wider text-indigo-500 text-[10px]">Question Preview</div>
+        <div className="font-semibold dark:text-white text-slate-900">
+          <QuestionFormatter text={values.question_text || 'No English question text'} />
+        </div>
+        {values.question_text_hi && (
+          <div className="text-slate-500 dark:text-slate-300">
+            <QuestionFormatter text={values.question_text_hi} />
+          </div>
+        )}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 pt-1">
+          {values.options.map((opt, idx) => {
+            const k = String.fromCharCode(65 + idx);
+            return (
+              <div key={k} className={`px-2.5 py-1.5 rounded-lg border ${values.correct_answer === k ? 'border-emerald-500/50 bg-emerald-500/10 font-bold' : 'dark:border-slate-700 border-slate-200'}`}>
+                <strong>{k}.</strong> <QuestionFormatter text={opt.en || opt.hi || '—'} className="inline" />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    )}
     <div className="modal-actions">
       {question && (
         <button
@@ -217,9 +267,15 @@ function QuestionDialog({ question, chapters, folders, exams, onClose, onSaved, 
           <Trash2 size={14} /> Delete question
         </button>
       )}
+      <button type="button" className="button button-outline" onClick={() => setShowAuthorPreview((p) => !p)}>
+        {showAuthorPreview ? 'Hide Preview' : 'Preview'}
+      </button>
       <button type="button" className="button button-outline" onClick={onClose} disabled={saving}>Cancel</button>
       <button className="button button-primary" disabled={saving}>{saving ? 'Saving…' : question ? 'Save question' : 'Add question'}</button>
     </div>
+    <details className="distractor-details"><summary>Distractor notes <ChevronDown size={15} /></summary><div className="distractor-grid">{values.options.map((_, index) => { const key = String.fromCharCode(65 + index); return key !== values.correct_answer && <label className="field-label" key={key}>Option {key}<textarea className="text-input" rows="2" value={values.distractor_notes[key] || ''} onChange={(event) => setValues((current) => ({ ...current, distractor_notes: { ...current.distractor_notes, [key]: event.target.value } }))} placeholder="Why this option is incorrect." /></label>; })}</div></details>
+    <label className="field-label">Tags<input className="text-input" value={values.tags} onChange={(event) => setField('tags', event.target.value)} placeholder="constitution, fundamental-rights (comma separated)" /></label>
+    {error && <div className="feedback error-feedback">{error}</div>}
   </form></div>;
 }
 
@@ -228,9 +284,10 @@ function ImportDialog({ chapters, folders, exams, onClose, onImported }) {
   const [json, setJson] = useState('');
   const [uploadedFileName, setUploadedFileName] = useState('');
   const [preview, setPreview] = useState(null);
-  const [importStatus, setImportStatus] = useState('published');
+  const [importStatus, setImportStatus] = useState('draft');
   const [importUsageScope, setImportUsageScope] = useState('both');
   const [tests, setTests] = useState([]);
+  const [expandedQuestionIds, setExpandedQuestionIds] = useState(new Set());
   const [selectedChapterId, setSelectedChapterId] = useState('');
   const [selectedTestId, setSelectedTestId] = useState('');
   const [isImporting, setIsImporting] = useState(false);
@@ -1168,6 +1225,7 @@ export default function QBankManager() {
   const [selectedQuestionIds, setSelectedQuestionIds] = useState([]);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [tests, setTests] = useState([]);
+  const [expandedQuestionIds, setExpandedQuestionIds] = useState(new Set());
 
   useEffect(() => {
     let active = true;
@@ -1181,10 +1239,20 @@ export default function QBankManager() {
   const refresh = async () => {
     if (!supabase) { setError('Supabase is not configured.'); setLoading(false); return; }
     setError('');
-    const { data, error: loadError } = await supabase.from('questions').select('*').order('created_at', { ascending: false });
-    if (loadError) { setError(getContentErrorMessage(loadError, 'Unable to load the question bank.')); setLoading(false); return; }
-    setQuestions(data || []);
-    setLoading(false);
+    try {
+      const allQuestions = await fetchAllSupabaseRows((start, end) =>
+        supabase
+          .from('questions')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(start, end)
+      );
+      setQuestions(allQuestions);
+    } catch (loadError) {
+      setError(getContentErrorMessage(loadError, 'Unable to load the question bank.'));
+    } finally {
+      setLoading(false);
+    }
   };
   useEffect(() => { refresh().catch((loadError) => { setError(getContentErrorMessage(loadError, 'Unable to load the question bank.')); setLoading(false); }); }, []);
 
@@ -1481,7 +1549,33 @@ export default function QBankManager() {
         </div>
 
         <div className="qbank-question-heading">
-          <QuestionFormatter text={text || 'Untitled question'} />
+          {(() => {
+            const rawText = text || 'Untitled question';
+            const isLong = rawText.length > 220;
+            const isExpanded = expandedQuestionIds.has(question.id);
+            const displayText = isLong && !isExpanded ? `${rawText.slice(0, 220).trimEnd()}…` : rawText;
+            return (
+              <>
+                <QuestionFormatter text={displayText} />
+                {isLong && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpandedQuestionIds((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(question.id)) next.delete(question.id);
+                        else next.add(question.id);
+                        return next;
+                      });
+                    }}
+                    className="mt-1 text-xs font-bold text-indigo-500 hover:underline"
+                  >
+                    {isExpanded ? 'Show less' : 'Read more'}
+                  </button>
+                )}
+              </>
+            );
+          })()}
         </div>
         {question.question_text_hi && (
           <div className="qbank-hindi mt-2">

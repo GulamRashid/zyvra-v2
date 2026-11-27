@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabase';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { getOptionEntries, TEST_PATTERNS } from '../../lib/tests';
 import { getContentErrorMessage } from '../../lib/content';
+import { fetchAllSupabaseRows } from '../../lib/supabaseQuery';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import HierarchicalChapterSelect from '../../components/admin/HierarchicalChapterSelect';
 
@@ -221,16 +222,20 @@ export default function TestManager() {
 
   const refresh = async () => {
     if (!supabase) { setError('Supabase is not configured.'); setLoading(false); return; }
-    const [testResult, questionResult, tqResult] = await Promise.all([
-      supabase.from('tests').select('*').order('created_at', { ascending: false }),
-      supabase.from('questions').select('*').order('created_at', { ascending: false }),
-      supabase.from('test_questions').select('id, test_id, question_id, display_order')
+    const [loadedTests, loadedQuestions, loadedTq] = await Promise.all([
+      fetchAllSupabaseRows((start, end) =>
+        supabase.from('tests').select('*').order('created_at', { ascending: false }).range(start, end)
+      ),
+      fetchAllSupabaseRows((start, end) =>
+        supabase.from('questions').select('*').order('created_at', { ascending: false }).range(start, end)
+      ),
+      fetchAllSupabaseRows((start, end) =>
+        supabase.from('test_questions').select('id, test_id, question_id, display_order').range(start, end)
+      )
     ]);
-    const failed = [testResult, questionResult, tqResult].find((result) => result.error);
-    if (failed) throw failed.error;
-    setTests(testResult.data || []);
-    setQuestions(questionResult.data || []);
-    setAllTestQuestions(tqResult.data || []);
+    setTests(loadedTests);
+    setQuestions(loadedQuestions);
+    setAllTestQuestions(loadedTq);
     setLoading(false);
   };
   useEffect(() => { refresh().catch((loadError) => { setError(getContentErrorMessage(loadError, 'Unable to load tests.')); setLoading(false); }); }, []);
@@ -338,7 +343,19 @@ export default function TestManager() {
     if (!testId || !supabase) { setTestQuestions([]); return; }
     const { data, error: loadError } = await supabase.from('test_questions').select('*').eq('test_id', testId).order('display_order', { ascending: true });
     if (loadError) throw loadError;
-    setTestQuestions(data || []);
+    const links = data || [];
+    const loadedIds = new Set(questions.map((q) => q.id));
+    const missingIds = [...new Set(links.map((l) => l.question_id).filter((id) => id && !loadedIds.has(id)))];
+    if (missingIds.length > 0) {
+      const { data: missingQuestions } = await supabase.from('questions').select('*').in('id', missingIds);
+      if (Array.isArray(missingQuestions) && missingQuestions.length > 0) {
+        setQuestions((prev) => {
+          const existing = new Set(prev.map((q) => q.id));
+          return [...prev, ...missingQuestions.filter((q) => !existing.has(q.id))];
+        });
+      }
+    }
+    setTestQuestions(links);
     setSelectedQuestionIds([]);
   };
   const selectTest = async (testId) => {
@@ -437,6 +454,33 @@ export default function TestManager() {
     }
   };
 
+  const emptyPublishedTests = useMemo(() => {
+    return tests.filter((t) => String(t.status || '').toLowerCase() === 'published' && (questionCountByTest.get(t.id) || 0) === 0);
+  }, [tests, questionCountByTest]);
+
+  const moveEmptyPublishedToDraft = async () => {
+    if (!supabase || emptyPublishedTests.length === 0 || bulkMovingEmpty) return;
+    const confirmed = window.confirm(`Move ${emptyPublishedTests.length} empty published tests (0 questions) to Draft so students don't see empty tests?`);
+    if (!confirmed) return;
+    setBulkMovingEmpty(true);
+    setError('');
+    setSuccessMessage('');
+    try {
+      const ids = emptyPublishedTests.map((t) => t.id);
+      const { error: updErr } = await supabase
+        .from('tests')
+        .update({ status: 'draft', updated_at: new Date().toISOString() })
+        .in('id', ids);
+      if (updErr) throw updErr;
+      setSuccessMessage(`Moved ${ids.length} empty published tests to Draft.`);
+      await refresh();
+    } catch (err) {
+      setError(getContentErrorMessage(err, 'Unable to move empty tests to Draft.'));
+    } finally {
+      setBulkMovingEmpty(false);
+    }
+  };
+
   const filteredTests = useMemo(() => {
     return tests.filter((test) => {
       if (selectedExamFilter !== 'all') {
@@ -444,6 +488,13 @@ export default function TestManager() {
         const fo = ch ? folders.find((f) => f.id === ch.folder_id) : null;
         if (!fo || fo.exam_id !== selectedExamFilter) return false;
       }
+      const qCount = questionCountByTest.get(test.id) || 0;
+      const st = String(test.status || 'draft').toLowerCase();
+      if (statusFilter === 'published' && st !== 'published') return false;
+      if (statusFilter === 'draft' && st !== 'draft') return false;
+      if (statusFilter === 'empty' && qCount > 0) return false;
+      if (statusFilter === 'has_questions' && qCount === 0) return false;
+
       if (!query.trim()) return true;
       const q = query.trim().toLowerCase();
       const chName = chapterTitle(test.chapter_id).toLowerCase();
@@ -451,7 +502,7 @@ export default function TestManager() {
       const pattern = (test.pattern || '').toLowerCase();
       return title.includes(q) || pattern.includes(q) || chName.includes(q);
     });
-  }, [tests, selectedExamFilter, chapters, folders, query, chapterTitle]);
+  }, [tests, selectedExamFilter, statusFilter, questionCountByTest, chapters, folders, query, chapterTitle]);
 
   return <div className="test-manager-page">
     <div className="page-heading"><div><div className="eyebrow">ADMINISTRATION / ASSESSMENT DESIGN</div><h1>Test manager</h1><p>Configure BPSC patterns, scoring rules and question order.</p></div><button className="button button-primary" onClick={() => setEditor({ test: null })}><Plus size={15} /> Create test</button></div>
@@ -485,7 +536,39 @@ export default function TestManager() {
             </select>
           </div>
         )}
-        <label className="content-search"><Search size={14} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a test…" /></label>
+        <div className="mb-2 flex flex-wrap gap-1">
+          {[
+            { id: 'all', label: `All (${tests.length})` },
+            { id: 'published', label: 'Published' },
+            { id: 'draft', label: 'Draft' },
+            { id: 'empty', label: `Empty (${tests.filter((t) => (questionCountByTest.get(t.id) || 0) === 0).length})` },
+            { id: 'has_questions', label: 'With Qs' }
+          ].map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setStatusFilter(f.id)}
+              className={`px-2 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                statusFilter === f.id
+                  ? 'bg-indigo-600 text-white border-indigo-500'
+                  : 'dark:bg-slate-900 bg-slate-100 dark:text-slate-300 text-slate-700 dark:border-slate-700 border-slate-300'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        {emptyPublishedTests.length > 0 && (
+          <button
+            type="button"
+            onClick={moveEmptyPublishedToDraft}
+            disabled={bulkMovingEmpty}
+            className="w-full mb-2 py-1.5 px-2.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-600 dark:text-amber-300 text-[11px] font-bold transition-colors"
+          >
+            {bulkMovingEmpty ? 'Moving empty tests…' : `Move ${emptyPublishedTests.length} Empty Published → Draft`}
+          </button>
+        )}
+        <label className="content-search"><Search size={14} /><input aria-label="Find a test" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a test…" /></label>
         <div className="test-list-items">
           {loading ? <LoadingSkeleton rows={3} /> : filteredTests.map((test) => {
             const qCount = questionCountByTest.get(test.id) || 0;

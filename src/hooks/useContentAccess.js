@@ -40,6 +40,29 @@ export default function useContentAccess(items, user, supabase, refreshKey = 0) 
         }
         return;
       }
+
+      // Fast-path cache: resolve immediately (<1s) from sessionStorage while refreshing in background
+      const cacheKey = `zyvra_cached_grants_${userId}`;
+      try {
+        const cachedRaw = sessionStorage.getItem(cacheKey);
+        if (cachedRaw) {
+          const cached = JSON.parse(cachedRaw);
+          if (cached && Array.isArray(cached.grants) && Date.now() - Number(cached.ts || 0) < 180000) {
+            const cachedKeys = new Set(cached.grants.map((g) => `${g.item_type}:${g.item_id}`));
+            const cachedResults = { ...results };
+            paidItems.forEach((item) => {
+              const key = `${item.type}:${item.id}`;
+              if (cachedKeys.has(key)) cachedResults[key] = true;
+            });
+            if (active) {
+              setAccessByKey(cachedResults);
+              setResolvedRequestKey(requestKey);
+              setLoading(false);
+            }
+          }
+        }
+      } catch {}
+
       try {
         // Fast-path: 1 batched query to user_access for all active grants
         const { data: userGrants, error: grantsError } = await supabase
@@ -59,6 +82,10 @@ export default function useContentAccess(items, user, supabase, refreshKey = 0) 
           }
           return true;
         });
+
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify({ grants: activeGrants, ts: Date.now() }));
+        } catch {}
 
         // Fast-path 1: If user has zero active purchases, all paid items are false
         if (!activeGrants.length) {

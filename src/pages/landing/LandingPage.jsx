@@ -559,7 +559,7 @@ export default function LandingPage() {
                   5-Option BPSC
                 </span>
               </div>
-              <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>BPSC 70th & 71th CCE</h4>
+              <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>BPSC 70th & 71st CCE</h4>
               <p className={`text-xs leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
                 {isHindi ? 'प्रिलिम्स GS, बिहार विशेष, और करंट अफेयर्स विद 5वां विकल्प नियम।' : 'Prelims GS, Bihar Special, and Current Affairs with mandatory Option E rule.'}
               </p>
