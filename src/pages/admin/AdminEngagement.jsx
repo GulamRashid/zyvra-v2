@@ -40,10 +40,16 @@ export default function AdminEngagement() {
   const [bannerForm, setBannerForm] = useState({
     badge_text: 'NEW MOCK',
     title: '',
+    alt_text: '',
     subtitle: '',
     cta_text: 'Explore Now',
     cta_link: '/explore',
     show_text_overlay: true,
+    text_color: '#FFFFFF',
+    overlay_opacity: 75,
+    start_date: '',
+    end_date: '',
+    target_audience: 'all',
     custom_image_url: '',
     is_active: true,
     display_order: 0

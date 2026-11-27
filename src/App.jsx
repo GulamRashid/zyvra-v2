@@ -43,6 +43,8 @@ const AdminTools = lazyWithRetry(() => import('./pages/admin/AdminTools'));
 const AdminReports = lazyWithRetry(() => import('./pages/admin/AdminReports'));
 const AdminEngagement = lazyWithRetry(() => import('./pages/admin/AdminEngagement'));
 const AdminSupportChat = lazyWithRetry(() => import('./pages/admin/AdminSupportChat'));
+const AdminSettings = lazyWithRetry(() => import('./pages/admin/AdminSettings'));
+const AdminLaunchChecklist = lazyWithRetry(() => import('./pages/admin/AdminLaunchChecklist'));
 const SupportChatWidget = lazyWithRetry(() => import('./components/common/SupportChatWidget'));
 
 function RootRoute() {
@@ -94,7 +96,8 @@ function AppRoutes() {
       <Route path="support" element={<AdminSupportChat />} />
       <Route path="tools" element={<AdminTools />} />
       <Route path="reports" element={<AdminReports />} />
-      <Route path="settings" element={<Navigate to="/admin" replace />} />
+      <Route path="settings" element={<AdminSettings />} />
+      <Route path="launch-checklist" element={<AdminLaunchChecklist />} />
     </Route>
     <Route path="/" element={<RootRoute />}>
       <Route index element={<StudentHome />} />

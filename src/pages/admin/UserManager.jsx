@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, BookOpen, Coins, Gift, Search, ShieldCheck, UserRound, Users, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, BookOpen, Coins, Gift, GitMerge, History, Search, ShieldCheck, UserRound, Users, X } from 'lucide-react';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';
+import { logAdminAction } from '../../lib/auditLog';
+
+function normalizePhone(mobile) {
+  const digits = String(mobile || '').replace(/\D/g, '');
+  return digits.length >= 10 ? digits.slice(-10) : '';
+}
 
 function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
   const { user, supabase, refreshAccount } = useAuth();
   const [access, setAccess] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [attempts, setAttempts] = useState([]);
   const [accessLoading, setAccessLoading] = useState(true);
   const [currentBalance, setCurrentBalance] = useState(balance || 0);
   const [action, setAction] = useState('coins');
@@ -26,24 +33,40 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
 
   useEffect(() => {
     let active = true;
+    setAccessLoading(true);
     const loadUserDetails = async () => {
-      const [accessResult, ordersResult] = await Promise.all([
-        supabase.from('user_access').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }),
-        supabase.from('payment_orders').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(50)
-      ]);
-      const failed = [accessResult, ordersResult].find((result) => result.error);
-      if (failed) throw failed.error;
-      if (!active) return;
-      setAccess(accessResult.data || []);
-      setOrders(ordersResult.data || []);
-      setAccessLoading(false);
-    };
-    loadUserDetails().catch((loadError) => {
-      if (active) {
-        setError(loadError.message || 'Unable to load this user’s access and orders.');
-        setAccessLoading(false);
+      try {
+        const [accessResult, ordersResult, attemptsResult] = await Promise.all([
+          supabase.from('user_access').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }),
+          supabase.from('payment_orders').select('*').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(50),
+          supabase.from('test_attempts').select('id, test_id, score, status, time_spent_seconds, created_at').eq('user_id', profile.id).order('created_at', { ascending: false }).limit(20)
+        ]);
+        if (!active) return;
+        if (accessResult.error) setError(accessResult.error.message || 'Unable to load access grants.');
+        setAccess(accessResult.data || []);
+        setOrders(ordersResult.data || []);
+        const attemptRows = attemptsResult.data || [];
+        if (attemptRows.length > 0) {
+          const testIds = Array.from(new Set(attemptRows.map((a) => a.test_id).filter(Boolean)));
+          const { data: testsData } = testIds.length
+            ? await supabase.from('tests').select('id, title').in('id', testIds)
+            : { data: [] };
+          const testMap = Object.fromEntries((testsData || []).map((t) => [t.id, t.title]));
+          if (active) {
+            setAttempts(attemptRows.map((a) => ({ ...a, test_title: testMap[a.test_id] || null })));
+          }
+        } else {
+          setAttempts([]);
+        }
+      } catch (loadError) {
+        if (active) {
+          setError(loadError.message || 'Unable to load this user’s access and orders.');
+        }
+      } finally {
+        if (active) setAccessLoading(false);
       }
-    });
+    };
+    loadUserDetails();
     return () => { active = false; };
   }, [profile.id, supabase]);
 
@@ -75,6 +98,13 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
       if (revokeErr) throw revokeErr;
       setAccess((prev) => prev.filter((g) => g.id !== grantId));
       setMessage('Access grant revoked.');
+      logAdminAction(supabase, {
+        actor: user,
+        action: 'revoke_user_access',
+        targetType: 'user_access',
+        targetId: grantId,
+        details: { user_id: profile.id, email: profile.email }
+      });
       await onUpdated();
     } catch (err) {
       setError(err.message || 'Unable to revoke access.');
@@ -114,9 +144,16 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
           setCurrentBalance((prev) => direction === 'credit' ? prev + absAmount : Math.max(0, prev - absAmount));
         }
 
-        setMessage(`${direction === 'credit' ? 'Credited' : 'Debited'} ${absAmount.toLocaleString()} coins with an audit reason.`);
-        setAmount('');
-        setReason('');
+      setMessage(`${direction === 'credit' ? 'Credited' : 'Debited'} ${absAmount.toLocaleString()} coins with an audit reason.`);
+      logAdminAction(supabase, {
+        actor: user,
+        action: `admin_coins_${direction}`,
+        targetType: 'profile',
+        targetId: profile.id,
+        details: { amount: absAmount, reason: reason.trim(), email: profile.email }
+      });
+      setAmount('');
+      setReason('');
       } else if (action === 'role') {
         const newRole = profile.role === 'super_admin' || profile.role === 'admin' ? 'student' : 'super_admin';
         const { error: rpcError } = await supabase.rpc('admin_update_user_role', {
@@ -257,7 +294,8 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
       {error && <div className="feedback error-feedback">{error}</div>}
       {message && <div className="feedback success-feedback">{message}</div>}
       <section className="user-drawer-section"><div className="section-heading"><div><div className="eyebrow">CONTENT ACCESS</div><h3>Active grants</h3></div><span className="chapter-item-count">{activeAccess.length}</span></div>{accessLoading ? <p className="field-hint">Loading access grants…</p> : !activeAccess.length ? <p className="field-hint">No active access grants.</p> : <div className="user-detail-list">{activeAccess.map((grant) => <div key={grant.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><BookOpen size={15} /><span><strong>{accessLabel(grant)}</strong><small>{grant.status || (grant.expires_at ? `Expires ${new Date(grant.expires_at).toLocaleDateString()}` : 'Lifetime / active')}</small></span></div><button type="button" onClick={() => revokeAccess(grant.id)} disabled={busy} style={{ fontSize: '11px', color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: '6px', padding: '2px 8px', cursor: 'pointer' }} title="Revoke access">Revoke</button></div>)}</div>}</section>
-      <section className="user-drawer-section"><div className="section-heading"><div><div className="eyebrow">PAYMENT HISTORY</div><h3>Recent orders</h3></div><span className="chapter-item-count">{orders.length}</span></div>{accessLoading ? <p className="field-hint">Loading orders…</p> : !orders.length ? <p className="field-hint">No payment orders found.</p> : <div className="user-order-list">{orders.slice(0, 8).map((order) => <div key={order.id}><span><strong>{order.item_title || order.item_name || order.item_type || 'Learning access'}</strong><small>{order.created_at ? new Date(order.created_at).toLocaleDateString() : '—'}</small></span><span className={`order-status order-${String(order.status || 'pending').toLowerCase()}`}>{order.status || 'pending'}</span></div>)}</div>}</section>
+      <section className="user-drawer-section"><div className="section-heading"><div><div className="eyebrow">PAYMENT HISTORY</div><h3>Recent orders</h3></div><span className="chapter-item-count">{orders.length}</span></div>{accessLoading ? <p className="field-hint">Loading orders…</p> : !orders.length ? <p className="field-hint">No payment orders found.</p> : <div className="user-order-list">{orders.slice(0, 8).map((order) => <div key={order.id}><span><strong>{order.item_title || order.item_name || order.item_type || 'Learning access'}</strong><small>{order.created_at ? new Date(order.created_at).toLocaleDateString('en-IN') : '—'}</small></span><span className={`order-status order-${String(order.status || 'pending').toLowerCase()}`}>{order.status || 'pending'}</span></div>)}</div>}</section>
+      <section className="user-drawer-section"><div className="section-heading"><div><div className="eyebrow">LEARNING HISTORY</div><h3>Recent test attempts</h3></div><span className="chapter-item-count">{attempts.length}</span></div>{accessLoading ? <p className="field-hint">Loading learning history…</p> : !attempts.length ? <p className="field-hint">No test attempts recorded yet.</p> : <div className="user-order-list">{attempts.slice(0, 10).map((att) => <div key={att.id}><span><strong>{att.test_title || `Test ${String(att.test_id || '').slice(0, 8)}`}</strong><small>{att.created_at ? new Date(att.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</small></span><span className={`order-status ${att.status === 'completed' ? 'order-paid' : 'order-pending'}`}>{att.score !== null && att.score !== undefined ? `${att.score}%` : att.status || 'in_progress'}</span></div>)}</div>}</section>
       <section className="user-drawer-section user-admin-actions"><div className="section-heading"><div><div className="eyebrow">ADMIN ACTIONS</div><h3>Manage account</h3></div><span className="user-wallet-pill"><Coins size={14} /> {Number(currentBalance || 0).toLocaleString()}</span></div>
         <div className="user-action-tabs"><button className={action === 'coins' ? 'active' : ''} onClick={() => setAction('coins')}>🪙 कॉइन एडजस्ट करें</button><button className={action === 'grant' ? 'active' : ''} onClick={() => setAction('grant')}>🎁 कोर्स एक्सेस दें</button><button className={action === 'role' ? 'active' : ''} onClick={() => setAction('role')}>🛡️ रोल बदलें</button></div>
         <form className="user-action-form" onSubmit={performAction}>
@@ -273,13 +311,20 @@ function UserDrawer({ profile, balance, catalog, onClose, onUpdated }) {
 }
 
 export default function UserManager() {
-  const { supabase } = useAuth();
+  const { user, supabase } = useAuth();
   const catalog = useContentCatalog();
   const [users, setUsers] = useState([]);
   const [wallets, setWallets] = useState({});
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [examFilter, setExamFilter] = useState('all');
+  const [showDuplicatesOnly, setShowDuplicatesOnly] = useState(false);
+  const [mergeGroup, setMergeGroup] = useState(null);
+  const [primaryId, setPrimaryId] = useState('');
+  const [secondaryId, setSecondaryId] = useState('');
+  const [mergeReason, setMergeReason] = useState('');
+  const [merging, setMerging] = useState(false);
+  const [mergeFeedback, setMergeFeedback] = useState('');
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -312,16 +357,123 @@ export default function UserManager() {
     return () => { active = false; };
   }, [loadUsers]);
 
+  const duplicateGroups = useMemo(() => {
+    const byPhone = new Map();
+    users.forEach((u) => {
+      const phone = normalizePhone(u.mobile);
+      if (!phone) return;
+      if (!byPhone.has(phone)) byPhone.set(phone, []);
+      byPhone.get(phone).push(u);
+    });
+    return Array.from(byPhone.entries())
+      .filter(([, list]) => list.length > 1)
+      .map(([phone, accounts]) => ({ key: `phone:${phone}`, label: `+91 ${phone}`, accounts }));
+  }, [users]);
+
+  const duplicateUserIds = useMemo(() => {
+    const set = new Set();
+    duplicateGroups.forEach((g) => g.accounts.forEach((a) => set.add(a.id)));
+    return set;
+  }, [duplicateGroups]);
+
+  const targetExamOptions = useMemo(() => {
+    const map = new Map();
+    (catalog?.exams || []).forEach((exam) => map.set(exam.title, { value: exam.title, label: exam.title }));
+    users.forEach((u) => {
+      (u.target_exams || []).forEach((tag) => {
+        if (tag && !map.has(tag)) {
+          map.set(tag, { value: tag, label: `${tag} (from onboarding)` });
+        }
+      });
+    });
+    return Array.from(map.values());
+  }, [catalog?.exams, users]);
+
   const filteredUsers = useMemo(() => {
     const query = search.trim().toLowerCase();
     return users.filter((profile) => {
       const role = String(profile.role || 'student');
-      const matchesRole = roleFilter === 'all' || (roleFilter === 'admin' ? ['admin', 'super_admin'].includes(role) : role === 'student');
+      const matchesRole = roleFilter === 'all' || (roleFilter === 'admin' ? ['admin', 'super_admin', 'editor', 'support_agent'].includes(role) : role === 'student');
       const matchesExam = examFilter === 'all' || (profile.target_exams || []).includes(examFilter);
+      const matchesDuplicate = !showDuplicatesOnly || duplicateUserIds.has(profile.id);
       const matchesSearch = !query || `${profile.full_name || ''} ${profile.email || ''} ${profile.mobile || ''} ${profile.id || ''}`.toLowerCase().includes(query);
-      return matchesRole && matchesExam && matchesSearch;
+      return matchesRole && matchesExam && matchesDuplicate && matchesSearch;
     });
-  }, [users, search, roleFilter, examFilter]);
+  }, [users, search, roleFilter, examFilter, showDuplicatesOnly, duplicateUserIds]);
+
+  const openMergeModal = (group) => {
+    setMergeGroup(group);
+    setPrimaryId(group.accounts[0]?.id || '');
+    setSecondaryId(group.accounts[1]?.id || '');
+    setMergeReason('Duplicate phone / test account merge');
+    setMergeFeedback('');
+  };
+
+  const handleMergeAccounts = async (e) => {
+    e.preventDefault();
+    if (!supabase || !primaryId || !secondaryId || primaryId === secondaryId || !mergeReason.trim()) return;
+    if (!window.confirm('Merge secondary account grants, orders, attempts, and coins into the primary account? The secondary account will be tagged [MERGED] and its mobile cleared.')) return;
+    setMerging(true);
+    setMergeFeedback('');
+    try {
+      const { data: secAccess } = await supabase.from('user_access').select('*').eq('user_id', secondaryId);
+      for (const grant of secAccess || []) {
+        await supabase.from('user_access').upsert({
+          user_id: primaryId,
+          item_type: grant.item_type,
+          item_id: grant.item_id,
+          status: grant.status || 'active',
+          is_active: grant.is_active !== false,
+          starts_at: grant.starts_at,
+          expires_at: grant.expires_at,
+          reason: `Merged from ${secondaryId}: ${mergeReason.trim()}`
+        }, { onConflict: 'user_id,item_type,item_id' });
+      }
+      await supabase.from('payment_orders').update({ user_id: primaryId }).eq('user_id', secondaryId);
+      await supabase.from('test_attempts').update({ user_id: primaryId }).eq('user_id', secondaryId);
+
+      const secCoins = Number(wallets[secondaryId] || 0);
+      if (secCoins > 0) {
+        await supabase.rpc('admin_adjust_user_coins', {
+          p_target_user_id: primaryId,
+          p_amount: secCoins,
+          p_action: 'credit',
+          p_reason: `Account merge from ${secondaryId}: ${mergeReason.trim()}`
+        });
+        await supabase.rpc('admin_adjust_user_coins', {
+          p_target_user_id: secondaryId,
+          p_amount: secCoins,
+          p_action: 'debit',
+          p_reason: `Merged into ${primaryId}: ${mergeReason.trim()}`
+        });
+      }
+
+      const secUser = users.find((u) => u.id === secondaryId);
+      const mergedName = secUser?.full_name?.includes('[MERGED]')
+        ? secUser.full_name
+        : `${secUser?.full_name || 'Account'} [MERGED]`;
+      await supabase.from('profiles').update({
+        full_name: mergedName,
+        mobile: null,
+        updated_at: new Date().toISOString()
+      }).eq('id', secondaryId);
+
+      await logAdminAction(supabase, {
+        actor: user,
+        action: 'merge_duplicate_accounts',
+        targetType: 'profile',
+        targetId: primaryId,
+        details: { secondary_id: secondaryId, coins_transferred: secCoins, reason: mergeReason.trim() }
+      });
+
+      setMergeGroup(null);
+      await loadUsers();
+    } catch (err) {
+      setMergeFeedback(err.message || 'Unable to merge accounts.');
+    } finally {
+      setMerging(false);
+    }
+  };
 
   const refreshUsers = async () => {
     const { profileRows, walletMap } = await loadUsers();
@@ -338,11 +490,42 @@ export default function UserManager() {
       <span>💡 <strong>त्वरित सहायता:</strong> किसी भी छात्र पर क्लिक करके उसका एक्टिव कोर्स, ऑर्डर हिस्ट्री व वॉलेट देखें। आप वहाँ से सीधे मुफ़्त कोर्स का लाइफटाइम एक्सेस ग्रांट या कॉइन क्रेडिट कर सकते हैं।</span>
     </div>
     {error && <div className="feedback error-feedback">{error}</div>}
+    {duplicateGroups.length > 0 && (
+      <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3.5 mb-4 space-y-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-2">
+            <GitMerge size={15} />
+            <span>{duplicateGroups.length} duplicate phone group(s) detected ({duplicateUserIds.size} accounts)</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowDuplicatesOnly((v) => !v)}
+              className="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-600 text-white hover:bg-amber-500"
+            >
+              {showDuplicatesOnly ? 'Show All Users' : 'Filter Duplicates'}
+            </button>
+          </div>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {duplicateGroups.map((grp) => (
+            <button
+              key={grp.key}
+              type="button"
+              onClick={() => openMergeModal(grp)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/80 dark:bg-slate-900 border border-amber-400/40 text-[11px] font-semibold text-slate-800 dark:text-slate-200 hover:border-amber-500"
+            >
+              <GitMerge size={12} /> Merge {grp.label} ({grp.accounts.length} accounts)
+            </button>
+          ))}
+        </div>
+      </div>
+    )}
     <section className="panel-card user-directory">
       <div className="user-directory-toolbar">
-        <label className="content-search"><Search size={15} /><input placeholder="Search name, email, mobile or ID…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
-        <label className="filter-select">Role<select className="text-input" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="all">All roles</option><option value="student">Students</option><option value="admin">Admins</option></select></label>
-        <label className="filter-select">Target exam<select className="text-input" value={examFilter} onChange={(event) => setExamFilter(event.target.value)}><option value="all">All exams</option>{(catalog?.exams || []).map((exam) => <option key={exam.id} value={exam.title}>{exam.title}</option>)}</select></label>
+        <label className="content-search"><Search size={15} /><input aria-label="Search users" placeholder="Search name, email, mobile or ID…" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+        <label className="filter-select">Role<select className="text-input" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}><option value="all">All roles</option><option value="student">Students</option><option value="admin">Admins & Staff</option></select></label>
+        <label className="filter-select">Target exam<select className="text-input" value={examFilter} onChange={(event) => setExamFilter(event.target.value)}><option value="all">All exams</option>{targetExamOptions.map((exam) => <option key={exam.value} value={exam.value}>{exam.label}</option>)}</select></label>
       </div>
       {loading ? <LoadingSkeleton variant="table" count={5} /> : !filteredUsers.length ? <div className="empty-content"><UserRound size={23} /><strong>No matching users.</strong><span>Adjust your search or filters to see more accounts.</span></div> : <div className="user-directory-list">{filteredUsers.map((profile) => {
         const name = profile.full_name || 'Student';
@@ -351,5 +534,51 @@ export default function UserManager() {
       })}</div>}
     </section>
     {selected && <UserDrawer key={selected.id} profile={selected} balance={wallets[selected.id]} catalog={catalog} onClose={() => setSelected(null)} onUpdated={refreshUsers} />}
+    {mergeGroup && (
+      <div className="user-drawer-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget && !merging) setMergeGroup(null); }}>
+        <div className="panel-card p-5 sm:p-6 w-full max-w-lg mx-4 space-y-4" role="dialog" aria-modal="true">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="eyebrow">DUPLICATE ACCOUNT DEDUPLICATION</div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-white">Merge Accounts ({mergeGroup.label})</h3>
+            </div>
+            <button type="button" className="icon-button" onClick={() => setMergeGroup(null)} aria-label="Close merge dialog"><X size={18} /></button>
+          </div>
+          {mergeFeedback && <div className="feedback error-feedback">{mergeFeedback}</div>}
+          <form onSubmit={handleMergeAccounts} className="space-y-3">
+            <label className="field-label">
+              Primary Account (Keep)
+              <select className="text-input" value={primaryId} onChange={(e) => setPrimaryId(e.target.value)}>
+                {mergeGroup.accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.full_name || 'Student'} ({acc.email || acc.id.slice(0, 8)}) — {(wallets[acc.id] || 0)} coins
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field-label">
+              Secondary Account (Merge data from &amp; tag [MERGED])
+              <select className="text-input" value={secondaryId} onChange={(e) => setSecondaryId(e.target.value)}>
+                {mergeGroup.accounts.map((acc) => (
+                  <option key={acc.id} value={acc.id}>
+                    {acc.full_name || 'Student'} ({acc.email || acc.id.slice(0, 8)}) — {(wallets[acc.id] || 0)} coins
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field-label">
+              Audit Reason *
+              <input className="text-input" value={mergeReason} onChange={(e) => setMergeReason(e.target.value)} required />
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <button type="button" className="button button-outline" onClick={() => setMergeGroup(null)} disabled={merging}>Cancel</button>
+              <button type="submit" className="button button-gold" disabled={merging || primaryId === secondaryId}>
+                <GitMerge size={15} /> {merging ? 'Merging…' : 'Merge Accounts'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )}
   </div>;
 }

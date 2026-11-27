@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Activity, Award, BarChart3, FileQuestion, IndianRupee, RefreshCw, Users
+  Activity, Award, BarChart3, FileQuestion, IndianRupee, RefreshCw, TrendingUp, Users
 } from 'lucide-react';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -13,6 +13,60 @@ const EMPTY_QUERY_ERRORS = REPORT_QUERY_KEYS.reduce((errors, key) => {
   return errors;
 }, {});
 
+function buildDailyBuckets(days = 14) {
+  const buckets = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(now.getTime() - i * 86400000);
+    const key = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+    const label = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short' }).format(d);
+    buckets.push({ key, label, value: 0 });
+  }
+  return buckets;
+}
+
+function TrendBarChart({ title, subtitle, totalLabel, data = [], accentClass = 'bg-indigo-500', valueFormatter = (v) => v }) {
+  const maxVal = Math.max(1, ...data.map((d) => Number(d.value) || 0));
+  return (
+    <section className="panel-card p-5 sm:p-6 min-w-0 overflow-hidden">
+      <div className="flex items-start justify-between gap-2 mb-4">
+        <div>
+          <div className="eyebrow">{subtitle}</div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">{title}</h3>
+        </div>
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+          <TrendingUp size={13} /> {totalLabel}
+        </span>
+      </div>
+      <div className="flex items-end gap-1.5 h-36 pt-4">
+        {data.map((item) => {
+          const val = Number(item.value) || 0;
+          const pct = Math.round((val / maxVal) * 100);
+          return (
+            <div key={item.key} className="flex-1 flex flex-col items-center justify-end h-full group relative min-w-0">
+              <div
+                className="w-full max-w-[22px] rounded-t-md transition-all duration-300 relative"
+                style={{ height: `${Math.max(val > 0 ? 10 : 3, pct)}%` }}
+                title={`${item.label}: ${valueFormatter(val)}`}
+              >
+                <div className={`w-full h-full rounded-t-md ${val > 0 ? accentClass : 'bg-slate-200 dark:bg-slate-800'} group-hover:opacity-90`} />
+              </div>
+              <span className="text-[9px] text-slate-400 mt-1.5 truncate w-full text-center">
+                {item.label.split(' ')[0]}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex justify-between text-[10px] text-slate-400 mt-1 border-t border-slate-200/70 dark:border-slate-800 pt-1.5">
+        <span>{data[0]?.label || ''}</span>
+        <span>Last {data.length} days (IST)</span>
+        <span>{data[data.length - 1]?.label || ''}</span>
+      </div>
+    </section>
+  );
+}
+
 export default function AdminReports() {
   const { supabase } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -23,10 +77,17 @@ export default function AdminReports() {
     totalUsers: null,
     totalAttempts: null,
     completedAttempts: null,
+    zeroScoreCompleted: 0,
     averageScore: null,
     totalRevenue: null,
     totalCoins: null,
     totalReferrals: null
+  });
+
+  const [trendSeries, setTrendSeries] = useState({
+    revenue: buildDailyBuckets(14),
+    users: buildDailyBuckets(14),
+    attempts: buildDailyBuckets(14)
   });
 
   const [recentAttempts, setRecentAttempts] = useState([]);
@@ -45,23 +106,43 @@ export default function AdminReports() {
 
     try {
       const queryFns = {
-        users: () => supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        users: () => supabase.from('profiles').select('id, created_at', { count: 'exact' }).limit(1000),
         attempts: async () => {
-          const res = await supabase.from('test_attempts').select('score, status, time_spent_seconds, state_json');
+          const res = await supabase.from('test_attempts').select('score, status, time_spent_seconds, state_json, created_at');
           if (res.error) {
             console.warn('test_attempts full select failed, trying basic select fallback:', res.error);
-            return await supabase.from('test_attempts').select('score, status');
+            return await supabase.from('test_attempts').select('score, status, created_at');
           }
           return res;
         },
-        orders: () => supabase.from('payment_orders').select('amount, status'),
+        orders: () => supabase.from('payment_orders').select('amount, status, created_at'),
         wallets: () => supabase.from('coin_wallets').select('balance'),
         referrals: () => supabase.from('referrals').select('id', { count: 'exact', head: true }),
-        recentAttempts: () => supabase
-          .from('test_attempts')
-          .select('id, user_id, test_id, score, status, created_at')
-          .order('created_at', { ascending: false })
-          .limit(15)
+        recentAttempts: async () => {
+          const attRes = await supabase
+            .from('test_attempts')
+            .select('id, user_id, test_id, score, status, created_at')
+            .order('created_at', { ascending: false })
+            .limit(15);
+          if (attRes.error || !attRes.data?.length) return attRes;
+          const userIds = Array.from(new Set(attRes.data.map((a) => a.user_id).filter(Boolean)));
+          const testIds = Array.from(new Set(attRes.data.map((a) => a.test_id).filter(Boolean)));
+          const [profRes, testsRes] = await Promise.all([
+            userIds.length ? supabase.from('profiles').select('id, full_name, email').in('id', userIds) : Promise.resolve({ data: [] }),
+            testIds.length ? supabase.from('tests').select('id, title').in('id', testIds) : Promise.resolve({ data: [] })
+          ]);
+          const profMap = Object.fromEntries((profRes.data || []).map((p) => [p.id, p]));
+          const testMap = Object.fromEntries((testsRes.data || []).map((t) => [t.id, t.title]));
+          return {
+            ...attRes,
+            data: attRes.data.map((att) => ({
+              ...att,
+              user_name: profMap[att.user_id]?.full_name || null,
+              user_email: profMap[att.user_id]?.email || null,
+              test_title: testMap[att.test_id] || null
+            }))
+          };
+        }
       };
       const results = await Promise.all(requestedKeys.map(async (key) => {
         try {
@@ -108,12 +189,22 @@ export default function AdminReports() {
               });
             });
             const totalScore = completed.reduce((sum, a) => sum + (Number(a.score) || 0), 0);
+            const zeroScoreCompleted = completed.filter((a) => (Number(a.score) || 0) <= 0).length;
             setMetrics((previous) => ({
               ...previous,
               totalAttempts: attempts.length,
               completedAttempts: completed.length,
+              zeroScoreCompleted,
               averageScore: completed.length > 0 ? Math.round(totalScore / completed.length) : 0
             }));
+            const attemptBuckets = buildDailyBuckets(14);
+            const attemptBucketMap = Object.fromEntries(attemptBuckets.map((b) => [b.key, b]));
+            attempts.forEach((a) => {
+              if (!a.created_at) return;
+              const k = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(a.created_at));
+              if (attemptBucketMap[k]) attemptBucketMap[k].value += 1;
+            });
+            setTrendSeries((prev) => ({ ...prev, attempts: attemptBuckets }));
             setDropoffInsights({
               total: Array.from(eventCounts.values()).reduce((sum, count) => sum + count, 0),
               byType: Array.from(eventCounts.entries()).sort(([, a], [, b]) => b - a).slice(0, 4),
@@ -124,15 +215,36 @@ export default function AdminReports() {
 
         const usersResult = resultByKey.get('users');
         if (usersResult) {
-          setMetrics((previous) => ({ ...previous, totalUsers: usersResult.error ? null : (usersResult.count ?? 0) }));
+          const userRows = usersResult.data || [];
+          const totalUsersCount = usersResult.error ? null : (usersResult.count ?? userRows.length ?? 0);
+          setMetrics((previous) => ({ ...previous, totalUsers: totalUsersCount }));
+          if (!usersResult.error) {
+            const userBuckets = buildDailyBuckets(14);
+            const userBucketMap = Object.fromEntries(userBuckets.map((b) => [b.key, b]));
+            userRows.forEach((u) => {
+              if (!u.created_at) return;
+              const k = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(u.created_at));
+              if (userBucketMap[k]) userBucketMap[k].value += 1;
+            });
+            setTrendSeries((prev) => ({ ...prev, users: userBuckets }));
+          }
         }
         const ordersResult = resultByKey.get('orders');
         if (ordersResult) {
           const orders = ordersResult.data || [];
-          const revenue = orders
-            .filter((o) => ['paid', 'success', 'captured'].includes(String(o.status || '').toLowerCase()))
-            .reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
+          const paidOrders = orders.filter((o) => ['paid', 'success', 'captured'].includes(String(o.status || '').toLowerCase()));
+          const revenue = paidOrders.reduce((sum, o) => sum + (Number(o.amount) || 0), 0);
           setMetrics((previous) => ({ ...previous, totalRevenue: ordersResult.error ? null : revenue }));
+          if (!ordersResult.error) {
+            const revBuckets = buildDailyBuckets(14);
+            const revBucketMap = Object.fromEntries(revBuckets.map((b) => [b.key, b]));
+            paidOrders.forEach((o) => {
+              if (!o.created_at) return;
+              const k = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(o.created_at));
+              if (revBucketMap[k]) revBucketMap[k].value += Number(o.amount) || 0;
+            });
+            setTrendSeries((prev) => ({ ...prev, revenue: revBuckets }));
+          }
         }
         const walletsResult = resultByKey.get('wallets');
         if (walletsResult) {
@@ -234,9 +346,40 @@ export default function AdminReports() {
               <div className="metric-icon violet"><Award size={18} /></div>
               <span className="metric-label">Avg Test Score</span>
               <strong>{metrics.averageScore === null || queryErrors.attempts ? metricValue('attempts', metrics.averageScore) : `${metrics.averageScore}%`}</strong>
-              <span className="metric-foot">Overall accuracy index</span>
+              <span className="metric-foot" title="Mean percentage across all completed attempts including 0% / early-submitted tests.">
+                {queryErrors.attempts
+                  ? 'Data unavailable'
+                  : `Mean of ${metrics.completedAttempts ?? 0} completed (${metrics.zeroScoreCompleted || 0} scored 0%)`}
+              </span>
               {queryErrors.attempts && retryButton(['attempts'])}
             </article>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+            <TrendBarChart
+              title="Revenue Trend"
+              subtitle="14-DAY PAID ORDERS"
+              totalLabel={`₹${trendSeries.revenue.reduce((s, d) => s + d.value, 0).toLocaleString('en-IN')}`}
+              data={trendSeries.revenue}
+              accentClass="bg-emerald-500"
+              valueFormatter={(v) => `₹${v.toLocaleString('en-IN')}`}
+            />
+            <TrendBarChart
+              title="User Growth"
+              subtitle="14-DAY SIGNUPS"
+              totalLabel={`${trendSeries.users.reduce((s, d) => s + d.value, 0)} users`}
+              data={trendSeries.users}
+              accentClass="bg-indigo-500"
+              valueFormatter={(v) => `${v} signups`}
+            />
+            <TrendBarChart
+              title="Attempt Trend"
+              subtitle="14-DAY TEST ATTEMPTS"
+              totalLabel={`${trendSeries.attempts.reduce((s, d) => s + d.value, 0)} attempts`}
+              data={trendSeries.attempts}
+              accentClass="bg-amber-500"
+              valueFormatter={(v) => `${v} attempts`}
+            />
           </div>
 
           <div className="admin-equal-two-col-grid">
@@ -380,7 +523,8 @@ export default function AdminReports() {
                 <table className="data-table w-full border-collapse text-sm">
                   <thead>
                     <tr className="border-b border-slate-700/60 text-left text-slate-400 text-xs uppercase tracking-wider">
-                      <th className="py-2.5 px-3">User ID</th>
+                      <th className="py-2.5 px-3">Student</th>
+                      <th className="py-2.5 px-3">Test</th>
                       <th className="py-2.5 px-3">Status</th>
                       <th className="py-2.5 px-3">Score</th>
                       <th className="py-2.5 px-3">Date</th>
@@ -389,8 +533,16 @@ export default function AdminReports() {
                   <tbody>
                     {recentAttempts.map((att) => (
                       <tr key={att.id} className="border-b border-slate-800/60 hover:bg-slate-800/30 transition-colors">
-                        <td className="py-2.5 px-3 font-mono text-xs text-slate-400">
-                          {att.user_id ? `${att.user_id.slice(0, 8)}…` : 'Guest'}
+                        <td className="py-2.5 px-3 text-xs">
+                          <div className="font-semibold text-slate-900 dark:text-white">
+                            {att.user_name || (att.user_id ? `User ${att.user_id.slice(0, 8)}…` : 'Guest')}
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            {att.user_email || (att.user_id ? att.user_id : '—')}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 text-xs text-slate-700 dark:text-slate-200 max-w-[240px] truncate" title={att.test_title || att.test_id || ''}>
+                          {att.test_title || (att.test_id ? `Test ${att.test_id.slice(0, 8)}…` : '—')}
                         </td>
                         <td className="py-2.5 px-3">
                           <StatusBadge
@@ -403,7 +555,7 @@ export default function AdminReports() {
                           {att.score !== null && att.score !== undefined ? `${att.score}%` : '—'}
                         </td>
                         <td className="py-2.5 px-3 text-slate-400 text-xs whitespace-nowrap">
-                          {att.created_at ? new Date(att.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
+                          {att.created_at ? new Date(att.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}
                         </td>
                       </tr>
                     ))}

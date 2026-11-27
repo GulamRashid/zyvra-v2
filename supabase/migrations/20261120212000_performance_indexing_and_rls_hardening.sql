@@ -20,7 +20,7 @@ CREATE INDEX IF NOT EXISTS idx_questions_subject_difficulty
 
 -- 2. TEST_QUESTIONS: Speed up exam question sequencing
 CREATE INDEX IF NOT EXISTS idx_test_questions_test_order
-  ON public.test_questions (test_id, order_index);
+  ON public.test_questions (test_id, display_order);
 
 -- 3. TEST_RESPONSES: Speed up instant quiz result evaluation and analytics
 CREATE INDEX IF NOT EXISTS idx_test_responses_attempt_id
@@ -28,7 +28,7 @@ CREATE INDEX IF NOT EXISTS idx_test_responses_attempt_id
 
 -- 4. USER_ACCESS: Instant sub-millisecond paywall validation
 CREATE INDEX IF NOT EXISTS idx_user_access_user_item_expires
-  ON public.user_access (user_id, access_type, item_id, expires_at);
+  ON public.user_access (user_id, item_type, item_id, expires_at);
 
 -- 5. PAYMENT_ORDERS: Fast purchase history & pending webhook resolution
 CREATE INDEX IF NOT EXISTS idx_payment_orders_user_created
@@ -53,7 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_profiles_referral_code
 
 -- 9. CHAPTERS: Instant folder syllabus rendering
 CREATE INDEX IF NOT EXISTS idx_chapters_folder_published
-  ON public.chapters (folder_id, order_index)
+  ON public.chapters (folder_id, display_order)
   WHERE status = 'published';
 
 -- 10. TESTS: Fast test catalog retrieval

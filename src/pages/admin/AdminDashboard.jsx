@@ -24,6 +24,15 @@ const metricStateDefaults = Object.fromEntries(
 export default function AdminDashboard() {
   const { supabase, profile } = useAuth();
   const [metricState, setMetricState] = useState(metricStateDefaults);
+  const [liveHealth, setLiveHealth] = useState({
+    checking: true,
+    online: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    authOk: false,
+    dbOk: false,
+    dbLatencyMs: null,
+    pendingOrdersCount: 0,
+    checkedAt: null
+  });
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -35,6 +44,7 @@ export default function AdminDashboard() {
       setMetricState(Object.fromEntries(
         metrics.map(({ key }) => [key, { loading: false, value: null, error: 'Data unavailable' }])
       ));
+      setLiveHealth((prev) => ({ ...prev, checking: false, authOk: false, dbOk: false, checkedAt: new Date().toISOString() }));
       return;
     }
     setRefreshing(true);
@@ -42,23 +52,28 @@ export default function AdminDashboard() {
     setMetricState(Object.fromEntries(
       metrics.map(({ key }) => [key, { loading: true, value: null, error: '' }])
     ));
+    setLiveHealth((prev) => ({ ...prev, checking: true }));
 
     try {
+      const pingStart = performance.now();
       const [
         usersResult,
         grantsResult,
         unconfirmedResult,
         ordersResult,
         chaptersResult,
-        questionsResult
+        questionsResult,
+        sessionResult
       ] = await Promise.allSettled([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('user_access').select('*', { count: 'exact', head: true }).eq('is_active', true),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('email_verified', false),
         supabase.from('payment_orders').select('amount, status'),
         supabase.from('chapters').select('*', { count: 'exact', head: true }),
-        supabase.from('questions').select('*', { count: 'exact', head: true })
+        supabase.from('questions').select('*', { count: 'exact', head: true }),
+        supabase.auth.getSession()
       ]);
+      const pingMs = Math.max(1, Math.round(performance.now() - pingStart));
 
       if (!active()) return;
 
@@ -72,6 +87,7 @@ export default function AdminDashboard() {
       const ordersError = getResultError(ordersResult);
       const contentError = getResultError(chaptersResult);
       const questionsError = getResultError(questionsResult);
+      const sessionOk = sessionResult.status === 'fulfilled' && Boolean(sessionResult.value?.data?.session);
 
       const usersCount = usersError ? null : (usersResult.value.count ?? 0);
       let paidCount = grantsError ? null : (grantsResult.value.count ?? 0);
@@ -92,10 +108,12 @@ export default function AdminDashboard() {
       const pendingCount = pendingError ? null : (unconfirmedResult.value.count ?? 0);
 
       let revenue = null;
+      let pendingOrdersCount = 0;
       if (!ordersError && ordersResult.value.data) {
         revenue = ordersResult.value.data
           .filter((ord) => ['paid', 'success', 'captured'].includes(String(ord.status || '').toLowerCase()))
           .reduce((sum, order) => sum + Number(order.amount || 0), 0);
+        pendingOrdersCount = ordersResult.value.data.filter((ord) => String(ord.status || '').toLowerCase() === 'pending').length;
       }
 
       const contentCount = contentError ? null : (chaptersResult.value.count ?? 0);
@@ -109,9 +127,20 @@ export default function AdminDashboard() {
         content: { loading: false, value: contentCount, error: contentError },
         questions: { loading: false, value: questionsCount, error: questionsError }
       });
+
+      setLiveHealth({
+        checking: false,
+        online: typeof navigator !== 'undefined' ? navigator.onLine : true,
+        authOk: sessionOk,
+        dbOk: !usersError && !contentError && !questionsError,
+        dbLatencyMs: pingMs,
+        pendingOrdersCount,
+        checkedAt: new Date().toISOString()
+      });
     } catch (loadError) {
       if (active()) {
         setError(loadError.message || 'Unable to load dashboard metrics.');
+        setLiveHealth((prev) => ({ ...prev, checking: false, dbOk: false, checkedAt: new Date().toISOString() }));
       }
     } finally {
       if (active()) setRefreshing(false);
@@ -133,11 +162,24 @@ export default function AdminDashboard() {
   const serviceStatus = (keys) => {
     const states = keys.map((key) => metricState[key]);
     if (states.some((state) => state.loading)) return 'CHECKING';
-    if (states.some((state) => state.error)) return 'ATTENTION';
-    return 'READY';
+    if (states.some((state) => state.error)) return 'DEGRADED';
+    return liveHealth.dbLatencyMs ? `${liveHealth.dbLatencyMs}ms OK` : 'HEALTHY';
   };
-  const platformHealth = serviceStatus(['users', 'content', 'questions', 'revenue']);
-  const platformHealthLabel = platformHealth === 'CHECKING' ? 'Checking' : platformHealth === 'ATTENTION' ? 'Needs attention' : 'Operational';
+  const platformHealth = liveHealth.checking
+    ? 'CHECKING'
+    : !liveHealth.online || !liveHealth.authOk || !liveHealth.dbOk || serviceStatus(['users', 'content', 'questions', 'revenue']) === 'DEGRADED'
+      ? 'ATTENTION'
+      : liveHealth.dbLatencyMs > 2500
+        ? 'SLOW'
+        : 'LIVE';
+  const platformHealthLabel =
+    platformHealth === 'CHECKING'
+      ? 'Probing live…'
+      : platformHealth === 'ATTENTION'
+        ? 'Degraded'
+        : platformHealth === 'SLOW'
+          ? `Slow (${liveHealth.dbLatencyMs}ms)`
+          : `Live · ${liveHealth.dbLatencyMs || 0}ms`;
 
   return (
     <div className="admin-dashboard">
@@ -208,25 +250,25 @@ export default function AdminDashboard() {
             <div className="system-symbol"><ShieldCheck size={17} /></div>
             <div>
               <strong>Authentication</strong>
-              <span>{supabase ? 'Supabase Auth client initialized' : 'Supabase Auth is not configured'}</span>
+              <span>{liveHealth.checking ? 'Verifying active Supabase Auth session…' : liveHealth.authOk ? 'Live session token verified' : 'No active auth session'}</span>
             </div>
-            <span className={`system-status ${supabase ? '' : 'warning'}`}>{supabase ? 'READY' : 'SETUP NEEDED'}</span>
+            <span className={`system-status ${liveHealth.authOk ? '' : 'warning'}`}>{liveHealth.checking ? 'PROBING' : liveHealth.authOk ? 'VERIFIED' : 'OFFLINE'}</span>
           </div>
           <div className="system-row">
             <div className="system-symbol"><Activity size={17} /></div>
             <div>
               <strong>Data services</strong>
-              <span>Profile, content and question bank queries</span>
+              <span>Live DB round-trip ({liveHealth.dbLatencyMs ? `${liveHealth.dbLatencyMs} ms` : 'measuring…'})</span>
             </div>
-            <span className={`system-status ${serviceStatus(['users', 'content', 'questions']) === 'READY' ? '' : 'warning'}`}>{serviceStatus(['users', 'content', 'questions'])}</span>
+            <span className={`system-status ${serviceStatus(['users', 'content', 'questions']).includes('OK') || serviceStatus(['users', 'content', 'questions']) === 'HEALTHY' ? '' : 'warning'}`}>{serviceStatus(['users', 'content', 'questions'])}</span>
           </div>
           <div className="system-row">
             <div className="system-symbol"><Coins size={17} /></div>
             <div>
               <strong>Payment records</strong>
-              <span>Payment order data query</span>
+              <span>{liveHealth.pendingOrdersCount > 0 ? `${liveHealth.pendingOrdersCount} pending order(s) need attention` : 'No stuck pending orders'}</span>
             </div>
-            <span className={`system-status ${serviceStatus(['revenue']) === 'READY' ? '' : 'warning'}`}>{serviceStatus(['revenue'])}</span>
+            <span className={`system-status ${liveHealth.pendingOrdersCount > 0 || serviceStatus(['revenue']) === 'DEGRADED' ? 'warning' : ''}`}>{liveHealth.pendingOrdersCount > 0 ? `${liveHealth.pendingOrdersCount} PENDING` : serviceStatus(['revenue'])}</span>
           </div>
         </section>
 

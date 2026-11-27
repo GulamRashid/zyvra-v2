@@ -1,11 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   MessageCircle, Search, Send, CheckCircle2, Clock, Mail,
-  RefreshCw, CheckCheck, User, Sparkles, Filter, ChevronRight,
+  RefreshCw, CheckCheck, User, Sparkles, Filter, ChevronRight, ChevronDown, ChevronUp,
   ArrowLeft, Check, AlertCircle, Headphones
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
+import { logAdminAction } from '../../lib/auditLog';
+
+function formatDateTimeIN(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
 
 const POLL_INTERVAL_MS = 3500;
 
@@ -30,6 +42,10 @@ export default function AdminSupportChat() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'open' | 'unread' | 'resolved'
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [expandedThreadIds, setExpandedThreadIds] = useState({});
+  const [resolveReasonPrompt, setResolveReasonPrompt] = useState(false);
+  const [resolveReason, setResolveReason] = useState('');
+  const [statusError, setStatusError] = useState('');
 
   const messagesEndRef = useRef(null);
 
@@ -193,9 +209,17 @@ export default function AdminSupportChat() {
     }
   };
 
-  const handleToggleStatus = async () => {
+  const handleToggleStatus = async (explicitReason = '') => {
     if (!selectedThread?.id || updatingStatus) return;
     const nextStatus = selectedThread.status === 'resolved' ? 'open' : 'resolved';
+    const hasHumanReply = messages.some((m) => m.sender_role === 'admin');
+    setStatusError('');
+
+    if (nextStatus === 'resolved' && !hasHumanReply && explicitReason.trim().length < 5) {
+      setResolveReasonPrompt(true);
+      return;
+    }
+
     setUpdatingStatus(true);
 
     try {
@@ -211,18 +235,33 @@ export default function AdminSupportChat() {
         body: JSON.stringify({
           action: 'update_status',
           thread_id: selectedThread.id,
-          status: nextStatus
+          status: nextStatus,
+          resolution_reason: explicitReason.trim() || undefined
         })
       });
 
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setSelectedThread((prev) => ({ ...prev, status: nextStatus }));
+        const updatedThread = data?.thread || { ...selectedThread, status: nextStatus };
+        setSelectedThread(updatedThread);
         setThreads((prev) =>
-          prev.map((t) => (t.id === selectedThread.id ? { ...t, status: nextStatus } : t))
+          prev.map((t) => (t.id === selectedThread.id ? { ...t, ...updatedThread } : t))
         );
+        setResolveReasonPrompt(false);
+        setResolveReason('');
+        logAdminAction(supabase, {
+          actor: user,
+          action: nextStatus === 'resolved' ? 'support_ticket_resolved' : 'support_ticket_reopened',
+          targetType: 'support_thread',
+          targetId: selectedThread.id,
+          details: { reason: explicitReason.trim() || 'Admin replied' }
+        });
+      } else {
+        setStatusError(data?.error || 'Unable to update ticket status.');
       }
     } catch (err) {
       console.error('Failed to update status:', err);
+      setStatusError(err.message || 'Unable to update ticket status.');
     } finally {
       setUpdatingStatus(false);
     }
@@ -348,17 +387,14 @@ export default function AdminSupportChat() {
             ) : (
               filteredThreads.map((thread) => {
                 const isSelected = selectedThread?.id === thread.id;
+                const isExpanded = Boolean(expandedThreadIds[thread.id]);
                 const hasUnread = Boolean(thread.unread_admin_count && thread.unread_admin_count > 0);
-                const timeStr = thread.last_message_at
-                  ? new Date(thread.last_message_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                  : '';
+                const timeStr = formatDateTimeIN(thread.last_message_at);
 
                 return (
-                  <button
+                  <div
                     key={thread.id}
-                    type="button"
-                    onClick={() => handleSelectThread(thread)}
-                    className={`w-full p-3.5 text-left flex items-start gap-3 transition-colors ${
+                    className={`w-full p-3.5 text-left transition-colors ${
                       isSelected
                         ? 'dark:bg-indigo-950/40 bg-indigo-50/70 border-l-4 border-indigo-600'
                         : hasUnread
@@ -366,54 +402,77 @@ export default function AdminSupportChat() {
                         : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     }`}
                   >
-                    <div className="relative shrink-0">
-                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center font-black text-sm shadow-xs">
-                        {(thread.user_name || 'S').slice(0, 1).toUpperCase()}
-                      </div>
-                      {thread.status === 'open' && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 dark:border-slate-900 border-white" />
-                      )}
+                    <div className="flex items-start gap-3">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectThread(thread)}
+                        className="flex-1 min-w-0 flex items-start gap-3 text-left"
+                      >
+                        <div className="relative shrink-0">
+                          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 text-white flex items-center justify-center font-black text-sm shadow-xs">
+                            {(thread.user_name || 'S').slice(0, 1).toUpperCase()}
+                          </div>
+                          {thread.status === 'open' && (
+                            <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 dark:border-slate-900 border-white" />
+                          )}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-1">
+                            <h4 className={`text-xs font-black dark:text-white text-slate-900 ${isExpanded ? 'break-words' : 'truncate'}`}>
+                              {thread.user_name || 'Student'}
+                            </h4>
+                            <span className="text-[10px] text-slate-400 shrink-0">{timeStr}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                            <p className={`text-[11px] text-slate-400 flex-1 ${isExpanded ? 'break-all' : 'truncate'}`}>
+                              {thread.user_email || 'No email'}
+                            </p>
+                            {thread.needs_admin ? (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500/15 text-rose-500 border border-rose-500/30 shrink-0 animate-pulse">
+                                🔴 Pending Human Reply
+                              </span>
+                            ) : thread.status === 'open' ? (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-500/15 text-purple-400 border border-purple-500/30 shrink-0">
+                                🤖 Bot Handled
+                              </span>
+                            ) : (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+                                ✓ Resolved
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-start justify-between gap-2 mt-1">
+                            <p className={`text-[11px] ${isExpanded ? 'whitespace-pre-wrap break-words' : 'truncate'} ${hasUnread ? 'font-bold text-slate-900 dark:text-white' : 'text-slate-500'}`}>
+                              {thread.last_message || 'No messages yet'}
+                            </p>
+                            {hasUnread && (
+                              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-rose-500 text-white shrink-0">
+                                {thread.unread_admin_count}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setExpandedThreadIds((prev) => ({ ...prev, [thread.id]: !prev[thread.id] }))}
+                        className="p-1 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800 shrink-0"
+                        title={isExpanded ? 'Collapse row' : 'Expand full message'}
+                        aria-label={isExpanded ? 'Collapse row' : 'Expand full message'}
+                      >
+                        {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      </button>
                     </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <h4 className="text-xs font-black dark:text-white text-slate-900 truncate">
-                          {thread.user_name || 'Student'}
-                        </h4>
-                        <span className="text-[10px] text-slate-400 shrink-0">{timeStr}</span>
+                    {isExpanded && thread.resolution_reason && (
+                      <div className="mt-2 ml-13 p-2 rounded-lg bg-slate-100 dark:bg-slate-800/70 text-[10px] text-slate-600 dark:text-slate-300">
+                        <strong>Resolution note:</strong> {thread.resolution_reason}
                       </div>
-
-                      <div className="flex items-center gap-1.5 mt-0.5">
-                        <p className="text-[11px] text-slate-400 truncate flex-1">
-                          {thread.user_email || 'No email'}
-                        </p>
-                        {thread.needs_admin ? (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500/15 text-rose-500 border border-rose-500/30 shrink-0 animate-pulse">
-                            🔴 Needs Admin
-                          </span>
-                        ) : thread.status === 'open' ? (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-purple-500/15 text-purple-400 border border-purple-500/30 shrink-0">
-                            🤖 Bot Handled
-                          </span>
-                        ) : (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
-                            ✓ Resolved
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between gap-2 mt-1">
-                        <p className={`text-[11px] truncate ${hasUnread ? 'font-bold text-slate-900 dark:text-white' : 'text-slate-500'}`}>
-                          {thread.last_message || 'No messages yet'}
-                        </p>
-                        {hasUnread && (
-                          <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-rose-500 text-white shrink-0">
-                            {thread.unread_admin_count}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
+                    )}
+                  </div>
                 );
               })
             )}
@@ -484,7 +543,7 @@ export default function AdminSupportChat() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={handleToggleStatus}
+                    onClick={() => handleToggleStatus()}
                     disabled={updatingStatus}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                       selectedThread.status === 'resolved'
@@ -509,6 +568,45 @@ export default function AdminSupportChat() {
                 </div>
               </div>
 
+              {(statusError || resolveReasonPrompt) && (
+                <div className="px-4 py-2.5 border-b dark:border-slate-800 border-slate-200 bg-amber-50 dark:bg-amber-950/30 space-y-2 shrink-0">
+                  {statusError && (
+                    <div className="text-xs font-semibold text-rose-600 dark:text-rose-400">{statusError}</div>
+                  )}
+                  {resolveReasonPrompt && (
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <span className="text-xs font-semibold text-amber-800 dark:text-amber-200 shrink-0">
+                        No human reply sent yet. Enter resolution reason:
+                      </span>
+                      <input
+                        type="text"
+                        value={resolveReason}
+                        onChange={(e) => setResolveReason(e.target.value)}
+                        placeholder="e.g. Verified offline / duplicate test thread"
+                        className="flex-1 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-700 text-xs text-slate-900 dark:text-white"
+                      />
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(resolveReason)}
+                          disabled={updatingStatus || resolveReason.trim().length < 5}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold disabled:opacity-50"
+                        >
+                          Confirm Resolve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => { setResolveReasonPrompt(false); setResolveReason(''); }}
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Messages Body */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 dark:bg-[#0B1120] bg-slate-50/60">
                 {loadingMessages ? (
@@ -521,9 +619,7 @@ export default function AdminSupportChat() {
                   messages.map((msg, index) => {
                     const isAdmin = msg.sender_role === 'admin';
                     const isBot = msg.sender_role === 'bot';
-                    const timeStr = msg.created_at
-                      ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                      : '';
+                    const timeStr = formatDateTimeIN(msg.created_at);
 
                     return (
                       <div

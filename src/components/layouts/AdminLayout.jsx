@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { Activity, Bell, ClipboardList, Coins, FileQuestion, FileText, Gauge, LogOut, Menu, MessageCircle, PackageCheck, ShieldCheck, ShoppingCart, Sparkles, Tag, Users, Wrench, X } from 'lucide-react';
+import { Activity, Bell, CheckSquare, ClipboardList, Coins, FileQuestion, FileText, Gauge, LogOut, Menu, MessageCircle, PackageCheck, Settings, ShieldCheck, ShoppingCart, Sparkles, Tag, Users, Wrench, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import ThemeToggle from '../common/ThemeToggle';
 import Admin2FAModal from '../admin/Admin2FAModal';
@@ -10,7 +10,9 @@ const navigationSections = [
     title: 'OVERVIEW',
     items: [
       { to: '/admin', label: 'Dashboard', Icon: Gauge, end: true },
-      { to: '/admin/reports', label: 'Reports & Analytics', Icon: Activity }
+      { to: '/admin/reports', label: 'Reports & Analytics', Icon: Activity },
+      { to: '/admin/launch-checklist', label: 'Launch Checklist', Icon: CheckSquare },
+      { to: '/admin/settings', label: 'Settings & Audit', Icon: Settings }
     ]
   },
   {

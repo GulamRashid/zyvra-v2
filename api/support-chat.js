@@ -300,6 +300,8 @@ export async function handleSupportChat(req, res) {
         store.thread.unread_user_count = (store.thread.unread_user_count || 0) + 1;
         store.thread.unread_admin_count = 0;
         store.thread.needs_admin = false; // Admin responded
+        store.thread.ticket_state = 'admin_replied';
+        store.thread.last_admin_reply_at = now;
 
         await saveChatStore(adminClient, targetUserId, store);
 
@@ -357,11 +359,12 @@ export async function handleSupportChat(req, res) {
 
       store.messages.push(botMsg);
 
-      // Update thread status
-      store.thread.last_message = rawMsg.slice(0, 100);
+      // Update thread status: keep open and visibly pending human reply when escalated
+      store.thread.last_message = rawMsg;
       store.thread.last_message_at = now;
       store.thread.status = 'open';
-      store.thread.needs_admin = botResult.needs_admin;
+      store.thread.needs_admin = Boolean(botResult.needs_admin || store.thread.needs_admin);
+      store.thread.ticket_state = store.thread.needs_admin ? 'pending_human' : 'bot_handled';
       store.thread.unread_admin_count = (store.thread.unread_admin_count || 0) + 1;
       store.thread.user_name = userName;
       store.thread.user_email = userEmail;
@@ -382,19 +385,34 @@ export async function handleSupportChat(req, res) {
     if (action === 'update_status' && isAdmin) {
       const targetUserId = body.thread_id || body.user_id;
       const status = body.status || 'resolved';
+      const resolutionReason = String(body.resolution_reason || '').trim();
       if (!targetUserId) {
         return respond(400, { error: 'Thread ID / user ID is required.' });
       }
 
       const store = await getChatStore(adminClient, targetUserId);
       if (store) {
+        const hasAdminReply = Array.isArray(store.messages) && store.messages.some((m) => m.sender_role === 'admin');
+        if (status === 'resolved' && !hasAdminReply && resolutionReason.length < 5) {
+          return respond(400, {
+            error: 'Cannot mark ticket Resolved without a human admin reply or a clear resolution reason (min 5 characters).'
+          });
+        }
         store.thread.status = status;
         if (status === 'resolved') {
           store.thread.needs_admin = false;
           store.thread.unread_admin_count = 0;
+          store.thread.ticket_state = 'resolved';
+          store.thread.resolved_at = new Date().toISOString();
+          store.thread.resolved_by = profile?.full_name || profile?.email || user.id;
+          if (resolutionReason) {
+            store.thread.resolution_reason = resolutionReason;
+          }
+        } else {
+          store.thread.ticket_state = store.thread.needs_admin ? 'pending_human' : 'open';
         }
         await saveChatStore(adminClient, targetUserId, store);
-        return respond(200, { success: true, status });
+        return respond(200, { success: true, status, thread: store.thread });
       }
       return respond(404, { error: 'Thread not found.' });
     }
