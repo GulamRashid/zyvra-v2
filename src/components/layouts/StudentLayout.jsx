@@ -234,8 +234,8 @@ export default function StudentLayout() {
 
       <div className="main-column">
         <header className="topbar student-topbar">
-          <div className="topbar-left flex items-center gap-1.5 sm:gap-2.5 min-w-0">
-            <button className="icon-button mobile-menu shrink-0" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
+          <div className="topbar-left flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <button className="icon-button mobile-menu shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
               <Menu size={20} />
             </button>
             <div className="mobile-brand flex items-center gap-1.5 font-bold text-[var(--text)] tracking-wide shrink-0">
@@ -244,7 +244,7 @@ export default function StudentLayout() {
             </div>
           </div>
 
-          <div className="topbar-actions flex items-center gap-1.5 sm:gap-2">
+          <div className="topbar-actions flex items-center gap-2">
             {/* Language Switcher (EN / HI) - Always visible on mobile & desktop */}
             <LanguageToggle />
 
@@ -255,7 +255,7 @@ export default function StudentLayout() {
             <button
               type="button"
               onClick={() => setStreakModalOpen(true)}
-              className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer border ${
+              className={`flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-xs font-black transition-all cursor-pointer border ${
                 streak > 0
                   ? 'bg-orange-500/10 border-orange-500/30 text-orange-600 dark:text-orange-400 hover:bg-orange-500/20'
                   : 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-orange-500/40'
@@ -278,7 +278,7 @@ export default function StudentLayout() {
             <CoinBadge balance={coinBalance} loading={!walletLoaded} />
 
             <NavLink
-              className="icon-button notification-button relative"
+              className="icon-button notification-button relative min-w-[44px] min-h-[44px] flex items-center justify-center"
               aria-label={t('notifications')}
               to="/notifications"
             >

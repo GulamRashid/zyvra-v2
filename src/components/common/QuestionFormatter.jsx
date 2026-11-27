@@ -12,7 +12,12 @@ export { parseMatchingQuestion, parseStatementQuestion };
  */
 export default function QuestionFormatter({ text, language, className = '' }) {
   if (!text) return null;
-  const rawText = typeof text === 'string' ? text : String(text || '');
+  const rawInput = typeof text === 'string' ? text : String(text || '');
+  // Ensure inline trailing questions after list items always start on a new line
+  const rawText = rawInput.replace(
+    /([^\n])\s+((?:How many of the above|Which of the statements|Which of the above|Select the correct|Choose the correct|Find the correct|उपरोक्त में से|नीचे दिए गए)[^\n]*)/gi,
+    '$1\n\n$2'
+  );
 
   // 1. Column-Matching check (Multi-line or Inline single-paragraph)
   const matchingData = parseMatchingQuestion(rawText);

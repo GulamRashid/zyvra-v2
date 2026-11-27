@@ -7,6 +7,7 @@ export default function ShareAndEarnCard({ className = '' }) {
   const { user, profile, supabase } = useAuth();
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
+  const [revealCode, setRevealCode] = useState(false);
   const [referrals, setReferrals] = useState([]);
   const [code, setCode] = useState(String(profile?.referral_code || user?.referral_code || ''));
   const [generating, setGenerating] = useState(false);
@@ -158,10 +159,21 @@ export default function ShareAndEarnCard({ className = '' }) {
             <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-400 block">
               Your Invite Code
             </span>
-            <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <strong className="font-mono text-base font-black dark:text-amber-400 text-amber-600 tracking-wider">
-                {activeCode || (generating ? 'Generating...' : 'Loading code...')}
+                {activeCode
+                  ? (revealCode || activeCode.length <= 4 ? activeCode : `${activeCode.slice(0, 2)}${'•'.repeat(Math.max(2, activeCode.length - 4))}${activeCode.slice(-2)}`)
+                  : (generating ? 'Generating...' : 'Loading code...')}
               </strong>
+              {hasRealCode && (
+                <button
+                  type="button"
+                  onClick={() => setRevealCode((v) => !v)}
+                  className="px-2 min-h-[32px] rounded-lg dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 text-[10px] font-bold text-slate-600 dark:text-slate-300"
+                >
+                  {revealCode ? 'Hide' : 'Show'}
+                </button>
+              )}
               {hasRealCode ? (
                 <button
                   type="button"

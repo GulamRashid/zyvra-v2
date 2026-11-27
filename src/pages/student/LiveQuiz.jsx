@@ -465,11 +465,24 @@ export default function LiveQuiz() {
 
   const submitLock = useRef(false);
   const autoSubmitTriggeredRef = useRef(false);
+  const touchStartRef = useRef(null);
+  const [expiredAttemptInfo, setExpiredAttemptInfo] = useState(null);
   const lastViolationAt = useRef(0);
   const violationCountRef = useRef(0);
   const hasWarned5MinRef = useRef(false);
   const hasWarned1MinRef = useRef(false);
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState('ALL');
+  const [quizTheme, setQuizTheme] = useState(() => {
+    try { return localStorage.getItem('zyvra_quiz_theme') || 'light'; } catch { return 'light'; }
+  });
+  const [focusWidth, setFocusWidth] = useState(false);
+  const cycleQuizTheme = () => {
+    setQuizTheme((prev) => {
+      const next = prev === 'light' ? 'sepia' : prev === 'sepia' ? 'dark' : 'light';
+      try { localStorage.setItem('zyvra_quiz_theme', next); } catch {}
+      return next;
+    });
+  };
   const [timeExpired, setTimeExpired] = useState(false);
   const [language, setLanguage] = useState('en');
   const [translatedData, setTranslatedData] = useState({});
@@ -953,9 +966,28 @@ export default function LiveQuiz() {
           setResponses(restoredResponses);
           setCurrentIndex(isMistakesMode ? 0 : Math.min(restoredIndex, Math.max(0, finalQuestions.length - 1)));
           setVisitedQuestions(restoredVisited);
+
+          // Dead-attempt guard: never resume or auto-submit an expired attempt
+          if (Number(restoredRemaining) <= 5) {
+            try {
+              localStorage.removeItem(`zyvra_test_progress_${user.id}_${testId}`);
+              localStorage.removeItem(`zyvra-paused-attempt-${user.id}-${testId}`);
+              sessionStorage.removeItem(`zyvra-active-attempt-${user.id}-${testId}`);
+            } catch {}
+            const freshSecs = Number(testData.duration_minutes || 60) * 60;
+            setRemaining(freshSecs);
+            setExpiredAttemptInfo({
+              answeredCount: Object.values(restoredResponses).filter((r) => Boolean(r?.selected_option)).length,
+              durationMinutes: Number(testData.duration_minutes || 60),
+              questionCount: finalQuestions.length
+            });
+            setTestPhase('resume_prompt');
+            setLoading(false);
+            return;
+          }
+
+          setExpiredAttemptInfo(null);
           setRemaining(restoredRemaining);
-
-
 
           // If navigated with autoResume (e.g. from ChapterDetail Resume button), start immediately
           if (location.state?.autoResume) {
@@ -1085,8 +1117,9 @@ export default function LiveQuiz() {
   // Resume paused test
   const handleResumeTest = () => {
     if (!questions.length) return;
-    if (remaining <= 0) {
-      submit(true);
+    if (remaining <= 5 || expiredAttemptInfo) {
+      setExpiredAttemptInfo(null);
+      handleStartTest();
       return;
     }
     setError(null);
@@ -1200,22 +1233,33 @@ export default function LiveQuiz() {
 
   const recordViolation = useCallback(() => {
     if (testPhase !== 'active' || submitting || pausing) return;
+    // Do not issue focus strikes in Practice mode
+    if (test?.solution_mode === 'immediate') return;
     const now = Date.now();
     if (now - lastViolationAt.current < 1500) return;
     lastViolationAt.current = now;
     const nextCount = violationCountRef.current + 1;
     violationCountRef.current = nextCount;
     setViolationCount(nextCount);
-    setAntiCheatWarning(
-      language === 'hi'
-        ? `⚠️ परीक्षा चेतावनी: विंडो से बाहर जाना दर्ज हुआ (स्ट्राइक ${nextCount})। अपने टेस्ट को सुरक्षित रखने के लिए इसी स्क्रीन पर रहें।`
-        : `⚠️ Focus warning: leaving test window detected (Strike ${nextCount}). Stay on this screen to protect your attempt.`
-    );
+    const strikeNum = Math.max(0, nextCount - 1);
+    if (nextCount === 1) {
+      setAntiCheatWarning(
+        language === 'hi'
+          ? '⚠️ फोकस सूचना: मॉक टेस्ट में विंडो बदलना मॉनिटर किया जाता है। पहली बार केवल चेतावनी है (0/3 स्ट्राइक)। 3 स्ट्राइक होने पर टेस्ट स्वतः सबमिट हो सकता है।'
+          : '⚠️ Focus Notice: Switching away is monitored in Mock Tests. First switch is a warning only (0/3 strikes). Reaching 3 strikes may auto-submit your test.'
+      );
+    } else {
+      setAntiCheatWarning(
+        language === 'hi'
+          ? `⚠️ फोकस चेतावनी (स्ट्राइक ${strikeNum}/3): टेस्ट स्क्रीन से बाहर जाना दर्ज हुआ। 3 स्ट्राइक पर टेस्ट स्वतः सबमिट हो सकता है।`
+          : `⚠️ Focus Warning (Strike ${strikeNum}/3): Leaving the test window was detected. Reaching 3 strikes may auto-submit your test.`
+      );
+    }
     saveProgressSnapshot({ violationCount: nextCount }, true);
-  }, [testPhase, submitting, pausing, language, saveProgressSnapshot]);
+  }, [testPhase, submitting, pausing, test?.solution_mode, language, saveProgressSnapshot]);
 
   useEffect(() => {
-    if (testPhase !== 'active' || confirmSubmit || showPauseModal || showInstructionsModal || submitting) return undefined;
+    if (testPhase !== 'active' || confirmSubmit || showPauseModal || showInstructionsModal || submitting || test?.solution_mode === 'immediate') return undefined;
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') recordViolation();
@@ -1962,7 +2006,7 @@ export default function LiveQuiz() {
             <img src="/logo-192.png" alt="Zyvra" className="w-8 h-8 rounded-xl object-contain shadow-sm" />
             <span>ZYVRA<span>EXAM INSTRUCTIONS</span></span>
           </Link>
-          <Link to={returnTo} replace className="button button-outline text-xs min-h-[36px]">
+          <Link to={returnTo} replace className="button button-outline text-xs min-h-[44px] inline-flex items-center">
             <ArrowLeft size={14} /> Exit to Tests
           </Link>
         </header>
@@ -2116,7 +2160,7 @@ export default function LiveQuiz() {
                 onChange={(e) => setDeclared(e.target.checked)}
               />
               <span>
-                I have read and understood all the instructions above. All computer hardware allotted to me is in proper working condition. I declare that I will strictly follow all rules and regulations of this examination.
+                I have read and understood all the instructions above and am ready to begin this session on my device. I agree to follow the test guidelines.
               </span>
             </label>
 
@@ -2127,7 +2171,7 @@ export default function LiveQuiz() {
             )}
 
             <div className="declaration-footer">
-              <Link to={returnTo} className="button button-outline">
+              <Link to={returnTo} className="button button-outline min-h-[44px] inline-flex items-center">
                 Cancel & Exit
               </Link>
               <button
@@ -2162,7 +2206,7 @@ export default function LiveQuiz() {
             <img src="/logo-192.png" alt="Zyvra" className="w-8 h-8 rounded-xl object-contain shadow-sm" />
             <span>ZYVRA<span>RESUME TEST</span></span>
           </Link>
-          <Link to={returnTo} replace className="button button-outline text-xs min-h-[36px]">
+          <Link to={returnTo} replace className="button button-outline text-xs min-h-[44px] inline-flex items-center">
             <ArrowLeft size={14} /> Exit to Tests
           </Link>
         </header>
@@ -2186,27 +2230,37 @@ export default function LiveQuiz() {
             <div className="resume-icon-badge">
               <Clock3 size={32} className="text-accent" />
             </div>
-            <h2>Incomplete Test Attempt Detected</h2>
+            <h2>{expiredAttemptInfo ? 'Previous Attempt Expired' : 'Incomplete Test Attempt Detected'}</h2>
             <p>
-              You have a previously paused attempt for <strong>{test?.title}</strong>. Your responses, question progress, and remaining time are preserved.
+              {expiredAttemptInfo ? (
+                <>
+                  Your previous session for <strong>{test?.title}</strong> had no time remaining and was not auto-submitted. Start a fresh attempt with full time ({expiredAttemptInfo.durationMinutes} mins, {expiredAttemptInfo.questionCount} questions).
+                </>
+              ) : (
+                <>
+                  You have a previously paused attempt for <strong>{test?.title}</strong>. Your responses, question progress, and remaining time are preserved.
+                </>
+              )}
             </p>
 
             <div className="resume-stats-grid">
               <div className="resume-stat">
-                <span className="stat-label">Time Remaining</span>
+                <span className="stat-label">{expiredAttemptInfo ? 'Test Duration' : 'Time Remaining'}</span>
                 <strong className="stat-value text-accent">{formatTime(remaining)}</strong>
               </div>
               <div className="resume-stat">
-                <span className="stat-label">Answered</span>
-                <strong className="stat-value text-green">{attemptedCount} of {questions.length}</strong>
+                <span className="stat-label">{expiredAttemptInfo ? 'Questions' : 'Answered'}</span>
+                <strong className="stat-value text-green">
+                  {expiredAttemptInfo ? `${questions.length} Questions` : `${attemptedCount} of ${questions.length}`}
+                </strong>
               </div>
               <div className="resume-stat">
                 <span className="stat-label">Marked for Review</span>
-                <strong className="stat-value text-purple">{markedCount}</strong>
+                <strong className="stat-value text-purple">{expiredAttemptInfo ? 0 : markedCount}</strong>
               </div>
               <div className="resume-stat">
-                <span className="stat-label">Resume From</span>
-                <strong className="stat-value">Question {currentIndex + 1}</strong>
+                <span className="stat-label">{expiredAttemptInfo ? 'Mode' : 'Resume From'}</span>
+                <strong className="stat-value">{expiredAttemptInfo ? 'Fresh Start' : `Question ${currentIndex + 1}`}</strong>
               </div>
             </div>
 
@@ -2216,7 +2270,7 @@ export default function LiveQuiz() {
                 className="button resume-btn-large bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black shadow-xs transition-colors"
                 onClick={handleResumeTest}
               >
-                <Play size={18} /> Resume Test Now
+                <Play size={18} /> {expiredAttemptInfo ? 'Restart Fresh' : 'Resume Test Now'}
               </button>
 
               <div className="resume-secondary-actions">
@@ -2422,7 +2476,13 @@ export default function LiveQuiz() {
   // PHASE 3: ACTIVE CBT RUNNER
   return (
     <main
-      className="live-quiz select-none"
+      className={`live-quiz select-none ${
+        quizTheme === 'sepia'
+          ? 'bg-[#FBF3E4] text-[#2C241B]'
+          : quizTheme === 'dark'
+            ? 'dark bg-[#0B1120] text-slate-100'
+            : ''
+      }`}
       onContextMenu={(event) => event.preventDefault()}
       onCopy={(event) => event.preventDefault()}
       onCut={(event) => event.preventDefault()}
@@ -2434,9 +2494,9 @@ export default function LiveQuiz() {
         </div>
       )}
       {antiCheatWarning && (
-        <div className="fixed inset-x-4 top-4 z-[119] rounded-xl border border-amber-400/40 bg-amber-50 px-4 py-3 pr-10 text-sm font-semibold text-amber-900 shadow-lg dark:bg-amber-950/90 dark:text-amber-100" role="alert">
+        <div className="fixed inset-x-4 top-4 z-[119] rounded-xl border border-amber-400/40 bg-amber-50 px-4 py-3 pr-12 text-sm font-semibold text-amber-900 shadow-lg dark:bg-amber-950/90 dark:text-amber-100" role="alert">
           {antiCheatWarning}
-          <button type="button" className="absolute right-3 top-2 text-lg" onClick={() => setAntiCheatWarning('')} aria-label="Dismiss focus warning">×</button>
+          <button type="button" className="absolute right-1.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-lg text-lg hover:bg-amber-200/50 dark:hover:bg-amber-900/50" onClick={() => setAntiCheatWarning('')} aria-label="Dismiss focus warning">×</button>
         </div>
       )}
       {paletteOpen && (
@@ -2556,20 +2616,30 @@ export default function LiveQuiz() {
               </button>
             </div>
 
-            {/* Submit Test Button (Desktop Header) */}
+            {/* Reading Theme Toggle (Light / Sepia / Dark) */}
             <button
               type="button"
-              className="button quiz-submit-button hidden md:inline-flex bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold shadow-xs transition-colors"
-              disabled={submitting}
-              onClick={confirm}
+              className="px-2.5 py-1.5 rounded-xl border dark:border-slate-700 border-slate-300 text-[11px] font-bold min-h-[44px] min-w-[44px] inline-flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200"
+              onClick={cycleQuizTheme}
+              title={`Reading theme: ${quizTheme} (tap to switch)`}
+              aria-label={`Switch reading theme (current: ${quizTheme})`}
             >
-              {submitting ? 'Submitting…' : 'Submit test'}
+              {quizTheme === 'sepia' ? 'Sepia' : quizTheme === 'dark' ? 'Dark' : 'Light'}
+            </button>
+            <button
+              type="button"
+              className={`hidden sm:inline-flex items-center justify-center px-2.5 py-1.5 rounded-xl border text-[11px] font-bold min-h-[44px] ${focusWidth ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'}`}
+              onClick={() => setFocusWidth((w) => !w)}
+              title="Toggle narrow focus reading width"
+              aria-pressed={focusWidth}
+            >
+              Focus
             </button>
 
             {/* Palette Toggle (Mobile) */}
             <button
               type="button"
-              className="icon-button quiz-palette-toggle"
+              className="icon-button quiz-palette-toggle min-w-[44px] min-h-[44px]"
               ref={paletteTriggerRef}
               onClick={() => {
                 paletteOpenerRef.current = paletteTriggerRef.current;
@@ -2583,7 +2653,7 @@ export default function LiveQuiz() {
 
             <button
               type="button"
-              className="icon-button quiz-overflow-toggle"
+              className="icon-button quiz-overflow-toggle min-w-[44px] min-h-[44px]"
               ref={overflowTriggerRef}
               onClick={() => setOverflowOpen((open) => !open)}
               aria-expanded={overflowOpen}
@@ -2597,6 +2667,17 @@ export default function LiveQuiz() {
 
         {overflowOpen && (
           <div className="quiz-overflow-menu" role="menu" aria-label="More test options">
+            <button
+              type="button"
+              className="quiz-overflow-menu-item min-h-[44px]"
+              role="menuitem"
+              onClick={() => {
+                setOverflowOpen(false);
+                confirm();
+              }}
+            >
+              <CheckCircle2 size={16} /> Submit test
+            </button>
             <button
               type="button"
               className="quiz-overflow-menu-item"
@@ -2645,16 +2726,16 @@ export default function LiveQuiz() {
 
           <div className="quiz-header-sub-right">
             <div
-              className={`quiz-timer-pill transition-all ${
+              className={`quiz-timer-pill px-3.5 py-1.5 rounded-xl text-sm sm:text-base font-black tabular-nums transition-all ${
                 remaining < 60
-                  ? 'timer-danger bg-rose-500/25 text-rose-400 border border-rose-500 animate-pulse font-black'
-                  : remaining < 300
-                  ? 'timer-warning bg-amber-500/20 text-amber-400 border border-amber-500 font-bold'
-                  : ''
+                  ? 'timer-danger bg-rose-500/25 text-rose-500 dark:text-rose-400 border border-rose-500 animate-pulse'
+                  : remaining <= 300
+                  ? 'timer-warning bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-300 dark:border-slate-700'
               }`}
               aria-live="polite"
             >
-              <Clock3 size={13} className="timer-icon" />
+              <Clock3 size={15} className="timer-icon" />
               <span className="timer-digits">{formatTime(remaining)}</span>
             </div>
           </div>
@@ -2698,22 +2779,45 @@ export default function LiveQuiz() {
 
       {/* CBT Body */}
       <div className="quiz-body">
-        {/* Active Question Panel */}
-        <section className="quiz-question-panel">
+        {/* Active Question Panel (supports touch left/right swipe on mobile) */}
+        <section
+          className={`quiz-question-panel ${focusWidth ? 'max-w-2xl mx-auto w-full' : ''}`}
+          onTouchStart={(e) => {
+            if (e.touches?.length !== 1) return;
+            if (e.target?.closest?.('.no-scrollbar')) return;
+            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          }}
+          onTouchEnd={(e) => {
+            const start = touchStartRef.current;
+            touchStartRef.current = null;
+            if (!start || !e.changedTouches?.length) return;
+            const sel = typeof window !== 'undefined' ? window.getSelection?.()?.toString()?.trim() : '';
+            if (sel) return;
+            const dx = e.changedTouches[0].clientX - start.x;
+            const dy = e.changedTouches[0].clientY - start.y;
+            if (Math.abs(dx) >= 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+              if (dx < 0 && currentIndex < questions.length - 1) {
+                goTo(currentIndex + 1);
+              } else if (dx > 0 && currentIndex > 0) {
+                goTo(currentIndex - 1);
+              }
+            }
+          }}
+        >
           {/* Top Horizontal Question Palette (Matching Mockup 1794580723902.png) */}
           <div className="flex items-center gap-1.5 p-2 dark:bg-[#1E293B]/90 bg-white backdrop-blur-md rounded-2xl border dark:border-slate-700/60 border-slate-200 mb-3 select-none shadow-sm">
             <button
               type="button"
               onClick={() => goTo(Math.max(0, currentIndex - 1))}
               disabled={currentIndex === 0}
-              className="quiz-mobile-nav-button w-8 h-8 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
+              className="quiz-mobile-nav-button w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
               aria-label="Previous question"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={18} />
             </button>
 
             <div
-              className="flex items-center gap-1.5 overflow-x-auto py-1 px-1 flex-1 no-scrollbar"
+              className="flex items-center gap-2 overflow-x-auto py-1 px-1 flex-1 no-scrollbar"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {questions.map((item, idx) => {
@@ -2744,7 +2848,7 @@ export default function LiveQuiz() {
                     key={qId || idx}
                     type="button"
                     onClick={() => goTo(idx)}
-                    className={`w-8 h-8 rounded-full text-xs flex items-center justify-center shrink-0 transition-all hover:scale-110 active:scale-95 ${badgeClasses} ${currentRing}`}
+                    className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full text-xs flex items-center justify-center shrink-0 transition-all hover:scale-105 active:scale-95 ${badgeClasses} ${currentRing}`}
                     aria-label={`Question ${idx + 1}`}
                   >
                     {idx + 1}
@@ -2760,10 +2864,10 @@ export default function LiveQuiz() {
               type="button"
               onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
               disabled={currentIndex === questions.length - 1}
-              className="quiz-mobile-nav-button w-8 h-8 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
+              className="quiz-mobile-nav-button w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
               aria-label="Next question"
             >
-              <ChevronRight size={16} />
+              <ChevronRight size={18} />
             </button>
           </div>
 
@@ -3131,15 +3235,15 @@ export default function LiveQuiz() {
             )}
           </div>
 
-          {/* Bottom Toolbar matching Mockup 1794580723902.png: Question List | Mark for Review | Notes | Report */}
-          <div className="grid grid-cols-4 gap-1 sm:gap-1.5 pt-3 mt-3 border-t dark:border-slate-700/60 border-slate-200">
+          {/* Bottom Toolbar: Question List | Mark for Review */}
+          <div className="grid grid-cols-2 gap-2 pt-3 mt-3 border-t dark:border-slate-700/60 border-slate-200">
             <button
               type="button"
               onClick={() => setPaletteOpen(true)}
-              className="flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors min-h-[44px]"
+              className="flex items-center justify-center gap-2 p-2.5 rounded-xl dark:text-slate-300 text-slate-700 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors min-h-[44px] text-xs font-bold"
             >
               <Grid3X3 size={16} />
-              <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">
+              <span>
                 {language === 'hi' ? 'प्रश्न सूची' : 'Question List'}
               </span>
             </button>
@@ -3147,15 +3251,15 @@ export default function LiveQuiz() {
               type="button"
               onClick={toggleReview}
               disabled={bookmarkSaving}
-              className={`flex flex-col items-center justify-center p-1.5 sm:p-2 rounded-xl transition-colors min-h-[44px] ${
+              className={`flex items-center justify-center gap-2 p-2.5 rounded-xl transition-colors min-h-[44px] text-xs font-bold ${
                 responses[question.id]?.marked_for_review
-                  ? 'text-amber-500 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/40 border border-amber-500/30'
-                  : 'dark:text-slate-400 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800'
+                  ? 'text-amber-600 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/40 border border-amber-500/40'
+                  : 'dark:text-slate-300 text-slate-700 bg-slate-100 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-800'
               }`}
             >
               {bookmarkSaving ? <LoaderCircle size={16} className="animate-spin" /> : <Bookmark size={16} className={responses[question.id]?.marked_for_review ? 'fill-amber-400 text-amber-500' : ''} />}
-              <span className="text-[9.5px] sm:text-[10px] font-bold mt-1 truncate">
-                {responses[question.id]?.marked_for_review ? (language === 'hi' ? 'चिह्नित' : 'Marked') : (language === 'hi' ? 'रिव्यू' : 'Review')}
+              <span>
+                {responses[question.id]?.marked_for_review ? (language === 'hi' ? 'समीक्षा के लिए चिह्नित' : 'Marked for Review') : (language === 'hi' ? 'समीक्षा के लिए चिह्नित करें' : 'Mark for Review')}
               </span>
             </button>
           </div>
@@ -3208,11 +3312,11 @@ export default function LiveQuiz() {
           )}
 
           {/* Quick Palette Filter Tabs */}
-          <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl my-2 text-[11px] font-bold">
+          <div className="grid grid-cols-4 gap-1 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl my-2 text-[10px] font-bold">
             <button
               type="button"
               onClick={() => setPaletteFilter('all')}
-              className={`flex-1 py-1 rounded-lg transition-colors text-center ${
+              className={`py-1.5 px-1 rounded-lg transition-colors text-center whitespace-nowrap ${
                 paletteFilter === 'all'
                   ? 'bg-indigo-600 text-white font-black'
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -3223,7 +3327,7 @@ export default function LiveQuiz() {
             <button
               type="button"
               onClick={() => setPaletteFilter('answered')}
-              className={`flex-1 py-1 rounded-lg transition-colors text-center ${
+              className={`py-1.5 px-1 rounded-lg transition-colors text-center whitespace-nowrap ${
                 paletteFilter === 'answered'
                   ? 'bg-emerald-600 text-white font-black'
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -3234,7 +3338,7 @@ export default function LiveQuiz() {
             <button
               type="button"
               onClick={() => setPaletteFilter('unanswered')}
-              className={`flex-1 py-1 rounded-lg transition-colors text-center ${
+              className={`py-1.5 px-1 rounded-lg transition-colors text-center whitespace-nowrap ${
                 paletteFilter === 'unanswered'
                   ? 'bg-rose-600 text-white font-black'
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -3245,13 +3349,13 @@ export default function LiveQuiz() {
             <button
               type="button"
               onClick={() => setPaletteFilter('marked')}
-              className={`flex-1 py-1 rounded-lg transition-colors text-center ${
+              className={`py-1.5 px-1 rounded-lg transition-colors text-center whitespace-nowrap ${
                 paletteFilter === 'marked'
                   ? 'bg-purple-600 text-white font-black'
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
-              Review ({markedCount})
+              Marked ({markedCount})
             </button>
           </div>
 

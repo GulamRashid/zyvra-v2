@@ -358,26 +358,25 @@ export default function LandingPage() {
                 : 'Experience official BPSC 5-option patterns, multi-statement assertion questions, in-depth bilingual explanations, offline-resilient auto-sync, and student productivity tools engineered for serious aspirants.'}
             </p>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 pt-2">
+            {/* CTAs: One clear Primary CTA + Guest Sample Test */}
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
               <Link
                 to={user ? '/home' : '/auth?mode=signup'}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-500 hover:from-indigo-500 hover:to-emerald-400 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition-all hover:scale-[1.03] active:scale-95 group"
+                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition-all active:scale-95 group min-h-[48px]"
               >
-                <span>{user ? (isHindi ? 'डैशबोर्ड में जाएं' : 'Open Student Dashboard') : (isHindi ? 'मुफ़्त टेस्ट देना शुरू करें' : 'Start Practicing Free')}</span>
+                <span>{user ? (isHindi ? 'डैशबोर्ड में जाएं' : 'Open Student Dashboard') : (isHindi ? 'मुफ़्त अभ्यास शुरू करें' : 'Start Practicing Free')}</span>
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
               </Link>
 
               <Link
                 to="/explore"
-                className={`w-full sm:w-auto px-6 py-4 rounded-2xl border font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all ${
+                className={`w-full sm:w-auto px-6 py-4 rounded-2xl border font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all min-h-[48px] ${
                   isDark
-                    ? 'bg-slate-900/90 hover:bg-slate-800 border-slate-700 text-slate-100 hover:border-indigo-500/50'
-                    : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-800 shadow-sm hover:border-indigo-400'
+                    ? 'bg-transparent hover:bg-slate-800/70 border-slate-700 text-slate-200 hover:border-indigo-500/50'
+                    : 'bg-transparent hover:bg-slate-100 border-slate-300 text-slate-700 hover:border-indigo-400'
                 }`}
               >
-                <span>{isHindi ? 'उपलब्ध परीक्षाएं देखें' : 'Explore All Exams'}</span>
-                <span className="text-amber-500">✨</span>
+                <span>{isHindi ? 'सैंपल टेस्ट और सिलेबस देखें' : 'Try Free Sample & Syllabus'}</span>
               </Link>
             </div>
 
@@ -391,11 +390,11 @@ export default function LandingPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <ShieldCheck size={16} className="text-emerald-500" />
-                <span>{isHindi ? '100% फ्री प्रैक्टिस टियर' : 'Free Tier Available'}</span>
+                <span>{isHindi ? 'फ्री प्रैक्टिस टियर उपलब्ध' : 'Free Practice Tier'}</span>
               </div>
               <div className="flex items-center gap-1.5 hidden sm:flex">
-                <Star size={15} className="text-amber-400 fill-amber-400" />
-                <span>4.9/5 Rating</span>
+                <CheckCircle2 size={15} className="text-indigo-400" />
+                <span>{isHindi ? 'द्विभाषी (EN + HI)' : 'Bilingual (EN + HI)'}</span>
               </div>
             </div>
           </div>
@@ -415,19 +414,19 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             <div className="space-y-1">
               <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-500 to-sky-500 bg-clip-text text-transparent">
-                10,000+
+                4,000+
               </div>
               <div className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {isHindi ? 'द्विभाषी प्रामाणिक सवाल' : 'Curated Bilingual Questions'}
+                {isHindi ? 'द्विभाषी प्रामाणिक सवाल' : 'Bilingual Practice Questions'}
               </div>
             </div>
 
             <div className="space-y-1">
               <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">
-                100%
+                Auto-Sync
               </div>
               <div className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {isHindi ? 'ऑफलाइन डेटा सुरक्षा (Zero Loss)' : 'Offline Data Resilient'}
+                {isHindi ? 'ऑफलाइन डेटा सुरक्षा' : 'Offline-Safe Progress'}
               </div>
             </div>
 
@@ -436,16 +435,16 @@ export default function LandingPage() {
                 5-Option
               </div>
               <div className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {isHindi ? 'BPSC व स्टेट PCS पैटर्न' : 'BPSC & State PCS CBT'}
+                {isHindi ? 'BPSC व स्टेट PCS पैटर्न' : 'BPSC & NCERT CBT'}
               </div>
             </div>
 
             <div className="space-y-1">
               <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-                0ms
+                Instant
               </div>
               <div className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {isHindi ? 'सुपरफास्ट रिस्पॉन्स टाइम' : 'Lightning-Fast CBT Response'}
+                {isHindi ? 'विस्तृत समाधान व विश्लेषण' : 'Detailed Solutions & Analytics'}
               </div>
             </div>
           </div>
@@ -813,7 +812,7 @@ export default function LandingPage() {
           <div className="pt-2">
             <Link
               to={user ? '/home' : '/auth?mode=signup'}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-indigo-600 hover:from-emerald-400 hover:to-indigo-500 text-white font-black text-base shadow-xl shadow-emerald-500/25 transition-all hover:scale-105 active:scale-95"
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-base shadow-xl shadow-indigo-600/25 transition-all active:scale-95 min-h-[48px]"
             >
               <span>{user ? (isHindi ? 'डैशबोर्ड पर जाएं' : 'Open Dashboard') : (isHindi ? 'निःशुल्क अकाउंट बनाएं (30 सेकंड)' : 'Create Free Account (30s)')}</span>
               <ArrowRight size={18} />
@@ -834,10 +833,13 @@ export default function LandingPage() {
             <span className="font-medium">© {new Date().getFullYear()} ZYVRA Prep. All rights reserved.</span>
           </div>
 
-          <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-4 font-semibold text-xs sm:text-sm">
+          <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 font-semibold text-xs sm:text-sm">
             <Link to="/explore" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>{isHindi ? 'परीक्षाएं' : 'Exams'}</Link>
             <Link to="/tests" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>{isHindi ? 'टेस्ट हब' : 'Tests'}</Link>
             <Link to="/toolbox" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>{isHindi ? 'टूलबॉक्स' : 'Toolbox'}</Link>
+            <Link to="/privacy" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>Privacy</Link>
+            <Link to="/terms" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>Terms</Link>
+            <Link to="/refunds" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>Refunds</Link>
             <Link to="/auth?mode=signin" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>{isHindi ? 'लॉगिन' : 'Sign In'}</Link>
           </div>
         </div>

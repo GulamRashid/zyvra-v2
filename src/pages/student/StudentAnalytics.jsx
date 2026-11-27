@@ -228,7 +228,7 @@ export default function StudentAnalytics() {
               <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
                 {Number(stats.accuracy || 0).toFixed(1)}%
               </strong>
-              <span className="text-sm dark:text-slate-400 text-slate-500">Correct answers</span>
+              <span className="text-xs dark:text-slate-400 text-slate-500">Correct ÷ Attempted Qs</span>
             </article>
 
             <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 flex flex-col justify-between">
@@ -241,7 +241,7 @@ export default function StudentAnalytics() {
               <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
                 {Number(stats.averageScore || 0).toFixed(1)}%
               </strong>
-              <span className="text-sm dark:text-slate-400 text-slate-500">Across scored tests</span>
+              <span className="text-xs dark:text-slate-400 text-slate-500">Net marks % (after negative)</span>
             </article>
 
             <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-orange-500/30 border-orange-200 flex flex-col justify-between">
@@ -257,6 +257,49 @@ export default function StudentAnalytics() {
               <span className="text-sm dark:text-slate-400 text-slate-500">Consecutive days</span>
             </article>
           </section>
+
+          {/* 7-Day Study Activity Trend (IST) */}
+          {(() => {
+            const days = [];
+            const now = new Date();
+            for (let i = 6; i >= 0; i -= 1) {
+              const d = new Date(now.getTime() - i * 86400000);
+              const key = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
+              const label = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short' }).format(d);
+              days.push({ key, label, count: 0 });
+            }
+            const dayMap = Object.fromEntries(days.map((d) => [d.key, d]));
+            attempts.forEach((a) => {
+              const dt = a.completed_at || a.submitted_at || a.created_at;
+              if (!dt) return;
+              const k = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(dt));
+              if (dayMap[k]) dayMap[k].count += 1;
+            });
+            const maxC = Math.max(1, ...days.map((d) => d.count));
+            return (
+              <section className="p-4 sm:p-5 rounded-3xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Weekly Trend</div>
+                    <h2 className="text-sm sm:text-base font-black dark:text-white text-slate-900">Tests Completed (Last 7 Days)</h2>
+                  </div>
+                  <span className="text-xs font-bold text-indigo-500">{days.reduce((s, d) => s + d.count, 0)} tests</span>
+                </div>
+                <div className="flex items-end gap-2 h-20 pt-2">
+                  {days.map((d) => (
+                    <div key={d.key} className="flex-1 flex flex-col items-center justify-end h-full">
+                      <div
+                        className={`w-full max-w-[28px] rounded-t-md ${d.count > 0 ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-800'}`}
+                        style={{ height: `${Math.max(d.count > 0 ? 18 : 6, Math.round((d.count / maxC) * 100))}%` }}
+                        title={`${d.label}: ${d.count} test(s)`}
+                      />
+                      <span className="text-[10px] text-slate-400 mt-1">{d.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            );
+          })()}
 
           {/* Detailed Grids: Subject Accuracy & Recent Attempts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -356,7 +399,9 @@ export default function StudentAnalytics() {
                         <div className="flex items-center gap-2 shrink-0">
                           <div className="text-right">
                             <strong className="text-sm font-black dark:text-emerald-400 text-emerald-600 block">
-                              {percent ? `${percent.toFixed(1)}%` : score.toLocaleString()}
+                              {percent !== null && percent !== undefined && Number.isFinite(percent)
+                                ? `${percent.toFixed(1)}%`
+                                : (attempt.score !== null && attempt.score !== undefined ? score.toLocaleString() : '—')}
                             </strong>
                             {blankCount > 0 && (
                               <small className="text-[9px] text-red-500 block">

@@ -649,7 +649,7 @@ export default function StudentToolbox() {
                       {language === 'hi' ? 'स्मार्ट एआई मेंटर' : 'Smart AI Mentor'}
                     </span>
                     <span className="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/30">
-                      24/7 Live
+                      Instant Help
                     </span>
                   </div>
                   <strong className="block text-sm font-bold dark:text-white text-slate-900 truncate">
@@ -730,8 +730,9 @@ export default function StudentToolbox() {
               </label>
             </div>
 
-            {/* Segmented Category Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            {/* Segmented Category Filter Pills with right-edge scroll fade */}
+            <div className="relative">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 pr-8">
               <button
                 type="button"
                 onClick={() => setActiveCategory(null)}
@@ -768,6 +769,8 @@ export default function StudentToolbox() {
                   </button>
                 );
               })}
+              </div>
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-slate-50 dark:from-[#0B1120] to-transparent" aria-hidden="true" />
             </div>
 
             {/* Unified Flat Tool Grid */}
@@ -805,7 +808,7 @@ export default function StudentToolbox() {
                               type="button"
                               onClick={() => toggleFavorite(tool.id)}
                               aria-label={isFav ? t('tbRemoveFavorite') : t('tbAddFavorite')}
-                              className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                             >
                               <Heart
                                 size={14}
@@ -830,9 +833,13 @@ export default function StudentToolbox() {
                       <button
                         type="button"
                         onClick={() => openTool(tool)}
-                        className="mt-3.5 w-full py-2 px-3 rounded-xl dark:bg-slate-800/80 bg-slate-100 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white dark:text-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center justify-between"
+                        className="mt-3.5 w-full py-2.5 px-3 min-h-[44px] rounded-xl dark:bg-slate-800/80 bg-slate-100 hover:bg-indigo-600 hover:text-white dark:hover:bg-indigo-600 dark:hover:text-white dark:text-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center justify-between"
                       >
-                        <span>{language === 'hi' ? 'टूल खोलें' : 'Open Tool'}</span>
+                        <span>
+                          {isToolLocked(tool)
+                            ? (language === 'hi' ? `अनलॉक ₹${getToolConfig(tool)?.price || 29}` : `Unlock ₹${getToolConfig(tool)?.price || 29}`)
+                            : (language === 'hi' ? 'टूल खोलें' : 'Open Tool')}
+                        </span>
                         <ChevronRight size={14} />
                       </button>
                     </div>

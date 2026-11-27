@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertCircle, ArrowLeft, ArrowRight, BarChart3, Bookmark, BookOpen,
   Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
-  CircleX, Coins, Filter, Headphones, Lightbulb, MinusCircle, Pause, Play, Plus, Printer, RotateCcw, Share2, Sparkles, Square, Swords, Target, Trophy, Volume2, X
+  CircleX, Clock3, Coins, Filter, Flame, Headphones, Lightbulb, MinusCircle, Pause, Play, Plus, Printer, RotateCcw, Share2, Sparkles, Square, Swords, Target, Trophy, Volume2, X
 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
@@ -11,6 +11,7 @@ import ZyvraAiGuruModal from '../../components/toolbox/ai/ZyvraAiGuruModal';
 import LottiePlayer from '../../components/common/LottiePlayer';
 import { celebrationAnimationData } from '../../assets/animations/celebrationData';
 import { useAuth } from '../../context/AuthContext';
+import { useStudentStats } from '../../context/StudentStatsContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 import { readMistakesLocal, saveMistakeToNotebook } from '../../lib/studentToolbox';
@@ -24,6 +25,42 @@ import {
   unwrapRpcPayload
 } from '../../lib/tests';
 import { playRealisticSpeech, preloadAudio, stopSpeech } from '../../lib/hybridVoicePlayer';
+
+const TOPIC_LABEL_MAP = {
+  statement: 'Statement-Based Analysis',
+  match: 'Match the Following',
+  assertion_reason: 'Assertion & Reasoning',
+  science: 'Science',
+  social_science: 'Social Science',
+  polity: 'Indian Polity',
+  history: 'History',
+  geography: 'Geography',
+  economics: 'Economics',
+  economy: 'Economy',
+  biology: 'Biology',
+  physics: 'Physics',
+  chemistry: 'Chemistry',
+  math: 'Mathematics',
+  mathematics: 'Mathematics',
+  reasoning: 'Reasoning',
+  current_affairs: 'Current Affairs',
+  bihar_special: 'Bihar Special',
+  general_studies: 'General Studies',
+  general_concepts: 'General Concepts'
+};
+
+function humanizeTopicName(raw) {
+  const str = String(raw || '').trim();
+  if (!str) return 'General Concepts';
+  const key = str.toLowerCase().replace(/[\s-]+/g, '_');
+  if (TOPIC_LABEL_MAP[key]) return TOPIC_LABEL_MAP[key];
+  if (str.includes('_') || str.includes('-') || str === str.toLowerCase()) {
+    return str
+      .replace(/[_-]+/g, ' ')
+      .replace(/\b\w/g, (ch) => ch.toUpperCase());
+  }
+  return str;
+}
 
 const valueOf = (result, ...keys) => {
   for (const key of keys) {
@@ -46,6 +83,7 @@ export default function QuizResult() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, supabase, refreshAccount } = useAuth();
+  const { currentStreak } = useStudentStats();
   const { language: appLanguage } = useThemeLanguage();
   const [language, setLanguage] = useState(() => {
     const fromState = location.state?.quizLanguage;
@@ -696,15 +734,15 @@ export default function QuizResult() {
         }
       }
 
-      const genericTagSet = new Set(['both', 'practice_only', 'test_only', 'mcq', 'bpsc', 'upsc', 'ncert', 'a', 'b', 'c', 'd', 'e']);
+      const genericTagSet = new Set(['both', 'practice_only', 'test_only', 'mcq', 'statement', 'match', 'assertion_reason', 'bpsc', 'upsc', 'ncert', 'a', 'b', 'c', 'd', 'e']);
       const validTags = tagsList
         .map((t) => String(t || '').trim())
         .filter((t) => t.length > 1 && !genericTagSet.has(t.toLowerCase()));
 
       if (validTags.length > 0) {
-        topic = validTags[0];
+        topic = humanizeTopicName(validTags[0]);
       } else {
-        topic = question.topic || question.subject || result?.chapter_title || result?.test_title || 'General Concepts';
+        topic = humanizeTopicName(question.topic || question.subject || result?.chapter_title || result?.test_title || 'General Concepts');
       }
 
       if (!map.has(topic)) {
@@ -774,7 +812,7 @@ export default function QuizResult() {
       const status = resolveSolutionStatus(item);
       const timeSpent = getQuestionTimeSpent(item);
       const rawDiff = String(question.difficulty || question.difficulty_level || item.difficulty || '').trim();
-      const topic = question.topic || question.subject || 'General';
+      const topic = humanizeTopicName(question.topic || question.subject || 'General');
       return {
         index: idx,
         timeSpent,
@@ -1004,9 +1042,9 @@ export default function QuizResult() {
               </div>
             )}
 
-            {/* Celebration Card with Dopamine, Coins, & Motivation */}
+            {/* Score Ring Gauge + Honest Result Summary */}
             <div className="relative overflow-hidden dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 rounded-3xl p-4 sm:p-6 shadow-sm transition-all">
-              {/* Lottie Confetti Burst for Good Scores */}
+              {/* Lottie Confetti Burst for Good Scores Only */}
               {percentage >= 60 && (
                 <div className="absolute -top-4 -right-4 sm:right-10 pointer-events-none z-0 opacity-80">
                   <LottiePlayer
@@ -1017,69 +1055,143 @@ export default function QuizResult() {
                 </div>
               )}
 
-              <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-3 sm:gap-4">
-                  <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0 shadow-inner">
-                    {percentage >= 80 ? (
-                      <Trophy size={28} className="text-amber-500 dark:text-amber-400" />
-                    ) : percentage >= 50 ? (
-                      <Sparkles size={28} className="text-indigo-500 dark:text-indigo-400" />
-                    ) : (
-                      <Target size={28} className="text-indigo-500 dark:text-indigo-400" />
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-base sm:text-xl font-black dark:text-white text-slate-900 tracking-tight flex items-center gap-1.5">
-                        <span>{appLanguage === 'hi' ? 'टेस्ट सफलतापूर्वक पूरा हुआ' : 'Test Completed Successfully'}</span>
-                        <CheckCircle2 size={18} className="text-emerald-400" />
-                      </h2>
-                    </div>
-                    <p className="text-xs sm:text-sm font-semibold dark:text-slate-300 text-slate-700">
-                      {percentage >= 80
-                        ? (appLanguage === 'hi' ? 'शानदार प्रदर्शन! आप टॉप रैंकर्स की श्रेणी में हैं।' : 'Top-tier mastery! You are performing in the top tier.')
-                        : percentage >= 50
-                        ? (appLanguage === 'hi' ? 'बहुत अच्छा प्रयास! गलतियों को दोहराकर 90%+ का लक्ष्य पाएं।' : 'Solid performance! Revise your mistakes to reach 90%+.')
-                        : (appLanguage === 'hi' ? 'हर गलती सीखने का अवसर है! नीचे AI Guru से डाउट हल करें।' : 'Every mistake is a learning step. Clear doubts with AI Guru below.')}
-                    </p>
-                  </div>
-                </div>
+              {(() => {
+                const clampedPct = Math.max(0, Math.min(100, Number(percentage) || 0));
+                const radius = 32;
+                const circumference = 2 * Math.PI * radius;
+                const strokeDashoffset = circumference - (clampedPct / 100) * circumference;
+                const ringColor = clampedPct >= 75 ? '#10b981' : clampedPct >= 45 ? '#f59e0b' : '#f43f5e';
+                const weakestCount = topicAnalysis.filter((t) => t.accuracy < 60).length;
+                const totalSeconds = Number(result?.time_spent_seconds || 0) || solutions.reduce((sum, s) => sum + getQuestionTimeSpent(s), 0);
+                const timeLabel = totalSeconds >= 60
+                  ? `${Math.floor(totalSeconds / 60)}m ${totalSeconds % 60}s`
+                  : totalSeconds > 0 ? `${totalSeconds}s` : null;
 
-                {/* Coins Earned Dopamine Badge (only when actually credited) */}
-                {Number(result?.coins_awarded || 0) > 0 && (
-                  <div className="w-full sm:w-auto flex items-center sm:flex-col items-end justify-between sm:justify-center p-2.5 sm:px-4 sm:py-2 rounded-2xl bg-amber-500/10 border border-amber-400/30 shadow-xs shrink-0">
-                    <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-black text-xs sm:text-sm">
-                      <Coins size={16} className="text-amber-500" />
-                      <span>+{Number(result.coins_awarded)} ZYVRA {appLanguage === 'hi' ? 'कॉइन्स' : 'Coins'}</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-amber-700/80 dark:text-amber-300/80">
-                      {appLanguage === 'hi' ? 'वॉलेट में जोड़े गए' : 'Added to Wallet'}
-                    </span>
-                  </div>
-                )}
-              </div>
+                const headline = percentage >= 80
+                  ? (appLanguage === 'hi' ? 'शानदार प्रदर्शन!' : 'Excellent Mastery!')
+                  : percentage >= 50
+                  ? (appLanguage === 'hi' ? 'अच्छा प्रयास — अब 80%+ का लक्ष्य' : 'Solid Effort — Let’s Push Past 80%')
+                  : (appLanguage === 'hi'
+                      ? `${percentage}% — आइए कमज़ोर टॉपिक्स सुधारें`
+                      : `${percentage}% — Let’s Fix ${weakestCount > 0 ? `Your ${weakestCount} Weakest Topic${weakestCount > 1 ? 's' : ''}` : 'Your Mistakes'}`);
 
-              {/* Leaderboard & Percentile Highlight Strip */}
-              {peerStats?.percentile !== undefined && peerStats.total_attempts > 1 && (
-                <div className="mt-3.5 pt-3 border-t dark:border-slate-800 border-slate-200/80 flex items-center justify-between gap-2 text-xs">
-                  <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-bold min-w-0">
-                    <Target size={15} className="shrink-0 text-indigo-500" />
-                    <span className="truncate">
-                      {appLanguage === 'hi'
-                        ? `लीडरबोर्ड: आप शीर्ष ${Math.max(1, Math.round(100 - peerStats.percentile))}% अभ्यर्थियों में हैं (${peerStats.percentile}% परसेंटाइल)`
-                        : `Leaderboard: Top ${Math.max(1, Math.round(100 - peerStats.percentile))}% Aspirants (Percentile: ${peerStats.percentile}%)`}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('compare')}
-                    className="text-[11px] font-black text-indigo-600 dark:text-indigo-400 hover:underline shrink-0 flex items-center gap-0.5 cursor-pointer"
-                  >
-                    <span>{appLanguage === 'hi' ? 'तुलना देखें' : 'View Stats'}</span>
-                    <ChevronRight size={12} />
-                  </button>
-                </div>
-              )}
+                return (
+                  <>
+                    <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3.5 sm:gap-4">
+                        {/* SVG Score Ring Gauge */}
+                        <div className="relative w-20 h-20 shrink-0 flex items-center justify-center">
+                          <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80" aria-hidden="true">
+                            <circle cx="40" cy="40" r={radius} fill="none" stroke="currentColor" strokeWidth="7" className="text-slate-200 dark:text-slate-800" />
+                            <circle
+                              cx="40"
+                              cy="40"
+                              r={radius}
+                              fill="none"
+                              stroke={ringColor}
+                              strokeWidth="7"
+                              strokeLinecap="round"
+                              strokeDasharray={circumference}
+                              strokeDashoffset={strokeDashoffset}
+                            />
+                          </svg>
+                          <span className="absolute text-sm font-black dark:text-white text-slate-900 tabular-nums">
+                            {percentage}%
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <h2 className="text-base sm:text-xl font-black dark:text-white text-slate-900 tracking-tight">
+                            {headline}
+                          </h2>
+                          <p className="text-xs sm:text-sm font-semibold dark:text-slate-300 text-slate-700">
+                            {percentage >= 80
+                              ? (appLanguage === 'hi' ? 'आपकी तैयारी बहुत मजबूत है। अगली श्रेणी की ओर बढ़ें।' : 'Strong accuracy across sections. Keep the momentum going.')
+                              : percentage >= 50
+                              ? (appLanguage === 'hi' ? 'गलत प्रश्नों को दोहराकर स्कोर 80%+ तक ले जाएं।' : 'Review your incorrect answers below to lock in these concepts.')
+                              : (appLanguage === 'hi' ? 'अभी हार न मानें — गलत सवालों का दोबारा अभ्यास और समाधान देखें।' : 'Focus on reviewing solutions and retrying the questions you missed.')}
+                          </p>
+                          <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[11px] font-bold">
+                            {timeLabel && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                <Clock3 size={12} /> {timeLabel}
+                              </span>
+                            )}
+                            {currentStreak > 0 && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-orange-500/15 text-orange-600 dark:text-orange-400">
+                                <Flame size={12} /> {currentStreak}d {appLanguage === 'hi' ? 'स्ट्रीक' : 'Streak'}
+                              </span>
+                            )}
+                            {peerStats?.percentile !== undefined && peerStats.total_attempts > 1 && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/15 text-indigo-600 dark:text-indigo-300">
+                                <Target size={12} /> {peerStats.percentile}% {appLanguage === 'hi' ? 'परसेंटाइल' : 'Percentile'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Coins Earned Badge (only when actually credited) */}
+                      {Number(result?.coins_awarded || 0) > 0 && (
+                        <div className="w-full sm:w-auto flex items-center sm:flex-col items-end justify-between sm:justify-center p-2.5 sm:px-4 sm:py-2 rounded-2xl bg-amber-500/10 border border-amber-400/30 shadow-xs shrink-0">
+                          <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-black text-xs sm:text-sm">
+                            <Coins size={16} className="text-amber-500" />
+                            <span>+{Number(result.coins_awarded)} ZYVRA {appLanguage === 'hi' ? 'कॉइन्स' : 'Coins'}</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-amber-700/80 dark:text-amber-300/80">
+                            {appLanguage === 'hi' ? 'वॉलेट में जोड़े गए' : 'Added to Wallet'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Primary Recovery CTAs Above the Fold */}
+                    <div className="relative z-10 mt-4 pt-3.5 border-t dark:border-slate-800 border-slate-200/80 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      {stats.incorrectCount > 0 ? (
+                        <button
+                          type="button"
+                          onClick={handleReattemptMistakes}
+                          className="flex-1 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 min-h-[44px] shadow-sm cursor-pointer"
+                        >
+                          <RotateCcw size={15} />
+                          <span>
+                            {appLanguage === 'hi'
+                              ? `कमज़ोर सवाल सुधारें (${stats.incorrectCount} गलत)`
+                              : `Retry Weakest Topics (${stats.incorrectCount} Mistakes)`}
+                          </span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { setCurrentSolutionIndex(0); setActiveTab('solutions'); }}
+                          className="flex-1 py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-xs sm:text-sm flex items-center justify-center gap-2 min-h-[44px] shadow-sm cursor-pointer"
+                        >
+                          <BookOpen size={15} />
+                          <span>{appLanguage === 'hi' ? 'विस्तृत समाधान देखें' : 'View Detailed Solutions'}</span>
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() => { setCurrentSolutionIndex(0); setActiveTab('solutions'); }}
+                        className="py-2.5 px-4 rounded-xl dark:bg-slate-800 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 dark:text-slate-200 text-slate-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 min-h-[44px] cursor-pointer"
+                      >
+                        <BookOpen size={15} />
+                        <span>{appLanguage === 'hi' ? 'समाधान' : 'Solutions'}</span>
+                      </button>
+
+                      <Link
+                        to={`/quiz/${result?.test_id || ''}`}
+                        state={{ reattempt: true, returnTo }}
+                        className="py-2.5 px-4 rounded-xl dark:bg-slate-800 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 dark:text-slate-200 text-slate-800 font-bold text-xs sm:text-sm flex items-center justify-center gap-2 min-h-[44px]"
+                      >
+                        <RotateCcw size={15} />
+                        <span>{appLanguage === 'hi' ? 'पूरा टेस्ट दोबारा दें' : 'Full Re-attempt'}</span>
+                      </Link>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
 
             {/* WhatsApp 1v1 Challenge Action Card */}

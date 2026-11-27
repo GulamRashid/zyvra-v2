@@ -44,7 +44,7 @@ function normalizeValue(key, value, fallback) {
     mode = mode === 'focus' ? 'break' : 'focus';
     remaining = (mode === 'focus' ? focusMinutes : breakMinutes) * 60;
   }
-  return { mode, remaining: Math.max(0, remaining - elapsed), running: value.running === true, completed, focusMinutes, breakMinutes };
+  return { mode, remaining: Math.max(0, remaining - elapsed), running: false, completed, focusMinutes, breakMinutes };
 }
 
 /** Account-scoped cloud sync with a local, offline-friendly copy. */
@@ -96,8 +96,16 @@ export default function useStudentToolboxData(key, fallback) {
     }
 
     let cancelled = false;
+    const timeoutId = window.setTimeout(() => {
+      if (!cancelled && generation.current === requestId) {
+        setSyncState('offline');
+        setReady(true);
+      }
+    }, 8000);
+
     supabase.from('student_toolbox_data').select('data').eq('user_id', user.id).maybeSingle()
       .then(async ({ data, error }) => {
+        window.clearTimeout(timeoutId);
         if (error) throw error;
         if (cancelled || generation.current !== requestId) return;
         const cloudHasValue = data?.data && Object.prototype.hasOwnProperty.call(data.data, key);
@@ -112,6 +120,7 @@ export default function useStudentToolboxData(key, fallback) {
         }
       })
       .catch((error) => {
+        window.clearTimeout(timeoutId);
         console.warn(`Toolbox ${key} cloud sync unavailable:`, error);
         if (cancelled || generation.current !== requestId) return;
         // Trigger one guarded save attempt so an offline edit is uploaded
@@ -120,7 +129,10 @@ export default function useStudentToolboxData(key, fallback) {
         setSyncState('offline');
         setReady(true);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
   }, [key, storageKey, user?.id]);
 
   useEffect(() => {

@@ -167,10 +167,16 @@ export function calculateStreakData(dates = [], referenceDate = new Date()) {
   if (isActiveToday) {
     motivationalMessageEn = currentStreak === 1
       ? "Great start! You've studied today. Come back tomorrow to build a streak!"
-      : `Streak Active! You've studied ${currentStreak} days in a row. Exceptional consistency!`;
+      : currentStreak < 7
+        ? `Good momentum! You've studied ${currentStreak} days in a row.`
+        : currentStreak < 30
+          ? `Strong habit! You've studied ${currentStreak} days in a row.`
+          : `Streak Active! You've studied ${currentStreak} days in a row. Exceptional consistency!`;
     motivationalMessageHi = currentStreak === 1
       ? 'शानदार शुरुआत! आज की पढ़ाई पूरी हुई। कल दोबारा आकर अपनी स्ट्रीक बनाएं!'
-      : `आज की स्ट्रीक पूरी! आप लगातार ${currentStreak} दिन से पढ़ रहे हैं। अद्भुत लगन!`;
+      : currentStreak < 7
+        ? `अच्छी शुरुआत! आप लगातार ${currentStreak} दिन से पढ़ रहे हैं।`
+        : `आज की स्ट्रीक पूरी! आप लगातार ${currentStreak} दिन से पढ़ रहे हैं। अद्भुत लगन!`;
   } else if (currentStreak > 0) {
     motivationalMessageEn = `Keep your ${currentStreak}-day streak alive! Complete a test, quiz or tool review today.`;
     motivationalMessageHi = `अपनी ${currentStreak}-दिन की स्ट्रीक जारी रखने के लिए आज 1 टेस्ट, क्विज या टूल का अभ्यास करें!`;

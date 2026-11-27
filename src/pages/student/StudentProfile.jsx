@@ -14,6 +14,7 @@ import useModalBack from '../../hooks/useModalBack';
 import { uploadAsset } from '../../lib/storage';
 import { useAuth } from '../../context/AuthContext';
 import { useStudentStats } from '../../context/StudentStatsContext';
+import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 import { ensureReferralCode } from '../../lib/referrals';
 
@@ -30,6 +31,7 @@ const POPULAR_EXAMS = [
 
 export default function StudentProfile() {
   const { user, profile, guest, coinBalance, walletLoaded, accountAccess, supabase, signOut, refreshAccount } = useAuth();
+  const { language } = useThemeLanguage();
   const {
     completedAttempts: attempts,
     testsAttempted: testsAttemptedCount,
@@ -489,27 +491,11 @@ export default function StudentProfile() {
           <div className="flex items-center gap-2">
             <Link
               to="/notifications"
-              className="w-9 h-9 rounded-full dark:bg-slate-900/90 bg-white/95 border dark:border-slate-700/80 border-slate-300 flex items-center justify-center dark:text-white text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 relative transition-all shadow-sm active:scale-95"
+              className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full dark:bg-slate-900/90 bg-white/95 border dark:border-slate-700/80 border-slate-300 flex items-center justify-center dark:text-white text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 relative transition-all shadow-sm active:scale-95"
               aria-label="Notifications"
             >
-              <Bell size={16} />
+              <Bell size={17} />
             </Link>
-            <button
-              type="button"
-              onClick={() => {
-                setFullName(profile?.full_name || profile?.name || user?.user_metadata?.full_name || '');
-                setMobile(profile?.mobile || '');
-                setAvatarUrl(profile?.avatar_url || '');
-                setTargets(Array.isArray(profile?.target_exams) ? profile.target_exams : []);
-                setProfileFeedback('');
-                setEditProfileOpen(true);
-              }}
-              className="w-9 h-9 rounded-full dark:bg-slate-900/90 bg-white/95 border dark:border-slate-700/80 border-slate-300 flex items-center justify-center dark:text-white text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all shadow-sm active:scale-95"
-              aria-label="Edit Profile"
-              title="Edit Profile"
-            >
-              <Settings size={16} />
-            </button>
           </div>
         </div>
 
@@ -586,7 +572,13 @@ export default function StudentProfile() {
                     {displayEmail && (
                       <span className="flex items-center gap-1 text-[11px] dark:text-slate-400 text-slate-600 font-medium truncate max-w-[190px] sm:max-w-xs">
                         <Mail size={11} className="text-indigo-500 shrink-0" />
-                        <span className="truncate">{displayEmail}</span>
+                        <span className="truncate">
+                          {(() => {
+                            const [local, domain] = String(displayEmail).split('@');
+                            if (!domain) return displayEmail;
+                            return `${local.slice(0, 2)}${'•'.repeat(Math.max(2, Math.min(5, local.length - 2)))}@${domain}`;
+                          })()}
+                        </span>
                       </span>
                     )}
                   </div>
@@ -629,7 +621,7 @@ export default function StudentProfile() {
                     setTargets(Array.isArray(profile?.target_exams) ? profile.target_exams : []);
                     setEditProfileOpen(true);
                   }}
-                  className="w-full sm:w-auto px-4 py-2 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 hover:border-amber-400 dark:hover:border-amber-400 text-xs font-bold dark:text-white text-slate-800 flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
+                  className="w-full sm:w-auto px-4 py-2.5 min-h-[44px] rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 hover:border-amber-400 dark:hover:border-amber-400 text-xs font-bold dark:text-white text-slate-800 flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
                 >
                   <Edit3 size={13} className="text-amber-500" />
                   <span>Edit Profile</span>
@@ -1011,13 +1003,13 @@ export default function StudentProfile() {
           </div>
         </section>
 
-        {/* SECTION 2: PASS, WALLET & REWARDS (पास, वॉलेट और इनाम) */}
+        {/* SECTION 2: PASS, WALLET & REWARDS */}
         <section className="space-y-2">
           <div className="px-1 flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500 flex items-center gap-1.5">
-              <span>Pass & Inam (पास और इनाम)</span>
+              <span>{language === 'hi' ? 'पास और इनाम' : 'Pass & Rewards'}</span>
             </h3>
-            <span className="text-[10px] text-slate-400 font-semibold">Purchases & Rewards</span>
+            <span className="text-[10px] text-slate-400 font-semibold">{language === 'hi' ? 'खरीदारी व रिवार्ड्स' : 'Purchases & Rewards'}</span>
           </div>
 
           <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl divide-y dark:divide-slate-800/80 divide-slate-100 shadow-sm overflow-hidden">
@@ -1032,10 +1024,10 @@ export default function StudentProfile() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                    My Purchases & Zyvra Pass
+                    {language === 'hi' ? 'मेरी खरीदारी और ज़ीव्रा पास' : 'My Purchases & Zyvra Pass'}
                   </span>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
-                    सक्रिय पैकेज, टेस्ट सीरीज और इनवॉइस देखें
+                    {language === 'hi' ? 'सक्रिय पैकेज, टेस्ट सीरीज और इनवॉइस देखें' : 'View active passes, test series, and invoices'}
                   </span>
                 </div>
               </div>
@@ -1060,14 +1052,14 @@ export default function StudentProfile() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 truncate">
-                      Invite Friends & Earn Coins
+                      {language === 'hi' ? 'दोस्तों को जोड़ें और कॉइन्स कमाएँ' : 'Invite Friends & Earn Coins'}
                     </span>
                     <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
                       Free Coins
                     </span>
                   </div>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
-                    दोस्तों को जोड़ें और हर सफल रेफरल पर 50 सिक्के पाएं
+                    {language === 'hi' ? 'दोस्तों को जोड़ें और हर सफल रेफरल पर 50 सिक्के पाएं' : 'Share your invite code to earn bonus coins on referrals'}
                   </span>
                 </div>
               </div>
@@ -1076,13 +1068,13 @@ export default function StudentProfile() {
           </div>
         </section>
 
-        {/* SECTION 3: KHATA & SURAKSHA (Account Security & Support) */}
+        {/* SECTION 3: ACCOUNT & SECURITY */}
         <section className="space-y-2">
           <div className="px-1 flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500 flex items-center gap-1.5">
-              <span>Khata & Suraksha (खाता और सुरक्षा)</span>
+              <span>{language === 'hi' ? 'खाता और सुरक्षा' : 'Account & Security'}</span>
             </h3>
-            <span className="text-[10px] text-slate-400 font-semibold">Security & Help</span>
+            <span className="text-[10px] text-slate-400 font-semibold">{language === 'hi' ? 'सुरक्षा व सहायता' : 'Security & Help'}</span>
           </div>
 
           <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl divide-y dark:divide-slate-800/80 divide-slate-100 shadow-sm overflow-hidden">

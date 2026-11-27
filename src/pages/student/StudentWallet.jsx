@@ -60,7 +60,16 @@ function transactionAmount(transaction) {
 }
 
 function transactionReason(transaction) {
-  return transaction.reason || transaction.description || transaction.reference_type || transaction.transaction_type || 'Coin activity';
+  const raw = String(
+    transaction.reason || transaction.description || transaction.reference_type || transaction.transaction_type || ''
+  ).trim();
+  if (!raw) return 'Coin activity';
+  const lower = raw.toLowerCase();
+  if (lower === 'winner') return 'Competition / Admin Reward';
+  if (lower === 'admin_adjustment') return 'Admin Balance Adjustment';
+  if (lower === 'welcome' || lower === 'signup_bonus') return 'Welcome Bonus';
+  if (lower === 'checkout_redemption') return 'Order Discount Redemption';
+  return raw;
 }
 
 function transactionDate(transaction) {
@@ -77,20 +86,31 @@ export default function StudentWallet() {
 
   useEffect(() => {
     let active = true;
+    const timeoutId = window.setTimeout(() => {
+      if (active) {
+        setError((prev) => prev || 'Loading your coin ledger timed out. Please refresh.');
+        setLoading(false);
+      }
+    }, 8000);
     const loadLedger = async () => {
       if (!supabase || !user) throw new Error('Sign in to view your Zyvra Coin wallet.');
       const data = await fetchLedger(supabase, user.id);
+      window.clearTimeout(timeoutId);
       if (!active) return;
       setTransactions(data || []);
       setLoading(false);
     };
     loadLedger().catch((loadError) => {
+      window.clearTimeout(timeoutId);
       if (active) {
         setError(getFriendlyErrorMessage(loadError, 'Unable to load your coin ledger.'));
         setLoading(false);
       }
     });
-    return () => { active = false; };
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
   }, [supabase, user]);
 
   const summary = useMemo(() => transactions.reduce((totals, transaction) => {
@@ -172,6 +192,11 @@ export default function StudentWallet() {
               <p className="text-xs !text-slate-200 font-medium mt-0.5">
                 Ready to redeem on eligible Zyvra purchases (10 Coins = ₹1).
               </p>
+              {walletLoaded && !loading && !error && Number(coinBalance || 0) !== (summary.earned - summary.spent) && (
+                <p className="text-[11px] text-amber-200/90 mt-1">
+                  Includes {Math.abs(Number(coinBalance || 0) - (summary.earned - summary.spent)).toLocaleString()} coins from opening/legacy balance adjustments.
+                </p>
+              )}
             </div>
           </div>
 
@@ -260,12 +285,21 @@ export default function StudentWallet() {
               </div>
             </div>
 
-            <Link
-              className="w-full py-2.5 rounded-xl dark:bg-slate-800 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-slate-200 text-slate-800 flex items-center justify-center gap-1.5 transition-colors min-h-[44px]"
-              to="/explore"
-            >
-              <span>Explore learning paths</span>
-            </Link>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <Link
+                className="w-full py-2.5 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black flex items-center justify-center gap-1.5 transition-colors min-h-[44px]"
+                to="/toolbox"
+              >
+                <ShoppingBag size={14} />
+                <span>Redeem on Pro Tools</span>
+              </Link>
+              <Link
+                className="w-full py-2.5 px-3 rounded-xl dark:bg-slate-800 bg-slate-100 hover:bg-slate-200 dark:hover:bg-slate-700 border dark:border-slate-700 border-slate-300 text-xs font-bold dark:text-slate-200 text-slate-800 flex items-center justify-center gap-1.5 transition-colors min-h-[44px]"
+                to="/explore"
+              >
+                <span>Redeem on Courses</span>
+              </Link>
+            </div>
           </section>
 
           {/* Transaction History Ledger */}
@@ -278,7 +312,7 @@ export default function StudentWallet() {
                 <h2 className="text-base font-black dark:text-white text-slate-900">Transaction history</h2>
               </div>
               <span className="text-xs font-bold dark:text-slate-300 text-slate-700">
-                {transactions.length} transactions
+                {loading ? 'Loading…' : `${transactions.length} transactions`}
               </span>
             </div>
 

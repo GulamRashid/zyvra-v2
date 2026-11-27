@@ -881,7 +881,7 @@ export default function AuthPage() {
                     </div>
                   </label>
 
-                  <button type="submit" className="button button-gold button-full mt-2" disabled={busy}>
+                  <button type="submit" className="button button-primary button-full mt-2 min-h-[44px]" disabled={busy}>
                     {busy ? (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 size={16} className="animate-spin" />
@@ -892,13 +892,13 @@ export default function AuthPage() {
                     )}
                   </button>
 
-                  <div className="text-center mt-3">
+                  <div className="mt-2.5">
                     <button
                       type="button"
-                      className="text-xs text-muted hover:text-white underline"
+                      className="button button-outline button-full min-h-[44px] text-xs font-bold"
                       onClick={() => switchMode('otp')}
                     >
-                      {language === 'hi' ? 'या बिना पासवर्ड ईमेल OTP से लॉगिन करें' : 'Or sign in with 1-time email OTP'}
+                      {language === 'hi' ? 'ईमेल OTP से लॉगिन करें' : 'Sign in with 1-time email OTP'}
                     </button>
                   </div>
                 </form>

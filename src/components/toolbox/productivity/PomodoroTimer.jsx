@@ -42,7 +42,7 @@ export default function PomodoroTimer({
   const focusMode = mode === 'focus';
 
   return <section className={`pomodoro-card ${focusMode ? '' : 'break-mode'}`}>
-    <div className="pomodoro-copy"><span className="toolbox-icon">{String(focusMode ? focusMinutes : breakMinutes).padStart(2, '0')}</span><div>
+    <div className="pomodoro-copy"><div>
       <div className="eyebrow">{t(focusMode ? 'tbFocusMode' : 'tbBreakMode')}</div>
       <h2>{t(focusMode ? 'tbFocusTitle' : 'tbBreakTitle')}</h2>
       <p>{t(focusMode ? 'tbFocusDescription' : 'tbBreakDescription')}</p>

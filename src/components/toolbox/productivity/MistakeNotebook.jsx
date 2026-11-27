@@ -257,7 +257,7 @@ export default function MistakeNotebook({ isPremium = false, onUnlock = null }) 
                     type="button"
                     onClick={() => setItems((current) => current.filter((entry) => entry.id !== item.id))}
                     aria-label={t('tbDeleteMistake')}
-                    className="grid min-h-10 min-w-10 place-items-center rounded-lg text-rose-500 hover:bg-rose-500/10 transition-colors"
+                    className="grid min-h-[44px] min-w-[44px] place-items-center rounded-xl text-rose-500 hover:bg-rose-500/10 transition-colors shrink-0"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -266,18 +266,18 @@ export default function MistakeNotebook({ isPremium = false, onUnlock = null }) 
                 {item.entryType === 'review' || item.isCorrect === true ? (
                   <div className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 p-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
                     <b className="text-indigo-600 dark:text-indigo-300">{isHindi ? 'प्रश्न / कॉन्सेप्ट:' : 'Question / Concept:'} </b>
-                    <span>{item.mistake}</span>
+                    <span className="whitespace-pre-wrap break-words">{item.mistake}</span>
                   </div>
                 ) : (
                   <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
                     <b className="text-rose-600 dark:text-rose-400">{t('tbWhatWentWrong')}: </b>
-                    <span>{item.mistake}</span>
+                    <span className="whitespace-pre-wrap break-words">{item.mistake}</span>
                   </div>
                 )}
 
                 <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
                   <b className="text-emerald-600 dark:text-emerald-400">{t('tbCorrectMethod')}: </b>
-                  <span>{item.correctAnswer}</span>
+                  <span className="whitespace-pre-wrap break-words">{String(item.correctAnswer || '').replace(/^(?:Correct|सही उत्तर)\s*:\s*/i, '')}</span>
                 </div>
 
                 {due && (

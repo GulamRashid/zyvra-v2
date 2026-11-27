@@ -171,8 +171,8 @@ export default function HeroMotionGraphic({ isDark, isHindi }) {
         >
           {/* Beacon Status Pill */}
           <div className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/35 text-emerald-500 text-[9px] sm:text-[10px] font-black uppercase tracking-wider mb-1.5 shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-            <span>0ms CBT ENGINE</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>CBT PRACTICE ENGINE</span>
           </div>
 
           {/* Central Animated Hologram Icon */}
@@ -224,13 +224,13 @@ export default function HeroMotionGraphic({ isDark, isHindi }) {
         <div className="pt-1.5 flex items-center justify-between">
           <div>
             <div className="text-xs sm:text-sm font-black text-amber-500">
-              98.4%
+              Spaced
             </div>
             <div className={`text-[9px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              {isHindi ? 'याददाश्त रिटेंशन' : 'Retention Gain'}
+              {isHindi ? 'याददाश्त दोहराव' : 'Active Recall'}
             </div>
           </div>
-          <Sparkles size={16} className="text-amber-400 fill-amber-400 animate-pulse" />
+          <Sparkles size={16} className="text-amber-400 fill-amber-400" />
         </div>
       </div>
 
@@ -258,13 +258,13 @@ export default function HeroMotionGraphic({ isDark, isHindi }) {
         <div className="pt-1.5 flex items-center justify-between">
           <div>
             <div className="text-xs sm:text-sm font-black text-indigo-500">
-              38s <span className="text-[10px] font-normal">/ Q</span>
+              Timed
             </div>
             <div className={`text-[9px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              99.2% Accuracy Rate
+              Per-Question Analytics
             </div>
           </div>
-          <Flame size={16} className="text-orange-500 fill-orange-500 animate-pulse" />
+          <Flame size={16} className="text-orange-500 fill-orange-500" />
         </div>
       </div>
 
@@ -297,11 +297,11 @@ export default function HeroMotionGraphic({ isDark, isHindi }) {
             <span className="px-1.5 py-0.5 rounded bg-slate-500/20 text-slate-400">D</span>
             <span className="px-1.5 py-0.5 rounded bg-emerald-500 text-white shadow-sm font-extrabold">E ✓</span>
           </div>
-          <span className="text-[9px] font-black text-emerald-500">0ms Lock</span>
+          <span className="text-[9px] font-black text-emerald-500">Instant Lock</span>
         </div>
       </div>
 
-      {/* CARD 4: BOTTOM-RIGHT - Diagnostic Analytics & Topper Rank */}
+      {/* CARD 4: BOTTOM-RIGHT - Diagnostic Analytics */}
       <div
         onMouseEnter={() => setActiveCard('rank')}
         onMouseLeave={() => setActiveCard(null)}
@@ -316,20 +316,20 @@ export default function HeroMotionGraphic({ isDark, isHindi }) {
         <div className="flex items-center justify-between pb-1.5 border-b border-purple-500/20">
           <div className="flex items-center gap-1.5 text-purple-500 font-black text-[10px]">
             <Award size={13} />
-            <span>{isHindi ? 'अखिल भारतीय रैंक' : 'AI Rank Predictor'}</span>
+            <span>{isHindi ? 'विषयवार विश्लेषण' : 'Topic Diagnostics'}</span>
           </div>
           <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-500/20 text-purple-600 dark:text-purple-400">
-            Top 0.2%
+            Real Stats
           </span>
         </div>
         <div className="pt-1.5 flex items-center justify-between">
           <div>
             <div className="text-xs sm:text-sm font-black text-purple-500 flex items-center gap-1">
-              <span>AIR 14</span>
+              <span>Weakest Topics</span>
               <TrendingUp size={13} className="text-emerald-500" />
             </div>
             <div className={`text-[9px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-              99.8th Percentile
+              Detailed Solutions
             </div>
           </div>
 
