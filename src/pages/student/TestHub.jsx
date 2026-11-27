@@ -282,9 +282,13 @@ export default function TestHub() {
 
       const progress = qCount > 0 ? Math.min(100, Math.round((solvedInSubject / qCount) * 100)) : 0;
 
+      const uniqueTitle = parent && !String(sf.title || '').toLowerCase().includes(String(parent.title || '').toLowerCase())
+        ? `${sf.title} — ${parent.title}`
+        : sf.title;
+
       return {
         id: sf.id,
-        title: sf.title,
+        title: uniqueTitle,
         badge,
         icon: idx === 0 ? '📖' : idx === 1 ? '📝' : '🔬',
         chaptersCount: subjectChapters.length,
@@ -655,8 +659,8 @@ export default function TestHub() {
                           )}
                           <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900">{String(subject.title || '').replace(/\bIndla\b/g, 'India')}</h4>
                           <span className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-500">
-                            {subject.chaptersCount === 0 && subject.questionsCount === 0
-                              ? 'Coming Soon'
+                            {subject.questionsCount === 0
+                              ? (subject.chaptersCount > 0 ? `${subject.chaptersCount} Chapters · Coming Soon` : 'Coming Soon')
                               : `${subject.chaptersCount} Chapters · ${subject.questionsCount} Questions`}
                           </span>
                         </div>
@@ -772,14 +776,15 @@ export default function TestHub() {
                           </h4>
                           <div className="text-[11px] dark:text-slate-400 text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
                             <span>⏱️ {chDuration} mins</span>
-                            {chQCount > 0 && <span>• ❓ {chQCount} Questions</span>}
-                            {chTests.length > 0 && <span>• 📝 {chTests.length} {chTests.length === 1 ? 'Test' : 'Tests'}</span>}
+                            <span>• {chQCount > 0 ? `${chQCount} Questions` : 'Coming Soon'}</span>
+                            {chTests.length > 0 && <span>• {chTests.length} {chTests.length === 1 ? 'Test' : 'Tests'}</span>}
                           </div>
-                          {chQCount > 0 && (
-                            <div className="mt-1.5 w-full max-w-[220px] h-1.5 dark:bg-slate-700/60 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="mt-1.5 flex items-center gap-2">
+                            <div className="w-full max-w-[180px] h-1.5 dark:bg-slate-700/60 bg-slate-200 rounded-full overflow-hidden">
                               <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${chPct}%` }} />
                             </div>
-                          )}
+                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{chPct}%</span>
+                          </div>
                         </div>
                       </div>
 

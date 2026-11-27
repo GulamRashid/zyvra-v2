@@ -573,9 +573,14 @@ export default function StudentHome() {
                 </span>
               </div>
               <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900 mt-0.5">
-                {language === 'hi'
-                  ? '5 प्रश्नों का त्वरित अभ्यास'
-                  : `5 Quick ${dynamicExams?.[0]?.title ? `${dynamicExams[0].title} ` : ''}Practice Questions`}
+                {(() => {
+                  const targets = Array.isArray(profile?.target_exams) ? profile.target_exams.map((t) => String(t).toUpperCase()) : [];
+                  const hasBpsc = targets.some((t) => t.includes('BPSC') || t.includes('PCS'));
+                  const activeTrack = hasBpsc ? 'BPSC & PCS' : (dynamicExams?.[0]?.title || 'NCERT');
+                  return language === 'hi'
+                    ? `5 प्रश्नों का त्वरित ${activeTrack} अभ्यास`
+                    : `5 Quick ${activeTrack} Practice Questions`;
+                })()}
               </h4>
               <p className="text-[10px] sm:text-[11px] dark:text-slate-400 text-slate-500 font-medium leading-relaxed">
                 {language === 'hi' ? 'कम समय में स्ट्रीक सुरक्षित करें और दिन का लक्ष्य आगे बढ़ाएं।' : 'Save your streak in just 5 mins and advance your daily goal.'}
@@ -728,7 +733,7 @@ export default function StudentHome() {
                       </span>
                     )}
                   </div>
-                  <p className="text-[11px] font-medium dark:text-slate-400 text-slate-500 mt-0.5 leading-relaxed line-clamp-2">
+                  <p className="text-[11px] font-medium dark:text-slate-400 text-slate-500 mt-0.5 leading-relaxed">
                     {exam.subtitle}
                   </p>
                 </div>

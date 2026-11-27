@@ -791,9 +791,7 @@ export default function LiveQuiz() {
             .eq('id', testId)
             .maybeSingle(),
           supabase
-            .from('test_questions')
-            .select('id', { count: 'exact', head: true })
-            .eq('test_id', testId),
+            .rpc('get_published_test_question_counts', { p_test_ids: [testId] }),
           supabase
             .from('test_attempts')
             .select('id, test_id, user_id, status, started_at, completed_at, remaining_seconds, current_question_index, state_json, paused_at, created_at, updated_at')
@@ -805,7 +803,8 @@ export default function LiveQuiz() {
 
         if (testResult.error && !cachedQuiz?.test) throw testResult.error;
         testData = testResult.data || cachedQuiz?.test;
-        totalCount = countResult?.count || 0;
+        const rpcCountRow = Array.isArray(countResult?.data) ? countResult.data[0] : countResult?.data;
+        totalCount = Number(rpcCountRow?.question_count ?? testData?.question_count ?? 0) || 0;
         if (attemptResult?.data?.length > 0) {
           latestAttempt = attemptResult.data[0];
         }
@@ -2476,12 +2475,8 @@ export default function LiveQuiz() {
   // PHASE 3: ACTIVE CBT RUNNER
   return (
     <main
-      className={`live-quiz select-none ${
-        quizTheme === 'sepia'
-          ? 'bg-[#FBF3E4] text-[#2C241B]'
-          : quizTheme === 'dark'
-            ? 'dark bg-[#0B1120] text-slate-100'
-            : ''
+      className={`live-quiz quiz-theme-${quizTheme} select-none ${
+        quizTheme === 'dark' ? 'dark' : ''
       }`}
       onContextMenu={(event) => event.preventDefault()}
       onCopy={(event) => event.preventDefault()}
@@ -2779,13 +2774,14 @@ export default function LiveQuiz() {
 
       {/* CBT Body */}
       <div className="quiz-body">
-        {/* Active Question Panel (supports touch left/right swipe on mobile) */}
+        {/* Active Question Panel (supports touch AND mouse/pointer swipe) */}
         <section
           className={`quiz-question-panel ${focusWidth ? 'max-w-2xl mx-auto w-full' : ''}`}
+          style={{ touchAction: 'pan-y' }}
           onTouchStart={(e) => {
             if (e.touches?.length !== 1) return;
             if (e.target?.closest?.('.no-scrollbar')) return;
-            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, pointer: false };
           }}
           onTouchEnd={(e) => {
             const start = touchStartRef.current;
@@ -2795,7 +2791,28 @@ export default function LiveQuiz() {
             if (sel) return;
             const dx = e.changedTouches[0].clientX - start.x;
             const dy = e.changedTouches[0].clientY - start.y;
-            if (Math.abs(dx) >= 55 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            if (Math.abs(dx) >= 48 && Math.abs(dx) > Math.abs(dy) * 1.35) {
+              if (dx < 0 && currentIndex < questions.length - 1) {
+                goTo(currentIndex + 1);
+              } else if (dx > 0 && currentIndex > 0) {
+                goTo(currentIndex - 1);
+              }
+            }
+          }}
+          onPointerDown={(e) => {
+            if (e.pointerType === 'touch') return;
+            if (e.target?.closest?.('.no-scrollbar, button, input, label, a')) return;
+            touchStartRef.current = { x: e.clientX, y: e.clientY, pointer: true };
+          }}
+          onPointerUp={(e) => {
+            const start = touchStartRef.current;
+            if (!start || !start.pointer) return;
+            touchStartRef.current = null;
+            const sel = typeof window !== 'undefined' ? window.getSelection?.()?.toString()?.trim() : '';
+            if (sel) return;
+            const dx = e.clientX - start.x;
+            const dy = e.clientY - start.y;
+            if (Math.abs(dx) >= 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
               if (dx < 0 && currentIndex < questions.length - 1) {
                 goTo(currentIndex + 1);
               } else if (dx > 0 && currentIndex > 0) {
@@ -2817,7 +2834,7 @@ export default function LiveQuiz() {
             </button>
 
             <div
-              className="flex items-center gap-2 overflow-x-auto py-1 px-1 flex-1 no-scrollbar"
+              className="flex items-center gap-2 overflow-x-auto py-1 px-1 flex-1 no-scrollbar snap-x snap-mandatory"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {questions.map((item, idx) => {
@@ -2848,7 +2865,7 @@ export default function LiveQuiz() {
                     key={qId || idx}
                     type="button"
                     onClick={() => goTo(idx)}
-                    className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full text-xs flex items-center justify-center shrink-0 transition-all hover:scale-105 active:scale-95 ${badgeClasses} ${currentRing}`}
+                    className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full text-xs flex items-center justify-center shrink-0 snap-start transition-all hover:scale-105 active:scale-95 ${badgeClasses} ${currentRing}`}
                     aria-label={`Question ${idx + 1}`}
                   >
                     {idx + 1}

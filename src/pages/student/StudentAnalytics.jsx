@@ -427,7 +427,7 @@ export default function StudentAnalytics() {
 
           <p className="text-center text-xs dark:text-slate-400 text-slate-500 font-medium pt-2">
             <Clock3 size={13} className="inline mr-1" />
-            Accuracy is based on saved response correctness; unavailable score fields are shown as zero until a test is submitted and graded.
+            Accuracy reflects saved response correctness across completed tests.
           </p>
         </>
       )}

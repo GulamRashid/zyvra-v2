@@ -7,6 +7,7 @@ import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import ShareAndEarnCard from '../../components/common/ShareAndEarnCard';
 import { useAuth } from '../../context/AuthContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
+import { formatCoins } from '../../lib/formatters';
 
 const LEDGER_PAGE_SIZE = 1000;
 
@@ -194,7 +195,7 @@ export default function StudentWallet() {
               </p>
               {walletLoaded && !loading && !error && Number(coinBalance || 0) !== (summary.earned - summary.spent) && (
                 <p className="text-[11px] text-amber-200/90 mt-1">
-                  Includes {Math.abs(Number(coinBalance || 0) - (summary.earned - summary.spent)).toLocaleString()} coins from opening/legacy balance adjustments.
+                  {`Includes ${formatCoins(Math.abs(Number(coinBalance || 0) - (summary.earned - summary.spent)))} from opening/legacy balance adjustments.`}
                 </p>
               )}
             </div>

@@ -691,7 +691,7 @@ export default function AuthPage() {
                   ))}
                 </div>
 
-                <button type="submit" className="button button-gold button-full mt-2" disabled={busy}>
+                <button type="submit" className="button button-primary button-full mt-2 min-h-[44px]" disabled={busy}>
                   {busy ? (
                     <span className="inline-flex items-center gap-2">
                       <Loader2 size={16} className="animate-spin" />
@@ -773,7 +773,7 @@ export default function AuthPage() {
                   </>
                 )}
 
-                <button type="submit" className="button button-gold button-full mt-2" disabled={busy}>
+                <button type="submit" className="button button-primary button-full mt-2 min-h-[44px]" disabled={busy}>
                   {busy ? (
                     <span className="inline-flex items-center gap-2">
                       <Loader2 size={16} className="animate-spin" />
@@ -1055,7 +1055,7 @@ export default function AuthPage() {
                       : 'We’ll email you a 6-digit verification code to activate your account.'}
                   </p>
 
-                  <button type="submit" className="button button-gold button-full mt-2" disabled={busy}>
+                  <button type="submit" className="button button-primary button-full mt-2 min-h-[44px]" disabled={busy}>
                     {busy ? (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 size={16} className="animate-spin" />
@@ -1093,7 +1093,7 @@ export default function AuthPage() {
                       ? 'हम आपके ईमेल पर पासवर्ड रीसेट कोड भेजेंगे जिससे आप नया पासवर्ड बना सकेंगे।'
                       : 'We’ll email a password reset code to help you set a new password.'}
                   </p>
-                  <button type="submit" className="button button-gold button-full mt-2" disabled={busy}>
+                  <button type="submit" className="button button-primary button-full mt-2 min-h-[44px]" disabled={busy}>
                     {busy ? (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 size={16} className="animate-spin" />
@@ -1131,7 +1131,7 @@ export default function AuthPage() {
                       ? 'हम आपके ईमेल पर 6-अंकों का लॉगिन कोड भेजेंगे (पासवर्ड की आवश्यकता नहीं है)।'
                       : 'We’ll email you a 6-digit login code. No password needed.'}
                   </p>
-                  <button type="submit" className="button button-gold button-full mt-2" disabled={busy}>
+                  <button type="submit" className="button button-primary button-full mt-2 min-h-[44px]" disabled={busy}>
                     {busy ? (
                       <span className="inline-flex items-center gap-2">
                         <Loader2 size={16} className="animate-spin" />

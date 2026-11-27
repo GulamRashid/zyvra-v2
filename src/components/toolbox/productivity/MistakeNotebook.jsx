@@ -16,6 +16,7 @@ export default function MistakeNotebook({ isPremium = false, onUnlock = null }) 
   const [topic, setTopic] = useState('');
   const [mistake, setMistake] = useState('');
   const [correctAnswer, setCorrectAnswer] = useState('');
+  const [expandedIds, setExpandedIds] = useState({});
   const today = localDate();
 
   const maxLimit = isPremium ? PRO_MISTAKES_LIMIT : FREE_MISTAKES_LIMIT;
@@ -266,12 +267,38 @@ export default function MistakeNotebook({ isPremium = false, onUnlock = null }) 
                 {item.entryType === 'review' || item.isCorrect === true ? (
                   <div className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 p-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
                     <b className="text-indigo-600 dark:text-indigo-300">{isHindi ? 'प्रश्न / कॉन्सेप्ट:' : 'Question / Concept:'} </b>
-                    <span className="whitespace-pre-wrap break-words">{item.mistake}</span>
+                    <span className="whitespace-pre-wrap break-words">
+                      {!expandedIds[item.id] && String(item.mistake || '').length > 140
+                        ? `${String(item.mistake).slice(0, 140)}…`
+                        : item.mistake}
+                    </span>
+                    {String(item.mistake || '').length > 140 && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedIds((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                        className="ml-1.5 text-xs font-bold text-indigo-500 hover:underline"
+                      >
+                        {expandedIds[item.id] ? 'Show less' : 'Read more'}
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="rounded-xl bg-rose-500/10 border border-rose-500/20 p-2.5 text-xs sm:text-sm text-slate-800 dark:text-slate-200">
                     <b className="text-rose-600 dark:text-rose-400">{t('tbWhatWentWrong')}: </b>
-                    <span className="whitespace-pre-wrap break-words">{item.mistake}</span>
+                    <span className="whitespace-pre-wrap break-words">
+                      {!expandedIds[item.id] && String(item.mistake || '').length > 140
+                        ? `${String(item.mistake).slice(0, 140)}…`
+                        : item.mistake}
+                    </span>
+                    {String(item.mistake || '').length > 140 && (
+                      <button
+                        type="button"
+                        onClick={() => setExpandedIds((prev) => ({ ...prev, [item.id]: !prev[item.id] }))}
+                        className="ml-1.5 text-xs font-bold text-indigo-500 hover:underline"
+                      >
+                        {expandedIds[item.id] ? 'Show less' : 'Read more'}
+                      </button>
+                    )}
                   </div>
                 )}
 
