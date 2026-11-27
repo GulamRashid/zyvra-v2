@@ -9,6 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function AdminSubscriptions() {
   const { supabase } = useAuth();
+  const { exams, folders, chapters } = useContentCatalog();
   const [grants, setGrants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

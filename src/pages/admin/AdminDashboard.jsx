@@ -55,7 +55,7 @@ export default function AdminDashboard() {
     setLiveHealth((prev) => ({ ...prev, checking: true }));
 
     try {
-      const pingStart = performance.now();
+      const pingStart = Date.now();
       const [
         usersResult,
         grantsResult,
@@ -73,7 +73,7 @@ export default function AdminDashboard() {
         supabase.from('questions').select('*', { count: 'exact', head: true }),
         supabase.auth.getSession()
       ]);
-      const pingMs = Math.max(1, Math.round(performance.now() - pingStart));
+      const pingMs = Math.max(1, Math.round(Date.now() - pingStart));
 
       if (!active()) return;
 

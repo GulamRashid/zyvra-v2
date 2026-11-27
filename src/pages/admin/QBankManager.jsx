@@ -132,6 +132,7 @@ function normalizeQuestion(row) {
 
 function QuestionDialog({ question, chapters, folders, exams, onClose, onSaved, onDelete }) {
   const [values, setValues] = useState(() => question ? normalizeQuestion(question) : { ...emptyQuestion, options: emptyQuestion.options.map((option) => ({ ...option })) });
+  const [showAuthorPreview, setShowAuthorPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const setField = (field, value) => setValues((current) => ({ ...current, [field]: value }));

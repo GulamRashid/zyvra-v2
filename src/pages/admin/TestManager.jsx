@@ -202,6 +202,8 @@ export default function TestManager() {
   const [successMessage, setSuccessMessage] = useState('');
   const [query, setQuery] = useState('');
   const [selectedExamFilter, setSelectedExamFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [bulkMovingEmpty, setBulkMovingEmpty] = useState(false);
   const [questionSearch, setQuestionSearch] = useState('');
   const [usageScopeFilter, setUsageScopeFilter] = useState('all');
   const [tagFilter, setTagFilter] = useState('all');

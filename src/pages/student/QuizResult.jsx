@@ -1958,7 +1958,7 @@ export default function QuizResult() {
                           </div>
                         </div>
                         <span className="text-xs font-black tabular-nums dark:text-slate-300 text-slate-700 shrink-0">
-                          {row.timeSpent > 0 ? (row.timeSpent >= 60 ? formatTime(row.timeSpent) : `${row.timeSpent}s`) : '—'}
+                          {row.timeSpent > 0 ? (row.timeSpent >= 60 ? `${Math.floor(row.timeSpent / 60)}m ${row.timeSpent % 60}s` : `${row.timeSpent}s`) : '—'}
                         </span>
                       </button>
                     );
