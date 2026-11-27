@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { History, Plus, RefreshCw, Save, Settings2, Shield, Users } from 'lucide-react';
 import SettingsPreview from './SettingsPreview';
+import TestCoinsToggleCard from '../../components/admin/TestCoinsToggleCard';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { DEFAULT_ROLE_PERMISSIONS, logAdminAction, PERMISSION_LABELS } from '../../lib/auditLog';
@@ -231,7 +232,12 @@ export default function AdminSettings() {
         ))}
       </div>
 
-      {activeTab === 'settings' && <SettingsPreview />}
+      {activeTab === 'settings' && (
+        <div className="space-y-6">
+          <TestCoinsToggleCard />
+          <SettingsPreview />
+        </div>
+      )}
 
       {activeTab === 'roles' && (
         <div className="space-y-6">

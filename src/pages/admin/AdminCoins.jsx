@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import StatusBadge from '../../components/common/StatusBadge';
+import TestCoinsToggleCard from '../../components/admin/TestCoinsToggleCard';
 
 import { useAuth } from '../../context/AuthContext';
 import { getReferralSettings, saveReferralSettings } from '../../lib/referrals';
@@ -243,6 +244,11 @@ export default function AdminCoins() {
         <LoadingSkeleton rows={4} />
       ) : (
         <>
+          {/* Global Test Completion Coins Toggle */}
+          <div className="mb-6">
+            <TestCoinsToggleCard />
+          </div>
+
           {/* Top Metrics Cards */}
           <div className="metrics-grid">
             <article className="metric-card">
