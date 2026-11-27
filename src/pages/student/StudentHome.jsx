@@ -27,6 +27,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useStudentStats } from '../../context/StudentStatsContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
+import useSyllabusProgress from '../../hooks/useSyllabusProgress';
+import { SYLLABUS_STATUS } from '../../lib/syllabusProgress';
 import { getExamCategory, isPublished, sortContentItems } from '../../lib/content';
 import { getRecommendedPractice } from '../../lib/recommendations';
 import { getISTGreeting } from '../../lib/studentStats';
@@ -94,6 +96,11 @@ export default function StudentHome() {
   } = useStudentStats();
   const { language } = useThemeLanguage();
   const { exams, chapters } = useContentCatalog();
+  const { exams: syllabusExams, nextBestChapter, loading: syllabusLoading } = useSyllabusProgress();
+  const primarySyllabusExam = useMemo(() => {
+    if (!syllabusExams?.length) return null;
+    return syllabusExams.find((e) => String(e.title || '').toLowerCase().includes('ncert')) || syllabusExams[0];
+  }, [syllabusExams]);
 
   const [availableTests, setAvailableTests] = useState([]);
   const [testsLoading, setTestsLoading] = useState(Boolean(supabase));
@@ -608,6 +615,108 @@ export default function StudentHome() {
           </Link>
         </div>
       </section>
+
+      {/* ======================================================== */}
+      {/* 4.75 SYLLABUS TRACKER SUMMARY + NEXT BEST CHAPTER        */}
+      {/* ======================================================== */}
+      {!syllabusLoading && primarySyllabusExam && (
+        <section className="space-y-2">
+          <div className="flex items-center justify-between px-1">
+            <h3 className="text-xs sm:text-sm font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              {language === 'hi' ? 'सिलेबस प्रगति' : 'Syllabus Progress'}
+            </h3>
+            <Link
+              to={`/syllabus/${encodeURIComponent(primarySyllabusExam.slug || primarySyllabusExam.examId)}`}
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-0.5 min-h-[44px]"
+            >
+              <span>{language === 'hi' ? 'पूरा ट्रैकर देखें' : 'Open Tracker'}</span>
+              <ChevronRight size={13} />
+            </Link>
+          </div>
+
+          <div className="p-4 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 shadow-xs space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="text-sm font-black dark:text-white text-slate-900">
+                    {primarySyllabusExam.title}
+                  </h4>
+                  {primarySyllabusExam.weakCount > 0 && (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                      {primarySyllabusExam.weakCount} {language === 'hi' ? 'कमज़ोर' : 'Weak'}
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
+                  {primarySyllabusExam.attemptedChaptersCount > 0
+                    ? (language === 'hi'
+                      ? `${primarySyllabusExam.totalChapters} में से ${primarySyllabusExam.doneCount} अध्याय पूर्ण`
+                      : `${primarySyllabusExam.doneCount} of ${primarySyllabusExam.totalChapters} chapters done`)
+                    : (language === 'hi'
+                      ? `अभी कोई प्रयास नहीं — ${primarySyllabusExam.totalChapters} अध्याय तैयार हैं`
+                      : `No attempts yet — ${primarySyllabusExam.totalChapters} chapters ready`)}
+                </p>
+              </div>
+              <Link
+                to={`/syllabus/${encodeURIComponent(primarySyllabusExam.slug || primarySyllabusExam.examId)}`}
+                className="px-3 py-2 min-h-[44px] rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-200 text-xs font-extrabold dark:text-slate-200 text-slate-800 hover:border-indigo-500/40 flex items-center gap-1 shrink-0 transition-colors"
+              >
+                <span>{language === 'hi' ? 'सिलेबस' : 'Syllabus'}</span>
+                <ChevronRight size={14} />
+              </Link>
+            </div>
+
+            {primarySyllabusExam.attemptedChaptersCount > 0 && (
+              <div className="w-full h-2 rounded-full dark:bg-slate-800 bg-slate-200 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                  style={{ width: `${primarySyllabusExam.progressPercent || 0}%` }}
+                />
+              </div>
+            )}
+
+            {nextBestChapter && (
+              <div className="pt-2.5 border-t dark:border-slate-800 border-slate-200 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      {language === 'hi' ? 'अगला श्रेष्ठ अध्याय' : 'Next Best Chapter'}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                      nextBestChapter.chapter.status === SYLLABUS_STATUS.WEAK
+                        ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
+                        : nextBestChapter.chapter.status === SYLLABUS_STATUS.IN_PROGRESS
+                        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                        : 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+                    }`}>
+                      {nextBestChapter.chapter.status === SYLLABUS_STATUS.WEAK
+                        ? (language === 'hi' ? 'कमज़ोर' : 'Weak')
+                        : nextBestChapter.chapter.status === SYLLABUS_STATUS.IN_PROGRESS
+                        ? (language === 'hi' ? 'जारी' : 'In Progress')
+                        : (language === 'hi' ? 'शुरू नहीं' : 'Not Started')}
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 mt-0.5">
+                    {nextBestChapter.chapter.title}
+                  </p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                    {nextBestChapter.subjectTitle}
+                  </p>
+                </div>
+
+                <Link
+                  to={nextBestChapter.targetPath}
+                  state={{ returnTo: '/' }}
+                  className="px-3.5 py-2 min-h-[44px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold flex items-center gap-1.5 shrink-0 transition-colors"
+                >
+                  <span>{language === 'hi' ? nextBestChapter.actionLabelHi : nextBestChapter.actionLabelEn}</span>
+                  <ArrowRight size={13} />
+                </Link>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* ======================================================== */}
       {/* 5. RECOMMENDED PRACTICE OR CONTINUE WHERE YOU LEFT     */}

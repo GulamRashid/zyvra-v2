@@ -13,6 +13,7 @@ import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import useContentCatalog from '../../hooks/useContentCatalog';
 import { prefetchLiveQuiz } from '../../lib/prefetchLiveQuiz';
 import { getAnsweredQuestionCount } from '../../lib/tests';
+import { isPyqFolderOrTitle } from '../../lib/syllabusProgress';
 
 function isComplete(attempt) {
   const status = String(attempt?.status || '').toLowerCase();
@@ -392,6 +393,10 @@ export default function TestHub() {
       }
       if (testFilter === 'chapter') {
         return Boolean(test.chapter_id);
+      }
+      if (testFilter === 'pyq') {
+        const h = getTestHierarchy(test);
+        return isPyqFolderOrTitle(test.title) || isPyqFolderOrTitle(h.badge) || isPyqFolderOrTitle(h.folderPath);
       }
       return true;
     });
@@ -845,12 +850,12 @@ export default function TestHub() {
               </div>
 
               <div className="flex gap-1.5 w-full sm:w-auto overflow-x-auto pb-0.5">
-                {['all', 'free', 'chapter'].map((f) => (
+                {['all', 'free', 'chapter', 'pyq'].map((f) => (
                   <button
                     key={f}
                     type="button"
                     onClick={() => setTestFilter(f)}
-                    className={`px-3 py-1 rounded-xl text-xs font-bold transition-colors min-h-[44px] ${
+                    className={`px-3 py-1 rounded-xl text-xs font-bold whitespace-nowrap transition-colors min-h-[44px] ${
                       testFilter === f
                         ? 'bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white shadow-xs'
                         : 'dark:bg-slate-800 bg-white border dark:border-slate-700/60 border-slate-300 dark:text-slate-300 text-slate-700 hover:text-slate-900 dark:hover:text-white'
@@ -860,7 +865,9 @@ export default function TestHub() {
                       ? (language === 'hi' ? 'सभी टेस्ट' : 'All Tests')
                       : f === 'free'
                       ? (language === 'hi' ? 'मुफ़्त टेस्ट' : 'Free Tests')
-                      : (language === 'hi' ? 'अध्याय टेस्ट' : 'Chapter Tests')}
+                      : f === 'chapter'
+                      ? (language === 'hi' ? 'अध्याय टेस्ट' : 'Chapter Tests')
+                      : (language === 'hi' ? 'केवल PYQ' : 'PYQ only')}
                   </button>
                 ))}
               </div>

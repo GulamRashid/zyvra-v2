@@ -23,6 +23,7 @@ const QBankManager = lazyWithRetry(() => import('./pages/admin/QBankManager'));
 const TestManager = lazyWithRetry(() => import('./pages/admin/TestManager'));
 const ExploreExams = lazyWithRetry(() => import('./pages/student/ExploreExams'));
 const ExamDetail = lazyWithRetry(() => import('./pages/student/ExamDetail'));
+const SyllabusTracker = lazyWithRetry(() => import('./pages/student/SyllabusTracker'));
 const FolderView = lazyWithRetry(() => import('./pages/student/FolderView'));
 const ChapterDetail = lazyWithRetry(() => import('./pages/student/ChapterDetail'));
 const StudentToolbox = lazyWithRetry(() => import('./pages/student/StudentToolbox'));
@@ -104,6 +105,8 @@ function AppRoutes() {
       <Route path="home" element={<StudentHome />} />
       <Route path="explore" element={<ExploreExams />} />
       <Route path="explore/:examSlug" element={<ExamDetail />} />
+      <Route path="syllabus" element={<SyllabusTracker />} />
+      <Route path="syllabus/:examSlug" element={<SyllabusTracker />} />
       <Route path="folder/:folderId" element={<FolderView />} />
       <Route path="chapter/:chapterId" element={<ChapterDetail />} />
       <Route path="tests" element={<TestHub />} />
