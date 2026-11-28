@@ -255,7 +255,7 @@ export default function ExploreExams() {
                 <>
                   <div className="text-left sm:text-right">
                     <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 leading-none">
-                      ₹{fullPassConfig.price || 999}
+                      ₹{fullPassConfig.price ?? DEFAULT_FULL_PASS.price}
                     </div>
                     <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">
                       {fullPassConfig.validity_days || 365} {language === 'hi' ? 'दिनों के लिए' : 'days validity'}
@@ -267,7 +267,7 @@ export default function ExploreExams() {
                       itemType: 'full_pass',
                       itemId: 'global',
                       itemTitle: fullPassConfig.title || 'ZYVRA All-Access Full Pass',
-                      basePrice: fullPassConfig.price || 999,
+                      basePrice: fullPassConfig.price ?? DEFAULT_FULL_PASS.price,
                       validityDays: fullPassConfig.validity_days || 365
                     })}
                     className="px-4 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-xs transition-all active:scale-95 flex items-center gap-1.5"

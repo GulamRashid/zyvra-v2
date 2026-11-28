@@ -121,8 +121,8 @@ export default function ExamDetail() {
                 <>
                   {' '}
                   {language === 'hi'
-                    ? `Full Pass (₹${fullPassConfig.price || 999}) में सभी परीक्षाएं + सभी प्रो स्टडी टूल्स (${fullPassConfig.validity_days || 365} दिन) अतिरिक्त मिलते हैं।`
-                    : `Full Pass (₹${fullPassConfig.price || 999}) adds all exams + all Pro study tools for ${fullPassConfig.validity_days || 365} days.`}
+                    ? `Full Pass (₹${fullPassConfig.price ?? DEFAULT_FULL_PASS.price}) में सभी परीक्षाएं + सभी प्रो स्टडी टूल्स (${fullPassConfig.validity_days || 365} दिन) अतिरिक्त मिलते हैं।`
+                    : `Full Pass (₹${fullPassConfig.price ?? DEFAULT_FULL_PASS.price}) adds all exams + all Pro study tools for ${fullPassConfig.validity_days || 365} days.`}
                 </>
               )}
             </span>
@@ -151,12 +151,12 @@ export default function ExamDetail() {
                   itemId: 'global',
                   itemTitle: fullPassConfig.title || 'ZYVRA All-Access Full Pass',
                   tier: 'All-Access Pass',
-                  basePrice: fullPassConfig.price || 999,
+                  basePrice: fullPassConfig.price ?? DEFAULT_FULL_PASS.price,
                   validityDays: fullPassConfig.validity_days || 365
                 })}
               >
                 <Crown size={14} className="text-amber-400" />
-                <span>{language === 'hi' ? `या पूरा Full Pass लें · ₹${fullPassConfig.price || 999}` : `Or Get Full Pass · ₹${fullPassConfig.price || 999}`}</span>
+                <span>{language === 'hi' ? `या पूरा Full Pass लें · ₹${fullPassConfig.price ?? DEFAULT_FULL_PASS.price}` : `Or Get Full Pass · ₹${fullPassConfig.price ?? DEFAULT_FULL_PASS.price}`}</span>
               </button>
             )}
           </div>

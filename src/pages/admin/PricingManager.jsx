@@ -105,7 +105,7 @@ export default function PricingManager() {
   const [fullPassConfig, setFullPassConfig] = useState({
     title: 'ZYVRA All-Access Full Pass',
     subtitle: 'सभी परीक्षाओं, टेस्ट्स और टूल्स का 1 साल का अनलिमिटेड एक्सेस',
-    price: 999,
+    price: 499,
     validity_days: 365,
     is_active: true,
     include_all: true,
@@ -562,7 +562,8 @@ export default function PricingManager() {
       const { error } = await supabase.from('platform_settings').upsert({
         setting_key: 'full_pass_config',
         key: 'full_pass_config',
-        setting_value: toSave
+        setting_value: toSave,
+        value: toSave
       }, { onConflict: 'setting_key' });
 
       if (error) throw error;
@@ -949,7 +950,7 @@ export default function PricingManager() {
           <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-semibold mb-1">
             <Crown size={14} /> Full Pass
           </div>
-          <div className="text-xl font-black text-amber-500 dark:text-amber-300">₹{fullPassConfig.price || 999}</div>
+          <div className="text-xl font-black text-amber-500 dark:text-amber-300">₹{fullPassConfig.price ?? 499}</div>
           <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
             {fullPassConfig.is_active ? 'Active · Click to Edit' : 'Disabled'}
           </div>
@@ -1005,7 +1006,7 @@ export default function PricingManager() {
               ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-500/40'
               : 'bg-rose-50 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-500/40'
           }`}>
-            {fullPassConfig.is_active ? `Active · ₹${fullPassConfig.price || 999}` : 'Disabled'}
+            {fullPassConfig.is_active ? `Active · ₹${fullPassConfig.price ?? 499}` : 'Disabled'}
           </span>
         </button>
       </div>
@@ -1621,7 +1622,7 @@ export default function PricingManager() {
                         <input
                           type="number"
                           min="0"
-                          value={fullPassConfig.price ?? 999}
+                          value={fullPassConfig.price ?? 499}
                           onChange={(e) => setFullPassConfig((prev) => ({ ...prev, price: Math.max(0, Number(e.target.value) || 0) }))}
                           className="w-full pl-7 pr-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-amber-600 dark:text-amber-300 text-sm font-black focus:outline-none focus:border-amber-400"
                         />
@@ -1885,7 +1886,7 @@ export default function PricingManager() {
                   <div className="pt-2 border-t border-amber-400/30 flex items-center justify-between">
                     <div>
                       <div className="text-xl font-black text-amber-300 leading-none">
-                        ₹{fullPassConfig.price || 999}
+                        ₹{fullPassConfig.price ?? 499}
                       </div>
                       <span className="text-[10px] text-slate-400">
                         {fullPassConfig.validity_days || 365} दिनों की वैधता

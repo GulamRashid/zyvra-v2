@@ -87,7 +87,7 @@ export default function LandingPage() {
           supabase.from('exams').select('id, slug, title, price, status').eq('status', 'published'),
           supabase.from('chapters').select('id, access_mode').eq('status', 'published'),
           supabase.from('tests').select('id, chapter_id').eq('status', 'published'),
-          supabase.from('platform_settings').select('value').eq('key', 'full_pass_config').maybeSingle()
+          supabase.from('platform_settings').select('setting_value, value').or('setting_key.eq.full_pass_config,key.eq.full_pass_config').maybeSingle()
         ]);
 
         if (!active) return;
@@ -99,7 +99,10 @@ export default function LandingPage() {
         );
         const allTests = testsRes.data || [];
         const freeTests = allTests.filter((t) => freeChapterIds.has(t.chapter_id)).length;
-        const fp = fullPassRes.data?.value || {};
+        let fp = fullPassRes.data?.setting_value ?? fullPassRes.data?.value ?? {};
+        if (typeof fp === 'string') {
+          try { fp = JSON.parse(fp); } catch { fp = {}; }
+        }
 
         setCatalog({
           ncertPrice: ncertExam?.price != null ? Number(ncertExam.price) : DEFAULT_CATALOG.ncertPrice,
