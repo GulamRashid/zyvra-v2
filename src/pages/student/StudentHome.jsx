@@ -650,8 +650,8 @@ export default function StudentHome() {
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
                   {primarySyllabusExam.attemptedChaptersCount > 0
                     ? (language === 'hi'
-                      ? `${primarySyllabusExam.totalChapters} में से ${primarySyllabusExam.doneCount} अध्याय पूर्ण`
-                      : `${primarySyllabusExam.doneCount} of ${primarySyllabusExam.totalChapters} chapters done`)
+                      ? `टेस्ट वाले ${primarySyllabusExam.totalChapters} में से ${primarySyllabusExam.doneCount} अध्याय पूर्ण`
+                      : `${primarySyllabusExam.doneCount} of ${primarySyllabusExam.totalChapters} chapters with tests done`)
                     : (language === 'hi'
                       ? `अभी कोई प्रयास नहीं — ${primarySyllabusExam.totalChapters} अध्याय तैयार हैं`
                       : `No attempts yet — ${primarySyllabusExam.totalChapters} chapters ready`)}
@@ -667,11 +667,16 @@ export default function StudentHome() {
             </div>
 
             {primarySyllabusExam.attemptedChaptersCount > 0 && (
-              <div className="w-full h-2 rounded-full dark:bg-slate-800 bg-slate-200 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-                  style={{ width: `${primarySyllabusExam.progressPercent || 0}%` }}
-                />
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-2 rounded-full dark:bg-slate-800 bg-slate-200 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                    style={{ width: `${primarySyllabusExam.progressPercent || 0}%` }}
+                  />
+                </div>
+                <span className="text-xs font-black dark:text-white text-slate-900 tabular-nums shrink-0">
+                  {primarySyllabusExam.progressPercent ?? 0}%
+                </span>
               </div>
             )}
 
@@ -706,7 +711,7 @@ export default function StudentHome() {
 
                 <Link
                   to={nextBestChapter.targetPath}
-                  state={{ returnTo: '/' }}
+                  state={{ returnTo: '/', reattempt: (nextBestChapter.chapter.completedCount || 0) > 0 }}
                   className="px-3.5 py-2 min-h-[44px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold flex items-center gap-1.5 shrink-0 transition-colors"
                 >
                   <span>{language === 'hi' ? nextBestChapter.actionLabelHi : nextBestChapter.actionLabelEn}</span>

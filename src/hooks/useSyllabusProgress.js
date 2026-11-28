@@ -13,11 +13,13 @@ export default function useSyllabusProgress() {
   const [tests, setTests] = useState([]);
   const [questionCounts, setQuestionCounts] = useState({});
   const [testsLoading, setTestsLoading] = useState(true);
+  const [testsLoaded, setTestsLoaded] = useState(false);
   const [testsError, setTestsError] = useState('');
 
   const loadTestsAndCounts = useCallback(async () => {
     if (!supabase) {
       setTestsLoading(false);
+      setTestsLoaded(true);
       return;
     }
     setTestsLoading(true);
@@ -36,7 +38,8 @@ export default function useSyllabusProgress() {
         const { data: countRows, error: countErr } = await supabase.rpc('get_published_test_question_counts', {
           p_test_ids: safeTests.map((t) => t.id)
         });
-        if (!countErr && Array.isArray(countRows)) {
+        if (countErr) throw countErr;
+        if (Array.isArray(countRows)) {
           const map = {};
           countRows.forEach((row) => {
             map[row.test_id] = Number(row.question_count) || 0;
@@ -46,6 +49,7 @@ export default function useSyllabusProgress() {
       } else {
         setQuestionCounts({});
       }
+      setTestsLoaded(true);
     } catch (err) {
       console.warn('Unable to load syllabus test counts:', err);
       setTestsError(err?.message || 'Unable to load syllabus progress.');
@@ -75,7 +79,7 @@ export default function useSyllabusProgress() {
 
   return {
     ...progress,
-    loading: catalogLoading || statsLoading || testsLoading,
+    loading: Boolean(catalogLoading || statsLoading || testsLoading || (!testsLoaded && !testsError)),
     error: catalogError || testsError,
     refresh: loadTestsAndCounts
   };

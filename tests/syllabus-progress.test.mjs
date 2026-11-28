@@ -139,23 +139,46 @@ test('Empty (Coming Soon) chapters are excluded from total and progress is deter
   assert.equal(first.nextBestChapter.actionLabelEn, 'Start');
 });
 
-test('useSyllabusProgress does not select non-existent tests.price column and 100% attempt marks chapter Done', () => {
-  const hookSource = fs.readFileSync(new URL('../src/hooks/useSyllabusProgress.js', import.meta.url), 'utf8');
-  assert.equal(/\.select\([^)]*\bprice\b/.test(hookSource), false);
+test('No query selects non-existent tests.price column, loading gates Coming Soon, and header counts equal chapter row sums', () => {
+  const filesToCheck = [
+    '../src/hooks/useSyllabusProgress.js',
+    '../src/pages/student/StudentHome.jsx',
+    '../src/pages/student/TestHub.jsx',
+    '../src/pages/student/LiveQuiz.jsx',
+    '../src/pages/admin/PricingManager.jsx'
+  ];
+  for (const rel of filesToCheck) {
+    const src = fs.readFileSync(new URL(rel, import.meta.url), 'utf8');
+    const matches = src.match(/\.from\(['"]tests['"]\)[\s\S]{0,180}?\.select\([^)]*\)/g) || [];
+    for (const m of matches) {
+      assert.equal(/\bprice\b/.test(m), false, `Found tests.price select in ${rel}`);
+    }
+  }
+
+  // Loading gate check: useSyllabusProgress gates on testsLoaded and SyllabusTracker gates on loading/error
+  const hookSrc = fs.readFileSync(new URL('../src/hooks/useSyllabusProgress.js', import.meta.url), 'utf8');
+  assert.equal(/testsLoaded/.test(hookSrc), true);
+  const trackerSrc = fs.readFileSync(new URL('../src/pages/student/SyllabusTracker.jsx', import.meta.url), 'utf8');
+  assert.equal(/loading\s*\?\s*\(\s*<LoadingSkeleton/.test(trackerSrc), true);
+  assert.equal(/error\s*\?\s*null/.test(trackerSrc), true);
 
   const result = computeSyllabusProgress({
     exams: [{ id: 'ex-ncert', title: 'NCERT', slug: 'ncert', status: 'published', display_order: 1 }],
     folders: [
       { id: 'f-6', exam_id: 'ex-ncert', title: 'Class 6', status: 'published', display_order: 1 },
-      { id: 'f-geo', exam_id: 'ex-ncert', parent_folder_id: 'f-6', title: 'Geography', status: 'published', display_order: 1 }
+      { id: 'f-geo', exam_id: 'ex-ncert', parent_folder_id: 'f-6', title: 'Geography', status: 'published', display_order: 1 },
+      { id: 'f-his', exam_id: 'ex-ncert', parent_folder_id: 'f-6', title: 'History', status: 'published', display_order: 2 }
     ],
     chapters: [
-      { id: 'ch-geo-1', folder_id: 'f-geo', title: 'Geographical Diversity of India', status: 'published', display_order: 1 }
+      { id: 'ch-geo-1', folder_id: 'f-geo', title: 'Geographical Diversity of India', status: 'published', display_order: 1 },
+      { id: 'ch-his-1', folder_id: 'f-his', title: 'Early Humans', status: 'published', display_order: 1 },
+      { id: 'ch-his-2', folder_id: 'f-his', title: 'Coming Soon Chapter', status: 'published', display_order: 2 }
     ],
     tests: [
-      { id: 't-set-1', chapter_id: 'ch-geo-1', title: 'Set 1', status: 'published', question_count: 20 }
+      { id: 't-set-1', chapter_id: 'ch-geo-1', title: 'Set 1', status: 'published', question_count: 20 },
+      { id: 't-his-1', chapter_id: 'ch-his-1', title: 'Set 1', status: 'published', question_count: 20 }
     ],
-    questionCounts: { 't-set-1': 20 },
+    questionCounts: { 't-set-1': 20, 't-his-1': 20 },
     allAttempts: [
       { id: 'att-1', test_id: 't-set-1', status: 'completed', score: 20, max_score: 20, percentage: 100, completed_at: '2026-11-27T18:00:00Z' }
     ],
@@ -163,11 +186,17 @@ test('useSyllabusProgress does not select non-existent tests.price column and 10
   });
 
   const ncert = result.exams[0];
-  assert.equal(ncert.totalChapters, 1);
-  assert.equal(ncert.comingSoonCount, 0);
+  const allRows = ncert.subjects.flatMap((s) => s.chapters);
+  assert.equal(ncert.totalChapters, allRows.filter((c) => !c.isComingSoon).length);
+  assert.equal(ncert.comingSoonCount, allRows.filter((c) => c.isComingSoon).length);
+  assert.equal(ncert.doneCount, allRows.filter((c) => !c.isComingSoon && c.status === SYLLABUS_STATUS.DONE).length);
+  assert.equal(ncert.inProgressCount, allRows.filter((c) => !c.isComingSoon && c.status === SYLLABUS_STATUS.IN_PROGRESS).length);
+  assert.equal(ncert.weakCount, allRows.filter((c) => !c.isComingSoon && c.status === SYLLABUS_STATUS.WEAK).length);
+  assert.equal(ncert.notStartedCount, allRows.filter((c) => !c.isComingSoon && c.status === SYLLABUS_STATUS.NOT_STARTED).length);
   assert.equal(ncert.doneCount, 1);
-  assert.equal(ncert.progressPercent, 100);
-  const ch1 = ncert.subjects[0].chapters[0];
+  assert.equal(ncert.totalChapters, 2);
+  assert.equal(ncert.progressPercent, 50);
+  const ch1 = allRows.find((c) => c.chapterId === 'ch-geo-1');
   assert.equal(ch1.status, SYLLABUS_STATUS.DONE);
   assert.equal(ch1.bestScore, 100);
   assert.equal(ch1.isComingSoon, false);

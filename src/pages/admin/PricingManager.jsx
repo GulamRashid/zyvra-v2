@@ -120,7 +120,7 @@ export default function PricingManager() {
       setLoadingTests(true);
       const { data, error } = await supabase
         .from('tests')
-        .select('id, title, chapter_id, folder_id, is_free, price, status')
+        .select('id, title, chapter_id, folder_id, is_free, status')
         .order('created_at', { ascending: true });
       if (!error && data) {
         setTests(data);

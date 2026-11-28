@@ -70,7 +70,7 @@ export default function SyllabusTracker() {
   const navigate = useNavigate();
   const { language } = useThemeLanguage();
   const hi = language === 'hi';
-  const { exams, loading, error } = useSyllabusProgress();
+  const { exams, loading, error, refresh } = useSyllabusProgress();
 
   const [selectedExamSlug, setSelectedExamSlug] = useState(examSlug || '');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -198,14 +198,21 @@ export default function SyllabusTracker() {
       )}
 
       {error && (
-        <div className="p-4 rounded-2xl border border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-200 text-sm font-medium">
-          {error}
+        <div className="p-4 rounded-2xl border border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-500/30 dark:bg-rose-950/30 dark:text-rose-200 text-sm font-medium flex items-center justify-between gap-3">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={refresh}
+            className="px-3 py-1.5 min-h-[44px] rounded-xl bg-rose-600 text-white text-xs font-bold shrink-0"
+          >
+            {hi ? 'पुनः प्रयास करें' : 'Retry'}
+          </button>
         </div>
       )}
 
       {loading ? (
         <LoadingSkeleton rows={4} />
-      ) : !activeExam ? (
+      ) : error ? null : !activeExam ? (
         <div className="p-6 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 text-center space-y-2">
           <Layers size={28} className="mx-auto text-indigo-500" />
           <p className="text-sm font-bold dark:text-white text-slate-900">
@@ -260,8 +267,8 @@ export default function SyllabusTracker() {
                   {hasAttempts ? (
                     <p className="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-300">
                       {hi
-                        ? `${activeExam.totalChapters} में से ${activeExam.doneCount} अध्याय पूर्ण`
-                        : `${activeExam.doneCount} of ${activeExam.totalChapters} chapters done`}
+                        ? `टेस्ट वाले ${activeExam.totalChapters} अध्यायों में से ${activeExam.doneCount} पूर्ण`
+                        : `${activeExam.doneCount} of ${activeExam.totalChapters} chapters with tests done`}
                     </p>
                   ) : (
                     <p className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300">
@@ -434,7 +441,7 @@ export default function SyllabusTracker() {
                                 {hasAction ? (
                                   <button
                                     type="button"
-                                    onClick={() => navigate(actionTarget, { state: { returnTo: `/syllabus/${activeExam.slug}` } })}
+                                    onClick={() => navigate(actionTarget, { state: { returnTo: `/syllabus/${activeExam.slug}`, reattempt: (ch.completedCount || 0) > 0 } })}
                                     className="w-full sm:w-auto px-3.5 py-2 min-h-[44px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 transition-colors"
                                   >
                                     {ch.attemptsCount > 0 ? <RotateCcw size={13} /> : <ArrowRight size={13} />}
