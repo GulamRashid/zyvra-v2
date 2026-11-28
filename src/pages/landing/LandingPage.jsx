@@ -13,8 +13,9 @@ import {
   Sun,
   X
 } from 'lucide-react';
-import HeroMotionGraphic from '../../components/landing/HeroMotionGraphic';
+import AuroraHero from '../../components/ui/aurora-hero';
 import InteractiveHoverButton from '../../components/ui/interactive-hover-button';
+import StaggerText from '../../components/ui/stagger-text';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
@@ -398,76 +399,71 @@ export default function LandingPage() {
       </header>
 
       <main>
-        {/* Hero Section: Editorial Minimalist Layout + Interactive Quiz Preview */}
-        <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-14 sm:pt-14 sm:pb-20">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-            <div className="lg:col-span-6 space-y-5 landing-hero-enter">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold tracking-tight bg-indigo-50/80 border-indigo-200 text-indigo-700 dark:bg-indigo-950/60 dark:border-indigo-800/70 dark:text-indigo-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" aria-hidden="true" />
-                <span>
-                  {isHindi
-                    ? 'एनसीईआरटी कक्षा 6–12 · अध्याय-वार अभ्यास'
-                    : 'NCERT Class 6–12 · Chapter-Wise Practice'}
-                </span>
-              </div>
+        {/* Hero Section: Calm Aurora Backdrop + Staggered Headline (No Quiz Card Preview) */}
+        <AuroraHero isDark={isDark}>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-12 pb-16 sm:pt-20 sm:pb-24 text-center space-y-6">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full border text-xs font-semibold tracking-tight bg-indigo-50/90 border-indigo-200 text-indigo-700 dark:bg-indigo-950/70 dark:border-indigo-800/70 dark:text-indigo-300 landing-hero-enter">
+              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" aria-hidden="true" />
+              <span>
+                {isHindi
+                  ? 'एनसीईआरटी कक्षा 6–12 · अध्याय-वार अभ्यास'
+                  : 'NCERT Class 6–12 · Chapter-Wise Practice'}
+              </span>
+            </div>
 
-              <h1 className={`text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.14] ${headingText}`}>
+            <h1 className={`text-3xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight leading-[1.14] ${headingText}`}>
+              <StaggerText key={isHindi ? 'hi' : 'en'}>
                 {isHindi
                   ? 'असली परीक्षा जैसा अभ्यास, सीधे अध्याय के अनुसार।'
                   : 'Practice every NCERT chapter like a real exam.'}
-              </h1>
+              </StaggerText>
+            </h1>
 
-              <p className={`text-base sm:text-lg leading-relaxed max-w-xl ${bodyText}`}>
-                {isHindi
-                  ? 'द्विभाषी हिंदी-अंग्रेजी प्रश्न, प्रैक्टिस मोड में तुरंत समाधान, सिलेबस ट्रैकर और मिस्टेक नोटबुक — बिना किसी अनावश्यक शोर के।'
-                  : 'Bilingual English and Hindi questions, instant Practice Mode checks, a chapter-by-chapter Syllabus Tracker, and a Mistake Notebook in one distraction-free workspace.'}
-              </p>
+            <p className={`text-base sm:text-lg leading-relaxed max-w-2xl mx-auto landing-hero-enter ${bodyText}`}>
+              {isHindi
+                ? 'द्विभाषी हिंदी-अंग्रेजी प्रश्न, प्रैक्टिस मोड में तुरंत समाधान, सिलेबस ट्रैकर और मिस्टेक नोटबुक — बिना किसी अनावश्यक शोर के।'
+                : 'Bilingual English and Hindi questions, instant Practice Mode checks, a chapter-by-chapter Syllabus Tracker, and a Mistake Notebook in one distraction-free workspace.'}
+            </p>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
-                <InteractiveHoverButton to={user ? '/home' : '/auth?mode=signup'}>
-                  {user ? (isHindi ? 'डैशबोर्ड खोलें' : 'Go to Dashboard') : primaryCtaLabel}
-                </InteractiveHoverButton>
-                <Link
-                  to="/explore/ncert"
-                  className={`min-h-[48px] px-5 rounded-xl border text-sm font-semibold inline-flex items-center justify-center transition-colors ${
-                    isDark
-                      ? 'border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
-                      : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50'
-                  }`}
-                >
-                  {secondaryCtaLabel}
-                </Link>
-              </div>
-
-              {/* Honest Verifiable Facts Strip */}
-              <div className={`pt-4 border-t grid grid-cols-3 gap-3 sm:gap-6 ${isDark ? 'border-slate-800/80' : 'border-slate-200'}`}>
-                <div>
-                  <div className={`text-lg sm:text-xl font-bold ${headingText}`}>4,000+</div>
-                  <div className={`text-xs ${mutedText}`}>
-                    {isHindi ? 'द्विभाषी प्रश्न' : 'Bilingual Questions'}
-                  </div>
-                </div>
-                <div>
-                  <div className={`text-lg sm:text-xl font-bold ${headingText}`}>{catalog.chaptersCount}</div>
-                  <div className={`text-xs ${mutedText}`}>
-                    {isHindi ? 'एनसीईआरटी अध्याय' : 'Published Chapters'}
-                  </div>
-                </div>
-                <div>
-                  <div className={`text-lg sm:text-xl font-bold ${headingText}`}>{catalog.testsCount}</div>
-                  <div className={`text-xs ${mutedText}`}>
-                    {isHindi ? 'मॉक व अभ्यास सेट' : 'Chapter Tests'}
-                  </div>
-                </div>
-              </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-1 landing-hero-enter">
+              <InteractiveHoverButton to={user ? '/home' : '/auth?mode=signup'}>
+                {user ? (isHindi ? 'डैशबोर्ड खोलें' : 'Go to Dashboard') : primaryCtaLabel}
+              </InteractiveHoverButton>
+              <Link
+                to="/explore/ncert"
+                className={`min-h-[48px] px-5 rounded-xl border text-sm font-semibold inline-flex items-center justify-center transition-colors ${
+                  isDark
+                    ? 'border-slate-700 bg-slate-900/90 text-slate-200 hover:bg-slate-800'
+                    : 'border-slate-300 bg-white/90 text-slate-800 hover:bg-slate-50'
+                }`}
+              >
+                {secondaryCtaLabel}
+              </Link>
             </div>
 
-            {/* Real Interactive Quiz Card Preview */}
-            <div className="lg:col-span-6 landing-hero-enter">
-              <HeroMotionGraphic isDark={isDark} isHindi={isHindi} />
+            {/* Honest Verifiable Facts Strip */}
+            <div className={`pt-6 max-w-xl mx-auto border-t grid grid-cols-3 gap-3 sm:gap-8 landing-hero-enter ${isDark ? 'border-slate-800/80' : 'border-slate-200/90'}`}>
+              <div>
+                <div className={`text-lg sm:text-2xl font-bold ${headingText}`}>4,000+</div>
+                <div className={`text-xs ${mutedText}`}>
+                  {isHindi ? 'द्विभाषी प्रश्न' : 'Bilingual Questions'}
+                </div>
+              </div>
+              <div>
+                <div className={`text-lg sm:text-2xl font-bold ${headingText}`}>{catalog.chaptersCount}</div>
+                <div className={`text-xs ${mutedText}`}>
+                  {isHindi ? 'एनसीईआरटी अध्याय' : 'Published Chapters'}
+                </div>
+              </div>
+              <div>
+                <div className={`text-lg sm:text-2xl font-bold ${headingText}`}>{catalog.testsCount}</div>
+                <div className={`text-xs ${mutedText}`}>
+                  {isHindi ? 'मॉक व अभ्यास सेट' : 'Chapter Tests'}
+                </div>
+              </div>
             </div>
           </div>
-        </section>
+        </AuroraHero>
 
         {/* Live Exam Catalog & Transparent Pricing */}
         <section id="exams" className={`py-14 sm:py-18 border-t ${isDark ? 'border-slate-800/70' : 'border-slate-200/80'}`}>
