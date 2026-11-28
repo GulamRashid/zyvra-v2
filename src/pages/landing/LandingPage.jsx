@@ -14,6 +14,7 @@ import {
   X
 } from 'lucide-react';
 import HeroMotionGraphic from '../../components/landing/HeroMotionGraphic';
+import InteractiveHoverButton from '../../components/ui/interactive-hover-button';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
@@ -423,13 +424,9 @@ export default function LandingPage() {
               </p>
 
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
-                <Link
-                  to={user ? '/home' : '/auth?mode=signup'}
-                  className="min-h-[48px] px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold inline-flex items-center justify-center gap-2 shadow-sm transition-all duration-150 hover:-translate-y-0.5"
-                >
-                  <span>{user ? (isHindi ? 'डैशबोर्ड खोलें' : 'Go to Dashboard') : primaryCtaLabel}</span>
-                  <ArrowRight size={16} />
-                </Link>
+                <InteractiveHoverButton to={user ? '/home' : '/auth?mode=signup'}>
+                  {user ? (isHindi ? 'डैशबोर्ड खोलें' : 'Go to Dashboard') : primaryCtaLabel}
+                </InteractiveHoverButton>
                 <Link
                   to="/explore/ncert"
                   className={`min-h-[48px] px-5 rounded-xl border text-sm font-semibold inline-flex items-center justify-center transition-colors ${
@@ -491,7 +488,10 @@ export default function LandingPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               {/* Live Exam 1: NCERT Foundation */}
-              <div className={`rounded-2xl border p-6 flex flex-col justify-between gap-5 ${surfaceBg}`}>
+              <div
+                className={`rounded-2xl border p-6 flex flex-col justify-between gap-5 landing-stagger-card ${surfaceBg}`}
+                style={{ '--reveal-delay': '0ms' }}
+              >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -542,7 +542,10 @@ export default function LandingPage() {
               </div>
 
               {/* Live Plan 2: All-Access Full Pass */}
-              <div className={`rounded-2xl border p-6 flex flex-col justify-between gap-5 ${surfaceBg} ${isDark ? 'ring-1 ring-indigo-500/30' : 'ring-1 ring-indigo-600/15'}`}>
+              <div
+                className={`rounded-2xl border p-6 flex flex-col justify-between gap-5 landing-stagger-card ${surfaceBg} ${isDark ? 'ring-1 ring-indigo-500/30' : 'ring-1 ring-indigo-600/15'}`}
+                style={{ '--reveal-delay': '60ms' }}
+              >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
                     <div>
@@ -585,7 +588,10 @@ export default function LandingPage() {
               </div>
 
               {/* Upcoming Exam 3: BPSC CCE (Honest Coming Soon - archived in DB) */}
-              <div className={`rounded-2xl border p-6 flex flex-col justify-between gap-4 ${surfaceBg}`}>
+              <div
+                className={`rounded-2xl border p-6 flex flex-col justify-between gap-4 landing-stagger-card ${surfaceBg}`}
+                style={{ '--reveal-delay': '120ms' }}
+              >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className={`text-base font-bold ${headingText}`}>
@@ -617,7 +623,10 @@ export default function LandingPage() {
               </div>
 
               {/* Upcoming Exam 4: SSC CGL / CHSL (Honest Coming Soon - archived in DB) */}
-              <div className={`rounded-2xl border p-6 flex flex-col justify-between gap-4 ${surfaceBg}`}>
+              <div
+                className={`rounded-2xl border p-6 flex flex-col justify-between gap-4 landing-stagger-card ${surfaceBg}`}
+                style={{ '--reveal-delay': '180ms' }}
+              >
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className={`text-base font-bold ${headingText}`}>
@@ -664,10 +673,14 @@ export default function LandingPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              {features.map((item) => {
+              {features.map((item, idx) => {
                 const Icon = item.icon;
                 return (
-                  <div key={item.titleEn} className={`rounded-2xl border p-6 space-y-3 ${surfaceBg}`}>
+                  <div
+                    key={item.titleEn}
+                    className={`rounded-2xl border p-6 space-y-3 landing-stagger-card ${surfaceBg}`}
+                    style={{ '--reveal-delay': `${idx * 70}ms` }}
+                  >
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                       isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'
                     }`}>
@@ -783,13 +796,9 @@ export default function LandingPage() {
                 : `Begin with ${catalog.freeTestsCount} free sample tests from the NCERT series and track your chapter accuracy as you practice.`}
             </p>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-1">
-              <Link
-                to={user ? '/home' : '/auth?mode=signup'}
-                className="min-h-[48px] px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors shadow-sm"
-              >
-                <span>{user ? (isHindi ? 'डैशबोर्ड खोलें' : 'Go to Dashboard') : primaryCtaLabel}</span>
-                <ArrowRight size={16} />
-              </Link>
+              <InteractiveHoverButton to={user ? '/home' : '/auth?mode=signup'}>
+                {user ? (isHindi ? 'डैशबोर्ड खोलें' : 'Go to Dashboard') : primaryCtaLabel}
+              </InteractiveHoverButton>
               <Link
                 to="/explore/ncert"
                 className={`min-h-[48px] px-5 rounded-xl border text-sm font-semibold inline-flex items-center justify-center transition-colors ${
