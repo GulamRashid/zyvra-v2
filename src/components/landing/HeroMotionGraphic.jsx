@@ -1,5 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { CheckCircle2, Clock, Sparkles } from 'lucide-react';
+
+const INITIAL_SECONDS = 14 * 60 + 32;
+
+function formatTimer(totalSeconds) {
+  const mins = Math.floor(totalSeconds / 60);
+  const secs = totalSeconds % 60;
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
 
 const SAMPLE_QUESTION = {
   chapterEn: 'NCERT Class 6 · History · Ch. 4',
@@ -28,7 +36,15 @@ const SAMPLE_QUESTION = {
 };
 
 export default function HeroMotionGraphic({ isDark, isHindi }) {
-  const [selected, setSelected] = useState('C');
+  const [selected, setSelected] = useState(null);
+  const [secondsLeft, setSecondsLeft] = useState(INITIAL_SECONDS);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setSecondsLeft((prev) => (prev > 1 ? prev - 1 : INITIAL_SECONDS));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const cardSurface = isDark
     ? 'bg-slate-900 border-slate-800 text-slate-100 shadow-2xl shadow-black/40'
@@ -36,6 +52,7 @@ export default function HeroMotionGraphic({ isDark, isHindi }) {
   const mutedText = isDark ? 'text-slate-400' : 'text-slate-500';
   const subSurface = isDark ? 'bg-slate-800/60 border-slate-700/80' : 'bg-slate-50 border-slate-200';
 
+  const hasSelected = selected !== null;
   const isCorrect = selected === SAMPLE_QUESTION.correctId;
 
   return (
@@ -49,9 +66,9 @@ export default function HeroMotionGraphic({ isDark, isHindi }) {
           {isHindi ? SAMPLE_QUESTION.chapterHi : SAMPLE_QUESTION.chapterEn}
         </span>
         <div className="flex items-center gap-2 shrink-0">
-          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border ${isDark ? 'border-slate-700 bg-slate-800 text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}>
+          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold tabular-nums border ${isDark ? 'border-slate-700 bg-slate-800 text-slate-200' : 'border-slate-200 bg-white text-slate-700'}`}>
             <Clock size={12} className="text-indigo-500" />
-            14:32
+            {formatTimer(secondsLeft)}
           </span>
           <span className={`px-2 py-1 rounded-lg text-[11px] font-bold ${isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>
             {isHindi ? 'हिं / EN' : 'EN / हिं'}
@@ -131,26 +148,32 @@ export default function HeroMotionGraphic({ isDark, isHindi }) {
           })}
         </div>
 
-        {/* Concise Explanation Box */}
-        <div className={`p-3 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5 ${
-          isCorrect
-            ? (isDark ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200' : 'bg-emerald-50/80 border-emerald-200 text-emerald-900')
-            : (isDark ? 'bg-indigo-950/30 border-indigo-500/30 text-indigo-200' : 'bg-indigo-50/70 border-indigo-200 text-indigo-900')
-        }`}>
-          {isCorrect ? (
-            <CheckCircle2 size={16} className={isDark ? 'text-emerald-400 shrink-0 mt-0.5' : 'text-emerald-600 shrink-0 mt-0.5'} />
-          ) : (
-            <Sparkles size={16} className={isDark ? 'text-indigo-400 shrink-0 mt-0.5' : 'text-indigo-600 shrink-0 mt-0.5'} />
-          )}
-          <div>
-            <span className="font-bold">
-              {isCorrect
-                ? (isHindi ? 'सही उत्तर (C): ' : 'Correct (C): ')
-                : (isHindi ? 'संकेत — सही उत्तर विकल्प C है: ' : 'Try Practice Check — Option C is correct: ')}
-            </span>
-            <span>{isHindi ? SAMPLE_QUESTION.explanationHi : SAMPLE_QUESTION.explanationEn}</span>
+        {/* Explanation Box — revealed only after an option is clicked (Practice Mode behavior) */}
+        {hasSelected ? (
+          <div className={`p-3 rounded-xl border text-xs leading-relaxed flex items-start gap-2.5 ${
+            isCorrect
+              ? (isDark ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200' : 'bg-emerald-50/80 border-emerald-200 text-emerald-900')
+              : (isDark ? 'bg-amber-950/30 border-amber-500/30 text-amber-200' : 'bg-amber-50/80 border-amber-200 text-amber-900')
+          }`}>
+            {isCorrect ? (
+              <CheckCircle2 size={16} className={isDark ? 'text-emerald-400 shrink-0 mt-0.5' : 'text-emerald-600 shrink-0 mt-0.5'} />
+            ) : (
+              <Sparkles size={16} className={isDark ? 'text-amber-400 shrink-0 mt-0.5' : 'text-amber-600 shrink-0 mt-0.5'} />
+            )}
+            <div>
+              <span className="font-bold">
+                {isCorrect
+                  ? (isHindi ? 'सही उत्तर (C): ' : 'Correct (C): ')
+                  : (isHindi ? 'सही उत्तर विकल्प C है: ' : 'Correct answer is Option C: ')}
+              </span>
+              <span>{isHindi ? SAMPLE_QUESTION.explanationHi : SAMPLE_QUESTION.explanationEn}</span>
+            </div>
           </div>
-        </div>
+        ) : (
+          <p className={`text-[11px] m-0 ${mutedText}`}>
+            {isHindi ? 'तुरंत जांच व व्याख्या देखने के लिए किसी विकल्प पर क्लिक करें।' : 'Select an option to check your answer and view explanation.'}
+          </p>
+        )}
       </div>
     </div>
   );

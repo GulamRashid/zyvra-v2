@@ -81,21 +81,25 @@ export default function LandingPage() {
       try {
         const [examsRes, chaptersRes, testsRes, fullPassRes] = await Promise.all([
           supabase.from('exams').select('id, slug, title, price, status').eq('status', 'published'),
-          supabase.from('chapters').select('id', { count: 'exact', head: true }).eq('status', 'published'),
-          supabase.from('tests').select('id, is_free').eq('status', 'published'),
+          supabase.from('chapters').select('id, access_mode').eq('status', 'published'),
+          supabase.from('tests').select('id, chapter_id').eq('status', 'published'),
           supabase.from('platform_settings').select('value').eq('key', 'full_pass_config').maybeSingle()
         ]);
 
         if (!active) return;
 
         const ncertExam = (examsRes.data || []).find((row) => row.slug === 'ncert');
+        const allChapters = chaptersRes.data || [];
+        const freeChapterIds = new Set(
+          allChapters.filter((ch) => ch.access_mode === 'free').map((ch) => ch.id)
+        );
         const allTests = testsRes.data || [];
-        const freeTests = allTests.filter((t) => Boolean(t.is_free)).length;
+        const freeTests = allTests.filter((t) => freeChapterIds.has(t.chapter_id)).length;
         const fp = fullPassRes.data?.value || {};
 
         setCatalog({
           ncertPrice: ncertExam?.price != null ? Number(ncertExam.price) : DEFAULT_CATALOG.ncertPrice,
-          chaptersCount: typeof chaptersRes.count === 'number' && chaptersRes.count > 0 ? chaptersRes.count : DEFAULT_CATALOG.chaptersCount,
+          chaptersCount: allChapters.length > 0 ? allChapters.length : DEFAULT_CATALOG.chaptersCount,
           testsCount: allTests.length > 0 ? allTests.length : DEFAULT_CATALOG.testsCount,
           freeTestsCount: freeTests > 0 ? freeTests : DEFAULT_CATALOG.freeTestsCount,
           fullPassPrice: fp.price != null ? Number(fp.price) : DEFAULT_CATALOG.fullPassPrice,
