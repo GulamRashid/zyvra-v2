@@ -8,6 +8,7 @@ import CheckoutModal from '../../components/common/CheckoutModal';
 import useContentAccess from '../../hooks/useContentAccess';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
+import { formatCount, formatDays } from '../../lib/formatters';
 import { supabase } from '../../lib/supabase';
 
 const examIcons = { BookOpen, GraduationCap, Landmark, Atom, Calculator, Globe2, Brain, ScrollText, FlaskConical, BookMarked };
@@ -116,13 +117,13 @@ export default function ExamDetail() {
             <span>
               {language === 'hi'
                 ? `₹${examPrice.toLocaleString('en-IN')} में ${rootFolders.length} विषय, ${totalExamChapters} अध्याय और सभी टेस्ट्स शामिल हैं।`
-                : `Includes all ${rootFolders.length} subjects, ${totalExamChapters} chapters, and all tests for ₹${examPrice.toLocaleString('en-IN')}.`}
+                : `Includes all ${formatCount(rootFolders.length, 'subject')}, ${formatCount(totalExamChapters, 'chapter')}, and all tests for ₹${examPrice.toLocaleString('en-IN')}.`}
               {fullPassConfig && fullPassConfig.is_active && (
                 <>
                   {' '}
                   {language === 'hi'
                     ? `Full Pass (₹${fullPassConfig.price ?? DEFAULT_FULL_PASS.price}) में सभी परीक्षाएं + सभी प्रो स्टडी टूल्स (${fullPassConfig.validity_days || 365} दिन) अतिरिक्त मिलते हैं।`
-                    : `Full Pass (₹${fullPassConfig.price ?? DEFAULT_FULL_PASS.price}) adds all exams + all Pro study tools for ${fullPassConfig.validity_days || 365} days.`}
+                    : `Full Pass (₹${fullPassConfig.price ?? DEFAULT_FULL_PASS.price}) adds all exams + all Pro study tools for ${formatDays(fullPassConfig.validity_days || 365, 'en')}.`}
                 </>
               )}
             </span>

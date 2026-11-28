@@ -17,7 +17,7 @@ import { useStudentStats } from '../../context/StudentStatsContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
 import { ensureReferralCode, getReferralSettings } from '../../lib/referrals';
-import { formatCoins, formatDays, formatTests } from '../../lib/formatters';
+import { formatCoins, formatDays, formatTests, pluralizeLabel } from '../../lib/formatters';
 
 const POPULAR_EXAMS = [
   'SSC CGL / CHSL',
@@ -845,7 +845,7 @@ export default function StudentProfile() {
                 )}
               </div>
               <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">
-                {isHindi ? 'दिए गए टेस्ट' : 'Tests Given'}
+                {isHindi ? 'दिए गए टेस्ट' : pluralizeLabel(testsAttemptedCount, 'Test Given', 'Tests Given')}
               </div>
             </Link>
 

@@ -331,7 +331,7 @@ const translations = {
   },
   hi: {
     home: 'होम', explore: 'खोजें', tests: 'टेस्ट', practice: 'अभ्यास', performance: 'प्रदर्शन', toolbox: 'टूलबॉक्स', profile: 'प्रोफ़ाइल',
-    exploreExams: 'परीक्षाएँ खोजें', purchases: 'मेरी खरीदारी', analytics: 'प्रदर्शन और विश्लेषण',
+    exploreExams: 'परीक्षाएँ खोजें', purchases: 'मेरी खरीदारी', analytics: 'प्रदर्शन एवं विश्लेषण',
     bookmarks: 'बुकमार्क', wallet: 'कॉइन वॉलेट', planner: 'अध्ययन योजना', notifications: 'सूचनाएँ',
     profileSettings: 'प्रोफ़ाइल और सेटिंग्स',
     welcome: 'आपको देखकर अच्छा लगा', ready: 'अगले अध्ययन सत्र के लिए तैयार हैं?',

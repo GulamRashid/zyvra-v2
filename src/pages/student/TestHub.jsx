@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-import { formatMinutes, formatQuestions } from '../../lib/formatters';
+import { formatCount, formatMinutes, formatQuestions } from '../../lib/formatters';
 
 
 import { useAuth } from '../../context/AuthContext';
@@ -918,7 +918,7 @@ export default function TestHub() {
                       Previous
                     </button>
                     <span className="text-slate-500 dark:text-slate-400">
-                      Page {chapterPage} of {totalChapterPages} ({filteredChapters.length} chapters)
+                      Page {chapterPage} of {totalChapterPages} ({formatCount(filteredChapters.length, 'chapter')})
                     </span>
                     <button
                       type="button"

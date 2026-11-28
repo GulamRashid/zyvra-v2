@@ -14,6 +14,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useStudentStats } from '../../context/StudentStatsContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
+import { formatCount } from '../../lib/formatters';
 import { readMistakesLocal, saveMistakeToNotebook } from '../../lib/studentToolbox';
 import {
   formatScore,
@@ -2127,7 +2128,7 @@ export default function QuizResult() {
                     </div>
                     <span className="text-[11px] font-semibold dark:text-indigo-400 text-indigo-600">
                       {hasEnoughPeers
-                        ? `Top ${Math.max(1, Math.round(100 - Number(percentile || 0)))}% (${totalAttempts} attempts)`
+                        ? `Top ${Math.max(1, Math.round(100 - Number(percentile || 0)))}% (${formatCount(totalAttempts, 'attempt')})`
                         : `${totalAttempts}/3 attempts recorded`}
                     </span>
                   </div>

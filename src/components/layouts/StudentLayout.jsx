@@ -21,7 +21,7 @@ const sections = [
   { to: '/purchases', label: 'My Courses', key: 'purchases', Icon: GraduationCap },
   { to: '/tests', label: 'Practice & Tests', key: 'tests', Icon: ClipboardList },
   { to: '/bookmarks', label: 'Saved Bookmarks', key: 'bookmarks', Icon: Bookmark },
-  { to: '/analytics', label: 'Performance & Analytics', Icon: ChartNoAxesColumn },
+  { to: '/analytics', label: 'Performance & Analytics', key: 'analytics', Icon: ChartNoAxesColumn },
   { to: '/toolbox', label: 'Study Toolbox', key: 'toolbox', Icon: Wrench },
   { to: '/profile', label: 'Profile & Settings', key: 'profile', Icon: Settings }
 ];

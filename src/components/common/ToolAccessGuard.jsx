@@ -1,4 +1,5 @@
 import { LockKeyhole } from 'lucide-react';
+import { formatDays } from '../../lib/formatters';
 
 export default function ToolAccessGuard({ locked, price, validityDays, comboPrice, comboValidityDays, onBuyTool, onBuyCombo, children }) {
   return <div className={`tool-access-guard ${locked ? 'locked' : ''}`}>
@@ -11,10 +12,10 @@ export default function ToolAccessGuard({ locked, price, validityDays, comboPric
       <p>Unlock this tool to continue using it.</p>
       <div className="tool-access-actions">
         <button type="button" className="button button-gold" onClick={onBuyTool} disabled={!price}>
-          {price ? `Unlock Tool · ₹${Number(price).toLocaleString('en-IN')} / ${validityDays || 30} days` : 'Price unavailable'}
+          {price ? `Unlock Tool · ₹${Number(price).toLocaleString('en-IN')} / ${formatDays(validityDays || 30, 'en')}` : 'Price unavailable'}
         </button>
         {comboPrice > 0 && <button type="button" className="button button-outline" onClick={onBuyCombo}>
-          Get All Tools Combo · ₹{Number(comboPrice).toLocaleString('en-IN')} / {comboValidityDays || 30} days
+          Get All Tools Combo · ₹{Number(comboPrice).toLocaleString('en-IN')} / {formatDays(comboValidityDays || 30, 'en')}
         </button>}
       </div>
     </div>}

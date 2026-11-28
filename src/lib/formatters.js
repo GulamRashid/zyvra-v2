@@ -2,9 +2,14 @@
  * Consistent spacing & pluralization helpers for UI counts and labels.
  */
 
+export function pluralizeLabel(count, singular, plural = `${singular}s`) {
+  const num = Number(count) || 0;
+  return num === 1 ? singular : plural;
+}
+
 export function formatCount(count, singular, plural = `${singular}s`) {
   const num = Number(count) || 0;
-  const label = num === 1 ? singular : plural;
+  const label = pluralizeLabel(num, singular, plural);
   return `${num.toLocaleString('en-IN')} ${label}`;
 }
 

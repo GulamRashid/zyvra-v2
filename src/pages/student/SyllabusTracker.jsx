@@ -478,9 +478,13 @@ export default function SyllabusTracker() {
                                 {!ch.isComingSoon && (
                                   <div className="flex items-center gap-3 flex-wrap text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                                     <span>
-                                      {hi ? 'सर्वश्रेष्ठ:' : 'Best:'}{' '}
+                                      {hi ? 'सर्वश्रेष्ठ (सभी टेस्ट):' : 'Best (all tests):'}{' '}
                                       <strong className="dark:text-slate-200 text-slate-800">
-                                        {ch.bestScore !== null ? `${ch.bestScore}%` : '—'}
+                                        {ch.completedCount > 0 && ch.bestScore !== null
+                                          ? `${ch.bestScore}%`
+                                          : ch.attemptsCount > 0
+                                            ? (hi ? '— (जारी)' : '— (in progress)')
+                                            : '—'}
                                       </strong>
                                     </span>
                                     <span>
