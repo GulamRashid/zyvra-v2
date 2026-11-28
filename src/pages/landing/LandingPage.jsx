@@ -20,6 +20,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 
+const NCERT_COURSE_NAME = 'NCERT Foundation Course';
+
 const DEFAULT_CATALOG = {
   ncertPrice: 194,
   chaptersCount: 244,
@@ -169,8 +171,8 @@ export default function LandingPage() {
     {
       qEn: 'Which exams are live right now and what is coming next?',
       qHi: 'अभी कौन-सी परीक्षाएँ लाइव हैं और आगे क्या आने वाला है?',
-      aEn: `NCERT Foundation (Classes 6–12, ${catalog.chaptersCount} chapters and ${catalog.testsCount} tests) is live today at ₹${catalog.ncertPrice}. All-Access Full Pass (₹${catalog.fullPassPrice} for ${catalog.fullPassDays} days) unlocks all live modules and ${catalog.toolsCount} study tools. BPSC CCE and SSC CGL/CHSL series are under preparation and clearly marked Coming Soon.`,
-      aHi: `एनसीईआरटी फाउंडेशन (कक्षा 6–12, ${catalog.chaptersCount} अध्याय और ${catalog.testsCount} टेस्ट) अभी ₹${catalog.ncertPrice} में लाइव है। ऑल-एक्सेस फुल पास (₹${catalog.fullPassPrice}, ${catalog.fullPassDays} दिन) में सभी लाइव मॉड्यूल व ${catalog.toolsCount} स्टडी टूल्स शामिल हैं। BPSC और SSC सीरीज़ निर्माणाधीन हैं।`
+      aEn: `${NCERT_COURSE_NAME} (Classes 6–12, ${catalog.chaptersCount} chapters and ${catalog.testsCount} tests) is live today at ₹${catalog.ncertPrice}. All-Access Full Pass (₹${catalog.fullPassPrice} for ${catalog.fullPassDays} days) unlocks all live modules and ${catalog.toolsCount} study tools. BPSC CCE and SSC CGL/CHSL series are under preparation and clearly marked Coming Soon.`,
+      aHi: `${NCERT_COURSE_NAME} (कक्षा 6–12, ${catalog.chaptersCount} अध्याय और ${catalog.testsCount} टेस्ट) अभी ₹${catalog.ncertPrice} में लाइव है। ऑल-एक्सेस फुल पास (₹${catalog.fullPassPrice}, ${catalog.fullPassDays} दिन) में सभी लाइव मॉड्यूल व ${catalog.toolsCount} स्टडी टूल्स शामिल हैं। BPSC और SSC सीरीज़ निर्माणाधीन हैं।`
     },
     {
       qEn: 'Can I switch between English and Hindi during a test?',
@@ -406,16 +408,16 @@ export default function LandingPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" aria-hidden="true" />
               <span>
                 {isHindi
-                  ? 'एनसीईआरटी कक्षा 6–12 · अध्याय-वार अभ्यास'
-                  : 'NCERT Class 6–12 · Chapter-Wise Practice'}
+                  ? `${NCERT_COURSE_NAME} · कक्षा 6–12 · अध्यायवार अभ्यास`
+                  : `${NCERT_COURSE_NAME} · Class 6–12 · Chapter-Wise Practice`}
               </span>
             </div>
 
-            <h1 className={`text-3xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight leading-[1.14] ${headingText}`}>
+            <h1 className={`text-3xl sm:text-5xl lg:text-[54px] font-extrabold tracking-tight leading-[1.16] [text-wrap:balance] ${headingText}`}>
               <StaggerText key={isHindi ? 'hi' : 'en'}>
                 {isHindi
-                  ? 'असली परीक्षा जैसा अभ्यास, सीधे अध्याय के अनुसार।'
-                  : 'Practice every NCERT chapter like a real exam.'}
+                  ? 'Har topper kabhi wahin tha, jahan tum aaj ho.'
+                  : 'Every topper was once exactly where you are.'}
               </StaggerText>
             </h1>
 
@@ -495,7 +497,7 @@ export default function LandingPage() {
                         {isHindi ? 'लाइव · कक्षा 6–12' : 'Live · Class 6–12'}
                       </span>
                       <h3 className={`mt-2 text-lg font-bold ${headingText}`}>
-                        {isHindi ? 'NCERT संपूर्ण टेस्ट सीरीज़' : 'NCERT Foundation Series'}
+                        {NCERT_COURSE_NAME}
                       </h3>
                     </div>
                     <div className="text-right shrink-0">
