@@ -1967,10 +1967,13 @@ export default function LiveQuiz() {
     if (testPhase !== 'active') return;
     const strip = questionStripRef.current;
     if (!strip) return;
-    const activeBtn = strip.querySelector(`[data-strip-index="${currentIndex}"]`);
-    if (activeBtn && typeof activeBtn.scrollIntoView === 'function') {
-      activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
+    const rafId = requestAnimationFrame(() => {
+      const activeBtn = strip.querySelector(`[data-strip-index="${currentIndex}"]`);
+      if (!activeBtn) return;
+      const targetLeft = activeBtn.offsetLeft - (strip.clientWidth - activeBtn.clientWidth) / 2;
+      strip.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+    });
+    return () => cancelAnimationFrame(rafId);
   }, [currentIndex, questions.length, testPhase]);
 
   const confirm = () => {
@@ -2997,7 +3000,7 @@ export default function LiveQuiz() {
 
             <div
               ref={questionStripRef}
-              className="flex items-center gap-2 overflow-x-auto py-1 px-2.5 flex-1 no-scrollbar snap-x snap-mandatory"
+              className="flex items-center gap-2 overflow-x-auto py-1.5 px-4 flex-1 no-scrollbar"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {questions.map((item, idx) => {
@@ -3008,19 +3011,19 @@ export default function LiveQuiz() {
                 const isVisited = visitedQuestions.has(qId) || hasAnswer || isMarked || currentIndex === idx;
                 const isCurrent = currentIndex === idx;
 
-                let badgeClasses = 'dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-200 dark:text-slate-400 text-slate-600';
+                let badgeClasses = 'dark:bg-slate-900/70 bg-slate-50 border dark:border-slate-800 border-slate-200 dark:text-slate-400 text-slate-500';
                 if (hasAnswer && isMarked) {
-                  badgeClasses = 'bg-purple-600 border border-purple-400 text-white font-bold relative';
+                  badgeClasses = 'bg-amber-500 border border-amber-400 text-slate-950 font-bold relative';
                 } else if (isMarked) {
-                  badgeClasses = 'bg-purple-600 border border-purple-400 text-white font-bold';
+                  badgeClasses = 'bg-amber-500 border border-amber-400 text-slate-950 font-bold';
                 } else if (hasAnswer) {
                   badgeClasses = 'bg-[#22c55e] border border-[#22c55e] text-white font-black shadow-sm';
                 } else if (isVisited) {
-                  badgeClasses = 'bg-rose-500/90 border border-rose-500 text-white font-bold';
+                  badgeClasses = 'dark:bg-slate-800 bg-slate-100 border dark:border-slate-600 border-slate-300 dark:text-slate-200 text-slate-700 font-bold';
                 }
 
                 const currentRing = isCurrent
-                  ? 'ring-2 ring-indigo-400 ring-offset-2 scale-110 font-black shadow-md z-10 dark:ring-offset-slate-900 ring-offset-white'
+                  ? 'ring-2 ring-indigo-500 dark:ring-indigo-400 ring-offset-2 font-black shadow-md z-10 dark:ring-offset-slate-900 ring-offset-white'
                   : '';
 
                 return (
@@ -3028,8 +3031,8 @@ export default function LiveQuiz() {
                     key={qId || idx}
                     type="button"
                     data-strip-index={idx}
-                    onClick={() => goTo(idx)}
-                    className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full text-xs flex items-center justify-center shrink-0 snap-center transition-all hover:scale-105 active:scale-95 ${badgeClasses} ${currentRing}`}
+                    onClick={() => animateToQuestion(idx)}
+                    className={`w-11 h-11 min-w-[44px] min-h-[44px] rounded-full text-xs flex items-center justify-center shrink-0 transition-colors active:scale-95 ${badgeClasses} ${currentRing}`}
                     aria-label={`Question ${idx + 1}`}
                   >
                     {idx + 1}

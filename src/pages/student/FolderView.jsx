@@ -59,6 +59,23 @@ export default function FolderView() {
     return sortContentItems(list);
   }, [chapters, folder?.id]);
 
+  const totalNestedChapters = useMemo(() => {
+    if (!folder?.id) return 0;
+    const descendantIds = new Set([folder.id]);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      folders.filter(isPublished).forEach((f) => {
+        const pid = f.parent_folder_id || f.parent_id;
+        if (pid && descendantIds.has(pid) && !descendantIds.has(f.id)) {
+          descendantIds.add(f.id);
+          changed = true;
+        }
+      });
+    }
+    return chapters.filter((c) => descendantIds.has(c.folder_id) && isPublished(c)).length;
+  }, [folder?.id, folders, chapters]);
+
   // Fetch any tests assigned directly to this folder (e.g. Full Syllabus Mock Tests)
   useEffect(() => {
     if (!folder?.id || !supabase) return;
@@ -117,8 +134,8 @@ export default function FolderView() {
 
   return (
     <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-900 dark:text-slate-100">
-      {/* Breadcrumbs */}
-        <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-indigo-400/80 overflow-x-auto no-scrollbar py-1">
+      {/* Sticky Breadcrumbs */}
+        <nav className="sticky top-0 z-20 -mx-1 px-1 py-2 dark:bg-[#0B1120]/95 bg-[#F8FAFC]/95 backdrop-blur-md flex items-center gap-1.5 text-xs font-bold text-slate-500 dark:text-indigo-400/80 overflow-x-auto no-scrollbar">
           <Link
             to={parentUrl}
             className="w-7 h-7 rounded-lg dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center text-slate-700 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white shrink-0 mr-1 transition-colors"
@@ -202,19 +219,16 @@ export default function FolderView() {
 
               <div className="flex items-center gap-2 flex-wrap pt-0.5 text-xs">
                 <AccessBadge label={pricing.amount ? (accessLoading ? (language === 'hi' ? 'जाँच जारी है…' : 'Checking…') : isCurrentFolderUnlocked ? (language === 'hi' ? 'अनलॉक किया हुआ' : 'Purchased') : pricing.label) : (language === 'hi' ? 'मुफ़्त' : 'Free')} />
-                {pricing.amount > 0 && (
-                  <span className="text-amber-500 dark:text-amber-400 font-bold">
-                    {pricing.label}
-                  </span>
-                )}
                 {childFolders.length > 0 && (
                   <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-medium">
-                    <Folder size={12} /> {childFolders.length} {language === 'hi' ? 'सब-फ़ोल्डर' : 'subfolders'}
+                    <Folder size={12} /> {childFolders.length} {language === 'hi' ? 'विषय' : (childFolders.length === 1 ? 'subject' : 'subjects')}
                   </span>
                 )}
-                <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-medium">
-                  <BookOpen size={12} /> {folderChapters.length} {language === 'hi' ? 'अध्याय' : 'chapters'}
-                </span>
+                {(totalNestedChapters > 0 || childFolders.length === 0) && (
+                  <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-medium">
+                    <BookOpen size={12} /> {totalNestedChapters} {language === 'hi' ? 'अध्याय' : (totalNestedChapters === 1 ? 'chapter' : 'chapters')}
+                  </span>
+                )}
                 {folderTests.length > 0 && (
                   <span className="flex items-center gap-1 text-amber-500 font-medium">
                     <Clock3 size={12} /> {folderTests.length} {language === 'hi' ? 'मॉक टेस्ट' : 'mock tests'}
@@ -238,10 +252,16 @@ export default function FolderView() {
                   </div>
                   <div>
                     <strong className="text-xs sm:text-sm font-black dark:text-white text-slate-900 block">
-                      {language === 'hi' ? `${folder.title} अनलॉक करें` : `Unlock Access for ${folder.title}`}
+                      {language === 'hi' ? `${folder.title} अनलॉक करें` : `Unlock ${folder.title}`} · ₹{pricing.amount.toLocaleString('en-IN')}
                     </strong>
                     <span className="text-[11px] sm:text-xs text-amber-900/80 dark:text-amber-200/80 font-medium">
-                      {language === 'hi' ? `इस अनुभाग के सभी सब-फ़ोल्डर्स और अध्यायों का पूरा एक्सेस पाएं।` : `Get this section to automatically unlock all nested sub-folders and chapters inside it.`}
+                      {childFolders.length > 0
+                        ? (language === 'hi'
+                          ? `एक ₹${pricing.amount.toLocaleString('en-IN')} में सभी ${childFolders.length} विषय (${childFolders.map((c) => c.title).join(' + ')}) और ${totalNestedChapters} अध्याय अनलॉक होते हैं।`
+                          : `One ₹${pricing.amount.toLocaleString('en-IN')} unlock covers all ${childFolders.length} subjects (${childFolders.map((c) => c.title).join(' + ')}) and ${totalNestedChapters} chapters.`)
+                        : (language === 'hi'
+                          ? `इस अनुभाग के सभी ${totalNestedChapters} अध्यायों और टेस्ट्स का पूरा एक्सेस पाएं।`
+                          : `Unlock all ${totalNestedChapters} chapters and tests in this section.`)}
                     </span>
                   </div>
                 </div>
@@ -278,7 +298,9 @@ export default function FolderView() {
                 </h2>
               </div>
               <span className="text-xs sm:text-sm font-bold dark:text-slate-300 text-slate-700">
-                {childFolders.length + folderChapters.length + folderTests.length} {language === 'hi' ? 'अध्ययन सामग्री' : 'learning items'}
+                {childFolders.length > 0
+                  ? (language === 'hi' ? `${childFolders.length} विषय · ${totalNestedChapters} अध्याय` : `${childFolders.length} subjects · ${totalNestedChapters} chapters`)
+                  : `${folderChapters.length + folderTests.length} ${language === 'hi' ? 'अध्ययन सामग्री' : 'learning items'}`}
               </span>
             </div>
 
@@ -303,6 +325,7 @@ export default function FolderView() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {childFolders.map((child) => {
                     const childPricing = getFolderPricing(child, folders);
+                    const isInheritedPricing = Boolean(childPricing.source && childPricing.source.id !== child.id);
                     const count = chapters.filter((chapter) => chapter.folder_id === child.id && isPublished(chapter)).length;
                     const childStatus = ['coming-soon', 'coming_soon'].includes(String(child.status || '').toLowerCase());
                     const isChildUnlocked = isCurrentFolderUnlocked || childPricing.amount <= 0 || isFolderUnlocked(child.id, folders, purchasedFolderIds) || accessByKey[`folder:${child.id}`] === true;
@@ -318,22 +341,36 @@ export default function FolderView() {
                               <ContentIcon icon={child.icon_url || child.icon} title={child.title} className="w-4 h-4 text-indigo-500 dark:text-indigo-400" fallback={Folder} />
                             </div>
                             <div className="min-w-0">
-                              <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate group-hover:text-indigo-400 transition-colors">
+                              <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block group-hover:text-indigo-400 transition-colors">
                                 {child.title}
                               </strong>
-                              <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate mt-0.5">
-                                {child.description || `${count} ${count === 1 ? 'अध्याय' : 'अध्याय'}`}
+                              <span className="text-[11px] dark:text-slate-400 text-slate-500 block leading-snug break-words mt-0.5">
+                                {child.description || `${count} ${language === 'hi' ? 'अध्याय' : 'chapters'}`}
                               </span>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0">
-                            <AccessBadge label={childStatus ? 'Coming Soon' : childPricing.amount ? (accessLoading ? 'Checking…' : isChildUnlocked ? 'Purchased' : 'Paid') : 'Free'} />
+                            <AccessBadge
+                              label={
+                                childStatus
+                                  ? 'Coming Soon'
+                                  : childPricing.amount
+                                  ? (accessLoading
+                                    ? 'Checking…'
+                                    : isChildUnlocked
+                                    ? (language === 'hi' ? 'अनलॉक' : 'Purchased')
+                                    : isInheritedPricing
+                                    ? (language === 'hi' ? `${folder.title} में शामिल` : `Included in ${folder.title}`)
+                                    : 'Paid')
+                                  : (language === 'hi' ? 'मुफ़्त' : 'Free')
+                              }
+                            />
                             <ChevronRight size={14} className="text-slate-400 group-hover:translate-x-0.5 transition-transform" />
                           </div>
                         </Link>
 
-                        {childPricing.amount > 0 && !accessLoading && !accessError && !isChildUnlocked && (
+                        {childPricing.amount > 0 && !isInheritedPricing && !accessLoading && !accessError && !isChildUnlocked && (
                           <div className="pt-2 border-t dark:border-slate-800/80 border-slate-100 flex justify-end">
                             <button
                               type="button"

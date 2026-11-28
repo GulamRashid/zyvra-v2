@@ -244,30 +244,30 @@ export default function StudentLayout() {
             </div>
           </div>
 
-          <div className="topbar-actions flex items-center gap-2">
+          <div className="topbar-actions flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Language Switcher (EN / HI) - Always visible on mobile & desktop */}
             <LanguageToggle />
 
             {/* Dark / Light Mode Toggle - Always visible on mobile & desktop */}
             <ThemeToggle />
 
-            {/* Study Streak Badge - Clean, Calm Badge */}
+            {/* Study Streak Badge - Uniform 44px height */}
             <button
               type="button"
               onClick={() => setStreakModalOpen(true)}
-              className={`flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 min-h-[44px] rounded-full text-xs font-black transition-all cursor-pointer border ${
+              className={`h-11 min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-2.5 rounded-xl text-xs font-black transition-all cursor-pointer border shrink-0 ${
                 streak > 0
                   ? 'bg-orange-500/10 border-orange-500/30 text-orange-600 dark:text-orange-400 hover:bg-orange-500/20'
-                  : 'bg-slate-100 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-orange-500/40'
+                  : 'bg-slate-100 dark:bg-slate-800/80 border-slate-300 dark:border-slate-700/60 text-slate-600 dark:text-slate-300 hover:border-orange-500/40'
               }`}
               title={language === 'hi' ? `${streak} दिन की अध्ययन स्ट्रीक (विस्तार देखें)` : `${streak} day study streak (click for details)`}
               aria-label="View daily study streak"
             >
-              <Flame size={14} className={streak > 0 ? 'fill-orange-500 text-orange-500' : 'text-slate-400'} />
+              <Flame size={16} className={streak > 0 ? 'fill-orange-500 text-orange-500 shrink-0' : 'text-slate-400 shrink-0'} />
               {statsLoading ? (
                 <span className="inline-block h-3.5 w-4 rounded bg-slate-400/30 animate-pulse" aria-hidden="true" />
               ) : (
-                <span className="font-extrabold">{profileError ? '—' : streak}</span>
+                <span className="font-extrabold tabular-nums">{profileError ? '—' : streak}</span>
               )}
               {!statsLoading && streakData?.streakAtRisk && (
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" title="Study today to keep streak" />
@@ -278,13 +278,13 @@ export default function StudentLayout() {
             <CoinBadge balance={coinBalance} loading={!walletLoaded} />
 
             <NavLink
-              className="icon-button notification-button relative min-w-[44px] min-h-[44px] flex items-center justify-center"
+              className="notification-button relative w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl dark:bg-slate-800/80 bg-slate-100 hover:dark:bg-slate-700 hover:bg-slate-200 border dark:border-slate-700/60 border-slate-300 flex items-center justify-center text-slate-700 dark:text-slate-200 transition-all shrink-0"
               aria-label={t('notifications')}
               to="/notifications"
             >
-              <Bell size={18} />
+              <Bell size={16} />
               {unreadNotificationsCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-400" />
+                <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-400" />
               )}
             </NavLink>
 

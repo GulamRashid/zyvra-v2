@@ -61,6 +61,7 @@ export default function ExamDetail() {
     return sortContentItems(list);
   }, [folders, exam?.id]);
   const examFolderIds = new Set(folders.filter((folder) => folder.exam_id === exam?.id && isPublished(folder)).map((folder) => folder.id));
+  const totalExamChapters = chapters.filter((chapter) => examFolderIds.has(chapter.folder_id) && isPublished(chapter)).length;
   const Icon = examIcons[exam?.icon] || GraduationCap;
   const examPrice = Number(exam?.price || 0);
   const examIsPaid = examPrice > 0 || exam?.access_mode === 'paid-own' || exam?.access_mode === 'paid_own' || exam?.pricing_mode === 'paid-own' || exam?.pricing_mode === 'paid_own';
@@ -105,14 +106,26 @@ export default function ExamDetail() {
     {loading && <LoadingSkeleton rows={4} />}
     {!loading && !error && !exam && <div className="empty-content"><GraduationCap size={25} /><strong>{language === 'hi' ? 'यह परीक्षा नहीं मिली।' : 'We couldn’t find this exam.'}</strong><span>{language === 'hi' ? 'यह अभी अप्रकाशित हो सकती है।' : 'It may be unpublished or no longer available.'}</span><Link className="button button-outline" to="/explore"><ArrowLeft size={15} /> {language === 'hi' ? 'सभी परीक्षाएं देखें' : 'Browse exams'}</Link></div>}
     {!loading && !error && exam && <>
-      <section className="exam-hero"><div className="exam-hero-icon"><Icon size={31} /></div><div className="eyebrow">{language === 'hi' ? 'सुव्यवस्थित पाठ्यक्रम' : 'YOUR SYLLABUS, CLEARLY ORGANISED'}</div><h1>{exam.title}</h1><p>{exam.description || (language === 'hi' ? 'पाठ्यक्रम देखें और नियमित अध्ययन की शुरुआत करें।' : 'Explore the syllabus and start building a steady study rhythm.')}</p><div className="exam-hero-stats"><span><Folder size={15} /> {rootFolders.length} {language === 'hi' ? 'मुख्य विषय' : 'main sections'}</span><span><BookOpen size={15} /> {chapters.filter((chapter) => examFolderIds.has(chapter.folder_id) && isPublished(chapter)).length} {language === 'hi' ? 'अध्याय' : 'learning chapters'}</span><Link to={`/syllabus/${encodeURIComponent(exam.slug || exam.id)}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold transition-colors">{language === 'hi' ? 'सिलेबस ट्रैकर देखें' : 'Syllabus Tracker'} <ArrowRight size={13} /></Link></div>{examIsPaid && accessLoading && <span className="text-xs text-slate-500 dark:text-slate-300">{language === 'hi' ? 'एक्सेस जाँचा जा रहा है…' : 'Checking your access…'}</span>}{examIsPaid && !accessLoading && !accessError && !hasExamAccess && <button className="button button-gold exam-buy-button" disabled={!user} onClick={() => setCheckoutItem({ itemType: 'exam', itemId: exam.id, itemTitle: exam.title, tier: 'Complete Exam Bundle', basePrice: examPrice })}><LockKeyhole size={15} /> {language === 'hi' ? `पूरा ${exam.title} अनलॉक करें` : `Unlock Complete ${exam.title}`} · ₹{examPrice.toLocaleString('en-IN')} <ArrowRight size={14} /></button>}</section>
+      <section className="exam-hero"><div className="exam-hero-icon"><Icon size={31} /></div><div className="eyebrow">{language === 'hi' ? 'सुव्यवस्थित पाठ्यक्रम' : 'YOUR SYLLABUS, CLEARLY ORGANISED'}</div><h1>{exam.title}</h1><p>{exam.description || (language === 'hi' ? 'पाठ्यक्रम देखें और नियमित अध्ययन की शुरुआत करें।' : 'Explore the syllabus and start building a steady study rhythm.')}</p><div className="exam-hero-stats"><span><Folder size={15} /> {rootFolders.length} {language === 'hi' ? 'मुख्य विषय' : 'main sections'}</span><span><BookOpen size={15} /> {totalExamChapters} {language === 'hi' ? 'अध्याय' : 'learning chapters'}</span><Link to={`/syllabus/${encodeURIComponent(exam.slug || exam.id)}`} className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-extrabold transition-colors">{language === 'hi' ? 'सिलेबस ट्रैकर देखें' : 'Syllabus Tracker'} <ArrowRight size={13} /></Link></div>{examIsPaid && accessLoading && <span className="text-xs text-slate-500 dark:text-slate-300">{language === 'hi' ? 'एक्सेस जाँचा जा रहा है…' : 'Checking your access…'}</span>}</section>
       {accessError && <div className="feedback error-feedback">{accessError}</div>}
       {examIsPaid && !accessLoading && !accessError && !hasExamAccess && (
         <section className="paywall-banner exam-paywall-banner">
           <span className="paywall-icon"><LockKeyhole size={19} /></span>
           <div>
             <strong>{language === 'hi' ? `पूरा ${exam.title} अनलॉक करें` : `Unlock Complete ${exam.title}`} · ₹{examPrice.toLocaleString('en-IN')}</strong>
-            <span>{language === 'hi' ? `इस परीक्षा के सभी ${rootFolders.length} विषयों, सब-फ़ोल्डर्स, अध्यायों और टेस्ट्स का पूरा एक्सेस पाएं।` : `Gain full, unrestricted access to all ${rootFolders.length} sections, including all nested sub-folders, chapters, and tests under this exam.`}</span>
+            <span>
+              {language === 'hi'
+                ? `₹${examPrice.toLocaleString('en-IN')} में ${rootFolders.length} विषय, ${totalExamChapters} अध्याय और सभी टेस्ट्स शामिल हैं।`
+                : `Includes all ${rootFolders.length} subjects, ${totalExamChapters} chapters, and all tests for ₹${examPrice.toLocaleString('en-IN')}.`}
+              {fullPassConfig && fullPassConfig.is_active && (
+                <>
+                  {' '}
+                  {language === 'hi'
+                    ? `Full Pass (₹${fullPassConfig.price || 999}) में सभी परीक्षाएं + सभी प्रो स्टडी टूल्स (${fullPassConfig.validity_days || 365} दिन) अतिरिक्त मिलते हैं।`
+                    : `Full Pass (₹${fullPassConfig.price || 999}) adds all exams + all Pro study tools for ${fullPassConfig.validity_days || 365} days.`}
+                </>
+              )}
+            </span>
           </div>
           <div className="paywall-actions flex flex-wrap items-center gap-2">
             <button
