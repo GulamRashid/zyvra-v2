@@ -66,8 +66,9 @@ test('computeStudentStats: filters only completed attempts and computes unified 
 
 test('Aggregate analytics with 12 completed attempts never renders dash and booster track is deterministic', () => {
   const analyticsSrc = fs.readFileSync(new URL('../src/pages/student/StudentAnalytics.jsx', import.meta.url), 'utf8');
-  assert.equal(/stats\.completedAttempts\.length\s*>\s*0/.test(analyticsSrc), true);
-  assert.equal(/[^.]completedAttempts\s*>\s*0/.test(analyticsSrc), false);
+  assert.equal(/stats\.total\s*>\s*0\s*&&\s*Number\.isFinite\(Number\(stats\.accuracy\)\)/.test(analyticsSrc), true);
+  assert.equal(/stats\.total\s*>\s*0\s*&&\s*Number\.isFinite\(Number\(stats\.averageScore\)\)/.test(analyticsSrc), true);
+  assert.equal(/stats\.completedAttempts/.test(analyticsSrc), false);
 
   const attempts = Array.from({ length: 12 }, (_, idx) => ({
     id: `att-${idx + 1}`,

@@ -226,7 +226,7 @@ export default function StudentAnalytics() {
                 Overall accuracy
               </small>
               <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
-                {(Array.isArray(stats.completedAttempts) ? stats.completedAttempts.length > 0 : Number(stats.completedAttempts || 0) > 0) && Number.isFinite(Number(stats.accuracy))
+                {stats.total > 0 && Number.isFinite(Number(stats.accuracy))
                   ? `${Number(stats.accuracy).toFixed(1)}%`
                   : '—'}
               </strong>
@@ -241,7 +241,7 @@ export default function StudentAnalytics() {
                 Average score
               </small>
               <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
-                {(Array.isArray(stats.completedAttempts) ? stats.completedAttempts.length > 0 : Number(stats.completedAttempts || 0) > 0) && Number.isFinite(Number(stats.averageScore))
+                {stats.total > 0 && Number.isFinite(Number(stats.averageScore))
                   ? `${Number(stats.averageScore).toFixed(1)}%`
                   : '—'}
               </strong>
