@@ -201,3 +201,37 @@ test('No query selects non-existent tests.price column, loading gates Coming Soo
   assert.equal(ch1.bestScore, 100);
   assert.equal(ch1.isComingSoon, false);
 });
+
+test('Negative score clamps bestScore to 0% as Weak, Dashboard renders %, and Next Best Chapter carries ?reattempt=1', () => {
+  const result = computeSyllabusProgress({
+    exams: [{ id: 'ex-ncert', title: 'NCERT', slug: 'ncert', status: 'published', display_order: 1 }],
+    folders: [
+      { id: 'f-7', exam_id: 'ex-ncert', title: 'Class 7', status: 'published', display_order: 1 },
+      { id: 'f-sci', exam_id: 'ex-ncert', parent_folder_id: 'f-7', title: 'Science', status: 'published', display_order: 1 }
+    ],
+    chapters: [
+      { id: 'ch-12', folder_id: 'f-sci', title: 'Earth, Moon, and the Sun', status: 'published', display_order: 1 }
+    ],
+    tests: [
+      { id: 't-ch12', chapter_id: 'ch-12', title: 'Chapter 12 Test', status: 'published', question_count: 30 }
+    ],
+    questionCounts: { 't-ch12': 30 },
+    allAttempts: [
+      { id: 'att-neg', test_id: 't-ch12', status: 'completed', score: -0.66, max_score: 30, percentage: -2.2, completed_at: '2026-11-28T04:00:00Z' }
+    ],
+    mistakes: []
+  });
+
+  const ch12 = result.exams[0].subjects[0].chapters[0];
+  assert.equal(ch12.status, SYLLABUS_STATUS.WEAK);
+  assert.equal(ch12.bestScore, 0);
+  assert.equal(ch12.latestScore, 0);
+  assert.equal(result.nextBestChapter.targetPath, '/quiz/t-ch12?reattempt=1');
+
+  const homeSrc = fs.readFileSync(new URL('../src/pages/student/StudentHome.jsx', import.meta.url), 'utf8');
+  assert.equal(/primarySyllabusExam\.progressPercent\s*\?\?\s*0\}%/.test(homeSrc), true);
+  assert.equal(/chapters with tests done/.test(homeSrc), true);
+
+  const liveQuizSrc = fs.readFileSync(new URL('../src/pages/student/LiveQuiz.jsx', import.meta.url), 'utf8');
+  assert.equal(/get\(['"]reattempt['"]\)\s*===\s*['"]1['"]/.test(liveQuizSrc), true);
+});

@@ -385,7 +385,7 @@ export default function SyllabusTracker() {
                           const isWeak = ch.status === SYLLABUS_STATUS.WEAK;
                           const hasAction = !ch.isComingSoon && (ch.primaryTestId || ch.slug);
                           const actionTarget = ch.primaryTestId
-                            ? `/quiz/${ch.primaryTestId}`
+                            ? `/quiz/${ch.primaryTestId}${(ch.completedCount || 0) > 0 ? '?reattempt=1' : ''}`
                             : `/chapter/${encodeURIComponent(ch.slug)}`;
                           const actionLabel = ch.attemptsCount > 0
                             ? (hi ? 'पुनः अभ्यास' : 'Retake')

@@ -841,7 +841,12 @@ export default function LiveQuiz() {
         )
       );
 
-      if (isAttemptCompleted && !location.state?.reattempt && !isMistakesMode) {
+      const isReattempt = Boolean(
+        location.state?.reattempt
+        || new URLSearchParams(location.search || '').get('reattempt') === '1'
+      );
+
+      if (isAttemptCompleted && !isReattempt && !isMistakesMode) {
         if (active) {
           // If this quiz was recently submitted in this session (e.g. user pressed back on result),
           // navigate cleanly to returnTo instead of trapping the student in a result redirect loop!
@@ -859,7 +864,7 @@ export default function LiveQuiz() {
 
       // Check localStorage snapshot (never reuse a completed attempt or stale reattempt cache)
       let localSnapshot = null;
-      if (location.state?.reattempt) {
+      if (isReattempt) {
         try {
           localStorage.removeItem(`zyvra_test_progress_${user.id}_${testId}`);
           localStorage.removeItem(`zyvra-paused-attempt-${user.id}-${testId}`);
@@ -882,7 +887,7 @@ export default function LiveQuiz() {
         } catch { /* fullscreen ignore */ }
       }
 
-      const validCachedAttemptId = (!location.state?.reattempt && !(isAttemptCompleted && cachedQuiz?.attemptId === latestAttempt?.id))
+      const validCachedAttemptId = (!isReattempt && !(isAttemptCompleted && cachedQuiz?.attemptId === latestAttempt?.id))
         ? cachedQuiz?.attemptId
         : null;
 
@@ -1049,7 +1054,7 @@ export default function LiveQuiz() {
     return () => {
       active = false;
     };
-  }, [testId, user, supabase, location.state?.reattempt, location.state?.autoResume, navigate, returnTo]);
+  }, [testId, user, supabase, location.state?.reattempt, location.state?.autoResume, location.search, navigate, returnTo]);
 
   // Start fresh test attempt after declaration
   const handleStartTest = async () => {

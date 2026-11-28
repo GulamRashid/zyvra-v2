@@ -110,8 +110,8 @@ export function computeChapterStatus({
     slug: chapter.slug || chapter.id,
     folderId: chapter.folder_id,
     status,
-    bestScore: bestScore !== null ? Math.round(bestScore) : null,
-    latestScore: latestScore !== null ? Math.round(latestScore) : null,
+    bestScore: bestScore !== null ? Math.max(0, Math.round(bestScore)) : null,
+    latestScore: latestScore !== null ? Math.max(0, Math.round(latestScore)) : null,
     attemptsCount: chapterAttempts.length,
     completedCount: completedAttempts.length,
     lastAttemptedAt,
@@ -277,7 +277,7 @@ export function computeSyllabusProgress({
       chapter,
       actionLabelEn: isWeak ? 'Revise weak topics' : isInProgress ? 'Continue' : 'Start',
       actionLabelHi: isWeak ? 'कमज़ोर विषय दोहराएं' : isInProgress ? 'जारी रखें' : 'शुरू करें',
-      targetPath: `/quiz/${chapter.primaryTestId}`
+      targetPath: `/quiz/${chapter.primaryTestId}${(chapter.completedCount || 0) > 0 ? '?reattempt=1' : ''}`
     };
   }
 

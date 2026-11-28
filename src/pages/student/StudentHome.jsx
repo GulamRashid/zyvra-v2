@@ -687,18 +687,17 @@ export default function StudentHome() {
                     <span className="text-[10px] font-black uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
                       {language === 'hi' ? 'अगला श्रेष्ठ अध्याय' : 'Next Best Chapter'}
                     </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
-                      nextBestChapter.chapter.status === SYLLABUS_STATUS.WEAK
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${nextBestChapter.chapter.status === SYLLABUS_STATUS.WEAK
                         ? 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30'
                         : nextBestChapter.chapter.status === SYLLABUS_STATUS.IN_PROGRESS
-                        ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
-                        : 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
-                    }`}>
+                          ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                          : 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'
+                      }`}>
                       {nextBestChapter.chapter.status === SYLLABUS_STATUS.WEAK
                         ? (language === 'hi' ? 'कमज़ोर' : 'Weak')
                         : nextBestChapter.chapter.status === SYLLABUS_STATUS.IN_PROGRESS
-                        ? (language === 'hi' ? 'जारी' : 'In Progress')
-                        : (language === 'hi' ? 'शुरू नहीं' : 'Not Started')}
+                          ? (language === 'hi' ? 'जारी' : 'In Progress')
+                          : (language === 'hi' ? 'शुरू नहीं' : 'Not Started')}
                     </span>
                   </div>
                   <p className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 mt-0.5">
