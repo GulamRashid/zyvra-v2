@@ -25,7 +25,7 @@ export default function useSyllabusProgress() {
     try {
       const { data: testRows, error: testErr } = await supabase
         .from('tests')
-        .select('id, title, chapter_id, status, is_free, price, question_count, display_order')
+        .select('*')
         .in('status', ['published', 'live', 'available']);
       if (testErr) throw testErr;
 
@@ -56,6 +56,9 @@ export default function useSyllabusProgress() {
 
   useEffect(() => {
     loadTestsAndCounts();
+    const handleTestSubmitted = () => loadTestsAndCounts();
+    window.addEventListener('zyvra:test-submitted', handleTestSubmitted);
+    return () => window.removeEventListener('zyvra:test-submitted', handleTestSubmitted);
   }, [loadTestsAndCounts]);
 
   const progress = useMemo(() => {

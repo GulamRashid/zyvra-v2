@@ -467,6 +467,11 @@ export default function LiveQuiz() {
   const autoSubmitTriggeredRef = useRef(false);
   const touchStartRef = useRef(null);
   const questionStripRef = useRef(null);
+  const suppressClickUntilRef = useRef(0);
+  const slideTimerRef = useRef(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const [isSwipingCard, setIsSwipingCard] = useState(false);
+  const [slidePhase, setSlidePhase] = useState('idle');
   const [expiredAttemptInfo, setExpiredAttemptInfo] = useState(null);
   const lastViolationAt = useRef(0);
   const violationCountRef = useRef(0);
@@ -1921,6 +1926,38 @@ export default function LiveQuiz() {
     saveProgressSnapshot({ currentIndex: index }, false);
   };
 
+  const animateToQuestion = useCallback((targetIndex, direction) => {
+    const clamped = Math.max(0, Math.min((questions?.length || 1) - 1, targetIndex));
+    if (clamped === currentIndex) {
+      setDragOffset(0);
+      setIsSwipingCard(false);
+      setSlidePhase('idle');
+      return;
+    }
+    if (slideTimerRef.current) {
+      clearTimeout(slideTimerRef.current);
+      slideTimerRef.current = null;
+    }
+    const dir = direction || (clamped > currentIndex ? 'left' : 'right');
+    setDragOffset(0);
+    setIsSwipingCard(false);
+    setSlidePhase(dir === 'left' ? 'out-left' : 'out-right');
+
+    slideTimerRef.current = setTimeout(() => {
+      goTo(clamped);
+      setSlidePhase(dir === 'left' ? 'in-from-right' : 'in-from-left');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setSlidePhase('idle');
+        });
+      });
+    }, 110);
+  }, [currentIndex, questions?.length]);
+
+  useEffect(() => () => {
+    if (slideTimerRef.current) clearTimeout(slideTimerRef.current);
+  }, []);
+
   useEffect(() => {
     if (testPhase !== 'active') return;
     const strip = questionStripRef.current;
@@ -2812,14 +2849,46 @@ export default function LiveQuiz() {
         <section
           className={`quiz-question-panel ${focusWidth ? 'max-w-2xl mx-auto w-full' : ''}`}
           style={{ touchAction: 'pan-y' }}
+          onClickCapture={(e) => {
+            if (Date.now() < suppressClickUntilRef.current) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          }}
           onTouchStart={(e) => {
             if (e.touches?.length !== 1) return;
-            if (e.target?.closest?.('.no-scrollbar, button, input, label, a, select, textarea')) return;
-            touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now(), pointer: false };
+            if (e.target?.closest?.('.no-scrollbar, input, select, textarea')) return;
+            touchStartRef.current = {
+              x: e.touches[0].clientX,
+              y: e.touches[0].clientY,
+              t: Date.now(),
+              pointer: false,
+              swiping: false
+            };
+          }}
+          onTouchMove={(e) => {
+            const start = touchStartRef.current;
+            if (!start || start.pointer || e.touches?.length !== 1) return;
+            const dx = e.touches[0].clientX - start.x;
+            const dy = e.touches[0].clientY - start.y;
+            if (!start.swiping) {
+              if (Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+                start.swiping = true;
+                setIsSwipingCard(true);
+                window.getSelection?.()?.removeAllRanges?.();
+              } else {
+                return;
+              }
+            }
+            const atEdge = (dx > 0 && currentIndex === 0) || (dx < 0 && currentIndex >= questions.length - 1);
+            const dampened = atEdge ? dx * 0.25 : Math.max(-180, Math.min(180, dx));
+            setDragOffset(dampened);
           }}
           onTouchCancel={() => {
             if (touchStartRef.current && !touchStartRef.current.pointer) {
               touchStartRef.current = null;
+              setIsSwipingCard(false);
+              setDragOffset(0);
             }
           }}
           onTouchEnd={(e) => {
@@ -2828,23 +2897,58 @@ export default function LiveQuiz() {
             if (!start || start.pointer || !e.changedTouches?.length) return;
             const dx = e.changedTouches[0].clientX - start.x;
             const dy = e.changedTouches[0].clientY - start.y;
-            if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+            const didSwipe = start.swiping || (Math.abs(dx) >= 44 && Math.abs(dx) > Math.abs(dy) * 1.15);
+            setIsSwipingCard(false);
+            if (didSwipe) {
+              suppressClickUntilRef.current = Date.now() + 350;
               window.getSelection?.()?.removeAllRanges?.();
-              if (dx < 0 && currentIndex < questions.length - 1) {
-                goTo(currentIndex + 1);
-              } else if (dx > 0 && currentIndex > 0) {
-                goTo(currentIndex - 1);
+              if (Math.abs(dx) >= 44 && Math.abs(dx) > Math.abs(dy) * 1.15) {
+                if (dx < 0 && currentIndex < questions.length - 1) {
+                  animateToQuestion(currentIndex + 1, 'left');
+                  return;
+                }
+                if (dx > 0 && currentIndex > 0) {
+                  animateToQuestion(currentIndex - 1, 'right');
+                  return;
+                }
               }
             }
+            setDragOffset(0);
           }}
           onPointerDown={(e) => {
             if (e.pointerType === 'touch') return;
-            if (e.target?.closest?.('.no-scrollbar, button, input, label, a, select, textarea')) return;
-            touchStartRef.current = { x: e.clientX, y: e.clientY, t: Date.now(), pointer: true };
+            if (e.target?.closest?.('.no-scrollbar, input, select, textarea')) return;
+            touchStartRef.current = {
+              x: e.clientX,
+              y: e.clientY,
+              t: Date.now(),
+              pointer: true,
+              swiping: false
+            };
+          }}
+          onPointerMove={(e) => {
+            const start = touchStartRef.current;
+            if (!start || !start.pointer) return;
+            const dx = e.clientX - start.x;
+            const dy = e.clientY - start.y;
+            if (!start.swiping) {
+              if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.25 && (Date.now() - start.t) < 600) {
+                start.swiping = true;
+                setIsSwipingCard(true);
+                window.getSelection?.()?.removeAllRanges?.();
+              } else {
+                return;
+              }
+            }
+            const atEdge = (dx > 0 && currentIndex === 0) || (dx < 0 && currentIndex >= questions.length - 1);
+            const dampened = atEdge ? dx * 0.25 : Math.max(-180, Math.min(180, dx));
+            setDragOffset(dampened);
           }}
           onPointerCancel={() => {
             if (touchStartRef.current?.pointer) {
               touchStartRef.current = null;
+              setIsSwipingCard(false);
+              setDragOffset(0);
             }
           }}
           onPointerUp={(e) => {
@@ -2856,21 +2960,29 @@ export default function LiveQuiz() {
             const dt = Date.now() - (start.t || 0);
             const sel = typeof window !== 'undefined' ? window.getSelection?.()?.toString()?.trim() : '';
             const isClearHorizontalSwipe = Math.abs(dx) >= 50 && Math.abs(dx) > Math.abs(dy) * 1.25;
-            if (isClearHorizontalSwipe && (!sel || dt < 600 || Math.abs(dx) >= 75)) {
+            setIsSwipingCard(false);
+            if ((start.swiping || isClearHorizontalSwipe) && (!sel || dt < 600 || Math.abs(dx) >= 75)) {
+              suppressClickUntilRef.current = Date.now() + 350;
               window.getSelection?.()?.removeAllRanges?.();
-              if (dx < 0 && currentIndex < questions.length - 1) {
-                goTo(currentIndex + 1);
-              } else if (dx > 0 && currentIndex > 0) {
-                goTo(currentIndex - 1);
+              if (isClearHorizontalSwipe) {
+                if (dx < 0 && currentIndex < questions.length - 1) {
+                  animateToQuestion(currentIndex + 1, 'left');
+                  return;
+                }
+                if (dx > 0 && currentIndex > 0) {
+                  animateToQuestion(currentIndex - 1, 'right');
+                  return;
+                }
               }
             }
+            setDragOffset(0);
           }}
         >
           {/* Top Horizontal Question Palette (Matching Mockup 1794580723902.png) */}
           <div className="flex items-center gap-1.5 p-2 dark:bg-[#1E293B]/90 bg-white backdrop-blur-md rounded-2xl border dark:border-slate-700/60 border-slate-200 mb-3 select-none shadow-sm">
             <button
               type="button"
-              onClick={() => goTo(Math.max(0, currentIndex - 1))}
+              onClick={() => animateToQuestion(Math.max(0, currentIndex - 1), 'right')}
               disabled={currentIndex === 0}
               className="quiz-mobile-nav-button w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
               aria-label="Previous question"
@@ -2926,7 +3038,7 @@ export default function LiveQuiz() {
 
             <button
               type="button"
-              onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
+              onClick={() => animateToQuestion(Math.min(questions.length - 1, currentIndex + 1), 'left')}
               disabled={currentIndex === questions.length - 1}
               className="quiz-mobile-nav-button w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 flex items-center justify-center dark:text-slate-300 text-slate-700 disabled:opacity-30 disabled:pointer-events-none hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors shrink-0"
               aria-label="Next question"
@@ -2935,6 +3047,25 @@ export default function LiveQuiz() {
             </button>
           </div>
 
+          <div
+            className="quiz-question-slide-stage"
+            style={{
+              transform: slidePhase === 'out-left'
+                ? 'translate3d(-36px, 0, 0)'
+                : slidePhase === 'out-right'
+                ? 'translate3d(36px, 0, 0)'
+                : slidePhase === 'in-from-right'
+                ? 'translate3d(36px, 0, 0)'
+                : slidePhase === 'in-from-left'
+                ? 'translate3d(-36px, 0, 0)'
+                : `translate3d(${dragOffset}px, 0, 0)`,
+              opacity: (slidePhase === 'out-left' || slidePhase === 'out-right') ? 0.15 : 1,
+              transition: (isSwipingCard || slidePhase === 'in-from-right' || slidePhase === 'in-from-left')
+                ? 'none'
+                : 'transform 200ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease-out',
+              willChange: 'transform, opacity'
+            }}
+          >
           <div className="quiz-question-meta text-sm font-semibold">
             <span>QUESTION {String(currentIndex + 1).padStart(2, '0')}</span>
             {question?.subject && <span className="subject-pill text-xs font-semibold">{question.subject}</span>}
@@ -3203,12 +3334,14 @@ export default function LiveQuiz() {
             );
           })()}
 
+          </div>
+
           {/* Navigation Controls matching Mockup 1794580723902.png */}
           <div className="flex items-center justify-between gap-2 pt-4 mt-2 border-t dark:border-slate-700/60 border-slate-200">
             <button
               type="button"
               className="quiz-mobile-action-button px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-full dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-700 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition-all disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 min-h-[40px]"
-              onClick={() => goTo(Math.max(0, currentIndex - 1))}
+              onClick={() => animateToQuestion(Math.max(0, currentIndex - 1), 'right')}
               disabled={!currentIndex}
             >
               <ChevronLeft size={16} /> <span>{language === 'hi' ? 'पीछे' : 'Previous'}</span>
@@ -3285,7 +3418,7 @@ export default function LiveQuiz() {
               <button
                 type="button"
                 className="quiz-mobile-action-button px-5 sm:px-6 py-2 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-sm transition-colors flex items-center gap-1 min-h-[44px] shadow-xs"
-                onClick={() => goTo(Math.min(questions.length - 1, currentIndex + 1))}
+                onClick={() => animateToQuestion(Math.min(questions.length - 1, currentIndex + 1), 'left')}
               >
                 <span>
                   {responses[question?.id]?.selected_option

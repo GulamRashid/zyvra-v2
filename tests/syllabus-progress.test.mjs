@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {
   SYLLABUS_STATUS,
   computeChapterStatus,
@@ -136,4 +137,38 @@ test('Empty (Coming Soon) chapters are excluded from total and progress is deter
   // Next best chapter picks ch-2 (Not Started)
   assert.equal(first.nextBestChapter.chapter.chapterId, 'ch-2');
   assert.equal(first.nextBestChapter.actionLabelEn, 'Start');
+});
+
+test('useSyllabusProgress does not select non-existent tests.price column and 100% attempt marks chapter Done', () => {
+  const hookSource = fs.readFileSync(new URL('../src/hooks/useSyllabusProgress.js', import.meta.url), 'utf8');
+  assert.equal(/\.select\([^)]*\bprice\b/.test(hookSource), false);
+
+  const result = computeSyllabusProgress({
+    exams: [{ id: 'ex-ncert', title: 'NCERT', slug: 'ncert', status: 'published', display_order: 1 }],
+    folders: [
+      { id: 'f-6', exam_id: 'ex-ncert', title: 'Class 6', status: 'published', display_order: 1 },
+      { id: 'f-geo', exam_id: 'ex-ncert', parent_folder_id: 'f-6', title: 'Geography', status: 'published', display_order: 1 }
+    ],
+    chapters: [
+      { id: 'ch-geo-1', folder_id: 'f-geo', title: 'Geographical Diversity of India', status: 'published', display_order: 1 }
+    ],
+    tests: [
+      { id: 't-set-1', chapter_id: 'ch-geo-1', title: 'Set 1', status: 'published', question_count: 20 }
+    ],
+    questionCounts: { 't-set-1': 20 },
+    allAttempts: [
+      { id: 'att-1', test_id: 't-set-1', status: 'completed', score: 20, max_score: 20, percentage: 100, completed_at: '2026-11-27T18:00:00Z' }
+    ],
+    mistakes: []
+  });
+
+  const ncert = result.exams[0];
+  assert.equal(ncert.totalChapters, 1);
+  assert.equal(ncert.comingSoonCount, 0);
+  assert.equal(ncert.doneCount, 1);
+  assert.equal(ncert.progressPercent, 100);
+  const ch1 = ncert.subjects[0].chapters[0];
+  assert.equal(ch1.status, SYLLABUS_STATUS.DONE);
+  assert.equal(ch1.bestScore, 100);
+  assert.equal(ch1.isComingSoon, false);
 });
