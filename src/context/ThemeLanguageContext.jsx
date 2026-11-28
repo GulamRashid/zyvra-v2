@@ -661,12 +661,21 @@ const translations = {
 export function ThemeLanguageProvider({ children }) {
   const [theme, setTheme] = useState(() => localStorage.getItem('zyvra-theme') || 'system');
   const [language, setLanguage] = useState(() => localStorage.getItem('zyvra-language') || 'en');
+  const [systemLight, setSystemLight] = useState(() =>
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-color-scheme: light)').matches
+      : true
+  );
+
+  const resolvedTheme = theme === 'light' || (theme === 'system' && systemLight) ? 'light' : 'dark';
 
   useEffect(() => {
     const root = document.documentElement;
     const system = window.matchMedia('(prefers-color-scheme: light)');
     const applyTheme = () => {
-      const light = theme === 'light' || (theme === 'system' && system.matches);
+      const nextSystemLight = system.matches;
+      setSystemLight(nextSystemLight);
+      const light = theme === 'light' || (theme === 'system' && nextSystemLight);
       document.body.classList.toggle('light', light);
       document.body.classList.toggle('dark', !light);
       root.classList.toggle('light', light);
@@ -715,9 +724,9 @@ export function ThemeLanguageProvider({ children }) {
   }, []);
 
   const value = useMemo(() => ({
-    theme, setTheme: persistTheme, language, setLanguage: updateLanguage, languageError,
+    theme, resolvedTheme, setTheme: persistTheme, language, setLanguage: updateLanguage, languageError,
     t: (key) => translations[language]?.[key] || translations.en[key] || key
-  }), [theme, language, languageError, persistTheme, updateLanguage]);
+  }), [theme, resolvedTheme, language, languageError, persistTheme, updateLanguage]);
 
   return <ThemeLanguageContext.Provider value={value}>{children}</ThemeLanguageContext.Provider>;
 }

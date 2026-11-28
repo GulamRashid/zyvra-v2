@@ -5,201 +5,262 @@ import {
   BookOpen,
   CheckCircle2,
   ChevronDown,
-  Coins,
+  Compass,
+  Layers,
+  Mail,
   Menu,
   Moon,
-  ShieldCheck,
-  Sparkles,
-  Star,
   Sun,
-  Target,
   X
 } from 'lucide-react';
 import HeroMotionGraphic from '../../components/landing/HeroMotionGraphic';
 import { useAuth } from '../../context/AuthContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
+import { supabase } from '../../lib/supabase';
+
+const DEFAULT_CATALOG = {
+  ncertPrice: 194,
+  chaptersCount: 244,
+  testsCount: 174,
+  freeTestsCount: 15,
+  fullPassPrice: 499,
+  fullPassDays: 365,
+  toolsCount: 6,
+  loaded: false
+};
 
 export default function LandingPage() {
   const { user } = useAuth();
-  const { theme, setTheme, language, setLanguage } = useThemeLanguage();
+  const { resolvedTheme, setTheme, language, setLanguage } = useThemeLanguage();
   const navigate = useNavigate();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeFaq, setActiveFaq] = useState(0);
   const [scrolled, setScrolled] = useState(false);
+  const [catalog, setCatalog] = useState(DEFAULT_CATALOG);
+
+  const isDark = resolvedTheme === 'dark';
+  const isHindi = language === 'hi';
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 12);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const isDark = theme === 'dark';
-  const isHindi = language === 'hi';
+  // One-time section reveal without blocking initial paint
+  useEffect(() => {
+    const elements = document.querySelectorAll('.landing-reveal');
+    if (!elements.length || typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+      elements.forEach((el) => el.classList.add('is-visible'));
+      return;
+    }
+
+    const observer = new window.IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -32px 0px' }
+    );
+
+    elements.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+
+  // Live catalog stats & prices from Supabase (anon-readable published tables)
+  useEffect(() => {
+    if (!supabase) return;
+    let active = true;
+
+    async function loadLiveCatalog() {
+      try {
+        const [examsRes, chaptersRes, testsRes, fullPassRes] = await Promise.all([
+          supabase.from('exams').select('id, slug, title, price, status').eq('status', 'published'),
+          supabase.from('chapters').select('id', { count: 'exact', head: true }).eq('status', 'published'),
+          supabase.from('tests').select('id, is_free').eq('status', 'published'),
+          supabase.from('platform_settings').select('value').eq('key', 'full_pass_config').maybeSingle()
+        ]);
+
+        if (!active) return;
+
+        const ncertExam = (examsRes.data || []).find((row) => row.slug === 'ncert');
+        const allTests = testsRes.data || [];
+        const freeTests = allTests.filter((t) => Boolean(t.is_free)).length;
+        const fp = fullPassRes.data?.value || {};
+
+        setCatalog({
+          ncertPrice: ncertExam?.price != null ? Number(ncertExam.price) : DEFAULT_CATALOG.ncertPrice,
+          chaptersCount: typeof chaptersRes.count === 'number' && chaptersRes.count > 0 ? chaptersRes.count : DEFAULT_CATALOG.chaptersCount,
+          testsCount: allTests.length > 0 ? allTests.length : DEFAULT_CATALOG.testsCount,
+          freeTestsCount: freeTests > 0 ? freeTests : DEFAULT_CATALOG.freeTestsCount,
+          fullPassPrice: fp.price != null ? Number(fp.price) : DEFAULT_CATALOG.fullPassPrice,
+          fullPassDays: fp.validity_days != null ? Number(fp.validity_days) : DEFAULT_CATALOG.fullPassDays,
+          toolsCount: Array.isArray(fp.included_tool_ids) && fp.included_tool_ids.length > 0
+            ? fp.included_tool_ids.length
+            : DEFAULT_CATALOG.toolsCount,
+          loaded: true
+        });
+      } catch {
+        // Keep truthful fallback metrics silently when offline
+      }
+    }
+
+    loadLiveCatalog();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const toggleTheme = () => {
     setTheme(isDark ? 'light' : 'dark');
   };
 
+  const pageBg = isDark ? 'bg-[#0B1120] text-slate-100' : 'bg-[#F8FAFC] text-slate-900';
+  const surfaceBg = isDark ? 'bg-[#0F172A] border-slate-800' : 'bg-white border-slate-200';
+  const mutedText = isDark ? 'text-slate-400' : 'text-slate-500';
+  const bodyText = isDark ? 'text-slate-300' : 'text-slate-600';
+  const headingText = isDark ? 'text-white' : 'text-slate-900';
+
+  const primaryCtaLabel = isHindi ? 'मुफ़्त अभ्यास शुरू करें' : 'Start Practicing Free';
+  const secondaryCtaLabel = isHindi ? 'निःशुल्क सैंपल और सिलेबस देखें' : 'Try Free Sample & Syllabus';
+
+  const features = [
+    {
+      icon: BookOpen,
+      titleEn: 'Bilingual Practice & Timed Tests',
+      titleHi: 'द्विभाषी अभ्यास व समयबद्ध टेस्ट',
+      descEn: 'Switch cleanly between English and academic Hindi on every question, check solutions instantly in Practice Mode, or simulate full timed exams.',
+      descHi: 'हर प्रश्न पर अंग्रेजी और शुद्ध हिंदी के बीच आसानी से बदलें। प्रैक्टिस मोड में तुरंत उत्तर जाँचें या समयबद्ध टेस्ट का अनुभव लें।'
+    },
+    {
+      icon: Layers,
+      titleEn: 'Syllabus Tracker & Mistake Notebook',
+      titleHi: 'सिलेबस ट्रैकर और मिस्टेक नोटबुक',
+      descEn: 'See chapter-by-chapter completion status (Done, In Progress, Weak), review best scores, and automatically revisit incorrect answers.',
+      descHi: 'प्रत्येक अध्याय की स्थिति (पूर्ण, प्रगति पर, कमजोर) देखें, अपना सर्वश्रेष्ठ स्कोर जाँचें और गलत हुए प्रश्नों का दोबारा अभ्यास करें।'
+    },
+    {
+      icon: Compass,
+      titleEn: 'Focused Study Toolbox',
+      titleHi: 'समेकित अध्ययन टूलबॉक्स',
+      descEn: 'Includes Polity Articles reference, Formula Sheet, Flashcards, Pomodoro Timer, Scientific Calculator, and Map Explorer inside one workspace.',
+      descHi: 'एक ही स्थान पर अनुच्छेद संदर्भ, सूत्र पुस्तिका, फ्लैशकार्ड, पोमोडोरो टाइमर, वैज्ञानिक कैलकुलेटर और मानचित्र एक्सप्लोरर उपलब्ध हैं।'
+    }
+  ];
+
   const faqs = [
     {
-      qEn: 'What makes ZYVRA different from typical quiz apps?',
-      qHi: 'ZYVRA सामान्य क्विज ऐप्स से अलग क्यों है?',
-      aEn: 'ZYVRA is engineered specifically as a high-fidelity Computer-Based Test (CBT) engine that mirrors the exact user interface of official exam bodies (like BPSC 5-option format, negative marking, section timer, offline sync). It also features script-integrity bilingual routing, detailed KaTeX formulas, and built-in student productivity tools.',
-      aHi: 'ZYVRA को विशेष रूप से वास्तविक सरकारी प्रतियोगी परीक्षाओं (BPSC 5-विकल्प पैटर्न, नेगेटिव मार्किंग, सेक्शनल टाइमर, और ऑफलाइन सिंक) के बिल्कुल वास्तविक CBT इंटरफेस की तरह तैयार किया गया है। इसमें बिना किसी फॉन्ट त्रुटि के शुद्ध हिंदी व अंग्रेजी, KaTeX गणितीय सूत्र, और छात्रों के लिए समर्पित प्रोडक्टिविटी टूलबॉक्स मिलता है।'
+      qEn: 'Can I try free tests before purchasing anything?',
+      qHi: 'क्या मैं बिना खरीदारी किए मुफ़्त टेस्ट आज़मा सकता हूँ?',
+      aEn: `Yes. ${catalog.freeTestsCount} free sample chapter tests in the NCERT series are open to attempt without payment. You can inspect the interface, bilingual quality, and syllabus tracker before deciding to unlock more chapters.`,
+      aHi: `हाँ। एनसीईआरटी सीरीज़ में ${catalog.freeTestsCount} निःशुल्क सैंपल टेस्ट बिना किसी शुल्क के उपलब्ध हैं। आप भुगतान से पहले इंटरफ़ेस, द्विभाषी प्रश्न गुणवत्ता और सिलेबस ट्रैकर देख सकते हैं।`
     },
     {
-      qEn: 'Does ZYVRA support BPSC 5-option negative marking tests?',
-      qHi: 'क्या ZYVRA में BPSC 5-विकल्प व नेगेटिव मार्किंग वाले टेस्ट उपलब्ध हैं?',
-      aEn: 'Yes! ZYVRA has native support for both standard 4-option (A-D) and BPSC 5-option (A-E) formats, including Option E rules ("None of the above / More than one of the above") with official negative marking calculation (-1/3rd or -1/4th).',
-      aHi: 'हाँ! ZYVRA में 4-विकल्प (A-D) और BPSC 5-विकल्प (A-E) दोनों फॉर्मेट्स का 100% आधिकारिक सपोर्ट है, जिसमें विकल्प E ("उपर्युक्त में से कोई नहीं / एक से अधिक") और 1/3 या 1/4 नेगेटिव मार्किंग शामिल है।'
+      qEn: 'Which exams are live right now and what is coming next?',
+      qHi: 'अभी कौन-सी परीक्षाएँ लाइव हैं और आगे क्या आने वाला है?',
+      aEn: `NCERT Foundation (Classes 6–12, ${catalog.chaptersCount} chapters and ${catalog.testsCount} tests) is live today at ₹${catalog.ncertPrice}. All-Access Full Pass (₹${catalog.fullPassPrice} for ${catalog.fullPassDays} days) unlocks all live modules and ${catalog.toolsCount} study tools. BPSC CCE and SSC CGL/CHSL series are under preparation and clearly marked Coming Soon.`,
+      aHi: `एनसीईआरटी फाउंडेशन (कक्षा 6–12, ${catalog.chaptersCount} अध्याय और ${catalog.testsCount} टेस्ट) अभी ₹${catalog.ncertPrice} में लाइव है। ऑल-एक्सेस फुल पास (₹${catalog.fullPassPrice}, ${catalog.fullPassDays} दिन) में सभी लाइव मॉड्यूल व ${catalog.toolsCount} स्टडी टूल्स शामिल हैं। BPSC और SSC सीरीज़ निर्माणाधीन हैं।`
     },
     {
-      qEn: 'What happens if my internet connection drops during an exam?',
-      qHi: 'अगर टेस्ट देते समय इंटरनेट कट जाए तो क्या मेरा टेस्ट सबमिट हो जाएगा?',
-      aEn: 'ZYVRA features zero-data-loss offline resilience. All your test questions and selected answers are cached in local browser storage. You can continue answering offline without interruption. The moment your connection restores, your progress automatically syncs with the cloud.',
-      aHi: 'ZYVRA में ज़ीरो डेटा लॉस की सुरक्षा है। आपके सारे सवाल और चुने हुए उत्तर डिवाइस पर सुरक्षित रहते हैं। इंटरनेट जाने पर भी आप पूरा टेस्ट दे सकते हैं। जैसे ही इंटरनेट वापस आएगा, आपका सारा टेस्ट बिना किसी नुकसान के क्लाउड से ऑटो-सिंक हो जाता है।'
+      qEn: 'Can I switch between English and Hindi during a test?',
+      qHi: 'क्या मैं टेस्ट के दौरान हिंदी और अंग्रेजी बदल सकता हूँ?',
+      aEn: 'Yes. Every published question carries both English and standard exam-grade Hindi translations. You can toggle language from the top bar without losing your answers.',
+      aHi: 'हाँ। प्रत्येक प्रकाशित प्रश्न में अंग्रेजी और मानक परीक्षा-स्तरीय हिंदी अनुवाद उपलब्ध है। आप बिना उत्तर खोए शीर्ष बार से भाषा बदल सकते हैं।'
     },
     {
-      qEn: 'How does the Coin Rewards & Referral program work?',
-      qHi: 'कॉइन रिवॉर्ड और रेफरल प्रोग्राम कैसे काम करता है?',
-      aEn: 'You earn ZYVRA Coins every time you complete tests, maintain study streaks, and invite friends. You can redeem your coins directly at checkout to unlock premium test series, chapters, and productivity tools completely free without paying real money.',
-      aHi: 'हर बार जब आप टेस्ट पूरा करते हैं, अपनी डेली स्टडी स्ट्रीक बनाए रखते हैं, या दोस्तों को इनवाइट करते हैं, तो आपको ZYVRA कॉइन्स मिलते हैं। इन कॉइन्स से आप बिना पैसे खर्च किए पेड टेस्ट सीरीज़, चैप्टर्स और टूल्स अनलॉक कर सकते हैं।'
+      qEn: 'What happens if my internet connection drops mid-test?',
+      qHi: 'अगर टेस्ट के बीच में इंटरनेट बंद हो जाए तो क्या होगा?',
+      aEn: 'Your selected responses and timer state are saved locally during the session so you do not lose work on brief connection drops, and sync once connectivity returns.',
+      aHi: 'सत्र के दौरान आपके उत्तर और टाइमर की स्थिति डिवाइस में सुरक्षित रहती है ताकि अस्थायी नेटवर्क बाधा पर आपका प्रयास नष्ट न हो।'
     },
     {
-      qEn: 'Can I use ZYVRA on mobile as an app?',
-      qHi: 'क्या मैं ZYVRA को मोबाइल पर एक ऐप की तरह इस्तेमाल कर सकता हूँ?',
-      aEn: 'Yes! ZYVRA is a Progressive Web App (PWA). You can install it straight from Chrome/Safari to your home screen with one tap. It opens full screen with lightning speed and works smoothly even on low network conditions.',
-      aHi: 'हाँ! ZYVRA एक अत्याधुनिक PWA (प्रोग्रेसिव वेब ऐप) है। आप इसे सीधे ब्राउज़र से अपने मोबाइल होम स्क्रीन पर इंस्टॉल कर सकते हैं। यह बिना प्ले स्टोर के झंझट के एक असली ऐप की तरह फुल स्क्रीन में बहुत तेज़ी से चलता है।'
+      qEn: 'How many devices can I use with one ZYVRA account?',
+      qHi: 'एक ZYVRA खाते को मैं कितने उपकरणों पर उपयोग कर सकता हूँ?',
+      aEn: 'Each account supports up to two personal devices concurrently (for example, your phone and laptop), helping keep your progress and purchases synced securely.',
+      aHi: 'एक छात्र खाता एक साथ अधिकतम दो व्यक्तिगत उपकरणों (जैसे फोन और लैपटॉप) पर लॉग इन रह सकता है, जिससे आपकी प्रगति सुरक्षित रूप से सिंक रहती है।'
     }
   ];
 
   return (
-    <div className={`min-h-screen transition-colors duration-200 selection:bg-indigo-500 selection:text-white font-sans relative overflow-x-hidden ${
-      isDark ? 'bg-[#070B14] text-slate-100' : 'bg-[#F8FAFC] text-slate-800'
-    }`}>
-      {/* Background Glow Orbs - Contained strictly to avoid mobile horizontal canvas stretch */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10" aria-hidden="true">
-        {isDark ? (
-          <>
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] max-w-[100vw] h-[550px] bg-gradient-to-tr from-indigo-600/15 via-purple-600/10 to-emerald-500/10 blur-[130px] rounded-full animate-landing-glow" />
-            <div className="absolute top-[45%] -left-[100px] sm:-left-[200px] w-[500px] h-[500px] bg-emerald-500/10 blur-[120px] rounded-full" />
-            <div className="absolute top-[65%] -right-[100px] sm:-right-[200px] w-[550px] h-[550px] bg-indigo-500/10 blur-[140px] rounded-full" />
-          </>
-        ) : (
-          <>
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[900px] max-w-[100vw] h-[450px] bg-gradient-to-tr from-indigo-200/50 via-sky-100/60 to-emerald-100/50 blur-[100px] rounded-full" />
-            <div className="absolute top-[40%] -left-[100px] sm:-left-[150px] w-[450px] h-[450px] bg-indigo-100/50 blur-[100px] rounded-full" />
-          </>
-        )}
-      </div>
-
-      {/* Decorative Grid Pattern */}
-      <div
-        className={`fixed inset-0 pointer-events-none -z-10 ${isDark ? 'opacity-[0.035]' : 'opacity-[0.03]'}`}
-        style={{
-          backgroundImage: isDark
-            ? 'radial-gradient(rgba(255, 255, 255, 0.4) 1px, transparent 1px)'
-            : 'radial-gradient(rgba(15, 23, 42, 0.5) 1px, transparent 1px)',
-          backgroundSize: '32px 32px'
-        }}
-      />
-
-      {/* STICKY HEADER */}
+    <div className={`min-h-screen font-sans antialiased transition-colors duration-200 selection:bg-indigo-600 selection:text-white ${pageBg}`}>
+      {/* Sticky Minimal Navigation */}
       <header
-        className={`sticky top-0 z-50 transition-all duration-300 ${
+        className={`sticky top-0 z-50 border-b transition-all duration-200 ${
           scrolled
             ? isDark
-              ? 'bg-[#0B1120]/90 backdrop-blur-xl border-b border-indigo-500/15 shadow-xl shadow-black/40 py-3'
-              : 'bg-white/90 backdrop-blur-xl border-b border-slate-200 shadow-sm py-3'
-            : 'bg-transparent py-5'
+              ? 'bg-[#0B1120]/90 backdrop-blur-md border-slate-800 shadow-sm'
+              : 'bg-white/90 backdrop-blur-md border-slate-200 shadow-sm'
+            : isDark
+              ? 'bg-[#0B1120] border-slate-800/70'
+              : 'bg-[#F8FAFC] border-slate-200/70'
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
-          {/* Logo & Brand */}
-          <Link to="/" className="flex items-center gap-3 group">
-            <div className="relative w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-emerald-400 p-[1.5px] shadow-lg shadow-indigo-500/25 group-hover:shadow-indigo-500/40 transition-shadow">
-              <div className={`w-full h-full rounded-[14px] flex items-center justify-center overflow-hidden ${
-                isDark ? 'bg-[#0B1120]' : 'bg-white'
-              }`}>
-                <img src="/logo.png" alt="ZYVRA Logo" className="w-7 h-7 object-contain group-hover:scale-105 transition-transform" />
-              </div>
-            </div>
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className={`font-black text-xl tracking-wider ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                  ZYVRA
-                </span>
-                <span className="text-[10px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
-                  CBT 2.0
-                </span>
-              </div>
-              <span className={`text-[10px] font-semibold tracking-wide hidden sm:block ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
-                Next-Gen Exam Prep
-              </span>
-            </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+          <Link to="/" className="flex items-center gap-2.5 min-h-[44px] group">
+            <img
+              src="/logo-192.png"
+              alt="ZYVRA"
+              className="w-8 h-8 rounded-xl object-contain border border-slate-200/60 dark:border-slate-700"
+            />
+            <span className={`text-base sm:text-lg font-extrabold tracking-tight ${headingText}`}>
+              ZYVRA
+            </span>
           </Link>
 
-          {/* Desktop Navigation */}
-          <nav className={`hidden md:flex items-center gap-8 text-sm font-semibold ${
-            isDark ? 'text-slate-300' : 'text-slate-600'
-          }`}>
-            <a href="#features" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>
-              {isHindi ? 'विशेषताएं' : 'Features'}
+          <nav className={`hidden md:flex items-center gap-7 text-sm font-medium ${bodyText}`} aria-label="Primary navigation">
+            <a href="#exams" className={`py-2 transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>
+              {isHindi ? 'परीक्षाएँ' : 'Exams'}
             </a>
-            <a href="#cbt-engine" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>
-              {isHindi ? 'CBT इंजन' : 'CBT Engine'}
+            <a href="#features" className={`py-2 transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>
+              {isHindi ? 'विशेषताएँ' : 'Features'}
             </a>
-            <a href="#exams" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>
-              {isHindi ? 'परीक्षाएं' : 'Exams'}
+            <a href="#about" className={`py-2 transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>
+              {isHindi ? 'हमारे बारे में' : 'About'}
             </a>
-            <a href="#toolbox" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>
-              {isHindi ? 'टूलबॉक्स' : 'Toolbox'}
-            </a>
-            <a href="#faq" className={`transition-colors ${isDark ? 'hover:text-white' : 'hover:text-indigo-600'}`}>
-              {isHindi ? 'सामान्य प्रश्न' : 'FAQ'}
+            <a href="#faq" className={`py-2 transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`}>
+              {isHindi ? 'सवाल-जवाब' : 'FAQ'}
             </a>
           </nav>
 
-          {/* Header Action Buttons */}
-          <div className="hidden sm:flex items-center gap-3">
-            {/* Theme Toggle Button */}
+          {/* Desktop Controls */}
+          <div className="hidden sm:flex items-center gap-2.5">
             <button
               type="button"
               onClick={toggleTheme}
-              className={`p-2 rounded-xl border transition-colors flex items-center justify-center ${
+              className={`min-h-[44px] min-w-[44px] rounded-xl border flex items-center justify-center transition-colors ${
                 isDark
-                  ? 'bg-slate-800/80 hover:bg-slate-700/80 border-slate-700/60 text-amber-400'
-                  : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm'
+                  ? 'bg-slate-900 border-slate-800 text-slate-300 hover:text-white hover:border-slate-700'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
-              title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              aria-label="Toggle Theme"
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
-              {isDark ? <Sun size={15} /> : <Moon size={15} />}
+              {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
 
-            {/* Language Toggle */}
             <button
               type="button"
               onClick={() => setLanguage(isHindi ? 'en' : 'hi')}
-              className={`px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-colors flex items-center gap-1.5 ${
+              className={`min-h-[44px] px-3 rounded-xl border text-xs font-semibold transition-colors ${
                 isDark
-                  ? 'bg-slate-800/80 hover:bg-slate-700/80 border-slate-700/60 text-slate-200'
-                  : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700 shadow-sm'
+                  ? 'bg-slate-900 border-slate-800 text-slate-200 hover:border-slate-700'
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
               }`}
-              title="Toggle Language"
+              aria-label="Toggle language"
             >
-              <span className="text-amber-500">🌐</span>
-              <span>{isHindi ? 'English' : 'हिंदी'}</span>
+              {isHindi ? 'English' : 'हिंदी'}
             </button>
 
             {user ? (
               <button
                 type="button"
                 onClick={() => navigate('/home')}
-                className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold text-xs shadow-md shadow-indigo-600/30 flex items-center gap-2 transition-all hover:scale-[1.02]"
+                className="min-h-[44px] px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
               >
                 <span>{isHindi ? 'डैशबोर्ड खोलें' : 'Go to Dashboard'}</span>
                 <ArrowRight size={14} />
@@ -208,88 +269,99 @@ export default function LandingPage() {
               <>
                 <Link
                   to="/auth?mode=signin"
-                  className={`px-4 py-2 rounded-xl border font-bold text-xs transition-all shadow-sm ${
-                    isDark
-                      ? 'bg-slate-900/80 hover:bg-slate-800 border-slate-700/80 hover:border-indigo-500/50 text-white'
-                      : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-800'
+                  className={`min-h-[44px] px-4 rounded-xl text-xs font-semibold inline-flex items-center transition-colors ${
+                    isDark ? 'text-slate-200 hover:bg-slate-800' : 'text-slate-700 hover:bg-slate-100'
                   }`}
                 >
-                  {isHindi ? 'साइन इन करें' : 'Sign In'}
+                  {isHindi ? 'साइन इन' : 'Sign In'}
                 </Link>
                 <Link
                   to="/auth?mode=signup"
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-emerald-500 hover:from-indigo-500 hover:to-emerald-400 text-white font-bold text-xs shadow-md shadow-indigo-600/30 flex items-center gap-1.5 transition-all hover:scale-[1.03] active:scale-95"
+                  className="min-h-[44px] px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors shadow-sm"
                 >
-                  <Sparkles size={13} className="text-amber-300" />
-                  <span>{isHindi ? 'मुफ़्त शुरू करें' : 'Get Started Free'}</span>
+                  <span>{primaryCtaLabel}</span>
+                  <ArrowRight size={14} />
                 </Link>
               </>
             )}
           </div>
 
-          {/* Mobile Actions */}
-          <div className="flex sm:hidden items-center gap-2">
+          {/* Mobile Controls (>= 44x44px touch targets) */}
+          <div className="flex sm:hidden items-center gap-1.5">
             <button
               type="button"
               onClick={toggleTheme}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl border text-xs font-bold transition-all ${
-                isDark ? 'bg-slate-800 border-slate-700 text-amber-400' : 'bg-white border-slate-200 text-slate-700'
+              className={`w-11 h-11 rounded-xl border flex items-center justify-center transition-colors ${
+                isDark ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
               }`}
-              aria-label="Toggle theme"
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             >
               {isDark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
             <button
               type="button"
               onClick={() => setLanguage(isHindi ? 'en' : 'hi')}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl border text-xs font-black transition-all ${
-                isDark ? 'bg-slate-800 border-slate-700 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
+              className={`w-11 h-11 rounded-xl border flex items-center justify-center text-xs font-bold transition-colors ${
+                isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
               }`}
+              aria-label="Toggle language"
             >
-              {isHindi ? 'EN' : 'HI'}
+              {isHindi ? 'EN' : 'हिं'}
             </button>
             <button
               type="button"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all ${
-                isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700'
+              onClick={() => setMobileMenuOpen((prev) => !prev)}
+              className={`w-11 h-11 rounded-xl border flex items-center justify-center transition-colors ${
+                isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-700'
               }`}
-              aria-label="Open navigation menu"
+              aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={mobileMenuOpen}
             >
-              {mobileMenuOpen ? <X size={19} /> : <Menu size={19} />}
+              {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation Drawer */}
+        {/* Mobile Drawer */}
         {mobileMenuOpen && (
-          <div className={`sm:hidden px-4 pt-3 pb-6 border-b space-y-4 animate-in slide-in-from-top-4 duration-200 ${
-            isDark ? 'bg-[#0B1120] border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-800 shadow-xl'
-          }`}>
-            <div className="flex flex-col space-y-2 text-sm font-semibold">
-              <a href="#features" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-indigo-500/10">
-                {isHindi ? 'विशेषताएं' : 'Features'}
-              </a>
-              <a href="#cbt-engine" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-indigo-500/10">
-                {isHindi ? 'CBT इंजन' : 'CBT Engine'}
-              </a>
-              <a href="#exams" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-indigo-500/10">
-                {isHindi ? 'परीक्षाएं' : 'Exams'}
-              </a>
-              <a href="#toolbox" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-indigo-500/10">
-                {isHindi ? 'टूलबॉक्स' : 'Toolbox'}
-              </a>
-              <a href="#faq" onClick={() => setMobileMenuOpen(false)} className="py-2 px-3 rounded-lg hover:bg-indigo-500/10">
-                {isHindi ? 'सामान्य प्रश्न' : 'FAQ'}
-              </a>
-            </div>
-
-            <div className={`pt-2 border-t flex flex-col gap-2 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+          <div className={`sm:hidden border-t px-4 py-4 space-y-2 ${isDark ? 'bg-[#0F172A] border-slate-800' : 'bg-white border-slate-200'}`}>
+            <a
+              href="#exams"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center min-h-[44px] px-3 rounded-xl text-sm font-medium ${bodyText}`}
+            >
+              {isHindi ? 'परीक्षाएँ' : 'Exams'}
+            </a>
+            <a
+              href="#features"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center min-h-[44px] px-3 rounded-xl text-sm font-medium ${bodyText}`}
+            >
+              {isHindi ? 'विशेषताएँ' : 'Features'}
+            </a>
+            <a
+              href="#about"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center min-h-[44px] px-3 rounded-xl text-sm font-medium ${bodyText}`}
+            >
+              {isHindi ? 'हमारे बारे में' : 'About'}
+            </a>
+            <a
+              href="#faq"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center min-h-[44px] px-3 rounded-xl text-sm font-medium ${bodyText}`}
+            >
+              {isHindi ? 'सवाल-जवाब' : 'FAQ'}
+            </a>
+            <div className={`pt-3 mt-2 border-t flex flex-col gap-2 ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
               {user ? (
                 <button
                   type="button"
-                  onClick={() => { setMobileMenuOpen(false); navigate('/home'); }}
-                  className="w-full py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-sm text-center flex items-center justify-center gap-2"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    navigate('/home');
+                  }}
+                  className="min-h-[44px] w-full rounded-xl bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2"
                 >
                   <span>{isHindi ? 'डैशबोर्ड खोलें' : 'Go to Dashboard'}</span>
                   <ArrowRight size={15} />
@@ -297,20 +369,21 @@ export default function LandingPage() {
               ) : (
                 <>
                   <Link
-                    to="/auth?mode=signin"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`w-full py-2.5 min-h-[44px] flex items-center justify-center rounded-xl border font-bold text-sm text-center ${
-                      isDark ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-800'
-                    }`}
-                  >
-                    {isHindi ? 'साइन इन करें' : 'Sign In'}
-                  </Link>
-                  <Link
                     to="/auth?mode=signup"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="w-full py-2.5 min-h-[44px] flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-emerald-500 text-white font-bold text-sm text-center shadow-lg shadow-indigo-600/30"
+                    className="min-h-[44px] w-full rounded-xl bg-indigo-600 text-white text-sm font-semibold flex items-center justify-center gap-2"
                   >
-                    {isHindi ? 'मुफ़्त रजिस्ट्रेशन करें' : 'Get Started Free'}
+                    <span>{primaryCtaLabel}</span>
+                    <ArrowRight size={15} />
+                  </Link>
+                  <Link
+                    to="/auth?mode=signin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`min-h-[44px] w-full rounded-xl border text-sm font-semibold flex items-center justify-center ${
+                      isDark ? 'border-slate-700 text-slate-200' : 'border-slate-300 text-slate-800'
+                    }`}
+                  >
+                    {isHindi ? 'साइन इन' : 'Sign In'}
                   </Link>
                 </>
               )}
@@ -319,529 +392,473 @@ export default function LandingPage() {
         )}
       </header>
 
-      {/* CLEAN & ATTRACTIVE HERO SECTION */}
-      <section className="relative pt-8 pb-16 sm:pt-14 sm:pb-24 lg:pt-20 lg:pb-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-          {/* Left Column: Clear Value Prop & CTAs */}
-          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-            {/* Pill Badge */}
-            <div className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold shadow-sm ${
-              isDark
-                ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300'
-                : 'bg-indigo-50 border border-indigo-200 text-indigo-700'
-            }`}>
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span>{isHindi ? '⚡ सरकारी परीक्षा की असली CBT तैयारी' : '⚡ Next-Gen CBT Exam Preparation Engine'}</span>
-            </div>
-
-            {/* Headline */}
-            <h1 className={`text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.12] ${
-              isDark ? 'text-white' : 'text-slate-900'
-            }`}>
-              {isHindi ? (
-                <>
-                  असली परीक्षा जैसा <span className="bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 bg-clip-text text-transparent">CBT माहौल</span>, हर सवाल पर गहरी पकड़।
-                </>
-              ) : (
-                <>
-                  Master Competitive Exams with <span className="bg-gradient-to-r from-indigo-500 via-sky-500 to-emerald-500 bg-clip-text text-transparent">Real CBT Precision</span>.
-                </>
-              )}
-            </h1>
-
-            {/* Subtitle with High Contrast */}
-            <p className={`text-base sm:text-lg max-w-2xl mx-auto lg:mx-0 leading-relaxed font-medium ${
-              isDark ? 'text-slate-200' : 'text-slate-600'
-            }`}>
-              {isHindi
-                ? 'BPSC 5-विकल्प अनिवार्य रूल, नेगेटिव मार्किंग, शुद्ध द्विभाषी व्याख्या, ज़ीरो डेटा लॉस ऑफलाइन सिंक और छात्रों के लिए स्मार्ट टूलबॉक्स — सब कुछ एक ही जगह।'
-                : 'Experience official BPSC 5-option patterns, multi-statement assertion questions, in-depth bilingual explanations, offline-resilient auto-sync, and student productivity tools engineered for serious aspirants.'}
-            </p>
-
-            {/* CTAs: One clear Primary CTA + Guest Sample Test */}
-            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
-              <Link
-                to={user ? '/home' : '/auth?mode=signup'}
-                className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-sm sm:text-base shadow-xl shadow-indigo-600/30 flex items-center justify-center gap-2.5 transition-all active:scale-95 group min-h-[48px]"
-              >
-                <span>{user ? (isHindi ? 'डैशबोर्ड में जाएं' : 'Open Student Dashboard') : (isHindi ? 'मुफ़्त अभ्यास शुरू करें' : 'Start Practicing Free')}</span>
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-
-              <Link
-                to="/explore"
-                className={`w-full sm:w-auto px-6 py-4 rounded-2xl border font-bold text-sm sm:text-base flex items-center justify-center gap-2 transition-all min-h-[48px] ${
-                  isDark
-                    ? 'bg-transparent hover:bg-slate-800/70 border-slate-700 text-slate-200 hover:border-indigo-500/50'
-                    : 'bg-transparent hover:bg-slate-100 border-slate-300 text-slate-700 hover:border-indigo-400'
-                }`}
-              >
-                <span>{isHindi ? 'सैंपल टेस्ट और सिलेबस देखें' : 'Try Free Sample & Syllabus'}</span>
-              </Link>
-            </div>
-
-            {/* Micro Social Proof */}
-            <div className={`flex items-center justify-center lg:justify-start gap-6 pt-3 text-xs font-semibold ${
-              isDark ? 'text-slate-300' : 'text-slate-600'
-            }`}>
-              <div className="flex items-center gap-1.5">
-                <CheckCircle2 size={16} className="text-emerald-500" />
-                <span>{isHindi ? 'क्रेडिट कार्ड की ज़रूरत नहीं' : 'No Credit Card Required'}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <ShieldCheck size={16} className="text-emerald-500" />
-                <span>{isHindi ? 'फ्री प्रैक्टिस टियर उपलब्ध' : 'Free Practice Tier'}</span>
-              </div>
-              <div className="flex items-center gap-1.5 hidden sm:flex">
-                <CheckCircle2 size={15} className="text-indigo-400" />
-                <span>{isHindi ? 'द्विभाषी (EN + HI)' : 'Bilingual (EN + HI)'}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: High-Impact Aspirant Command Center & Orbital Motion Graphic */}
-          <div className="lg:col-span-5 relative flex items-center justify-center py-4 lg:py-0">
-            <HeroMotionGraphic isDark={isDark} isHindi={isHindi} />
-          </div>
-        </div>
-      </section>
-
-      {/* STATS TICKER STRIP */}
-      <section className={`border-y py-8 transition-colors ${
-        isDark ? 'border-indigo-500/15 bg-slate-950/70' : 'border-slate-200 bg-white'
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-            <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-indigo-500 to-sky-500 bg-clip-text text-transparent">
-                4,000+
-              </div>
-              <div className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {isHindi ? 'द्विभाषी प्रामाणिक सवाल' : 'Bilingual Practice Questions'}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">
-                Auto-Sync
-              </div>
-              <div className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {isHindi ? 'ऑफलाइन डेटा सुरक्षा' : 'Offline-Safe Progress'}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
-                5-Option
-              </div>
-              <div className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {isHindi ? 'BPSC व स्टेट PCS पैटर्न' : 'BPSC & NCERT CBT'}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-black bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent">
-                Instant
-              </div>
-              <div className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {isHindi ? 'विस्तृत समाधान व विश्लेषण' : 'Detailed Solutions & Analytics'}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CORE FEATURES SHOWCASE */}
-      <section id="features" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        <div className="text-center max-w-3xl mx-auto space-y-3">
-          <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full ${
-            isDark ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300' : 'bg-indigo-50 border border-indigo-200 text-indigo-700'
-          }`}>
-            {isHindi ? 'अत्याधुनिक सुविधाएं' : 'Engineered for Toppers'}
-          </span>
-          <h2 className={`text-3xl sm:text-4xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-            {isHindi ? 'हर वह फीचर जो परीक्षा हॉल में बढ़त दिलाए' : 'Everything You Need to Rank at the Top'}
-          </h2>
-          <p className={`text-sm sm:text-base font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-            {isHindi
-              ? 'साधारण पीडीएफ और क्विज ऐप को छोड़िए। ZYVRA आपको परीक्षा के दिन की हर चुनौती के लिए पूरी तरह तैयार करता है।'
-              : 'Move beyond static PDFs and outdated test engines. ZYVRA replicates real testing conditions with precision analytics.'}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Feature Card 1 */}
-          <div className={`p-6 rounded-3xl border transition-all hover:-translate-y-1 group ${
-            isDark
-              ? 'bg-slate-900/70 border-indigo-500/20 hover:border-indigo-500/40'
-              : 'bg-white border-slate-200 hover:border-indigo-400 shadow-sm hover:shadow-md'
-          }`}>
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-500 mb-5 group-hover:scale-110 transition-transform">
-              <Target size={24} />
-            </div>
-            <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {isHindi ? 'वास्तविक CBT इंटरफेस' : 'True-to-Life CBT Interface'}
-            </h3>
-            <p className={`text-xs sm:text-sm leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-              {isHindi
-                ? '5-स्टेटस कलर पैलेट (Answered, Marked, Unanswered, Not Visited), सेक्शन स्विचिंग, और लाइव टाइमर के साथ बिल्कुल आधिकारिक परीक्षा जैसा अहसास।'
-                : 'Exact color status palettes (Answered, Marked for Review, Not Visited), section-wise countdown, and instant lock prevention.'}
-            </p>
-          </div>
-
-          {/* Feature Card 2 */}
-          <div className={`p-6 rounded-3xl border transition-all hover:-translate-y-1 group ${
-            isDark
-              ? 'bg-slate-900/70 border-emerald-500/20 hover:border-emerald-500/40'
-              : 'bg-white border-slate-200 hover:border-emerald-400 shadow-sm hover:shadow-md'
-          }`}>
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 mb-5 group-hover:scale-110 transition-transform">
-              <BookOpen size={24} />
-            </div>
-            <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {isHindi ? 'स्क्रिप्ट-इंटीग्रिटी द्विभाषी इंजन' : 'Bilingual Script Integrity'}
-            </h3>
-            <p className={`text-xs sm:text-sm leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-              {isHindi
-                ? 'अंग्रेजी स्लॉट में कोई टूटी-फूटी हिंदी नहीं, और हिंदी स्लॉट में शुद्ध देवनागरी। बीच टेस्ट में किसी भी सवाल की भाषा एक क्लिक में बदलें।'
-                : 'Zero font corruption or mixed language garble. Clean English and authentic Devanagari Hindi with instant one-click switching.'}
-            </p>
-          </div>
-
-          {/* Feature Card 3 */}
-          <div className={`p-6 rounded-3xl border transition-all hover:-translate-y-1 group ${
-            isDark
-              ? 'bg-slate-900/70 border-amber-500/20 hover:border-amber-500/40'
-              : 'bg-white border-slate-200 hover:border-amber-400 shadow-sm hover:shadow-md'
-          }`}>
-            <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-500 mb-5 group-hover:scale-110 transition-transform">
-              <ShieldCheck size={24} />
-            </div>
-            <h3 className={`text-lg font-bold mb-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {isHindi ? '100% ऑफलाइन ऑटो-सिंक' : 'Zero-Loss Offline Auto-Sync'}
-            </h3>
-            <p className={`text-xs sm:text-sm leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-              {isHindi
-                ? 'इंटरनेट कटने पर भी टेस्ट कभी नहीं रुकेगा। आपके सभी रिस्पॉन्स डिवाइस पर सुरक्षित रहते हैं और कनेक्शन आते ही बैकग्राउंड में सिंक हो जाते हैं।'
-                : 'Never lose a test to network drops. Progress is recorded synchronously in local storage and seamlessly synced back on reconnect.'}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* EXAMS WE COVER */}
-      <section id="exams" className={`py-20 border-y transition-colors ${
-        isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-100/70 border-slate-200'
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full ${
-              isDark ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400' : 'bg-emerald-50 border border-emerald-200 text-emerald-700'
-            }`}>
-              {isHindi ? 'कवर की जाने वाली परीक्षाएं' : 'Targeted Exam Series'}
-            </span>
-            <h2 className={`text-3xl sm:text-4xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {isHindi ? 'शीर्ष प्रतियोगी परीक्षाओं के लिए विशेष टेस्ट' : 'Curated for Top Competitive Exams'}
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Exam 1 */}
-            <div className={`p-5 rounded-2xl border transition-all space-y-3 ${
-              isDark
-                ? 'bg-slate-900/80 border-slate-800 hover:border-indigo-500/40'
-                : 'bg-white border-slate-200 hover:border-indigo-400 shadow-sm'
-            }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-2xl">🏛️</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-500 border border-indigo-500/30">
-                  5-Option BPSC
+      <main>
+        {/* Hero Section: Editorial Minimalist Layout + Interactive Quiz Preview */}
+        <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-14 sm:pt-14 sm:pb-20">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+            <div className="lg:col-span-6 space-y-5 landing-hero-enter">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold tracking-tight bg-indigo-50/80 border-indigo-200 text-indigo-700 dark:bg-indigo-950/60 dark:border-indigo-800/70 dark:text-indigo-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-indigo-600 dark:bg-indigo-400" aria-hidden="true" />
+                <span>
+                  {isHindi
+                    ? 'एनसीईआरटी कक्षा 6–12 · अध्याय-वार अभ्यास'
+                    : 'NCERT Class 6–12 · Chapter-Wise Practice'}
                 </span>
               </div>
-              <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>BPSC 70th & 71st CCE</h4>
-              <p className={`text-xs leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {isHindi ? 'प्रिलिम्स GS, बिहार विशेष, और करंट अफेयर्स विद 5वां विकल्प नियम।' : 'Prelims GS, Bihar Special, and Current Affairs with mandatory Option E rule.'}
-              </p>
-            </div>
 
-            {/* Exam 2 */}
-            <div className={`p-5 rounded-2xl border transition-all space-y-3 ${
-              isDark
-                ? 'bg-slate-900/80 border-slate-800 hover:border-emerald-500/40'
-                : 'bg-white border-slate-200 hover:border-emerald-400 shadow-sm'
-            }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-2xl">⚡</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-500 border border-emerald-500/30">
-                  State PCS
-                </span>
-              </div>
-              <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>UPPSC & MPPSC Prelims</h4>
-              <p className={`text-xs leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {isHindi ? 'स्टेट स्पेशल सामान्य अध्ययन, इतिहास, भूगोल, और संविधान।' : 'General Studies, History, Polity, Geography & State-specific Special GK.'}
-              </p>
-            </div>
-
-            {/* Exam 3 */}
-            <div className={`p-5 rounded-2xl border transition-all space-y-3 ${
-              isDark
-                ? 'bg-slate-900/80 border-slate-800 hover:border-amber-500/40'
-                : 'bg-white border-slate-200 hover:border-amber-400 shadow-sm'
-            }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-2xl">🚄</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-500 border border-amber-500/30">
-                  SSC / Railway
-                </span>
-              </div>
-              <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>SSC CGL, CHSL & RRB NTPC</h4>
-              <p className={`text-xs leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {isHindi ? 'रीजनिंग, मैथ, जनरल अवेयरनेस और इंग्लिश के हाई-स्पीड स्पीड टेस्ट।' : 'High-speed sectional CBT mocks for Quantitative Aptitude, Reasoning & GA.'}
-              </p>
-            </div>
-
-            {/* Exam 4 */}
-            <div className={`p-5 rounded-2xl border transition-all space-y-3 ${
-              isDark
-                ? 'bg-slate-900/80 border-slate-800 hover:border-purple-500/40'
-                : 'bg-white border-slate-200 hover:border-purple-400 shadow-sm'
-            }`}>
-              <div className="flex items-center justify-between">
-                <span className="text-2xl">🎓</span>
-                <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-purple-500/20 text-purple-500 border border-purple-500/30">
-                  Teaching / CTET
-                </span>
-              </div>
-              <h4 className={`text-base font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Bihar TRE & CTET</h4>
-              <p className={`text-xs leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                {isHindi ? 'शिक्षक भर्ती परीक्षा और बाल विकास, सामाजिक विज्ञान मॉक टेस्ट।' : 'Teacher recruitment exams, Child Pedagogy, Social Science & Language tests.'}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* STUDENT PRODUCTIVITY TOOLBOX SPOTLIGHT */}
-      <section id="toolbox" className="py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-          <div className="lg:col-span-6 space-y-6">
-            <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full ${
-              isDark ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400' : 'bg-amber-50 border border-amber-200 text-amber-700'
-            }`}>
-              {isHindi ? 'इन-बिल्ट स्टूडेंट टूलबॉक्स' : 'Productivity Suite'}
-            </span>
-            <h2 className={`text-3xl sm:text-4xl font-black leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {isHindi ? (
-                <>पढ़ाई में फोकस और निरंतरता के लिए <span className="text-amber-500">स्मार्ट टूल्स</span></>
-              ) : (
-                <>Smart Study Tools Built Directly into Your <span className="text-amber-500">Workflow</span></>
-              )}
-            </h2>
-            <p className={`text-sm sm:text-base leading-relaxed font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-              {isHindi
-                ? 'आपको अलग से पोमोडोरो या नोट्स ऐप डाउनलोड करने की ज़रूरत नहीं है। ZYVRA के अंदर ही सारे उत्पादकता टूल्स मौजूद हैं:'
-                : 'No need to switch between multiple productivity apps. Everything you need to retain information and stay focused is right here:'}
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div className={`flex items-start gap-3 p-4 rounded-2xl border ${
-                isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
-              }`}>
-                <span className="text-2xl">⏱️</span>
-                <div>
-                  <h4 className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Pomodoro Timer</h4>
-                  <p className={`text-[11px] font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>25m focus & 5m break cycles</p>
-                </div>
-              </div>
-
-              <div className={`flex items-start gap-3 p-4 rounded-2xl border ${
-                isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
-              }`}>
-                <span className="text-2xl">🧮</span>
-                <div>
-                  <h4 className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Smart Calculator</h4>
-                  <p className={`text-[11px] font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Fractions, % and Permutations</p>
-                </div>
-              </div>
-
-              <div className={`flex items-start gap-3 p-4 rounded-2xl border ${
-                isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
-              }`}>
-                <span className="text-2xl">📓</span>
-                <div>
-                  <h4 className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Mistake Notebook</h4>
-                  <p className={`text-[11px] font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Auto-save wrong questions</p>
-                </div>
-              </div>
-
-              <div className={`flex items-start gap-3 p-4 rounded-2xl border ${
-                isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
-              }`}>
-                <span className="text-2xl">🃏</span>
-                <div>
-                  <h4 className={`text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Smart Flashcards</h4>
-                  <p className={`text-[11px] font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>Memorize articles & formulas</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-6">
-            <div className={`p-6 sm:p-8 rounded-3xl border shadow-xl space-y-4 ${
-              isDark
-                ? 'bg-gradient-to-br from-slate-900 via-slate-900/90 to-indigo-950/40 border-amber-500/25 shadow-amber-950/20'
-                : 'bg-white border-amber-200 shadow-amber-100/40'
-            }`}>
-              <div className={`flex items-center justify-between pb-3 border-b ${
-                isDark ? 'border-slate-800' : 'border-slate-100'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <Coins size={18} className="text-amber-500" />
-                  <span className="text-xs font-black uppercase tracking-wider text-amber-500">
-                    {isHindi ? 'ZYVRA कॉइन्स व रिवॉर्ड्स' : 'Coin Rewards & Free Unlocks'}
-                  </span>
-                </div>
-                <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-bold text-[10px]">
-                  {isHindi ? '100% फ्री कमाई' : 'Earn as You Learn'}
-                </span>
-              </div>
-              <p className={`text-xs leading-relaxed font-medium ${isDark ? 'text-slate-200' : 'text-slate-600'}`}>
+              <h1 className={`text-3xl sm:text-5xl font-extrabold tracking-tight leading-[1.14] ${headingText}`}>
                 {isHindi
-                  ? 'रोज़ाना टेस्ट पूरा करने और दोस्तों को रेफर करने पर ZYVRA कॉइन्स पाएं। इन कॉइन्स को सीधे चेकआउट पर भुनाकर पेड टेस्ट सीरीज और चैप्टर्स को मुफ़्त में अनलॉक करें।'
-                  : 'Earn coins through daily test completion, maintaining revision streaks, and sharing referral links. Redeem coins at checkout to unlock paid content for free.'}
+                  ? 'असली परीक्षा जैसा अभ्यास, सीधे अध्याय के अनुसार।'
+                  : 'Practice every NCERT chapter like a real exam.'}
+              </h1>
+
+              <p className={`text-base sm:text-lg leading-relaxed max-w-xl ${bodyText}`}>
+                {isHindi
+                  ? 'द्विभाषी हिंदी-अंग्रेजी प्रश्न, प्रैक्टिस मोड में तुरंत समाधान, सिलेबस ट्रैकर और मिस्टेक नोटबुक — बिना किसी अनावश्यक शोर के।'
+                  : 'Bilingual English and Hindi questions, instant Practice Mode checks, a chapter-by-chapter Syllabus Tracker, and a Mistake Notebook in one distraction-free workspace.'}
               </p>
-              <div className={`flex items-center gap-3 p-3.5 rounded-xl border text-xs ${
-                isDark ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50 border-slate-200'
-              }`}>
-                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 font-bold">
-                  🪙
-                </div>
-                <div className="flex-1">
-                  <div className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>Daily Streak Bonus</div>
-                  <div className={`text-[10px] font-medium ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>+50 Coins per completed test session</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* FAQ SECTION */}
-      <section id="faq" className={`py-20 border-t transition-colors ${
-        isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-100/60 border-slate-200'
-      }`}>
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
-          <div className="text-center space-y-3">
-            <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full ${
-              isDark ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300' : 'bg-indigo-50 border border-indigo-200 text-indigo-700'
-            }`}>
-              FAQ
-            </span>
-            <h2 className={`text-3xl sm:text-4xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>
-              {isHindi ? 'अक्सर पूछे जाने वाले सवाल' : 'Frequently Asked Questions'}
-            </h2>
-          </div>
-
-          <div className="space-y-3">
-            {faqs.map((faq, index) => {
-              const isOpen = activeFaq === index;
-              return (
-                <div
-                  key={index}
-                  className={`rounded-2xl border overflow-hidden transition-colors ${
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-1">
+                <Link
+                  to={user ? '/home' : '/auth?mode=signup'}
+                  className="min-h-[48px] px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold inline-flex items-center justify-center gap-2 shadow-sm transition-all duration-150 hover:-translate-y-0.5"
+                >
+                  <span>{user ? (isHindi ? 'डैशबोर्ड खोलें' : 'Go to Dashboard') : primaryCtaLabel}</span>
+                  <ArrowRight size={16} />
+                </Link>
+                <Link
+                  to="/explore/ncert"
+                  className={`min-h-[48px] px-5 rounded-xl border text-sm font-semibold inline-flex items-center justify-center transition-colors ${
                     isDark
-                      ? 'border-slate-800 bg-slate-900/60 hover:border-slate-700'
-                      : 'border-slate-200 bg-white hover:border-slate-300 shadow-sm'
+                      ? 'border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
+                      : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50'
                   }`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setActiveFaq(isOpen ? -1 : index)}
-                    className={`w-full text-left p-4 sm:p-5 flex items-center justify-between gap-4 font-bold text-sm sm:text-base ${
-                      isDark ? 'text-white' : 'text-slate-900'
+                  {secondaryCtaLabel}
+                </Link>
+              </div>
+
+              {/* Honest Verifiable Facts Strip */}
+              <div className={`pt-4 border-t grid grid-cols-3 gap-3 sm:gap-6 ${isDark ? 'border-slate-800/80' : 'border-slate-200'}`}>
+                <div>
+                  <div className={`text-lg sm:text-xl font-bold ${headingText}`}>4,000+</div>
+                  <div className={`text-xs ${mutedText}`}>
+                    {isHindi ? 'द्विभाषी प्रश्न' : 'Bilingual Questions'}
+                  </div>
+                </div>
+                <div>
+                  <div className={`text-lg sm:text-xl font-bold ${headingText}`}>{catalog.chaptersCount}</div>
+                  <div className={`text-xs ${mutedText}`}>
+                    {isHindi ? 'एनसीईआरटी अध्याय' : 'Published Chapters'}
+                  </div>
+                </div>
+                <div>
+                  <div className={`text-lg sm:text-xl font-bold ${headingText}`}>{catalog.testsCount}</div>
+                  <div className={`text-xs ${mutedText}`}>
+                    {isHindi ? 'मॉक व अभ्यास सेट' : 'Chapter Tests'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Real Interactive Quiz Card Preview */}
+            <div className="lg:col-span-6 landing-hero-enter">
+              <HeroMotionGraphic isDark={isDark} isHindi={isHindi} />
+            </div>
+          </div>
+        </section>
+
+        {/* Live Exam Catalog & Transparent Pricing */}
+        <section id="exams" className={`py-14 sm:py-18 border-t ${isDark ? 'border-slate-800/70' : 'border-slate-200/80'}`}>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8 landing-reveal">
+            <div className="max-w-2xl space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                {isHindi ? 'कोर्स और मूल्य' : 'Exam Series & Pricing'}
+              </p>
+              <h2 className={`text-2xl sm:text-3xl font-bold tracking-tight ${headingText}`}>
+                {isHindi ? 'स्पष्ट पाठ्यक्रम और पारदर्शी शुल्क' : 'Live catalog with transparent pricing'}
+              </h2>
+              <p className={`text-sm sm:text-base ${bodyText}`}>
+                {isHindi
+                  ? 'निःशुल्क सैंपल टेस्ट से शुरुआत करें। केवल वही मॉड्यूल अनलॉक करें जिनकी आपको आवश्यकता है।'
+                  : 'Start with free sample chapter tests. Only published series show live prices and counts; upcoming tracks are marked clearly.'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              {/* Live Exam 1: NCERT Foundation */}
+              <div className={`rounded-2xl border p-6 flex flex-col justify-between gap-5 ${surfaceBg}`}>
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800">
+                        {isHindi ? 'लाइव · कक्षा 6–12' : 'Live · Class 6–12'}
+                      </span>
+                      <h3 className={`mt-2 text-lg font-bold ${headingText}`}>
+                        {isHindi ? 'NCERT संपूर्ण टेस्ट सीरीज़' : 'NCERT Foundation Series'}
+                      </h3>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className={`text-xl font-extrabold ${headingText}`}>₹{catalog.ncertPrice}</div>
+                      <div className={`text-[11px] ${mutedText}`}>{isHindi ? 'एकमुश्त' : 'Full series'}</div>
+                    </div>
+                  </div>
+                  <p className={`text-sm leading-relaxed ${bodyText}`}>
+                    {isHindi
+                      ? 'इतिहास, भूगोल, राजव्यवस्था, अर्थशास्त्र और विज्ञान के अध्याय-वार द्विभाषी प्रश्न व व्याख्या।'
+                      : 'Complete chapter-wise NCERT question bank across History, Geography, Polity, Economy, and Science with bilingual explanations.'}
+                  </p>
+                  <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium ${mutedText}`}>
+                    <span>{catalog.chaptersCount} {isHindi ? 'अध्याय' : 'Chapters'}</span>
+                    <span>•</span>
+                    <span>{catalog.testsCount} {isHindi ? 'टेस्ट' : 'Tests'}</span>
+                    <span>•</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                      {catalog.freeTestsCount} {isHindi ? 'निःशुल्क सैंपल' : 'Free Samples'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <Link
+                    to="/explore/ncert"
+                    className="min-h-[44px] px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
+                  >
+                    <span>{isHindi ? 'NCERT सिलेबस देखें' : 'Open NCERT Series'}</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                  <Link
+                    to="/syllabus/ncert"
+                    className={`min-h-[44px] px-3.5 rounded-xl border text-xs font-semibold inline-flex items-center transition-colors ${
+                      isDark ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-200 text-slate-700 hover:bg-slate-50'
                     }`}
                   >
-                    <span>{isHindi ? faq.qHi : faq.qEn}</span>
-                    <ChevronDown
-                      size={18}
-                      className={`shrink-0 transition-transform ${
-                        isOpen ? 'rotate-180 text-indigo-500' : isDark ? 'text-slate-400' : 'text-slate-500'
-                      }`}
-                    />
-                  </button>
-                  {isOpen && (
-                    <div className={`px-4 pb-5 sm:px-5 text-xs sm:text-sm leading-relaxed border-t pt-3 font-medium ${
-                      isDark ? 'border-slate-800 text-slate-200' : 'border-slate-100 text-slate-600'
-                    }`}>
-                      {isHindi ? faq.aHi : faq.aEn}
-                    </div>
-                  )}
+                    {isHindi ? 'सिलेबस ट्रैकर' : 'View Syllabus'}
+                  </Link>
                 </div>
-              );
-            })}
+              </div>
+
+              {/* Live Plan 2: All-Access Full Pass */}
+              <div className={`rounded-2xl border p-6 flex flex-col justify-between gap-5 ${surfaceBg} ${isDark ? 'ring-1 ring-indigo-500/30' : 'ring-1 ring-indigo-600/15'}`}>
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800">
+                        {isHindi ? `${catalog.fullPassDays} दिन वैधता` : `${catalog.fullPassDays}-Day Access`}
+                      </span>
+                      <h3 className={`mt-2 text-lg font-bold ${headingText}`}>
+                        {isHindi ? 'ऑल-एक्सेस फुल पास' : 'All-Access Full Pass'}
+                      </h3>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className={`text-xl font-extrabold ${headingText}`}>₹{catalog.fullPassPrice}</div>
+                      <div className={`text-[11px] ${mutedText}`}>/ {catalog.fullPassDays} {isHindi ? 'दिन' : 'days'}</div>
+                    </div>
+                  </div>
+                  <p className={`text-sm leading-relaxed ${bodyText}`}>
+                    {isHindi
+                      ? `सभी लाइव टेस्ट सीरीज़ और ${catalog.toolsCount} स्टडी टूल्स (पॉलिटी अनुच्छेद, फॉर्मूला शीट, फ्लैशकार्ड, मिस्टेक नोटबुक व मैप एक्सप्लोरर) का पूरा एक्सेस।`
+                      : `Unlocks every live test series plus all ${catalog.toolsCount} built-in Study Toolbox utilities including Polity Articles, Formula Sheet, Flashcards, and Geo Map Explorer.`}
+                  </p>
+                  <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-medium ${mutedText}`}>
+                    <span>{isHindi ? 'सभी लाइव परीक्षाएँ' : 'All Live Exams'}</span>
+                    <span>•</span>
+                    <span>{catalog.toolsCount} {isHindi ? 'स्टडी टूल्स' : 'Pro Study Tools'}</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                  <Link
+                    to="/explore"
+                    className={`min-h-[44px] px-4 rounded-xl border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors ${
+                      isDark
+                        ? 'border-indigo-500/50 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20'
+                        : 'border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+                    }`}
+                  >
+                    <span>{isHindi ? 'प्लान व सभी कोर्स देखें' : 'View Plans & Catalog'}</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Upcoming Exam 3: BPSC CCE (Honest Coming Soon - archived in DB) */}
+              <div className={`rounded-2xl border p-6 flex flex-col justify-between gap-4 ${surfaceBg}`}>
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className={`text-base font-bold ${headingText}`}>
+                      {isHindi ? 'BPSC CCE प्रीलिम्स सीरीज़' : 'BPSC CCE Prelims Series'}
+                    </h3>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+                      isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'
+                    }`}>
+                      {isHindi ? 'जल्द आ रहा है' : 'Coming Soon'}
+                    </span>
+                  </div>
+                  <p className={`text-sm leading-relaxed ${bodyText}`}>
+                    {isHindi
+                      ? 'BPSC 5-विकल्प व बिहार-विशेष प्रश्नों की सीरीज़ तैयार की जा रही है। तब तक NCERT GS से अपनी नींव मज़बूत करें।'
+                      : 'Dedicated 5-option and Bihar-special mock tests are under preparation. Build your core GS foundation with the live NCERT series in the meantime.'}
+                  </p>
+                </div>
+                <div>
+                  <Link
+                    to="/explore/ncert"
+                    className={`inline-flex items-center gap-1.5 min-h-[44px] text-xs font-semibold ${
+                      isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'
+                    }`}
+                  >
+                    <span>{isHindi ? 'निःशुल्क NCERT सैंपल आज़माएँ' : 'Try free NCERT sample meanwhile'}</span>
+                    <ArrowRight size={13} />
+                  </Link>
+                </div>
+              </div>
+
+              {/* Upcoming Exam 4: SSC CGL / CHSL (Honest Coming Soon - archived in DB) */}
+              <div className={`rounded-2xl border p-6 flex flex-col justify-between gap-4 ${surfaceBg}`}>
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className={`text-base font-bold ${headingText}`}>
+                      {isHindi ? 'SSC CGL / CHSL सीरीज़' : 'SSC CGL / CHSL Series'}
+                    </h3>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${
+                      isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-600'
+                    }`}>
+                      {isHindi ? 'जल्द आ रहा है' : 'Coming Soon'}
+                    </span>
+                  </div>
+                  <p className={`text-sm leading-relaxed ${bodyText}`}>
+                    {isHindi
+                      ? 'SSC टियर-1 व टियर-2 के अनुभागीय अभ्यास सेट निर्माणाधीन हैं। अभी आप NCERT विज्ञान, इतिहास और राजव्यवस्था का अभ्यास कर सकते हैं।'
+                      : 'Sectional practice sets for SSC Tier 1 & Tier 2 are in development. Start practicing general awareness right away through NCERT Science, Polity, and History.'}
+                  </p>
+                </div>
+                <div>
+                  <Link
+                    to="/explore"
+                    className={`inline-flex items-center gap-1.5 min-h-[44px] text-xs font-semibold ${
+                      isDark ? 'text-indigo-400 hover:text-indigo-300' : 'text-indigo-600 hover:text-indigo-700'
+                    }`}
+                  >
+                    <span>{isHindi ? 'उपलब्ध टेस्ट देखें' : 'Browse available tests'}</span>
+                    <ArrowRight size={13} />
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Core Features (Clean 3 Cards) */}
+        <section id="features" className={`py-14 sm:py-18 border-t ${isDark ? 'border-slate-800/70' : 'border-slate-200/80'}`}>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 space-y-8 landing-reveal">
+            <div className="max-w-2xl space-y-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                {isHindi ? 'प्लेटफ़ॉर्म की विशेषताएँ' : 'Built for Focus'}
+              </p>
+              <h2 className={`text-2xl sm:text-3xl font-bold tracking-tight ${headingText}`}>
+                {isHindi ? 'गंभीर अभ्यास के लिए आवश्यक हर सुविधा' : 'Everything needed for disciplined practice'}
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {features.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div key={item.titleEn} className={`rounded-2xl border p-6 space-y-3 ${surfaceBg}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      isDark ? 'bg-indigo-500/15 text-indigo-300' : 'bg-indigo-50 text-indigo-600'
+                    }`}>
+                      <Icon size={20} />
+                    </div>
+                    <h3 className={`text-base font-bold ${headingText}`}>
+                      {isHindi ? item.titleHi : item.titleEn}
+                    </h3>
+                    <p className={`text-sm leading-relaxed ${bodyText}`}>
+                      {isHindi ? item.descHi : item.descEn}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* About & Direct Support Section */}
+        <section id="about" className={`py-14 sm:py-16 border-t ${isDark ? 'border-slate-800/70' : 'border-slate-200/80'}`}>
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 landing-reveal">
+            <div className={`rounded-2xl sm:rounded-3xl border p-6 sm:p-8 grid grid-cols-1 md:grid-cols-12 gap-6 items-center ${surfaceBg}`}>
+              <div className="md:col-span-8 space-y-2.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                  {isHindi ? 'ZYVRA के बारे में' : 'About ZYVRA'}
+                </p>
+                <h2 className={`text-xl sm:text-2xl font-bold ${headingText}`}>
+                  {isHindi
+                    ? 'अभ्यर्थियों के लिए साफ़, सटीक और भरोसेमंद अभ्यास मंच'
+                    : 'A straightforward exam practice workspace built around NCERT & state PSC rigor.'}
+                </h2>
+                <p className={`text-sm leading-relaxed ${bodyText}`}>
+                  {isHindi
+                    ? 'ZYVRA को इस उद्देश्य से बनाया गया है कि छात्र बिना किसी सोशल फीड या झूठे दावों के, अध्याय-वार प्रश्न हल कर सकें, अपनी कमजोरियाँ पहचान सकें और परीक्षा कक्ष के वास्तविक माहौल में अभ्यास कर सकें।'
+                    : 'ZYVRA focuses on analytical statement questions, authentic Hindi-English terminology, and measurable chapter progress instead of noisy feeds or inflated numbers. Every unlocked module includes dual-device sync and clear explanations.'}
+                </p>
+              </div>
+              <div className="md:col-span-4 space-y-3 md:border-l md:pl-6 border-slate-200 dark:border-slate-800">
+                <div className="flex items-start gap-2.5 text-sm">
+                  <CheckCircle2 size={17} className="text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                  <span className={bodyText}>
+                    {isHindi ? 'सीधी सहायता और फीडबैक:' : 'Questions or billing support:'}
+                  </span>
+                </div>
+                <a
+                  href="mailto:zyvra.education@gmail.com"
+                  className={`min-h-[44px] px-4 rounded-xl border text-xs sm:text-sm font-semibold inline-flex items-center gap-2 transition-colors ${
+                    isDark
+                      ? 'border-slate-700 bg-slate-800/60 text-slate-100 hover:border-indigo-500/60'
+                      : 'border-slate-200 bg-slate-50 text-slate-900 hover:border-indigo-300'
+                  }`}
+                >
+                  <Mail size={15} className="text-indigo-600 dark:text-indigo-400 shrink-0" />
+                  <span>zyvra.education@gmail.com</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ Accordion */}
+        <section id="faq" className={`py-14 sm:py-16 border-t ${isDark ? 'border-slate-800/70' : 'border-slate-200/80'}`}>
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 space-y-6 landing-reveal">
+            <div className="space-y-1.5">
+              <p className="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                FAQ
+              </p>
+              <h2 className={`text-2xl sm:text-3xl font-bold tracking-tight ${headingText}`}>
+                {isHindi ? 'अक्सर पूछे जाने वाले प्रश्न' : 'Frequently Asked Questions'}
+              </h2>
+            </div>
+
+            <div className="space-y-2.5">
+              {faqs.map((faq, idx) => {
+                const open = activeFaq === idx;
+                return (
+                  <div key={faq.qEn} className={`rounded-2xl border overflow-hidden ${surfaceBg}`}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveFaq(open ? -1 : idx)}
+                      aria-expanded={open}
+                      className="w-full min-h-[52px] px-5 py-3.5 text-left flex items-center justify-between gap-4"
+                    >
+                      <span className={`text-sm font-semibold ${headingText}`}>
+                        {isHindi ? faq.qHi : faq.qEn}
+                      </span>
+                      <ChevronDown
+                        size={17}
+                        className={`shrink-0 transition-transform duration-200 ${mutedText} ${open ? 'rotate-180 text-indigo-600 dark:text-indigo-400' : ''}`}
+                      />
+                    </button>
+                    {open && (
+                      <div className={`px-5 pb-4 pt-1 text-sm leading-relaxed border-t ${isDark ? 'border-slate-800/80' : 'border-slate-100'} ${bodyText}`}>
+                        {isHindi ? faq.aHi : faq.aEn}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Simple Closing Action Band */}
+        <section className={`py-12 border-t ${isDark ? 'border-slate-800/70' : 'border-slate-200/80'}`}>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center space-y-4 landing-reveal">
+            <h2 className={`text-2xl sm:text-3xl font-bold tracking-tight ${headingText}`}>
+              {isHindi ? 'अपना पहला अध्याय टेस्ट अभी शुरू करें।' : 'Start your first chapter test today.'}
+            </h2>
+            <p className={`text-sm sm:text-base max-w-xl mx-auto ${bodyText}`}>
+              {isHindi
+                ? `${catalog.freeTestsCount} निःशुल्क सैंपल टेस्ट उपलब्ध हैं। एक मिनट में खाता बनाएँ और तुरंत अभ्यास शुरू करें।`
+                : `Begin with ${catalog.freeTestsCount} free sample tests from the NCERT series and track your chapter accuracy as you practice.`}
+            </p>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 pt-1">
+              <Link
+                to={user ? '/home' : '/auth?mode=signup'}
+                className="min-h-[48px] px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold inline-flex items-center justify-center gap-2 transition-colors shadow-sm"
+              >
+                <span>{user ? (isHindi ? 'डैशबोर्ड खोलें' : 'Go to Dashboard') : primaryCtaLabel}</span>
+                <ArrowRight size={16} />
+              </Link>
+              <Link
+                to="/explore/ncert"
+                className={`min-h-[48px] px-5 rounded-xl border text-sm font-semibold inline-flex items-center justify-center transition-colors ${
+                  isDark
+                    ? 'border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-800'
+                    : 'border-slate-300 bg-white text-slate-800 hover:bg-slate-50'
+                }`}
+              >
+                {secondaryCtaLabel}
+              </Link>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Complete Footer: About, Contact, Legal, Platform */}
+      <footer className={`border-t py-10 text-xs ${isDark ? 'border-slate-800 bg-[#070B14] text-slate-400' : 'border-slate-200 bg-white text-slate-600'}`}>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pb-8 border-b border-slate-200 dark:border-slate-800">
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2">
+              <img src="/logo-192.png" alt="ZYVRA" className="w-7 h-7 rounded-lg object-contain" />
+              <span className={`text-sm font-bold ${headingText}`}>ZYVRA</span>
+            </div>
+            <p className="leading-relaxed">
+              {isHindi
+                ? 'एनसीईआरटी व प्रतियोगी परीक्षाओं के लिए स्वच्छ, द्विभाषी कंप्यूटर-आधारित अभ्यास मंच।'
+                : 'Clean, bilingual chapter-wise CBT exam preparation for NCERT and competitive exams.'}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className={`text-xs font-bold uppercase tracking-wider ${headingText}`}>
+              {isHindi ? 'प्लेटफ़ॉर्म' : 'Platform'}
+            </h3>
+            <ul className="space-y-1.5">
+              <li><Link to="/explore/ncert" className="inline-flex items-center min-h-[36px] hover:underline">{isHindi ? 'NCERT सीरीज़' : 'NCERT Series'}</Link></li>
+              <li><Link to="/explore" className="inline-flex items-center min-h-[36px] hover:underline">{isHindi ? 'सभी परीक्षाएँ' : 'All Exams & Plans'}</Link></li>
+              <li><Link to="/syllabus" className="inline-flex items-center min-h-[36px] hover:underline">{isHindi ? 'सिलेबस ट्रैकर' : 'Syllabus Tracker'}</Link></li>
+              <li><Link to="/auth?mode=signin" className="inline-flex items-center min-h-[36px] hover:underline">{isHindi ? 'साइन इन' : 'Sign In'}</Link></li>
+            </ul>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className={`text-xs font-bold uppercase tracking-wider ${headingText}`}>
+              {isHindi ? 'कंपनी व सहायता' : 'About & Contact'}
+            </h3>
+            <ul className="space-y-1.5">
+              <li><a href="#about" className="inline-flex items-center min-h-[36px] hover:underline">{isHindi ? 'हमारे बारे में' : 'About ZYVRA'}</a></li>
+              <li><a href="#faq" className="inline-flex items-center min-h-[36px] hover:underline">{isHindi ? 'सवाल-जवाब' : 'FAQ'}</a></li>
+              <li>
+                <a href="mailto:zyvra.education@gmail.com" className="inline-flex items-center gap-1.5 min-h-[36px] font-medium hover:underline">
+                  <Mail size={13} className="shrink-0" />
+                  <span>zyvra.education@gmail.com</span>
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          <div className="space-y-2">
+            <h3 className={`text-xs font-bold uppercase tracking-wider ${headingText}`}>
+              {isHindi ? 'नीतियाँ' : 'Legal'}
+            </h3>
+            <ul className="space-y-1.5">
+              <li><Link to="/privacy" className="inline-flex items-center min-h-[36px] hover:underline">{isHindi ? 'गोपनीयता नीति' : 'Privacy Policy'}</Link></li>
+              <li><Link to="/terms" className="inline-flex items-center min-h-[36px] hover:underline">{isHindi ? 'सेवा की शर्तें' : 'Terms of Service'}</Link></li>
+              <li><Link to="/refunds" className="inline-flex items-center min-h-[36px] hover:underline">{isHindi ? 'रिफंड नीति' : 'Refund Policy'}</Link></li>
+            </ul>
           </div>
         </div>
-      </section>
 
-      {/* FINAL HIGH-CONVERTING CTA BANNER */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
-        <div className={`relative rounded-3xl p-8 sm:p-12 overflow-hidden border shadow-2xl space-y-6 ${
-          isDark
-            ? 'bg-gradient-to-r from-indigo-950 via-slate-900 to-emerald-950/80 border-indigo-500/40 shadow-indigo-950/60 text-white'
-            : 'bg-gradient-to-r from-indigo-50 via-white to-emerald-50 border-indigo-200 shadow-indigo-100 text-slate-900'
-        }`}>
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-500 text-xs font-bold">
-            <Sparkles size={13} />
-            <span>{isHindi ? 'अपनी तैयारी को टॉप रैंक में बदलें' : 'Accelerate Your Exam Preparation'}</span>
-          </div>
-
-          <h2 className="text-3xl sm:text-5xl font-black max-w-2xl mx-auto leading-tight">
-            {isHindi
-              ? 'सपनों की सरकारी नौकरी के लिए आज ही शुरू करें।'
-              : 'Join Thousands of Serious Aspirants on ZYVRA.'}
-          </h2>
-
-          <p className={`text-sm sm:text-base max-w-xl mx-auto font-medium ${
-            isDark ? 'text-slate-200' : 'text-slate-600'
-          }`}>
-            {isHindi
-              ? 'बिना किसी रुकावट के मुफ़्त टेस्ट दें, अपनी कमज़ोरियों को पहचानें और वास्तविक CBT परीक्षा का अनुभव लें।'
-              : 'Experience official-grade mock tests, get instant diagnostic scorecards, and study with complete focus.'}
-          </p>
-
-          <div className="pt-2">
-            <Link
-              to={user ? '/home' : '/auth?mode=signup'}
-              className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-base shadow-xl shadow-indigo-600/25 transition-all active:scale-95 min-h-[48px]"
-            >
-              <span>{user ? (isHindi ? 'डैशबोर्ड पर जाएं' : 'Open Dashboard') : (isHindi ? 'निःशुल्क अकाउंट बनाएं (30 सेकंड)' : 'Create Free Account (30s)')}</span>
-              <ArrowRight size={18} />
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* FOOTER */}
-      <footer className={`border-t py-12 text-xs transition-colors ${
-        isDark ? 'border-slate-800 bg-[#070B14] text-slate-400' : 'border-slate-200 bg-white text-slate-600'
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="ZYVRA" className="w-6 h-6 object-contain" />
-            <span className={`font-black tracking-wider text-sm ${isDark ? 'text-white' : 'text-slate-900'}`}>ZYVRA</span>
-            <span className={isDark ? 'text-slate-700' : 'text-slate-300'}>|</span>
-            <span className="font-medium">© {new Date().getFullYear()} ZYVRA Prep. All rights reserved.</span>
-          </div>
-
-          <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3 font-semibold text-xs sm:text-sm">
-            <Link to="/explore" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>{isHindi ? 'परीक्षाएं' : 'Exams'}</Link>
-            <Link to="/tests" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>{isHindi ? 'टेस्ट हब' : 'Tests'}</Link>
-            <Link to="/toolbox" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>{isHindi ? 'टूलबॉक्स' : 'Toolbox'}</Link>
-            <Link to="/privacy" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>Privacy</Link>
-            <Link to="/terms" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>Terms</Link>
-            <Link to="/refunds" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>Refunds</Link>
-            <Link to="/auth?mode=signin" className={`min-h-[44px] flex items-center px-2.5 py-1.5 rounded-lg transition-colors ${isDark ? 'hover:text-white hover:bg-slate-800/60' : 'hover:text-indigo-600 hover:bg-slate-100'}`}>{isHindi ? 'लॉगिन' : 'Sign In'}</Link>
-          </div>
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+          <p>© {new Date().getFullYear()} ZYVRA Learning Platform.</p>
+          <p>{isHindi ? 'संपर्क: zyvra.education@gmail.com' : 'Contact: zyvra.education@gmail.com'}</p>
         </div>
       </footer>
     </div>
