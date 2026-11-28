@@ -2,8 +2,8 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Binary, Bookmark, BookOpen, Brain, Calculator, Calendar, CalendarDays, ChevronRight,
-  Clock, Clock3, Compass, Dices, Heart, Landmark, ListChecks, LockKeyhole, MapPin, Percent, Search,
-  Scale, Shapes, Sigma, Sparkles, StickyNote, Superscript, Target, TrendingUp, Wrench, Zap
+  Clock, Clock3, Compass, Dices, Heart, Landmark, ListChecks, LockKeyhole, MapPin, Search,
+  Scale, Shapes, Sigma, Sparkles, StickyNote, Target, Wrench, Zap
 } from 'lucide-react';
 import CheckoutModal from '../../components/common/CheckoutModal';
 import useModalBack from '../../hooks/useModalBack';
@@ -37,7 +37,6 @@ import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { supabase } from '../../lib/supabase';
 import { normalizeAccessResult } from '../../lib/commerce';
 import { getFriendlyErrorMessage } from '../../lib/errors';
-import { readMistakesLocal } from '../../lib/studentToolbox';
 import useStudentToolboxData from '../../hooks/useStudentToolboxData';
 import { recordStudyActivity } from '../../lib/streak';
 
@@ -51,14 +50,10 @@ const CATEGORY_CONFIG = [
 
 const CATEGORY_TOOLS = {
   math: [
-    { id: 'speed-math-tricks', titleKey: 'tbSpeedMath', subtitleKey: 'tbSpeedMathDesc', Icon: Zap, accessKey: 'math-shortcuts' },
     { id: 'calculator', titleKey: 'tbCalculator', subtitleKey: 'tbCalculatorDesc', Icon: Calculator, accessKey: null, isFree: true },
-    { id: 'fraction-converter', titleKey: 'tbFraction', subtitleKey: 'tbFractionDesc', Icon: Percent, accessKey: null, isFree: true },
-    { id: 'powers-roots', titleKey: 'tbSquares', subtitleKey: 'tbSquaresDesc', Icon: Superscript, accessKey: null, isFree: true },
+    { id: 'speed-math-tricks', titleKey: 'tbSpeedMath', subtitleKey: 'tbSpeedMathDesc', Icon: Zap, accessKey: 'math-shortcuts' },
     { id: 'geometry-formulas', titleKey: 'tbMathFormulas', subtitleKey: 'tbMathFormulasDesc', Icon: Shapes, accessKey: 'math-shortcuts' },
-    { id: 'unit-converter', titleKey: 'tbUnitConverter', subtitleKey: 'tbUnitConverterDesc', Icon: Scale, accessKey: null, isFree: true },
-    { id: 'profit-loss', titleKey: 'tbProfitLoss', subtitleKey: 'tbProfitLossDesc', Icon: TrendingUp, accessKey: 'math-shortcuts' },
-    { id: 'interest-calculator', titleKey: 'tbInterest', subtitleKey: 'tbInterestDesc', Icon: Percent, accessKey: 'math-shortcuts' }
+    { id: 'unit-converter', titleKey: 'tbUnitConverter', subtitleKey: 'tbUnitConverterDesc', Icon: Scale, accessKey: null, isFree: true }
   ],
   reasoning: [
     { id: 'clock-mirror', titleKey: 'tbClockMirror', subtitleKey: 'tbClockMirrorDesc', Icon: Clock, accessKey: 'formula-sheet' },
@@ -70,7 +65,6 @@ const CATEGORY_TOOLS = {
     { id: 'reasoning-formulas', titleKey: 'tbReasoningFormulas', subtitleKey: 'tbReasoningFormulasDesc', Icon: Sigma, accessKey: 'formula-sheet' }
   ],
   productivity: [
-    { id: 'zyvra-ai-guru', titleKey: 'tbAiGuru', subtitleKey: 'tbAiGuruDesc', Icon: Sparkles, accessKey: null, isFree: true },
     { id: 'risk-simulator', titleKey: 'tbRiskSimulator', subtitleKey: 'tbRiskSimulatorDesc', Icon: Target, accessKey: null, isFree: true },
     { id: 'pomodoro', titleKey: 'tbPomodoro', subtitleKey: 'tbPomodoroDesc', Icon: Clock3, accessKey: null, isFree: true },
     { id: 'sticky-notes', titleKey: 'tbStickyNotes', subtitleKey: 'tbStickyNotesDesc', Icon: StickyNote, accessKey: null, isFree: true },
@@ -79,8 +73,7 @@ const CATEGORY_TOOLS = {
   ],
   'general-studies': [
     { id: 'geo-map-explorer', titleKey: 'tbGeoMap', subtitleKey: 'tbGeoMapDesc', Icon: MapPin, accessKey: 'polity-articles' },
-    { id: 'constitution-articles', titleKey: 'tbConstitution', subtitleKey: 'tbConstitutionDesc', Icon: Landmark, accessKey: 'polity-articles' },
-    { id: 'saved-bookmarks', titleKey: 'tbBookmarks', subtitleKey: 'tbBookmarksDesc', Icon: Bookmark, accessKey: null, isFree: true }
+    { id: 'constitution-articles', titleKey: 'tbConstitution', subtitleKey: 'tbConstitutionDesc', Icon: Landmark, accessKey: 'polity-articles' }
   ],
   revision: [
     { id: 'flashcards', titleKey: 'tbFlashcards', subtitleKey: 'tbFlashcardsDesc', Icon: BookOpen, accessKey: 'flashcards', isFreemium: true },
@@ -125,6 +118,8 @@ export default function StudentToolbox() {
   const [activeTool, setActiveTool] = useState(null);
   const [unlockTool, setUnlockTool] = useState(null);
   const [pomodoro, setPomodoro, pomodoroSyncState] = useStudentToolboxData('pomodoro', POMODORO_DEFAULT);
+  const [userMistakes] = useStudentToolboxData('mistakes', []);
+  const [calcTab, setCalcTab] = useState('scientific');
   const [toolSearch, setToolSearch] = useState('');
   const [favorites, setFavorites] = useState(() => readToolList('zyvra-toolbox-favorites', user?.id));
   const [recentTools, setRecentTools] = useState(() => readToolList('zyvra-toolbox-recents', user?.id));
@@ -147,13 +142,6 @@ export default function StudentToolbox() {
     } catch { /* Keep the current session usable when storage is unavailable. */ }
   }, [favorites, recentTools, user?.id, preferenceOwner]);
   const todayDateStr = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
-  const [userMistakes, setUserMistakes] = useState(() => readMistakesLocal(user?.id));
-  useEffect(() => {
-    setUserMistakes(readMistakesLocal(user?.id));
-    const onMistakesChange = () => setUserMistakes(readMistakesLocal(user?.id));
-    window.addEventListener('zyvra:mistakes-updated', onMistakesChange);
-    return () => window.removeEventListener('zyvra:mistakes-updated', onMistakesChange);
-  }, [user?.id]);
   const dueMistakesCount = userMistakes.filter((m) => !m.nextReview || m.nextReview <= todayDateStr).length;
 
   useEffect(() => {
@@ -497,7 +485,42 @@ export default function StudentToolbox() {
 
   const renderActiveTool = () => {
     if (activeTool === 'speed-math-tricks') return <SpeedMathTricks />;
-    if (activeTool === 'calculator') return <SmartCalculator />;
+    if (activeTool === 'calculator') {
+      const calcTabs = [
+        { id: 'scientific', label: language === 'hi' ? 'कैलकुलेटर' : 'Calculator' },
+        { id: 'fraction', label: language === 'hi' ? 'भिन्न और %' : 'Fraction & %' },
+        { id: 'squares', label: language === 'hi' ? 'वर्ग / घन' : 'Squares & Cubes' },
+        { id: 'profit-loss', label: language === 'hi' ? 'लाभ और हानि' : 'Profit & Loss' },
+        { id: 'interest', label: language === 'hi' ? 'ब्याज (SI / CI)' : 'SI / CI Interest' }
+      ];
+      return (
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-1.5 p-1.5 rounded-2xl dark:bg-slate-900 bg-slate-100 border dark:border-slate-800 border-slate-200" role="tablist">
+            {calcTabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={calcTab === tab.id}
+                onClick={() => setCalcTab(tab.id)}
+                className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors min-h-[40px] ${
+                  calcTab === tab.id
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-slate-800'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          {calcTab === 'scientific' && <SmartCalculator />}
+          {calcTab === 'fraction' && <FractionConverter />}
+          {calcTab === 'squares' && <SquaresCubes />}
+          {calcTab === 'profit-loss' && <ProfitLossCalculator />}
+          {calcTab === 'interest' && <InterestCalculator />}
+        </div>
+      );
+    }
     if (activeTool === 'fraction-converter') return <FractionConverter />;
     if (activeTool === 'powers-roots') return <SquaresCubes />;
     if (activeTool === 'geometry-formulas') return <MathFormulaHub />;
@@ -664,11 +687,8 @@ export default function StudentToolbox() {
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  const aiTool = allTools.find((t) => t.id === 'zyvra-ai-guru');
-                  if (aiTool) openTool(aiTool);
-                }}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shrink-0 flex items-center justify-center gap-1.5 min-h-[40px] shadow-xs"
+                onClick={() => openTool({ id: 'zyvra-ai-guru', titleKey: 'tbAiGuru', accessKey: null, isFree: true })}
+                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs transition-colors shrink-0 flex items-center justify-center gap-1.5 min-h-[44px] shadow-xs"
               >
                 <Sparkles size={14} />
                 <span>{language === 'hi' ? 'सवाल पूछें' : 'Ask AI Guru'}</span>
@@ -798,6 +818,14 @@ export default function StudentToolbox() {
                             {locked ? (
                               <span className="px-2 py-0.5 rounded-md bg-amber-400/15 border border-amber-400/30 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
                                 🔒 ₹{getToolConfig(tool).price ?? 49}
+                              </span>
+                            ) : tool.isFreemium ? (
+                              <span className="px-2 py-0.5 rounded-md bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 text-[10px] font-bold">
+                                {language === 'hi' ? 'सीमित मुफ़्त' : 'Freemium'}
+                              </span>
+                            ) : (fullPassPricing?.included_tool_ids?.includes(tool.accessKey || tool.id) || getToolConfig(tool)?.access_type === 'premium') ? (
+                              <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 text-[10px] font-bold">
+                                {language === 'hi' ? 'पास' : 'Pass'}
                               </span>
                             ) : (
                               <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold">

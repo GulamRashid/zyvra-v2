@@ -82,8 +82,13 @@ export function computeChapterStatus({
   const completedPercents = completedAttempts
     .map(computeAttemptScorePercentage)
     .filter((v) => v !== null && Number.isFinite(v));
+  const allAttemptPercents = chapterAttempts
+    .map(computeAttemptScorePercentage)
+    .filter((v) => v !== null && Number.isFinite(v));
 
-  const bestScore = completedPercents.length > 0 ? Math.max(...completedPercents) : null;
+  const bestScore = completedPercents.length > 0
+    ? Math.max(...completedPercents)
+    : (chapterAttempts.length > 0 ? (allAttemptPercents.length > 0 ? Math.max(...allAttemptPercents) : 0) : null);
   const latestScore = completedAttempts.length > 0 ? computeAttemptScorePercentage(completedAttempts[0]) : null;
   const hasPassed = completedPercents.some((pct) => pct >= SYLLABUS_DONE_THRESHOLD);
   const mistakeCount = countChapterMistakes(chapter, validTests, mistakes, subjectTitle);

@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-import MountainSunsetAura from '../../components/common/MountainSunsetAura';
+import { formatMinutes, formatQuestions } from '../../lib/formatters';
 
 
 import { useAuth } from '../../context/AuthContext';
@@ -14,6 +14,33 @@ import useContentCatalog from '../../hooks/useContentCatalog';
 import { prefetchLiveQuiz } from '../../lib/prefetchLiveQuiz';
 import { getAnsweredQuestionCount } from '../../lib/tests';
 import { isPyqFolderOrTitle } from '../../lib/syllabusProgress';
+
+function normalizeSubjectFilterName(raw = '') {
+  const cleaned = String(raw || '')
+    .replace(/\bIndla\b/gi, 'India')
+    .replace(/\s*\([^)]*\)\s*/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned;
+}
+
+function getSubjectIcon(title = '') {
+  const t = String(title || '').toLowerCase();
+  if (t.includes('history') || t.includes('past') || t.includes('themes')) return '🏛️';
+  if (t.includes('geography') || t.includes('earth')) return '🌍';
+  if (t.includes('polity') || t.includes('civics') || t.includes('political') || t.includes('constitution')) return '⚖️';
+  if (t.includes('economics') || t.includes('economy')) return '📊';
+  if (t.includes('sociology')) return '👥';
+  if (t.includes('psychology')) return '🧠';
+  if (t.includes('social')) return '🗺️';
+  if (t.includes('physics')) return '⚛️';
+  if (t.includes('chemistry')) return '🧪';
+  if (t.includes('biology')) return '🧬';
+  if (t.includes('science')) return '🔬';
+  if (t.includes('math')) return '📐';
+  if (t.includes('english') || t.includes('hindi')) return '📖';
+  return '📚';
+}
 
 function isComplete(attempt) {
   const status = String(attempt?.status || '').toLowerCase();
@@ -87,26 +114,31 @@ export default function TestHub() {
 
   // Hierarchy Resolver for Chapter
   const getChapterHierarchy = useCallback((chapter) => {
-    if (!chapter) return { examId: null, classFolderId: null, examTitle: '', classTitle: '', subjectTitle: '', badge: '' };
+    if (!chapter) return { examId: null, classFolderId: null, examTitle: '', classTitle: '', subjectTitle: '', chapterTitle: '', badge: '' };
     const folder = folderById.get(chapter.folder_id);
-    if (!folder) return { examId: null, classFolderId: null, examTitle: '', classTitle: '', subjectTitle: chapter.subject || '', badge: '' };
+    if (!folder) return { examId: null, classFolderId: null, examTitle: '', classTitle: '', subjectTitle: chapter.subject || '', chapterTitle: chapter.title || '', badge: '' };
 
     const parent = (folder.parent_folder_id || folder.parent_id)
       ? folderById.get(folder.parent_folder_id || folder.parent_id)
       : null;
+    const rootParent = parent && (parent.parent_folder_id || parent.parent_id)
+      ? folderById.get(parent.parent_folder_id || parent.parent_id)
+      : null;
 
-    const examId = folder.exam_id || parent?.exam_id;
+    const examId = folder.exam_id || parent?.exam_id || rootParent?.exam_id;
     const exam = examId ? examById.get(examId) : null;
+    const classFolder = rootParent || parent;
 
-    if (parent) {
+    if (classFolder) {
       const examName = exam?.title || '';
-      const className = parent.title || '';
+      const className = classFolder.title || '';
       return {
         examId,
-        classFolderId: parent.id,
+        classFolderId: classFolder.id,
         examTitle: examName,
         classTitle: className,
         subjectTitle: folder.title || chapter.subject || '',
+        chapterTitle: chapter.title || '',
         badge: examName && className ? `${examName} • ${className}` : (examName || className)
       };
     }
@@ -119,13 +151,14 @@ export default function TestHub() {
       examTitle: examName,
       classTitle: className,
       subjectTitle: chapter.subject || '',
+      chapterTitle: chapter.title || '',
       badge: examName && className ? `${examName} • ${className}` : (examName || className)
     };
   }, [folderById, examById]);
 
   // Hierarchy Resolver for Test
   const getTestHierarchy = useCallback((test) => {
-    if (!test) return { badge: '', examId: null, classFolderId: null };
+    if (!test) return { badge: '', examId: null, classFolderId: null, subjectTitle: '', classTitle: '', chapterTitle: '' };
     if (test.chapter_id) {
       const ch = chapterById.get(test.chapter_id);
       if (ch) return getChapterHierarchy(ch);
@@ -143,6 +176,9 @@ export default function TestHub() {
         return {
           examId,
           classFolderId: parent?.id || folder.id,
+          classTitle: className,
+          subjectTitle: parent ? folder.title : '',
+          chapterTitle: '',
           badge: examName && className ? `${examName} • ${className}` : (examName || className)
         };
       }
@@ -151,10 +187,14 @@ export default function TestHub() {
       const exam = examById.get(test.exam_id);
       return {
         examId: test.exam_id,
+        classFolderId: null,
+        classTitle: '',
+        subjectTitle: '',
+        chapterTitle: '',
         badge: exam?.title || ''
       };
     }
-    return { badge: '', examId: null, classFolderId: null };
+    return { badge: '', examId: null, classFolderId: null, subjectTitle: '', classTitle: '', chapterTitle: '' };
   }, [chapterById, folderById, examById, getChapterHierarchy]);
 
 
@@ -251,22 +291,41 @@ export default function TestHub() {
     };
 
     const relevantFolders = folders.filter((sf) => {
+      // Exclude container folders (Classes / parent groupings) that only hold child folders and no direct chapters/tests
+      const hasChildren = folders.some((child) => (child.parent_folder_id || child.parent_id) === sf.id);
+      const hasDirectContent = chapters.some((c) => c.folder_id === sf.id) || tests.some((t) => t.folder_id === sf.id);
+      if (hasChildren && !hasDirectContent) return false;
+
+      const parent = (sf.parent_folder_id || sf.parent_id) ? folderById.get(sf.parent_folder_id || sf.parent_id) : null;
+      const rootParent = parent && (parent.parent_folder_id || parent.parent_id)
+        ? folderById.get(parent.parent_folder_id || parent.parent_id)
+        : null;
+
       if (selectedExamId !== 'all') {
-        const parent = (sf.parent_folder_id || sf.parent_id) ? folderById.get(sf.parent_folder_id || sf.parent_id) : null;
-        const examId = sf.exam_id || parent?.exam_id;
+        const examId = sf.exam_id || parent?.exam_id || rootParent?.exam_id;
         if (examId !== selectedExamId) return false;
       }
       if (selectedClassId !== 'all') {
-        const parentId = sf.parent_folder_id || sf.parent_id;
-        if (sf.id !== selectedClassId && parentId !== selectedClassId) return false;
+        const classFolder = rootParent || parent;
+        if (sf.id !== selectedClassId && classFolder?.id !== selectedClassId) return false;
       }
       return true;
     });
 
-    return relevantFolders.map((sf, idx) => {
+    return relevantFolders.map((sf) => {
       const parent = (sf.parent_folder_id || sf.parent_id) ? folderById.get(sf.parent_folder_id || sf.parent_id) : null;
-      const exam = sf.exam_id ? examById.get(sf.exam_id) : parent?.exam_id ? examById.get(parent.exam_id) : null;
-      const badge = parent ? `${exam?.title ? exam.title + ' • ' : ''}${parent.title}` : (exam?.title || '');
+      const rootParent = parent && (parent.parent_folder_id || parent.parent_id)
+        ? folderById.get(parent.parent_folder_id || parent.parent_id)
+        : null;
+      const classFolder = rootParent || parent;
+      const exam = sf.exam_id
+        ? examById.get(sf.exam_id)
+        : classFolder?.exam_id
+          ? examById.get(classFolder.exam_id)
+          : null;
+      const badge = classFolder
+        ? `${exam?.title ? `${exam.title} • ` : ''}${classFolder.title}`
+        : (exam?.title || '');
 
       const descendantIds = getDescendantIds(sf.id);
       const subjectChapters = chapters.filter((c) => descendantIds.has(c.folder_id));
@@ -276,22 +335,24 @@ export default function TestHub() {
       const qCount = subjectTests.reduce((sum, t) => sum + (questionCounts[t.id] ?? (Number(t.question_count) || 0)), 0)
         || subjectChapters.reduce((sum, c) => sum + (Number(c.question_count) || 0), 0);
 
-      // Solved questions by user in this subject
+      // Solved questions by user in this subject (unique questions per completed/best attempt capped by qCount)
       const solvedInSubject = userAttempts
         .filter((att) => subjectTests.some((t) => t.id === att.test_id))
         .reduce((sum, att) => sum + getAnsweredQuestionCount(att), 0);
 
-      const progress = qCount > 0 ? Math.min(100, Math.round((solvedInSubject / qCount) * 100)) : 0;
+      const rawProgress = qCount > 0 ? Math.min(100, (solvedInSubject / qCount) * 100) : 0;
+      const progress = rawProgress > 0 && rawProgress < 1 ? 1 : Math.round(rawProgress);
 
-      const uniqueTitle = parent && !String(sf.title || '').toLowerCase().includes(String(parent.title || '').toLowerCase())
-        ? `${sf.title} — ${parent.title}`
-        : sf.title;
+      const cleanTitle = String(sf.title || '').replace(/\bIndla\b/g, 'India');
+      const uniqueTitle = classFolder && !cleanTitle.toLowerCase().includes(String(classFolder.title || '').toLowerCase())
+        ? `${cleanTitle} — ${classFolder.title}`
+        : cleanTitle;
 
       return {
         id: sf.id,
         title: uniqueTitle,
         badge,
-        icon: idx === 0 ? '📖' : idx === 1 ? '📝' : '🔬',
+        icon: getSubjectIcon(cleanTitle),
         chaptersCount: subjectChapters.length,
         testsCount: subjectTests.length,
         questionsCount: qCount,
@@ -315,18 +376,23 @@ export default function TestHub() {
       .reduce((sum, a) => sum + getAnsweredQuestionCount(a), 0);
   }, [userAttempts]);
 
-  const aggregateProgressPct = totalQuestionsSum > 0
-    ? Math.min(100, Math.round((totalQuestionsSolved / totalQuestionsSum) * 100))
+  const rawAggregatePct = totalQuestionsSum > 0
+    ? Math.min(100, (totalQuestionsSolved / totalQuestionsSum) * 100)
     : 0;
+  const aggregateProgressPct = rawAggregatePct > 0 && rawAggregatePct < 1 ? 1 : Math.round(rawAggregatePct);
+  const aggregateProgressLabel = rawAggregatePct > 0 && rawAggregatePct < 1
+    ? `${rawAggregatePct.toFixed(1)}%`
+    : `${Math.round(rawAggregatePct)}%`;
 
-  // Unique subjects for Chapter Practice filter
+  // Unique canonical subjects for Chapter Practice filter
   const availableSubjects = useMemo(() => {
     const set = new Set();
     chapters.forEach((c) => {
       const h = getChapterHierarchy(c);
       if (selectedExamId !== 'all' && h.examId && h.examId !== selectedExamId) return;
       if (selectedClassId !== 'all' && h.classFolderId && h.classFolderId !== selectedClassId) return;
-      if (h.subjectTitle) set.add(h.subjectTitle);
+      const normalized = normalizeSubjectFilterName(h.subjectTitle);
+      if (normalized) set.add(normalized);
     });
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [chapters, getChapterHierarchy, selectedExamId, selectedClassId]);
@@ -349,7 +415,7 @@ export default function TestHub() {
       if (selectedClassId !== 'all' && h.classFolderId && h.classFolderId !== selectedClassId) {
         return false;
       }
-      if (selectedSubjectFilter !== 'all' && h.subjectTitle !== selectedSubjectFilter) {
+      if (selectedSubjectFilter !== 'all' && normalizeSubjectFilterName(h.subjectTitle) !== selectedSubjectFilter) {
         return false;
       }
       if (chapterSearchQuery.trim()) {
@@ -388,6 +454,9 @@ export default function TestHub() {
         const matchesBadge = String(h.badge || '').toLowerCase().includes(q);
         if (!matchesTitle && !matchesDesc && !matchesBadge) return false;
       }
+      if (testFilter === 'timed') {
+        return test.solution_mode === 'after_submit';
+      }
       if (testFilter === 'free') {
         return test.is_free || !test.price;
       }
@@ -404,9 +473,6 @@ export default function TestHub() {
 
   return (
     <div className="w-full max-w-4xl min-w-0 mx-auto space-y-4 sm:space-y-6 pb-6 text-slate-800 dark:text-slate-100 relative">
-      {/* Top Ambient Tech Data Grid Aura */}
-      <MountainSunsetAura height={190} mobileHeight={88} showSun={true} />
-
       {/* Practice Hub Header */}
       <div className="pt-2 pb-1 relative z-10">
         <div className="flex items-center justify-between">
@@ -504,15 +570,17 @@ export default function TestHub() {
           </div>
         )}
 
-        {/* Navigation Tabs with Distinct Section Separation (Practice vs Mock Tests vs Custom) */}
-        <div className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/90 bg-white border dark:border-slate-700/60 border-slate-200 backdrop-blur-md overflow-x-auto shadow-sm">
+        {/* Navigation Tabs with Distinct Section Separation (Practice vs Chapter Tests vs Custom) */}
+        <div role="tablist" aria-label={language === 'hi' ? 'अभ्यास अनुभाग' : 'Practice sections'} className="flex items-center gap-1 sm:gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/90 bg-white border dark:border-slate-700/60 border-slate-200 backdrop-blur-md overflow-x-auto shadow-sm">
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'subjects'}
             onClick={() => navigate('/tests?tab=subjects', { replace: true })}
             className={`flex-1 min-w-[75px] sm:min-w-[90px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'subjects'
                 ? 'bg-indigo-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                : 'bg-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
             }`}
           >
             <Layers size={14} />
@@ -521,11 +589,13 @@ export default function TestHub() {
 
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'chapters'}
             onClick={() => navigate('/tests?tab=chapters', { replace: true })}
             className={`flex-1 min-w-[75px] sm:min-w-[90px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'chapters'
                 ? 'bg-indigo-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                : 'bg-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
             }`}
           >
             <BookOpen size={14} />
@@ -534,15 +604,17 @@ export default function TestHub() {
 
           <button
             type="button"
+            role="tab"
+            aria-selected={activeTab === 'tests'}
             onClick={() => navigate('/tests?tab=tests', { replace: true })}
             className={`flex-1 min-w-[75px] sm:min-w-[90px] py-2 px-2.5 sm:px-3 rounded-xl text-xs sm:text-sm font-extrabold transition-all flex items-center justify-center gap-1 sm:gap-1.5 min-h-[44px] ${
               activeTab === 'tests'
                 ? 'bg-indigo-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
+                : 'bg-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
             }`}
           >
             <Target size={14} />
-            <span>{language === 'hi' ? 'मॉक टेस्ट' : 'Mock Tests'}</span>
+            <span>{language === 'hi' ? 'टेस्ट एवं सेट' : 'Tests & Sets'}</span>
           </button>
         </div>
 
@@ -556,7 +628,7 @@ export default function TestHub() {
               {activeTab === 'chapters'
                 ? (language === 'hi' ? 'अध्याय-वार अभ्यास (Self-Paced Practice)' : 'Chapter-Wise Practice')
                 : activeTab === 'tests'
-                ? (language === 'hi' ? 'रियल एग्जाम टाइम-बाउंड मॉक टेस्ट (Timed Simulation)' : 'Timed Mock Test Simulation')
+                ? (language === 'hi' ? 'अध्याय टेस्ट और अभ्यास सेट (समयबद्ध + तुरंत उत्तर)' : 'Chapter Assessments & Practice Sets')
                 : activeTab === 'custom'
                 ? (language === 'hi' ? 'कस्टम टेस्ट जनरेटर (Personalized Test Builder)' : 'Custom Test Builder')
                 : (language === 'hi' ? 'विषय-वार अध्ययन संरचना (Subject Hierarchy)' : 'Subject Learning Hierarchy')}
@@ -565,7 +637,7 @@ export default function TestHub() {
               {activeTab === 'chapters'
                 ? (language === 'hi' ? 'अपनी गति से सीखें, हर सवाल का विस्तृत समाधान तुरंत देखें।' : 'Learn at your own pace with instant step-by-step solutions.')
                 : activeTab === 'tests'
-                ? (language === 'hi' ? 'परीक्षा हॉल जैसे टाइमर और नेगेटिव मार्किंग के साथ वास्तविक मूल्यांकन करें।' : 'Real timed environment with negative marking and instant rank analysis.')
+                ? (language === 'hi' ? 'समयबद्ध अध्याय मास्टरी टेस्ट और अभ्यास सेट। पूर्ण-सिलेबस मॉक टेस्ट जल्द उपलब्ध होंगे।' : 'Timed chapter mastery tests and instant-solution practice sets. Full-syllabus mocks are coming soon.')
                 : activeTab === 'custom'
                 ? (language === 'hi' ? 'अपनी पसंद के विषय, प्रश्न संख्या और समय चुनकर अपना खुद का टेस्ट बनाएं।' : 'Choose subjects, questions and duration to generate your custom test.')
                 : (language === 'hi' ? 'कक्षा और विषय चुनकर अपनी अध्ययन सामग्री ब्राउज़ करें।' : 'Browse your syllabus topics grouped by subject and level.')}
@@ -594,7 +666,7 @@ export default function TestHub() {
                         </span>
                       </h3>
                       <p className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-600 font-medium mt-0.5">
-                        {folders.length} {language === 'hi' ? 'विषय' : 'Subjects'} · {chapters.length} {language === 'hi' ? 'अध्याय' : 'Chapters'} · {tests.length} {language === 'hi' ? 'टेस्ट' : 'Tests'}
+                        {displaySubjects.length} {language === 'hi' ? 'विषय' : 'Subjects'} · {chapters.length} {language === 'hi' ? 'अध्याय' : 'Chapters'} · {tests.length} {language === 'hi' ? 'टेस्ट' : 'Tests'}
                       </p>
                     </div>
                   </div>
@@ -614,8 +686,10 @@ export default function TestHub() {
                     <span className="dark:text-slate-300 text-slate-700">{language === 'hi' ? 'सिलेबस प्रगति' : 'Track Completion'}</span>
                     <span className="text-amber-500 dark:text-amber-400 font-bold">
                       {totalQuestionsSum > 0
-                        ? `${totalQuestionsSolved} / ${totalQuestionsSum} Solved (${aggregateProgressPct}%)`
-                        : `${totalQuestionsSolved} Solved`}
+                        ? (language === 'hi'
+                          ? `${totalQuestionsSolved} / ${totalQuestionsSum} हल (${aggregateProgressLabel})`
+                          : `${totalQuestionsSolved} / ${totalQuestionsSum} Solved (${aggregateProgressLabel})`)
+                        : (language === 'hi' ? `${totalQuestionsSolved} हल` : `${totalQuestionsSolved} Solved`)}
                     </span>
                   </div>
                   <div className="w-full h-1.5 dark:bg-slate-700/60 bg-slate-200 rounded-full overflow-hidden">
@@ -665,35 +739,49 @@ export default function TestHub() {
                           <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900">{String(subject.title || '').replace(/\bIndla\b/g, 'India')}</h4>
                           <span className="text-[11px] sm:text-xs dark:text-slate-400 text-slate-500">
                             {subject.questionsCount === 0
-                              ? (subject.chaptersCount > 0 ? `${subject.chaptersCount} Chapters · Coming Soon` : 'Coming Soon')
-                              : `${subject.chaptersCount} Chapters · ${subject.questionsCount} Questions`}
+                              ? (subject.chaptersCount > 0
+                                ? `${subject.chaptersCount} ${language === 'hi' ? 'अध्याय · जल्द उपलब्ध' : 'Chapters · Coming Soon'}`
+                                : (language === 'hi' ? 'जल्द उपलब्ध' : 'Coming Soon'))
+                              : `${subject.chaptersCount} ${language === 'hi' ? 'अध्याय' : 'Chapters'} · ${formatQuestions(subject.questionsCount, language)}`}
                           </span>
                         </div>
                       </div>
 
-                      {/* Play Action */}
-                      <Link
-                        to={subject.firstTestId ? `/quiz/${subject.firstTestId}` : `/folder/${subject.folderId}`}
-                        className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white flex items-center justify-center transition-colors shrink-0 shadow-xs"
-                        title="Start Practice"
-                      >
-                        <Play size={13} fill="currentColor" className="ml-0.5 text-white" />
-                      </Link>
+                      {/* Play Action only when real questions exist */}
+                      {subject.questionsCount > 0 && (subject.firstTestId || subject.folderId) ? (
+                        <Link
+                          to={subject.firstTestId ? `/quiz/${subject.firstTestId}` : `/folder/${subject.folderId}`}
+                          className="w-11 h-11 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white flex items-center justify-center transition-colors shrink-0 shadow-xs"
+                          title={language === 'hi' ? 'अभ्यास शुरू करें' : 'Start Practice'}
+                        >
+                          <Play size={14} fill="currentColor" className="ml-0.5 text-white" />
+                        </Link>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 shrink-0">
+                          {language === 'hi' ? 'जल्द उपलब्ध' : 'Coming Soon'}
+                        </span>
+                      )}
                     </div>
 
-                    {/* Progress Bar */}
-                    <div>
-                      <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold dark:text-slate-300 text-slate-700 mb-1">
-                        <span>Solved</span>
-                        <span className="text-amber-500 dark:text-amber-400">{subject.progress}%</span>
+                    {/* Progress Bar only for active subjects */}
+                    {subject.questionsCount > 0 ? (
+                      <div>
+                        <div className="flex items-center justify-between text-[11px] sm:text-xs font-bold dark:text-slate-300 text-slate-700 mb-1">
+                          <span>{language === 'hi' ? 'हल किए गए' : 'Solved'}</span>
+                          <span className="text-amber-500 dark:text-amber-400">{subject.progress}%</span>
+                        </div>
+                        <div className="w-full h-1.5 dark:bg-slate-700/60 bg-slate-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                            style={{ width: `${subject.progress}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="w-full h-1.5 dark:bg-slate-700/60 bg-slate-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                          style={{ width: `${subject.progress}%` }}
-                        />
-                      </div>
-                    </div>
+                    ) : (
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 pt-1">
+                        {language === 'hi' ? 'टेस्ट और प्रश्न जल्द जोड़े जाएंगे।' : 'Tests and questions are being added.'}
+                      </p>
+                    )}
                   </div>
                   );
                 })}
@@ -780,25 +868,41 @@ export default function TestHub() {
                             {String(chapter.title || '').replace(/\bIndla\b/g, 'India')}
                           </h4>
                           <div className="text-[11px] dark:text-slate-400 text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
-                            <span>⏱️ {chDuration} mins</span>
-                            <span>• {chQCount > 0 ? `${chQCount} Questions` : 'Coming Soon'}</span>
-                            {chTests.length > 0 && <span>• {chTests.length} {chTests.length === 1 ? 'Test' : 'Tests'}</span>}
+                            {chQCount > 0 || chTests.length > 0 ? (
+                              <>
+                                <span>⏱️ {formatMinutes(chDuration, language)}</span>
+                                <span>• {formatQuestions(chQCount, language)}</span>
+                                {chTests.length > 0 && (
+                                  <span>• {chTests.length} {language === 'hi' ? 'टेस्ट' : (chTests.length === 1 ? 'Test' : 'Tests')}</span>
+                                )}
+                              </>
+                            ) : (
+                              <span>{language === 'hi' ? 'सामग्री जल्द उपलब्ध होगी' : 'Content coming soon'}</span>
+                            )}
                           </div>
-                          <div className="mt-1.5 flex items-center gap-2">
-                            <div className="w-full max-w-[180px] h-1.5 dark:bg-slate-700/60 bg-slate-200 rounded-full overflow-hidden">
-                              <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${chPct}%` }} />
+                          {(chQCount > 0 || chTests.length > 0) && (
+                            <div className="mt-1.5 flex items-center gap-2">
+                              <div className="w-full max-w-[180px] h-1.5 dark:bg-slate-700/60 bg-slate-200 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${chPct}%` }} />
+                              </div>
+                              <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{chPct}%</span>
                             </div>
-                            <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{chPct}%</span>
-                          </div>
+                          )}
                         </div>
                       </div>
 
-                      <Link
-                        to={`/chapter/${chapter.id}`}
-                        className="px-3.5 py-1.5 rounded-xl dark:bg-indigo-500/20 bg-indigo-100 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 border dark:border-indigo-400/40 border-indigo-300 dark:text-indigo-300 text-indigo-800 font-bold text-xs shrink-0 transition-colors min-h-[44px] flex items-center"
-                      >
-                        {language === 'hi' ? 'अध्याय खोलें' : 'Open Chapter'}
-                      </Link>
+                      {chQCount > 0 || chTests.length > 0 ? (
+                        <Link
+                          to={`/chapter/${chapter.id}`}
+                          className="px-3.5 py-1.5 rounded-xl dark:bg-indigo-500/20 bg-indigo-100 hover:bg-indigo-200 dark:hover:bg-indigo-500/30 border dark:border-indigo-400/40 border-indigo-300 dark:text-indigo-300 text-indigo-800 font-bold text-xs shrink-0 transition-colors min-h-[44px] flex items-center"
+                        >
+                          {language === 'hi' ? 'अध्याय खोलें' : 'Open Chapter'}
+                        </Link>
+                      ) : (
+                        <span className="px-3 py-1.5 rounded-full border border-slate-300 dark:border-slate-700 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">
+                          {language === 'hi' ? 'जल्द उपलब्ध' : 'Coming Soon'}
+                        </span>
+                      )}
                     </div>
                   );
                 })}
@@ -839,10 +943,10 @@ export default function TestHub() {
             {/* Filter Bar */}
             <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
               <div className="relative w-full sm:w-72">
-                <Search size={14} className="absolute left-3 top-2.5 dark:text-slate-400 text-slate-400" />
+                <Search size={14} className="absolute left-3 top-3.5 dark:text-slate-400 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Search tests..."
+                  placeholder={language === 'hi' ? 'टेस्ट या अध्याय खोजें...' : 'Search tests or chapters...'}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full pl-9 pr-3 py-1.5 rounded-xl dark:bg-slate-900 bg-white border dark:border-slate-700/60 border-slate-300 dark:text-white text-slate-900 text-xs placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 min-h-[44px]"
@@ -850,7 +954,7 @@ export default function TestHub() {
               </div>
 
               <div className="flex gap-1.5 w-full sm:w-auto overflow-x-auto pb-0.5">
-                {['all', 'free', 'chapter', 'pyq'].map((f) => (
+                {['all', 'timed', 'free', 'chapter', 'pyq'].map((f) => (
                   <button
                     key={f}
                     type="button"
@@ -863,6 +967,8 @@ export default function TestHub() {
                   >
                     {f === 'all'
                       ? (language === 'hi' ? 'सभी टेस्ट' : 'All Tests')
+                      : f === 'timed'
+                      ? (language === 'hi' ? 'समयबद्ध टेस्ट' : 'Timed Tests')
                       : f === 'free'
                       ? (language === 'hi' ? 'मुफ़्त टेस्ट' : 'Free Tests')
                       : f === 'chapter'
@@ -873,11 +979,26 @@ export default function TestHub() {
               </div>
             </div>
 
+            {!loading && tests.length > 0 && (
+              <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl dark:bg-slate-900/60 bg-slate-50 border dark:border-slate-800 border-slate-200 text-xs dark:text-slate-300 text-slate-700">
+                <span className="font-semibold">
+                  {language === 'hi'
+                    ? `दिख रहे टेस्ट: ${filteredTests.length} / ${tests.length}`
+                    : `Showing ${filteredTests.length} of ${tests.length} published tests`}
+                </span>
+                <span className="text-[11px] dark:text-slate-400 text-slate-500">
+                  {language === 'hi'
+                    ? `${tests.filter((t) => t.solution_mode === 'after_submit').length} समयबद्ध मास्टरी टेस्ट · ${tests.filter((t) => t.solution_mode !== 'after_submit').length} अभ्यास सेट`
+                    : `${tests.filter((t) => t.solution_mode === 'after_submit').length} Timed Mastery · ${tests.filter((t) => t.solution_mode !== 'after_submit').length} Practice Sets`}
+                </span>
+              </div>
+            )}
+
             {loading ? (
               <LoadingSkeleton variant="cards" count={3} />
             ) : filteredTests.length === 0 ? (
               <div className="p-8 text-center text-xs dark:text-slate-400 text-slate-500 dark:bg-[#1E293B]/60 bg-white rounded-2xl border dark:border-slate-700/60 border-slate-200">
-                <p>No tests match these filters. Try clearing a filter or check back later.</p>
+                <p>{language === 'hi' ? 'इस फ़िल्टर के लिए कोई टेस्ट नहीं मिला। फ़िल्टर बदलें या बाद में देखें।' : 'No tests match these filters. Try clearing a filter or check back later.'}</p>
               </div>
             ) : (
               <div className="space-y-2.5">
@@ -890,6 +1011,7 @@ export default function TestHub() {
                   const completedAttempt = attempts.find(isComplete);
                   const qCount = questionCounts[test.id] ?? (Number(test.question_count) || 0);
                   const hInfo = getTestHierarchy(test);
+                  const isTimedAssessment = test.solution_mode === 'after_submit';
                   const titleParts = [
                     hInfo.subjectTitle,
                     hInfo.classTitle,
@@ -905,16 +1027,27 @@ export default function TestHub() {
                       className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-700/60 border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 hover:border-indigo-500 transition-colors shadow-sm"
                     >
                       <div className="space-y-1 min-w-0">
-                        {hInfo.badge && (
-                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
-                            {hInfo.badge}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {hInfo.badge && (
+                            <span className="inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+                              {hInfo.badge}
+                            </span>
+                          )}
+                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider border ${
+                            isTimedAssessment
+                              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30'
+                              : 'bg-slate-500/10 text-slate-600 dark:text-slate-300 border-slate-500/20'
+                          }`}>
+                            {isTimedAssessment
+                              ? (language === 'hi' ? 'समयबद्ध टेस्ट' : 'Timed Test')
+                              : (language === 'hi' ? 'अभ्यास सेट' : 'Practice Set')}
                           </span>
-                        )}
+                        </div>
                         <div className="flex items-center gap-2">
                           <h4 className="text-xs sm:text-sm font-black dark:text-white text-slate-900">{displayTitle}</h4>
                           {test.is_free ? (
                             <span className="px-2 py-0.5 rounded text-[9px] font-black dark:bg-emerald-500/20 bg-emerald-100 dark:text-emerald-300 text-emerald-600 border dark:border-emerald-500/30 border-emerald-300">
-                              FREE
+                              {language === 'hi' ? 'मुफ़्त' : 'FREE'}
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded text-[9px] font-black bg-amber-500/20 text-amber-800 dark:text-amber-300 border border-amber-500/30">
@@ -923,14 +1056,14 @@ export default function TestHub() {
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-xs dark:text-slate-400 text-slate-600 flex-wrap">
-                          <span>⏱️ {test.duration_minutes || 60} mins</span>
+                          <span>⏱️ {formatMinutes(test.duration_minutes || 60, language)}</span>
                           <span>•</span>
-                          <span>❓ {qCount > 0 ? `${qCount} Questions` : 'Question count unavailable'}</span>
+                          <span>❓ {qCount > 0 ? formatQuestions(qCount, language) : (language === 'hi' ? 'प्रश्न संख्या उपलब्ध नहीं' : 'Question count unavailable')}</span>
                           {completedAttempt && (
                             <>
                               <span>•</span>
                               <span className="text-emerald-500 dark:text-emerald-400 font-bold">
-                                Score: {completedAttempt.score}/{completedAttempt.total_questions}
+                                {language === 'hi' ? 'स्कोर' : 'Score'}: {completedAttempt.score}/{completedAttempt.total_questions}
                               </span>
                             </>
                           )}
@@ -950,7 +1083,7 @@ export default function TestHub() {
                             onTouchStart={warmQuiz}
                             className="px-3 py-1.5 rounded-xl dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 dark:text-slate-200 text-slate-700 text-xs font-bold hover:text-slate-900 dark:hover:text-white transition-colors min-h-[44px] flex items-center"
                           >
-                            Retake
+                            {language === 'hi' ? 'फिर से दें' : 'Retake'}
                           </Link>
                         )}
                         <Link
@@ -970,7 +1103,13 @@ export default function TestHub() {
                           onTouchStart={warmQuiz}
                         >
                           {resumableAttempt ? <Play size={13} fill="currentColor" /> : completedAttempt ? <CheckCircle2 size={15} /> : <Play size={13} fill="currentColor" />}
-                          <span>{resumableAttempt ? 'Resume' : completedAttempt ? 'Review result' : 'Start Test'}</span>
+                          <span>
+                            {resumableAttempt
+                              ? (language === 'hi' ? 'जारी रखें' : 'Resume')
+                              : completedAttempt
+                                ? (language === 'hi' ? 'परिणाम देखें' : 'Review result')
+                                : (language === 'hi' ? 'टेस्ट शुरू करें' : 'Start Test')}
+                          </span>
                         </Link>
                       </div>
                     </div>
@@ -990,9 +1129,13 @@ export default function TestHub() {
               <SlidersHorizontal size={23} />
             </div>
             <div className="space-y-1">
-              <h3 className="text-base sm:text-lg font-black dark:text-white text-slate-900">Custom Practice is coming soon</h3>
+              <h3 className="text-base sm:text-lg font-black dark:text-white text-slate-900">
+                {language === 'hi' ? 'कस्टम अभ्यास जल्द उपलब्ध होगा' : 'Custom Practice is coming soon'}
+              </h3>
               <p className="text-sm dark:text-slate-400 text-slate-600">
-                We are building a reliable question generator for folder, difficulty, and question-count controls. Your selections will be available here once the session can honour them end to end.
+                {language === 'hi'
+                  ? 'हम फ़ोल्डर, कठिनाई स्तर और प्रश्न संख्या के अनुसार भरोसेमंद प्रश्न जनरेटर तैयार कर रहे हैं।'
+                  : 'We are building a reliable question generator for folder, difficulty, and question-count controls. Your selections will be available here once the session can honour them end to end.'}
               </p>
             </div>
             <Link
@@ -1000,7 +1143,7 @@ export default function TestHub() {
               className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 border border-indigo-400/30 text-white font-black text-sm min-h-[44px] shadow-xs"
             >
               <Play size={15} fill="currentColor" />
-              <span>Choose an available test</span>
+              <span>{language === 'hi' ? 'उपलब्ध टेस्ट चुनें' : 'Choose an available test'}</span>
             </Link>
           </div>
         )}

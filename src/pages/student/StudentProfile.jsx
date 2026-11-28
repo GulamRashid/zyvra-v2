@@ -16,7 +16,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useStudentStats } from '../../context/StudentStatsContext';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
-import { ensureReferralCode } from '../../lib/referrals';
+import { ensureReferralCode, getReferralSettings } from '../../lib/referrals';
+import { formatCoins, formatDays, formatTests } from '../../lib/formatters';
 
 const POPULAR_EXAMS = [
   'SSC CGL / CHSL',
@@ -32,6 +33,7 @@ const POPULAR_EXAMS = [
 export default function StudentProfile() {
   const { user, profile, guest, coinBalance, walletLoaded, accountAccess, supabase, signOut, refreshAccount } = useAuth();
   const { language } = useThemeLanguage();
+  const isHindi = language === 'hi';
   const {
     completedAttempts: attempts,
     testsAttempted: testsAttemptedCount,
@@ -84,11 +86,30 @@ export default function StudentProfile() {
   const [deviceFeedback, setDeviceFeedback] = useState('');
   const [deviceError, setDeviceError] = useState('');
 
-  // Referral copy feedback
+  // Referral copy feedback & live reward settings
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [shareFeedback, setShareFeedback] = useState('');
   const [currentReferralCode, setCurrentReferralCode] = useState(profile?.referral_code || '');
+  const [referralSettings, setReferralSettings] = useState(null);
+  const [referralSettingsLoading, setReferralSettingsLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    if (!supabase) {
+      setReferralSettingsLoading(false);
+      return;
+    }
+    getReferralSettings(supabase)
+      .then((cfg) => {
+        if (active && cfg) setReferralSettings(cfg);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setReferralSettingsLoading(false);
+      });
+    return () => { active = false; };
+  }, [supabase]);
 
   // Password OTP request
   const requestPasswordOtp = async () => {
@@ -482,7 +503,7 @@ export default function StudentProfile() {
               <div>
                 <span className="dark:text-white text-slate-900 font-black tracking-wider text-base">Zyvra</span>
                 <span className="dark:text-indigo-400 text-indigo-600 text-[10px] block -mt-0.5 font-bold uppercase tracking-wider">
-                  Student Profile
+                  {isHindi ? 'छात्र प्रोफ़ाइल' : 'Student Profile'}
                 </span>
               </div>
             </div>
@@ -492,7 +513,7 @@ export default function StudentProfile() {
             <Link
               to="/notifications"
               className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-full dark:bg-slate-900/90 bg-white/95 border dark:border-slate-700/80 border-slate-300 flex items-center justify-center dark:text-white text-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800 relative transition-all shadow-sm active:scale-95"
-              aria-label="Notifications"
+              aria-label={isHindi ? 'सूचनाएँ' : 'Notifications'}
             >
               <Bell size={17} />
             </Link>
@@ -502,10 +523,6 @@ export default function StudentProfile() {
         {/* Unique Feature: Zyvra Student Digital ID Card (विद्यार्थी पहचान पत्र) */}
         <div className="relative z-10 pt-12 sm:pt-16 pb-3 w-full max-w-4xl min-w-0 mx-auto">
           <div className="relative overflow-hidden rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 p-4 sm:p-5 shadow-lg transition-all">
-            {/* Subtle ID Card Watermark Logo */}
-            <div className="absolute -right-6 -bottom-6 select-none opacity-[0.03] dark:opacity-[0.05] text-9xl font-black pointer-events-none">
-              ZYV
-            </div>
 
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-start sm:items-center gap-3.5 min-w-0">
@@ -550,7 +567,7 @@ export default function StudentProfile() {
                     {/* Membership Badge */}
                     {accessStatus === 'loading' ? (
                       <span className="px-2 py-0.5 rounded-full text-[10px] font-bold dark:bg-slate-800 bg-slate-200 text-slate-500">
-                        Verifying...
+                        {isHindi ? 'जाँच हो रही है...' : 'Verifying...'}
                       </span>
                     ) : isPro ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-950 shadow-xs">
@@ -559,7 +576,7 @@ export default function StudentProfile() {
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold dark:bg-slate-800 bg-slate-100 border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-700">
-                        <span>Free Aspirant</span>
+                        <span>{isHindi ? 'निःशुल्क सदस्य' : 'Free Aspirant'}</span>
                       </span>
                     )}
                   </div>
@@ -583,12 +600,19 @@ export default function StudentProfile() {
                     )}
                   </div>
 
-                  {/* Mobile or Add Mobile Button */}
+                  {/* Masked Mobile or Add Mobile Button */}
                   <div className="pt-0.5">
                     {profile?.mobile ? (
                       <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-bold">
                         <Phone size={12} className="shrink-0" />
-                        <span>+91 {profile.mobile}</span>
+                        <span>
+                          +91{' '}
+                          {(() => {
+                            const digits = String(profile.mobile).replace(/\D/g, '');
+                            if (digits.length < 6) return digits;
+                            return `${digits.slice(0, 2)}${'•'.repeat(Math.max(4, digits.length - 5))}${digits.slice(-3)}`;
+                          })()}
+                        </span>
                       </div>
                     ) : (
                       <button
@@ -603,7 +627,7 @@ export default function StudentProfile() {
                         className="inline-flex items-center gap-1 text-[11px] text-amber-500 hover:text-amber-400 font-bold underline underline-offset-2"
                       >
                         <Phone size={11} />
-                        <span>+ Add WhatsApp / Mobile</span>
+                        <span>{isHindi ? '+ व्हाट्सऐप / मोबाइल जोड़ें' : '+ Add WhatsApp / Mobile'}</span>
                       </button>
                     )}
                   </div>
@@ -624,19 +648,19 @@ export default function StudentProfile() {
                   className="w-full sm:w-auto px-4 py-2.5 min-h-[44px] rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 hover:border-amber-400 dark:hover:border-amber-400 text-xs font-bold dark:text-white text-slate-800 flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all"
                 >
                   <Edit3 size={13} className="text-amber-500" />
-                  <span>Edit Profile</span>
+                  <span>{isHindi ? 'प्रोफ़ाइल संपादित करें' : 'Edit Profile'}</span>
                 </button>
               </div>
             </div>
 
-            {/* Target Exam Banner (Exam Goal Banner - crucial for Testbook-like focus!) */}
+            {/* Target Exam Banner */}
             <div className="mt-4 pt-3.5 border-t dark:border-slate-800 border-slate-200/80 flex items-center justify-between gap-2 flex-wrap">
               <div className="flex items-center gap-2 min-w-0">
                 <span className="w-5 h-5 rounded-md bg-indigo-500/10 text-indigo-500 flex items-center justify-center text-xs shrink-0">
                   🎯
                 </span>
                 <span className="text-xs font-bold dark:text-slate-300 text-slate-600 shrink-0">
-                  Target Exam:
+                  {isHindi ? 'लक्ष्य परीक्षा:' : 'Target Exam:'}
                 </span>
                 <div className="flex items-center gap-1.5 flex-wrap min-w-0">
                   {targetExamsList.length > 0 ? (
@@ -650,12 +674,12 @@ export default function StudentProfile() {
                     ))
                   ) : (
                     <span className="text-[11px] text-amber-500 font-semibold italic">
-                      No target exam selected yet
+                      {isHindi ? 'अभी कोई परीक्षा नहीं चुनी गई' : 'No target exam selected yet'}
                     </span>
                   )}
                   {targetExamsList.length > 3 && (
                     <span className="text-[10px] text-slate-400 font-bold">
-                      +{targetExamsList.length - 3} more
+                      +{targetExamsList.length - 3} {isHindi ? 'अन्य' : 'more'}
                     </span>
                   )}
                 </div>
@@ -668,9 +692,9 @@ export default function StudentProfile() {
                   setDailyTarget(Number(profile?.daily_goal_target || 50));
                   setGoalsModalOpen(true);
                 }}
-                className="text-[11px] text-amber-500 hover:text-amber-400 font-black flex items-center gap-1 shrink-0 ml-auto"
+                className="text-[11px] text-amber-500 hover:text-amber-400 font-black flex items-center gap-1 shrink-0 ml-auto min-h-[36px]"
               >
-                <span>Change Exam</span>
+                <span>{isHindi ? 'परीक्षा बदलें' : 'Change Exam'}</span>
                 <ChevronRight size={12} />
               </button>
             </div>
@@ -688,7 +712,7 @@ export default function StudentProfile() {
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="text-sm sm:text-base font-black dark:text-white text-slate-900 tracking-tight truncate">
-                  {isPro ? 'Zyvra Pass Active' : 'Zyvra Pass Membership'}
+                  {isPro ? (isHindi ? 'ज़ीव्रा पास सक्रिय' : 'Zyvra Pass Active') : (isHindi ? 'ज़ीव्रा पास सदस्यता' : 'Zyvra Pass Membership')}
                 </h2>
                 {isPro && (
                   <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500 text-white uppercase tracking-wider">
@@ -698,12 +722,12 @@ export default function StudentProfile() {
               </div>
               <p className="text-[11px] sm:text-xs dark:text-amber-200/90 text-amber-900/90 font-medium truncate mt-0.5">
                 {accessStatus === 'loading'
-                  ? 'Checking your pass status...'
+                  ? (isHindi ? 'पास स्थिति जाँची जा रही है...' : 'Checking your pass status...')
                   : accessStatus === 'error'
-                  ? 'Could not connect. Tap to retry.'
+                  ? (isHindi ? 'संपर्क नहीं हो सका। पुनः प्रयास करें।' : 'Could not connect. Tap to retry.')
                   : isPro
-                  ? `${unlockedCount > 0 ? `${unlockedCount} courses & test packages unlocked` : 'Full platform access active'}`
-                  : 'Unlock unlimited mock tests, solutions & revision notes'}
+                  ? `${unlockedCount > 0 ? (isHindi ? `${unlockedCount} कोर्स व टेस्ट अनलॉक` : `${unlockedCount} courses & test packages unlocked`) : (isHindi ? 'पूर्ण प्लेटफ़ॉर्म पहुँच सक्रिय' : 'Full platform access active')}`
+                  : (isHindi ? 'असीमित टेस्ट, व्याख्या व स्टडी टूल्स अनलॉक करें' : 'Unlock unlimited mock tests, solutions & revision notes')}
               </p>
             </div>
           </div>
@@ -717,17 +741,17 @@ export default function StudentProfile() {
                 onClick={() => refreshAccount?.().catch(() => {})}
                 className="px-3 py-1.5 rounded-xl border border-rose-300 text-xs font-bold text-rose-600 dark:border-rose-500/40 dark:text-rose-300"
               >
-                Retry
+                {isHindi ? 'पुनः प्रयास' : 'Retry'}
               </button>
             ) : isPro ? (
               <div className="space-y-0.5">
-                <span className="text-[9px] uppercase font-bold text-amber-500 block">Valid Till</span>
+                <span className="text-[9px] uppercase font-bold text-amber-500 block">{isHindi ? 'वैधता' : 'Valid Till'}</span>
                 <span className="text-xs font-black dark:text-white text-slate-900 block">{validTill}</span>
                 <Link
                   to="/purchases"
                   className="text-[10px] text-amber-500 hover:underline font-bold inline-block"
                 >
-                  View Details →
+                  {isHindi ? 'विवरण देखें →' : 'View Details →'}
                 </Link>
               </div>
             ) : (
@@ -735,7 +759,7 @@ export default function StudentProfile() {
                 to="/purchases"
                 className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs shadow-md inline-flex items-center gap-1 active:scale-95 transition-all"
               >
-                <span>Get Pass</span>
+                <span>{isHindi ? 'पास लें' : 'Get Pass'}</span>
                 <ChevronRight size={14} />
               </Link>
             )}
@@ -747,21 +771,21 @@ export default function StudentProfile() {
           <div className="flex items-center justify-between mb-2 px-1">
             <h3 className="text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500 flex items-center gap-1.5">
               <BarChart3 size={14} className="text-indigo-500" />
-              <span>Progress Tracker</span>
+              <span>{isHindi ? 'प्रगति ट्रैकर' : 'Progress Tracker'}</span>
             </h3>
             <Link to="/analytics" className="text-[11px] text-indigo-500 hover:text-indigo-400 font-bold flex items-center gap-0.5">
-              <span>Full Analytics</span>
+              <span>{isHindi ? 'पूरा विश्लेषण' : 'Full Analytics'}</span>
               <ChevronRight size={12} />
             </Link>
           </div>
 
-          <div className="grid grid-cols-4 gap-2 sm:gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
             {/* 1. Daily Study Streak */}
             <button
               type="button"
               onClick={() => setStreakModalOpen(true)}
               className="dark:bg-[#1E293B] bg-white border dark:border-orange-500/30 border-orange-200 hover:border-orange-400 rounded-2xl p-2.5 sm:p-3 text-center flex flex-col items-center justify-center shadow-sm relative overflow-hidden group active:scale-95 transition-all cursor-pointer"
-              aria-label="View daily study streak details"
+              aria-label={isHindi ? 'अध्ययन स्ट्रीक विवरण देखें' : 'View daily study streak details'}
             >
               <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-orange-500/15 text-orange-500 flex items-center justify-center mb-1.5 group-hover:scale-110 transition-transform">
                 <Flame size={16} className={streakDays > 0 ? 'fill-orange-500 animate-pulse' : 'text-slate-400'} />
@@ -770,11 +794,11 @@ export default function StudentProfile() {
                 {statsLoading ? (
                   <span className="inline-block h-5 w-12 rounded bg-orange-500/20 animate-pulse" aria-hidden="true" />
                 ) : (
-                  <>{streakDays} <span className="text-[10px] font-bold">days</span></>
+                  <span>{formatDays(streakDays, language)}</span>
                 )}
               </div>
               <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 flex items-center gap-1">
-                <span>Streak</span>
+                <span>{isHindi ? 'स्ट्रीक' : 'Streak'}</span>
                 {streakData?.isActiveToday ? (
                   <span className="text-emerald-500 font-black">✓</span>
                 ) : streakData?.streakAtRisk ? (
@@ -796,10 +820,11 @@ export default function StudentProfile() {
                 <Target size={16} />
               </div>
               <div className="text-base sm:text-xl font-black dark:text-white text-slate-900 tracking-tight">
-                {dailyTarget} <span className="text-[10px] font-bold">Q/day</span>
+                {dailyTarget}{' '}
+                <span className="text-[10px] font-bold">{isHindi ? 'प्रश्न/दिन' : 'Qs/day'}</span>
               </div>
               <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5 flex items-center gap-0.5">
-                <span>Daily Goal</span>
+                <span>{isHindi ? 'दैनिक लक्ष्य' : 'Daily Goal'}</span>
                 <Edit3 size={9} className="text-amber-500" />
               </div>
             </button>
@@ -820,7 +845,7 @@ export default function StudentProfile() {
                 )}
               </div>
               <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">
-                Tests Given
+                {isHindi ? 'दिए गए टेस्ट' : 'Tests Given'}
               </div>
             </Link>
 
@@ -837,7 +862,7 @@ export default function StudentProfile() {
                 )}
               </div>
               <div className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-0.5">
-                Accuracy
+                {isHindi ? 'सटीकता' : 'Accuracy'}
               </div>
             </div>
           </div>
@@ -856,14 +881,14 @@ export default function StudentProfile() {
               <div>
                 <div className="flex items-center gap-2">
                   <h4 className="text-xs sm:text-sm font-bold dark:text-white text-slate-900">
-                    Zyvra Reward Coins
+                    {isHindi ? 'ज़ीव्रा रिवार्ड कॉइन्स' : 'Zyvra Reward Coins'}
                   </h4>
                   <span className="px-2 py-0.2 rounded-full text-[9px] font-black bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300">
-                    Rewards
+                    {isHindi ? 'रिवार्ड्स' : 'Rewards'}
                   </span>
                 </div>
                 <p className="text-[11px] dark:text-slate-400 text-slate-500 font-medium">
-                  Redeem coins for test series & discounts
+                  {isHindi ? 'टेस्ट सीरीज़ व छूट के लिए कॉइन्स रिडीम करें' : 'Redeem coins for test series & discounts'}
                 </p>
               </div>
             </div>
@@ -874,7 +899,7 @@ export default function StudentProfile() {
                 {!walletLoaded ? (
                   <span className="inline-block h-3.5 w-8 rounded bg-amber-500/25 animate-pulse" aria-hidden="true" />
                 ) : (
-                  <span>{Number(coinBalance || 0).toLocaleString()}</span>
+                  <span>{formatCoins(coinBalance || 0, language)}</span>
                 )}
               </div>
               <ChevronRight size={16} className="text-amber-500 group-hover:translate-x-0.5 transition-transform" />
@@ -882,13 +907,13 @@ export default function StudentProfile() {
           </Link>
         </section>
 
-        {/* SECTION 1: MERA ADHYAYAN & TAYYARI (My Study & Learning Hub) */}
+        {/* SECTION 1: Study & Practice */}
         <section className="space-y-2">
           <div className="px-1 flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500 flex items-center gap-1.5">
-              <span>Study & Practice</span>
+              <span>{isHindi ? 'अध्ययन व अभ्यास' : 'Study & Practice'}</span>
             </h3>
-            <span className="text-[10px] text-slate-400 font-semibold">Your Study Content</span>
+            <span className="text-[10px] text-slate-400 font-semibold">{isHindi ? 'आपकी अध्ययन सामग्री' : 'Your Study Content'}</span>
           </div>
 
           <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl divide-y dark:divide-slate-800/80 divide-slate-100 shadow-sm overflow-hidden">
@@ -903,7 +928,7 @@ export default function StudentProfile() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                    Saved Questions & Bookmarks
+                    {isHindi ? 'सहेजे गए प्रश्न व बुकमार्क्स' : 'Saved Questions & Bookmarks'}
                   </span>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
                     रिवीजन के लिए सुरक्षित किए गए महत्वपूर्ण प्रश्न
@@ -929,7 +954,7 @@ export default function StudentProfile() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                    My Study Notes & Toolbox
+                    {isHindi ? 'मेरे स्टडी नोट्स व टूलबॉक्स' : 'My Study Notes & Toolbox'}
                   </span>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
                     आपके बनाए हुए शॉर्ट नोट्स, फॉर्मूला और टूल्स
@@ -955,7 +980,7 @@ export default function StudentProfile() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                    Test History & Score Analysis
+                    {isHindi ? 'टेस्ट इतिहास व स्कोर विश्लेषण' : 'Test History & Score Analysis'}
                   </span>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
                     सभी टेस्ट्स का परिणाम, एक्यूरेसी और कमजोर विषय
@@ -964,7 +989,7 @@ export default function StudentProfile() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className="text-[11px] dark:text-slate-400 text-slate-500 font-bold">
-                  {testsAttemptedCount} tests
+                  {statsLoading ? '…' : formatTests(testsAttemptedCount, language)}
                 </span>
                 <ChevronRight size={16} className="text-slate-400 group-hover:text-emerald-500 group-hover:translate-x-0.5 transition-all" />
               </div>
@@ -986,7 +1011,7 @@ export default function StudentProfile() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                    Daily Goal & Target Exam
+                    {isHindi ? 'दैनिक लक्ष्य व लक्ष्य परीक्षा' : 'Daily Goal & Target Exam'}
                   </span>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
                     रोजाना सवाल हल करने का लक्ष्य और अपनी परीक्षा चुनें
@@ -995,7 +1020,7 @@ export default function StudentProfile() {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className="px-2 py-0.5 rounded-full text-xs font-bold dark:bg-purple-950/60 bg-purple-50 dark:text-purple-300 text-purple-700 border dark:border-purple-800/50 border-purple-200">
-                  {dailyTarget} Qs/day
+                  {dailyTarget} {isHindi ? 'प्रश्न/दिन' : 'Qs/day'}
                 </span>
                 <ChevronRight size={16} className="text-slate-400 group-hover:text-purple-500 group-hover:translate-x-0.5 transition-all" />
               </div>
@@ -1007,9 +1032,9 @@ export default function StudentProfile() {
         <section className="space-y-2">
           <div className="px-1 flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500 flex items-center gap-1.5">
-              <span>{language === 'hi' ? 'पास और इनाम' : 'Pass & Rewards'}</span>
+              <span>{isHindi ? 'पास और इनाम' : 'Pass & Rewards'}</span>
             </h3>
-            <span className="text-[10px] text-slate-400 font-semibold">{language === 'hi' ? 'खरीदारी व रिवार्ड्स' : 'Purchases & Rewards'}</span>
+            <span className="text-[10px] text-slate-400 font-semibold">{isHindi ? 'खरीदारी व रिवार्ड्स' : 'Purchases & Rewards'}</span>
           </div>
 
           <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl divide-y dark:divide-slate-800/80 divide-slate-100 shadow-sm overflow-hidden">
@@ -1024,22 +1049,22 @@ export default function StudentProfile() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                    {language === 'hi' ? 'मेरी खरीदारी और ज़ीव्रा पास' : 'My Purchases & Zyvra Pass'}
+                    {isHindi ? 'मेरी खरीदारी और ज़ीव्रा पास' : 'My Purchases & Zyvra Pass'}
                   </span>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
-                    {language === 'hi' ? 'सक्रिय पैकेज, टेस्ट सीरीज और इनवॉइस देखें' : 'View active passes, test series, and invoices'}
+                    {isHindi ? 'सक्रिय पैकेज, टेस्ट सीरीज और इनवॉइस देखें' : 'View active passes, test series, and invoices'}
                   </span>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <span className="text-[11px] font-bold text-amber-500">
-                  {isPro ? 'Active Pass' : 'View Plans'}
+                  {isPro ? (isHindi ? 'सक्रिय पास' : 'Active Pass') : (isHindi ? 'प्लान देखें' : 'View Plans')}
                 </span>
                 <ChevronRight size={16} className="text-slate-400 group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
               </div>
             </Link>
 
-            {/* Refer & Earn Friends */}
+            {/* Refer & Earn Friends (Unified live platform_settings rate) */}
             <button
               type="button"
               onClick={() => setInviteModalOpen(true)}
@@ -1052,14 +1077,20 @@ export default function StudentProfile() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 truncate">
-                      {language === 'hi' ? 'दोस्तों को जोड़ें और कॉइन्स कमाएँ' : 'Invite Friends & Earn Coins'}
+                      {isHindi ? 'दोस्तों को जोड़ें और कॉइन्स कमाएँ' : 'Invite Friends & Earn Coins'}
                     </span>
                     <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-                      Free Coins
+                      {isHindi ? 'मुफ़्त कॉइन्स' : 'Free Coins'}
                     </span>
                   </div>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
-                    {language === 'hi' ? 'दोस्तों को जोड़ें और हर सफल रेफरल पर 50 सिक्के पाएं' : 'Share your invite code to earn bonus coins on referrals'}
+                    {referralSettingsLoading ? (
+                      <span className="inline-block h-3 w-48 rounded bg-slate-200 dark:bg-slate-700 animate-pulse align-middle" aria-hidden="true" />
+                    ) : isHindi ? (
+                      `दोस्तों को जोड़ें और हर सफल रेफरल पर ${formatCoins(referralSettings?.referrerCoins ?? 0, 'hi')} पाएं`
+                    ) : (
+                      `Share your invite code to earn ${formatCoins(referralSettings?.referrerCoins ?? 0, 'en')} per referral`
+                    )}
                   </span>
                 </div>
               </div>
@@ -1072,9 +1103,9 @@ export default function StudentProfile() {
         <section className="space-y-2">
           <div className="px-1 flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-wider dark:text-slate-400 text-slate-500 flex items-center gap-1.5">
-              <span>{language === 'hi' ? 'खाता और सुरक्षा' : 'Account & Security'}</span>
+              <span>{isHindi ? 'खाता और सुरक्षा' : 'Account & Security'}</span>
             </h3>
-            <span className="text-[10px] text-slate-400 font-semibold">{language === 'hi' ? 'सुरक्षा व सहायता' : 'Security & Help'}</span>
+            <span className="text-[10px] text-slate-400 font-semibold">{isHindi ? 'सुरक्षा व सहायता' : 'Security & Help'}</span>
           </div>
 
           <div className="dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 rounded-2xl divide-y dark:divide-slate-800/80 divide-slate-100 shadow-sm overflow-hidden">
@@ -1097,7 +1128,7 @@ export default function StudentProfile() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                    Personal Profile Details
+                    {isHindi ? 'व्यक्तिगत प्रोफ़ाइल विवरण' : 'Personal Profile Details'}
                   </span>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
                     अपना नाम, फोटो और WhatsApp मोबाइल नंबर अपडेट करें
@@ -1117,7 +1148,7 @@ export default function StudentProfile() {
                     </div>
                     <div className="min-w-0">
                       <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                        Password & Sign-in
+                        {isHindi ? 'पासवर्ड और साइन-इन' : 'Password & Sign-in'}
                       </span>
                       <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
                         ईमेल ओटीपी से नया पासवर्ड सेट या रीसेट करें
@@ -1135,7 +1166,7 @@ export default function StudentProfile() {
                       }}
                       className="px-3 py-1.5 rounded-xl border dark:border-slate-700 border-slate-300 hover:border-indigo-400 text-xs font-bold dark:text-slate-300 text-slate-700 shrink-0 transition-colors active:scale-95"
                     >
-                      Set / Reset
+                      {isHindi ? 'सेट / रीसेट' : 'Set / Reset'}
                     </button>
                   )}
                 </div>
@@ -1276,7 +1307,7 @@ export default function StudentProfile() {
                   </div>
                   <div className="min-w-0">
                     <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                      Signed-in Devices (सुरक्षित डिवाइसेस)
+                      {isHindi ? 'सुरक्षित डिवाइसेस' : 'Signed-in Devices'}
                     </span>
                     <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
                       आप अधिकतम 2 डिवाइस पर एक साथ पढ़ाई कर सकते हैं
@@ -1290,7 +1321,7 @@ export default function StudentProfile() {
                   disabled={deviceActionBusy}
                   className="px-3 py-1.5 rounded-xl border dark:border-slate-700 border-slate-300 hover:border-rose-400 text-xs font-bold dark:text-slate-300 text-slate-700 hover:text-rose-500 shrink-0 transition-colors active:scale-95 disabled:opacity-50"
                 >
-                  {deviceActionBusy ? 'Signing out...' : 'Sign out others'}
+                  {deviceActionBusy ? (isHindi ? 'हटा रहे हैं...' : 'Signing out...') : (isHindi ? 'अन्य डिवाइस हटाएँ' : 'Sign out others')}
                 </button>
               </div>
             )}
@@ -1324,10 +1355,10 @@ export default function StudentProfile() {
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                      Help Desk & AI Support Chat
+                      {isHindi ? 'सहायता डेस्क और AI चैट' : 'Help Desk & AI Support Chat'}
                     </span>
                     <span className="px-1.5 py-0.2 rounded-full text-[9px] font-black bg-emerald-500/15 text-emerald-500 border border-emerald-500/30 shrink-0">
-                      ⚡ 24×7 Active
+                      ⚡ {isHindi ? '24×7 सक्रिय' : '24×7 Active'}
                     </span>
                   </div>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
@@ -1350,7 +1381,7 @@ export default function StudentProfile() {
                 </div>
                 <div className="min-w-0">
                   <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                    Official Support & Email Desk
+                    {isHindi ? 'आधिकारिक सहायता एवं ईमेल' : 'Official Support & Email Desk'}
                   </span>
                   <span className="text-[11px] dark:text-slate-400 text-slate-500 block truncate">
                     zyvra.education@gmail.com एवं सहायता केंद्र
@@ -1375,7 +1406,7 @@ export default function StudentProfile() {
             className="w-full py-3.5 rounded-2xl dark:bg-rose-950/30 bg-rose-50 hover:bg-rose-100 dark:hover:bg-rose-900/50 border dark:border-rose-800/40 border-rose-200 dark:text-rose-300 text-rose-700 text-xs font-black flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm"
           >
             <LogOut size={16} />
-            <span>Sign Out of Account (लॉग आउट)</span>
+            <span>{isHindi ? 'खाते से लॉग आउट करें' : 'Sign Out of Account'}</span>
           </button>
         </section>
       </div>
@@ -1663,10 +1694,21 @@ export default function StudentProfile() {
             </div>
 
             <div>
-              <h3 className="text-base font-black">Invite Friends & Earn Free Coins</h3>
-              <p className="text-xs dark:text-slate-400 text-slate-600 mt-1">
-                Share your referral link with study friends. When they join Zyvra, you both earn bonus coins!
-              </p>
+              <h3 className="text-base font-black">
+                {isHindi ? 'दोस्तों को आमंत्रित करें और कॉइन्स कमाएँ' : 'Invite Friends & Earn Free Coins'}
+              </h3>
+              {referralSettingsLoading ? (
+                <div className="mt-1.5 space-y-1.5">
+                  <div className="h-3 w-3/4 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                  <div className="h-3 w-1/2 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                </div>
+              ) : (
+                <p className="text-xs dark:text-slate-400 text-slate-600 mt-1">
+                  {isHindi
+                    ? `साझा लिंक से मित्र जुड़ें: आपके मित्र को +${referralSettings?.referredCoins ?? 0} कॉइन्स और आपको +${referralSettings?.referrerCoins ?? 0} कॉइन्स मिलेंगे!`
+                    : `Share your invite link with friends: they get +${referralSettings?.referredCoins ?? 0} coins and you earn +${referralSettings?.referrerCoins ?? 0} coins per join!`}
+                </p>
+              )}
             </div>
 
             {/* Referral Code Box */}

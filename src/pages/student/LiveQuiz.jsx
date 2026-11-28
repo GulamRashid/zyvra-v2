@@ -3529,7 +3529,7 @@ export default function LiveQuiz() {
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
-              All ({questions.length})
+              {language === 'hi' ? 'सभी' : 'All'} ({questions.length})
             </button>
             <button
               type="button"
@@ -3540,7 +3540,7 @@ export default function LiveQuiz() {
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
-              Ans ({attemptedCount})
+              {language === 'hi' ? 'उत्तर' : 'Ans'} ({attemptedCount})
             </button>
             <button
               type="button"
@@ -3551,7 +3551,7 @@ export default function LiveQuiz() {
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
-              Unans ({questions.length - attemptedCount})
+              {language === 'hi' ? 'बाकी' : 'Unans'} ({questions.length - attemptedCount})
             </button>
             <button
               type="button"
@@ -3562,7 +3562,7 @@ export default function LiveQuiz() {
                   : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
-              Marked ({markedCount})
+              {language === 'hi' ? 'चिह्नित' : 'Marked'} ({markedCount})
             </button>
           </div>
 
@@ -3625,13 +3625,15 @@ export default function LiveQuiz() {
 
           {/* Palette Summary */}
           <div className="palette-summary">
-            <span><Check size={14} /> {attemptedCount} answered</span>
-            <span><Flag size={14} /> {markedCount} for review</span>
+            <span><Check size={14} /> {attemptedCount}{' '}{language === 'hi' ? 'उत्तर दिए' : 'answered'}</span>
+            <span><Flag size={14} /> {markedCount}{' '}{language === 'hi' ? 'समीक्षा के लिए' : 'for review'}</span>
           </div>
 
           <div className="palette-footer">
-            <span>{questions.length - attemptedCount} unanswered</span>
-            <button type="button" className="button button-primary" onClick={confirm}>Submit test</button>
+            <span>{questions.length - attemptedCount}{' '}{language === 'hi' ? 'बिना उत्तर' : 'unanswered'}</span>
+            <button type="button" className="button button-primary" onClick={confirm}>
+              {language === 'hi' ? 'टेस्ट सबमिट करें' : 'Submit test'}
+            </button>
           </div>
         </aside>
       </div>
@@ -3640,33 +3642,35 @@ export default function LiveQuiz() {
       {showPauseModal && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="pause-modal-title">
           <section className="pause-modal">
-            <button className="modal-close" onClick={() => setShowPauseModal(false)} aria-label="Close pause modal">
+            <button className="modal-close" onClick={() => setShowPauseModal(false)} aria-label={language === 'hi' ? 'बंद करें' : 'Close pause modal'}>
               <X size={18} />
             </button>
             <div className="pause-icon">
               <Pause size={24} />
             </div>
-            <h2 id="pause-modal-title">Pause or Exit Test?</h2>
+            <h2 id="pause-modal-title">{language === 'hi' ? 'टेस्ट रोकें या बाहर निकलें?' : 'Pause or Exit Test?'}</h2>
             <p>
-              Your current responses, visited questions, and remaining time ({formatTime(remaining)}) can be saved so you can resume later.
+              {language === 'hi'
+                ? `आपके वर्तमान उत्तर, देखे गए प्रश्न और शेष समय (${formatTime(remaining)}) सहेजे जा सकते हैं ताकि आप बाद में फिर शुरू कर सकें।`
+                : `Your current responses, visited questions, and remaining time (${formatTime(remaining)}) can be saved so you can resume later.`}
             </p>
 
             <div className="pause-summary-grid">
               <div className="stat-card">
                 <span className="stat-value">{questions.length}</span>
-                <span className="stat-label">Total Questions</span>
+                <span className="stat-label">{language === 'hi' ? 'कुल प्रश्न' : 'Total Questions'}</span>
               </div>
               <div className="stat-card">
                 <span className="stat-value text-green">{attemptedCount}</span>
-                <span className="stat-label">Answered</span>
+                <span className="stat-label">{language === 'hi' ? 'उत्तर दिए गए' : 'Answered'}</span>
               </div>
               <div className="stat-card">
                 <span className="stat-value text-salmon">{questions.length - attemptedCount}</span>
-                <span className="stat-label">Unanswered</span>
+                <span className="stat-label">{language === 'hi' ? 'बिना उत्तर' : 'Unanswered'}</span>
               </div>
               <div className="stat-card">
                 <span className="stat-value text-purple">{markedCount}</span>
-                <span className="stat-label">Marked for Review</span>
+                <span className="stat-label">{language === 'hi' ? 'समीक्षा चिह्नित' : 'Marked for Review'}</span>
               </div>
             </div>
 
@@ -3679,18 +3683,9 @@ export default function LiveQuiz() {
                 disabled={pausing}
                 onClick={pauseAndExit}
               >
-                {pausing ? 'Saving Progress…' : 'Pause & Save (Resume Later)'}
-              </button>
-              <button
-                type="button"
-                className="button button-danger"
-                disabled={pausing || submitting}
-                onClick={() => {
-                  setShowPauseModal(false);
-                  setConfirmSubmit(true);
-                }}
-              >
-                Submit Test Now
+                {pausing
+                  ? (language === 'hi' ? 'प्रगति सहेजी जा रही है…' : 'Saving Progress…')
+                  : (language === 'hi' ? 'रोकें और सहेजें (बाद में जारी रखें)' : 'Pause & Save (Resume Later)')}
               </button>
               <button
                 type="button"
@@ -3698,8 +3693,21 @@ export default function LiveQuiz() {
                 disabled={pausing}
                 onClick={() => setShowPauseModal(false)}
               >
-                Continue Test
+                {language === 'hi' ? 'टेस्ट जारी रखें' : 'Continue Test'}
               </button>
+              <div className="pause-modal-submit-zone">
+                <button
+                  type="button"
+                  className="button button-danger-outline"
+                  disabled={pausing || submitting}
+                  onClick={() => {
+                    setShowPauseModal(false);
+                    setConfirmSubmit(true);
+                  }}
+                >
+                  {language === 'hi' ? 'टेस्ट अभी समाप्त व सबमिट करें' : 'Submit Test Now'}
+                </button>
+              </div>
             </div>
           </section>
         </div>

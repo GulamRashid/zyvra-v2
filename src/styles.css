@@ -3778,6 +3778,22 @@ body.light .test-hub-hero { border-color: rgba(99, 102, 241, .18); background: r
   gap: 10px;
   margin-top: 4px;
 }
+.pause-modal-submit-zone {
+  margin-top: 10px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line);
+  display: grid;
+}
+.button-danger-outline {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #ef4444;
+  min-height: 44px;
+}
+.button-danger-outline:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.75);
+}
 
 /* Light mode overrides */
 body.light .quiz-instructions-screen {

@@ -1,17 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Coins, Copy, Gift, MessageCircle, RefreshCw, Send, Share2, Sparkles, Users } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { ensureReferralCode, getReferralSettings } from '../../lib/referrals';
 
 export default function ShareAndEarnCard({ className = '' }) {
   const { user, profile, supabase } = useAuth();
+  const { language } = useThemeLanguage();
+  const isHindi = language === 'hi';
+
   const [copied, setCopied] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [revealCode, setRevealCode] = useState(false);
   const [referrals, setReferrals] = useState([]);
   const [code, setCode] = useState(String(profile?.referral_code || user?.referral_code || ''));
   const [generating, setGenerating] = useState(false);
-  const [settings, setSettings] = useState({ enabled: true, referrerCoins: 50, referredCoins: 20 });
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const existing = profile?.referral_code || (user?.referral_code || '');
@@ -27,10 +32,13 @@ export default function ShareAndEarnCard({ className = '' }) {
   }, [profile?.referral_code, user?.referral_code, user?.id, supabase]);
 
   useEffect(() => {
-    if (!supabase || !user?.id) return;
+    if (!supabase || !user?.id) {
+      setLoading(false);
+      return;
+    }
     let active = true;
+    setLoading(true);
 
-    // Load referral history & reward settings
     Promise.all([
       supabase.from('referrals').select('id, referrer_coins_awarded, created_at').eq('referrer_id', user.id),
       getReferralSettings(supabase)
@@ -42,7 +50,10 @@ export default function ShareAndEarnCard({ className = '' }) {
       if (settingsData) {
         setSettings(settingsData);
       }
-    }).catch((err) => console.warn('Could not load user referrals:', err));
+    }).catch((err) => console.warn('Could not load user referrals:', err))
+    .finally(() => {
+      if (active) setLoading(false);
+    });
 
     return () => { active = false; };
   }, [supabase, user?.id]);
@@ -65,12 +76,16 @@ export default function ShareAndEarnCard({ className = '' }) {
 
   const shareUrl = useMemo(() => {
     if (!activeCode) return '';
-    const base = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://zyvra.in';
+    const base = typeof window !== 'undefined' && window.location?.origin ? window.location.origin : 'https://www.zyvra.me';
     return `${base}/auth?ref=${activeCode}`;
   }, [activeCode]);
 
   const invitedCount = Number(referrals?.length || 0);
-  const coinsEarned = Number((referrals || []).reduce((acc, r) => acc + Number(r?.referrer_coins_awarded || settings?.referrerCoins || 50), 0) || 0);
+  const referrerRate = Number(settings?.referrerCoins ?? 0);
+  const referredRate = Number(settings?.referredCoins ?? 0);
+  const coinsEarned = Number((referrals || []).reduce((acc, r) => acc + Number(r?.referrer_coins_awarded ?? referrerRate), 0) || 0);
+  const expectedAtCurrentRate = invitedCount * referrerRate;
+  const hasHistoricalRateDelta = !loading && invitedCount > 0 && referrerRate > 0 && coinsEarned !== expectedAtCurrentRate;
 
   const copyLink = async () => {
     if (!shareUrl) return;
@@ -124,15 +139,15 @@ export default function ShareAndEarnCard({ className = '' }) {
     }
     try {
       await navigator.clipboard.writeText(inviteMessage);
-      setShareFeedback('Invite message clipboard me copy ho gaya!');
+      setShareFeedback(isHindi ? 'इनवाइट संदेश कॉपी हो गया!' : 'Invite message copied to clipboard!');
       setTimeout(() => setShareFeedback(''), 2500);
     } catch {
-      setShareFeedback('Share message copy nahi ho paya.');
+      setShareFeedback(isHindi ? 'संदेश कॉपी नहीं हो सका।' : 'Could not copy invite message.');
       setTimeout(() => setShareFeedback(''), 2500);
     }
   };
 
-  if (!settings || settings.enabled === false) return null;
+  if (settings && settings.enabled === false) return null;
 
   return (
     <article className={`p-4 sm:p-5 rounded-3xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 space-y-4 ${className}`}>
@@ -140,16 +155,39 @@ export default function ShareAndEarnCard({ className = '' }) {
         <div className="w-10 h-10 rounded-2xl bg-amber-400/20 border border-amber-400/30 flex items-center justify-center text-amber-500 shrink-0">
           <Gift size={20} />
         </div>
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="text-[10px] uppercase font-bold text-amber-500 dark:text-amber-400 flex items-center gap-1.5 tracking-wider">
-            <Sparkles size={12} /> Share & Earn Coins
+            <Sparkles size={12} /> {isHindi ? 'शेयर करें और कॉइन्स कमाएँ' : 'Share & Earn Coins'}
           </div>
           <h2 className="text-base font-black dark:text-white text-slate-900">
-            Invite Friends & Earn Free Coins
+            {isHindi ? 'दोस्तों को आमंत्रित करें और मुफ़्त कॉइन्स कमाएँ' : 'Invite Friends & Earn Free Coins'}
           </h2>
-          <p className="text-xs dark:text-slate-400 text-slate-600 font-medium mt-0.5 leading-relaxed">
-            Give your friends <strong className="dark:text-white text-slate-900">+{settings.referredCoins || 20} coins</strong> on signup and get <strong className="text-amber-500 dark:text-amber-400">+{settings.referrerCoins || 50} coins</strong> credited to your wallet for each friend who joins!
-          </p>
+          {loading ? (
+            <div className="mt-1.5 space-y-1.5">
+              <div className="h-3.5 w-3/4 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+              <div className="h-3.5 w-1/2 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+            </div>
+          ) : (
+            <p className="text-xs dark:text-slate-400 text-slate-600 font-medium mt-0.5 leading-relaxed">
+              {isHindi ? (
+                <>
+                  आपके दोस्त को साइनअप पर{' '}
+                  <strong className="dark:text-white text-slate-900">+{referredRate} कॉइन्स</strong>{' '}
+                  और हर सफल रेफरल पर आपको{' '}
+                  <strong className="text-amber-500 dark:text-amber-400">+{referrerRate} कॉइन्स</strong>{' '}
+                  मिलते हैं!
+                </>
+              ) : (
+                <>
+                  Give your friends{' '}
+                  <strong className="dark:text-white text-slate-900">+{referredRate} coins</strong>{' '}
+                  on signup and get{' '}
+                  <strong className="text-amber-500 dark:text-amber-400">+{referrerRate} coins</strong>{' '}
+                  credited to your wallet for each friend who joins!
+                </>
+              )}
+            </p>
+          )}
         </div>
       </div>
 
@@ -157,13 +195,13 @@ export default function ShareAndEarnCard({ className = '' }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-400 block">
-              Your Invite Code
+              {isHindi ? 'आपका इनवाइट कोड' : 'Your Invite Code'}
             </span>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
               <strong className="font-mono text-base font-black dark:text-amber-400 text-amber-600 tracking-wider">
                 {activeCode
                   ? (revealCode || activeCode.length <= 4 ? activeCode : `${activeCode.slice(0, 2)}${'•'.repeat(Math.max(2, activeCode.length - 4))}${activeCode.slice(-2)}`)
-                  : (generating ? 'Generating...' : 'Loading code...')}
+                  : (generating ? (isHindi ? 'बन रहा है...' : 'Generating...') : (isHindi ? 'लोड हो रहा है...' : 'Loading code...'))}
               </strong>
               {hasRealCode && (
                 <button
@@ -171,25 +209,25 @@ export default function ShareAndEarnCard({ className = '' }) {
                   onClick={() => setRevealCode((v) => !v)}
                   className="px-2 min-h-[32px] rounded-lg dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 text-[10px] font-bold text-slate-600 dark:text-slate-300"
                 >
-                  {revealCode ? 'Hide' : 'Show'}
+                  {revealCode ? (isHindi ? 'छिपाएँ' : 'Hide') : (isHindi ? 'दिखाएँ' : 'Show')}
                 </button>
               )}
               {hasRealCode ? (
                 <button
                   type="button"
-                  className="px-2.5 h-7 rounded-lg dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 flex items-center justify-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white transition-colors"
+                  className="px-2.5 h-8 rounded-lg dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-200 flex items-center justify-center gap-1 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-black dark:hover:text-white transition-colors"
                   onClick={copyCodeOnly}
-                  title="Copy code"
+                  title={isHindi ? 'कोड कॉपी करें' : 'Copy code'}
                 >
                   {copiedCode ? (
                     <>
                       <Check size={13} className="text-emerald-500" />
-                      <span className="text-emerald-500 text-[11px] font-black">Copied!</span>
+                      <span className="text-emerald-500 text-[11px] font-black">{isHindi ? 'कॉपी हुआ!' : 'Copied!'}</span>
                     </>
                   ) : (
                     <>
                       <Copy size={13} />
-                      <span className="text-[11px] font-bold">Copy</span>
+                      <span className="text-[11px] font-bold">{isHindi ? 'कोड कॉपी' : 'Copy'}</span>
                     </>
                   )}
                 </button>
@@ -201,7 +239,7 @@ export default function ShareAndEarnCard({ className = '' }) {
                   disabled={generating}
                 >
                   <RefreshCw size={11} className={generating ? 'animate-spin' : ''} />
-                  <span>{generating ? 'Generating…' : 'Generate Code'}</span>
+                  <span>{generating ? (isHindi ? 'बन रहा है…' : 'Generating…') : (isHindi ? 'कोड बनाएँ' : 'Generate Code')}</span>
                 </button>
               )}
             </div>
@@ -210,45 +248,45 @@ export default function ShareAndEarnCard({ className = '' }) {
           <div className="flex flex-wrap items-center gap-2 pt-1 sm:pt-0">
             <button
               type="button"
-              className="px-3 py-2 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-800 text-xs font-bold flex items-center gap-1.5 transition-colors min-h-[38px] shadow-xs hover:border-indigo-500"
+              className="px-3 py-2 rounded-xl dark:bg-slate-800 bg-white border dark:border-slate-700 border-slate-300 dark:text-slate-300 text-slate-800 text-xs font-bold flex items-center gap-1.5 transition-colors min-h-[40px] shadow-xs hover:border-indigo-500"
               onClick={copyLink}
               disabled={!shareUrl}
-              title="Copy invite URL"
+              title={isHindi ? 'इनवाइट लिंक कॉपी करें' : 'Copy invite URL'}
             >
               {copied ? (
                 <>
-                  <Check size={14} className="text-emerald-400" /> <span>Link copied!</span>
+                  <Check size={14} className="text-emerald-400" /> <span>{isHindi ? 'लिंक कॉपी हुआ!' : 'Link copied!'}</span>
                 </>
               ) : (
                 <>
-                  <Copy size={14} /> <span>Copy link</span>
+                  <Copy size={14} /> <span>{isHindi ? 'लिंक कॉपी' : 'Copy link'}</span>
                 </>
               )}
             </button>
 
             <button
               type="button"
-              className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors min-h-[38px]"
+              className="px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors min-h-[40px]"
               onClick={handleNativeShare}
-              title="Share via device"
+              title={isHindi ? 'शेयर करें' : 'Share via device'}
             >
-              <Share2 size={14} /> <span>Share</span>
+              <Share2 size={14} /> <span>{isHindi ? 'शेयर' : 'Share'}</span>
             </button>
 
             <button
               type="button"
-              className="px-3 py-2 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors min-h-[38px]"
+              className="px-3 py-2 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors min-h-[40px]"
               onClick={shareViaWhatsApp}
-              title="Share on WhatsApp"
+              title="WhatsApp"
             >
               <MessageCircle size={14} /> <span>WhatsApp</span>
             </button>
 
             <button
               type="button"
-              className="px-3 py-2 rounded-xl bg-[#0088cc] hover:bg-[#0077b5] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors min-h-[38px]"
+              className="px-3 py-2 rounded-xl bg-[#0088cc] hover:bg-[#0077b5] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 transition-colors min-h-[40px]"
               onClick={shareViaTelegram}
-              title="Share on Telegram"
+              title="Telegram"
             >
               <Send size={14} /> <span>Telegram</span>
             </button>
@@ -262,21 +300,42 @@ export default function ShareAndEarnCard({ className = '' }) {
         )}
       </div>
 
-      {/* Milestone Counters */}
-      <div className="flex items-center justify-around p-2.5 rounded-xl dark:bg-slate-900/40 bg-slate-50 border dark:border-slate-700/50 border-slate-200 text-xs">
-        <div className="flex items-center gap-2">
-          <Users size={16} className="text-amber-500" />
-          <span className="dark:text-slate-300 text-slate-700">
-            Invited: <strong className="dark:text-white text-slate-900 font-extrabold">{invitedCount}</strong>
-          </span>
+      {/* Milestone Counters (Skeleton while loading, real DB numbers after) */}
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-around p-2.5 rounded-xl dark:bg-slate-900/40 bg-slate-50 border dark:border-slate-700/50 border-slate-200 text-xs">
+          <div className="flex items-center gap-2">
+            <Users size={16} className="text-amber-500" />
+            {loading ? (
+              <span className="inline-block h-4 w-20 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" aria-hidden="true" />
+            ) : (
+              <span className="dark:text-slate-300 text-slate-700">
+                {isHindi ? 'आमंत्रित:' : 'Invited:'}{' '}
+                <strong className="dark:text-white text-slate-900 font-extrabold">{invitedCount}</strong>
+              </span>
+            )}
+          </div>
+          <div className="w-px h-4 dark:bg-slate-700 bg-slate-300" />
+          <div className="flex items-center gap-2">
+            <Coins size={16} className="text-amber-500" />
+            {loading ? (
+              <span className="inline-block h-4 w-20 rounded bg-slate-200 dark:bg-slate-700 animate-pulse" aria-hidden="true" />
+            ) : (
+              <span className="dark:text-slate-300 text-slate-700">
+                {isHindi ? 'कमाए कॉइन्स:' : 'Coins:'}{' '}
+                <strong className="text-amber-500 dark:text-amber-400 font-extrabold">
+                  +{coinsEarned.toLocaleString()} {isHindi ? 'कॉइन्स' : 'coins'}
+                </strong>
+              </span>
+            )}
+          </div>
         </div>
-        <div className="w-px h-4 dark:bg-slate-700 bg-slate-300" />
-        <div className="flex items-center gap-2">
-          <Coins size={16} className="text-amber-500" />
-          <span className="dark:text-slate-300 text-slate-700">
-            Coins: <strong className="text-amber-500 dark:text-amber-400 font-extrabold">+{coinsEarned.toLocaleString()}</strong>
-          </span>
-        </div>
+        {hasHistoricalRateDelta && (
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center m-0">
+            {isHindi
+              ? `पिछले रेफरल (+${coinsEarned} कॉइन्स) पुरानी दर पर प्राप्त हुए; वर्तमान दर +${referrerRate} कॉइन्स/मित्र है।`
+              : `Past invites credited at prior rate (+${coinsEarned} coins awarded); current rate is +${referrerRate} coins per invite.`}
+          </p>
+        )}
       </div>
     </article>
   );

@@ -176,13 +176,15 @@ export default function StudentLayout() {
           <img src="/logo-192.png" alt="Zyvra" className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl object-contain shadow-sm" />
           <div>
             <span className="text-[var(--text)] font-extrabold tracking-wider">ZYVRA</span>
-            <span className="text-[var(--muted)] font-semibold tracking-widest text-[9px] block">LEARN WITH INTENT</span>
+            <span className="text-[var(--muted)] font-semibold tracking-widest text-[9px] block">
+              {language === 'hi' ? 'सटीक अभ्यास · पक्की सफलता' : 'LEARN WITH INTENT'}
+            </span>
           </div>
-          <button className="icon-button drawer-close ml-auto" onClick={closeDrawer} aria-label="Close menu">
+          <button className="icon-button drawer-close ml-auto" onClick={closeDrawer} aria-label={language === 'hi' ? 'मेनू बंद करें' : 'Close menu'}>
             <X size={19} />
           </button>
         </div>
-        <div className="sidebar-caption">YOUR LEARNING SPACE</div>
+        <div className="sidebar-caption">{language === 'hi' ? 'आपका अध्ययन क्षेत्र' : 'YOUR LEARNING SPACE'}</div>
         <nav className="side-nav">
           {visibleSections.map(({ to, Icon, ...item }) => (
             <NavLink
@@ -201,8 +203,12 @@ export default function StudentLayout() {
         <div className="sidebar-bottom">
           <div className="focus-card border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 rounded-2xl p-3">
             <span className="focus-mark text-indigo-500 dark:text-indigo-400">✦</span>
-            <strong className="text-[var(--text)] text-sm block mt-1">Focus, deliberate practice, results.</strong>
-            <span className="text-[var(--muted)] text-xs sm:text-sm">Your next session is one tap away.</span>
+            <strong className="text-[var(--text)] text-sm block mt-1">
+              {language === 'hi' ? 'एकाग्रता, सटीक अभ्यास, परिणाम।' : 'Focus, deliberate practice, results.'}
+            </strong>
+            <span className="text-[var(--muted)] text-xs sm:text-sm">
+              {language === 'hi' ? 'आपका अगला सत्र बस एक टैप दूर है।' : 'Your next session is one tap away.'}
+            </span>
           </div>
 
           {/* Quick Preference Controls in Drawer for Mobile Ease */}
@@ -213,7 +219,9 @@ export default function StudentLayout() {
             </div>
             <div className="flex items-center gap-2">
               <ThemeToggle />
-              <span className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold">{theme === 'light' ? 'Light' : 'Dark'}</span>
+              <span className="text-[11px] text-slate-700 dark:text-slate-300 font-semibold">
+                {language === 'hi' ? (theme === 'light' ? 'लाइट' : 'डार्क') : (theme === 'light' ? 'Light' : 'Dark')}
+              </span>
             </div>
           </div>
 
@@ -222,8 +230,12 @@ export default function StudentLayout() {
               {name.slice(0, 1).toUpperCase()}
             </div>
             <div className="account-copy flex-1 min-w-0">
-              <strong className="text-[var(--text)] text-sm block truncate">{guest ? 'Demo learner' : name}</strong>
-              <span className="text-[var(--muted)] text-xs">{guest ? 'Guest access' : 'Student account'}</span>
+              <strong className="text-[var(--text)] text-sm block truncate">
+                {guest ? (language === 'hi' ? 'डेमो छात्र' : 'Demo learner') : name}
+              </strong>
+              <span className="text-[var(--muted)] text-xs">
+                {guest ? (language === 'hi' ? 'अतिथि प्रवेश' : 'Guest access') : (language === 'hi' ? 'छात्र खाता' : 'Student account')}
+              </span>
             </div>
             <button className="icon-button text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 transition-colors" aria-label="Sign out" onClick={logout}>
               <LogOut size={16} />

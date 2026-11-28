@@ -11,14 +11,15 @@ import {
   Layers,
   Play,
   RotateCcw,
-  Sparkles
+  Search,
+  Sparkles,
+  X
 } from 'lucide-react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import useSyllabusProgress from '../../hooks/useSyllabusProgress';
 import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { SYLLABUS_STATUS } from '../../lib/syllabusProgress';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
-import MountainSunsetAura from '../../components/common/MountainSunsetAura';
 
 const FILTERS = [
   { id: 'all', en: 'All', hi: 'सभी' },
@@ -74,6 +75,7 @@ export default function SyllabusTracker() {
 
   const [selectedExamSlug, setSelectedExamSlug] = useState(examSlug || '');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [expandedSubjects, setExpandedSubjects] = useState({});
 
   useEffect(() => {
@@ -94,11 +96,17 @@ export default function SyllabusTracker() {
     );
   }, [exams, selectedExamSlug]);
 
+  // Expand the first subject with actual attempts/progress or playable chapters (never a purely empty Coming Soon group)
   useEffect(() => {
     if (!activeExam?.subjects?.length) return;
     setExpandedSubjects((prev) => {
       if (Object.keys(prev).length > 0) return prev;
-      return { [activeExam.subjects[0].id]: true };
+      const withActivity = activeExam.subjects.find(
+        (s) => (s.doneCount + s.weakCount + s.inProgressCount) > 0
+      );
+      const withTests = activeExam.subjects.find((s) => s.totalChapters > 0);
+      const target = withActivity || withTests;
+      return target ? { [target.id]: true } : {};
     });
   }, [activeExam]);
 
@@ -111,14 +119,23 @@ export default function SyllabusTracker() {
     return null;
   }, [activeExam]);
 
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+
   const visibleSubjects = useMemo(() => {
     if (!activeExam) return [];
     return activeExam.subjects
       .map((subj) => {
+        const subjectMatches = normalizedSearch && String(subj.title || '').toLowerCase().includes(normalizedSearch);
+
         let filtered = subj.chapters.filter((ch) => {
-          if (statusFilter === 'all') return true;
-          if (ch.isComingSoon) return false;
-          return ch.status === statusFilter;
+          if (statusFilter !== 'all') {
+            if (ch.isComingSoon) return false;
+            if (ch.status !== statusFilter) return false;
+          }
+          if (normalizedSearch && !subjectMatches) {
+            return String(ch.title || '').toLowerCase().includes(normalizedSearch);
+          }
+          return true;
         });
 
         if (statusFilter === SYLLABUS_STATUS.WEAK) {
@@ -136,7 +153,7 @@ export default function SyllabusTracker() {
         };
       })
       .filter((subj) => subj.visibleChapters.length > 0);
-  }, [activeExam, statusFilter]);
+  }, [activeExam, statusFilter, normalizedSearch]);
 
   const toggleSubject = (subjectId) => {
     setExpandedSubjects((prev) => ({ ...prev, [subjectId]: !prev[subjectId] }));
@@ -221,10 +238,9 @@ export default function SyllabusTracker() {
         </div>
       ) : (
         <>
-          {/* Overall Progress Card */}
-          <section className="relative overflow-hidden rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 p-4 sm:p-5 shadow-xs">
-            <MountainSunsetAura height={120} mobileHeight={72} showSun={false} />
-            <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          {/* Overall Progress Card (Clean minimalist card — no decorative axisless background graphic) */}
+          <section className="rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200/90 p-4 sm:p-5 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-4 min-w-0">
                 {hasAttempts ? (
                   <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
@@ -300,39 +316,76 @@ export default function SyllabusTracker() {
                 </button>
               )}
             </div>
+
+            {/* Clear Status Rule Explanation (Explains why high Best score can still be Weak) */}
+            <div className="pt-2.5 border-t dark:border-slate-800 border-slate-200/80 text-[11px] text-slate-500 dark:text-slate-400 font-medium flex items-start sm:items-center gap-1.5">
+              <AlertTriangle size={13} className="text-rose-500 shrink-0 mt-0.5 sm:mt-0" />
+              <span>
+                {hi
+                  ? 'नियम: कमज़ोर = अंतिम स्कोर 50% से कम या मिस्टेक नोटबुक में 3+ गलतियाँ (पूर्ण ≥70% को भी कमज़ोर में रखता है)।'
+                  : 'Rule: Weak = latest score <50% or 3+ mistakes in Mistake Notebook (overrides Done ≥70%).'}
+              </span>
+            </div>
           </section>
 
-          {/* Status Filters */}
-          <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
-            {FILTERS.map((f) => {
-              const active = statusFilter === f.id;
-              return (
+          {/* Search Box + Status Filters */}
+          <div className="space-y-2.5">
+            <div className="relative">
+              <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder={hi ? 'अध्याय या विषय खोजें (उदा. Light, History)…' : 'Search chapters or subjects (e.g. Light, History)…'}
+                aria-label={hi ? 'अध्याय खोजें' : 'Search syllabus chapters'}
+                className="w-full min-h-[44px] pl-10 pr-10 py-2 rounded-2xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 text-xs sm:text-sm font-medium dark:text-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500"
+              />
+              {searchQuery && (
                 <button
-                  key={f.id}
                   type="button"
-                  onClick={() => setStatusFilter(f.id)}
-                  className={`px-3.5 py-2 min-h-[44px] rounded-2xl text-xs font-extrabold whitespace-nowrap border transition-colors shrink-0 ${
-                    active
-                      ? 'bg-indigo-600 text-white border-indigo-500 shadow-xs'
-                      : 'dark:bg-[#1E293B] bg-white dark:border-slate-800 border-slate-200 dark:text-slate-300 text-slate-700 hover:border-indigo-500/40'
-                  }`}
+                  onClick={() => setSearchQuery('')}
+                  aria-label={hi ? 'खोज साफ करें' : 'Clear search'}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-white"
                 >
-                  {hi ? f.hi : f.en}
+                  <X size={14} />
                 </button>
-              );
-            })}
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-0.5">
+              {FILTERS.map((f) => {
+                const active = statusFilter === f.id;
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => setStatusFilter(f.id)}
+                    className={`px-3.5 py-2 min-h-[44px] rounded-2xl text-xs font-extrabold whitespace-nowrap border transition-colors shrink-0 ${
+                      active
+                        ? 'bg-indigo-600 text-white border-indigo-500 shadow-xs'
+                        : 'dark:bg-[#1E293B] bg-white dark:border-slate-800 border-slate-200 dark:text-slate-300 text-slate-700 hover:border-indigo-500/40'
+                    }`}
+                  >
+                    {hi ? f.hi : f.en}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Subjects & Chapter Rows */}
           {visibleSubjects.length === 0 ? (
             <div className="p-6 rounded-3xl dark:bg-[#1E293B] bg-white border dark:border-slate-800 border-slate-200 text-center space-y-2">
               <p className="text-sm font-bold dark:text-white text-slate-900">
-                {hi ? 'इस फ़िल्टर में कोई अध्याय नहीं मिला।' : 'No chapters match this filter yet.'}
+                {hi ? 'इस खोज या फ़िल्टर में कोई अध्याय नहीं मिला।' : 'No chapters match this search or filter.'}
               </p>
-              {statusFilter !== 'all' && (
+              {(statusFilter !== 'all' || searchQuery) && (
                 <button
                   type="button"
-                  onClick={() => setStatusFilter('all')}
+                  onClick={() => {
+                    setStatusFilter('all');
+                    setSearchQuery('');
+                  }}
                   className="px-4 py-2 min-h-[44px] rounded-xl bg-indigo-600 text-white text-xs font-bold"
                 >
                   {hi ? 'सभी अध्याय देखें' : 'Show All Chapters'}
@@ -342,7 +395,7 @@ export default function SyllabusTracker() {
           ) : (
             <div className="space-y-3">
               {visibleSubjects.map((subj) => {
-                const isExpanded = statusFilter !== 'all' || Boolean(expandedSubjects[subj.id]);
+                const isExpanded = statusFilter !== 'all' || Boolean(normalizedSearch) || Boolean(expandedSubjects[subj.id]);
                 return (
                   <section
                     key={subj.id}
@@ -366,10 +419,18 @@ export default function SyllabusTracker() {
                           )}
                         </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5">
-                          {hi
-                            ? `${subj.totalChapters} में से ${subj.doneCount} पूर्ण`
-                            : `${subj.doneCount} of ${subj.totalChapters} done`}
-                          {subj.comingSoonCount > 0 ? ` · ${subj.comingSoonCount} ${hi ? 'जल्द' : 'Coming Soon'}` : ''}
+                          {subj.totalChapters > 0 ? (
+                            <>
+                              {hi
+                                ? `${subj.totalChapters} में से ${subj.doneCount} पूर्ण`
+                                : `${subj.doneCount} of ${subj.totalChapters} done`}
+                              {subj.comingSoonCount > 0 ? ` · ${subj.comingSoonCount} ${hi ? 'जल्द आ रहे हैं' : 'Coming Soon'}` : ''}
+                            </>
+                          ) : (
+                            <span>
+                              {subj.comingSoonCount} {hi ? 'अध्याय जल्द आ रहे हैं' : 'chapters coming soon'}
+                            </span>
+                          )}
                         </p>
                       </div>
                       <span className="w-8 h-8 rounded-xl dark:bg-slate-800 bg-slate-100 flex items-center justify-center text-slate-500 dark:text-slate-300 shrink-0">
@@ -401,10 +462,12 @@ export default function SyllabusTracker() {
                                   <span className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 leading-snug">
                                     {ch.title}
                                   </span>
-                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border shrink-0 ${meta.classes}`}>
-                                    <StatusIcon size={11} />
-                                    {meta.label}
-                                  </span>
+                                  {!ch.isComingSoon && (
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold border shrink-0 ${meta.classes}`}>
+                                      <StatusIcon size={11} />
+                                      {meta.label}
+                                    </span>
+                                  )}
                                   {ch.isPyq && (
                                     <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0">
                                       PYQ
@@ -412,29 +475,25 @@ export default function SyllabusTracker() {
                                   )}
                                 </div>
 
-                                <div className="flex items-center gap-3 flex-wrap text-[11px] font-semibold text-slate-500 dark:text-slate-400">
-                                  {ch.isComingSoon ? (
-                                    <span>{hi ? 'प्रश्न जल्द जोड़े जाएंगे' : 'Questions coming soon'}</span>
-                                  ) : (
-                                    <>
-                                      <span>
-                                        {hi ? 'सर्वश्रेष्ठ:' : 'Best:'}{' '}
-                                        <strong className="dark:text-slate-200 text-slate-800">
-                                          {ch.bestScore !== null ? `${ch.bestScore}%` : '—'}
-                                        </strong>
+                                {!ch.isComingSoon && (
+                                  <div className="flex items-center gap-3 flex-wrap text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                                    <span>
+                                      {hi ? 'सर्वश्रेष्ठ:' : 'Best:'}{' '}
+                                      <strong className="dark:text-slate-200 text-slate-800">
+                                        {ch.bestScore !== null ? `${ch.bestScore}%` : '—'}
+                                      </strong>
+                                    </span>
+                                    <span>
+                                      {ch.attemptsCount}{' '}
+                                      {hi ? 'प्रयास' : (ch.attemptsCount === 1 ? 'attempt' : 'attempts')}
+                                    </span>
+                                    {isWeak && ch.mistakeCount > 0 && (
+                                      <span className="text-rose-600 dark:text-rose-400 font-bold">
+                                        {ch.mistakeCount} {hi ? 'गलतियाँ नोटबुक में' : (ch.mistakeCount === 1 ? 'mistake' : 'mistakes')}
                                       </span>
-                                      <span>
-                                        {ch.attemptsCount}{' '}
-                                        {hi ? 'प्रयास' : (ch.attemptsCount === 1 ? 'attempt' : 'attempts')}
-                                      </span>
-                                      {isWeak && ch.mistakeCount > 0 && (
-                                        <span className="text-rose-600 dark:text-rose-400 font-bold">
-                                          {ch.mistakeCount} {hi ? 'गलतियाँ नोटबुक में' : (ch.mistakeCount === 1 ? 'mistake' : 'mistakes')}
-                                        </span>
-                                      )}
-                                    </>
-                                  )}
-                                </div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
 
                               <div className="shrink-0 flex items-center">
@@ -448,8 +507,9 @@ export default function SyllabusTracker() {
                                     <span>{actionLabel}</span>
                                   </button>
                                 ) : (
-                                  <span className="px-3 py-2 min-h-[44px] rounded-xl dark:bg-slate-800 bg-slate-100 text-slate-500 dark:text-slate-400 text-xs font-bold inline-flex items-center">
-                                    {hi ? 'जल्द आ रहा है' : 'Coming Soon'}
+                                  <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl border text-xs font-bold ${meta.classes}`}>
+                                    <StatusIcon size={12} />
+                                    {meta.label}
                                   </span>
                                 )}
                               </div>

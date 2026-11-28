@@ -17,6 +17,7 @@ import { supabase } from '../../lib/supabase';
 import { sanitizeLiveQuestion } from '../../lib/tests';
 import { prefetchLiveQuiz } from '../../lib/prefetchLiveQuiz';
 import { getFriendlyErrorMessage } from '../../lib/errors';
+import { formatMinutes, formatQuestions } from '../../lib/formatters';
 import { recordStudyActivity } from '../../lib/streak';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
@@ -502,15 +503,19 @@ export default function ChapterDetail() {
                   </span>
                 </div>
 
-                <span
-                  className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                    isLocked
-                      ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/40'
-                      : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30'
-                  }`}
-                >
-                  {accessLoading ? t('checkingAccess') : isLocked ? t('paidAccess') : t('freeToExplore')}
-                </span>
+                {accessLoading ? (
+                  <span className="inline-block h-6 w-24 rounded-full bg-slate-200 dark:bg-slate-800 animate-pulse" aria-hidden="true" />
+                ) : (
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      isLocked
+                        ? 'bg-amber-400/20 text-amber-700 dark:text-amber-300 border border-amber-400/40'
+                        : 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30'
+                    }`}
+                  >
+                    {isLocked ? t('paidAccess') : t('freeToExplore')}
+                  </span>
+                )}
               </div>
 
               <div>
@@ -529,21 +534,28 @@ export default function ChapterDetail() {
                 <span className="px-2.5 py-0.5 rounded-full dark:bg-indigo-500/10 bg-indigo-50 text-indigo-700 dark:text-indigo-300 font-bold border dark:border-indigo-500/20 border-indigo-200">
                   {chapter.subject || (language === 'hi' ? 'सामान्य' : 'General')}
                 </span>
-                <span className="flex items-center gap-1 dark:text-slate-400 text-slate-500 font-semibold">
-                  <Clock3 size={13} />
-                  <span>
-                    {chapter.estimated_study_time_minutes || '—'}{' '}
-                    {language === 'hi' ? 'मिनट अध्ययन समय' : t('studyTime')}
+                {chapter.estimated_study_time_minutes ? (
+                  <span className="flex items-center gap-1 dark:text-slate-400 text-slate-500 font-semibold">
+                    <Clock3 size={13} />
+                    <span>
+                      {formatMinutes(chapter.estimated_study_time_minutes, language)}{' '}
+                      {language === 'hi' ? 'अध्ययन समय' : t('studyTime')}
+                    </span>
                   </span>
-                </span>
+                ) : null}
                 <span className="text-amber-600 dark:text-amber-400 font-bold">
                   {access.label === 'Coming Soon' ? t('chapterComingSoon') : access.label}
                 </span>
               </div>
             </section>
 
-            {/* Tab Bar: Only rendered when multiple content modes exist to keep UI clean and minimalist */}
-            {tabsList.length > 1 && (
+            {/* Tab Bar: Gate behind loading skeletons so 0/0/0 never flashes before tests & notes arrive */}
+            {testsLoading || resourcesLoading || accessLoading ? (
+              <div className="flex items-center gap-2 p-1.5 rounded-2xl dark:bg-[#1E293B]/70 bg-white border dark:border-slate-800 border-slate-200/80">
+                <span className="flex-1 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+                <span className="flex-1 h-10 rounded-xl bg-slate-200 dark:bg-slate-800 animate-pulse" />
+              </div>
+            ) : tabsList.length > 1 && (
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList
                   className="w-full flex items-center gap-1.5 p-1 rounded-2xl dark:bg-[#1E293B]/70 bg-white border dark:border-slate-800 border-slate-200/80 shadow-xs h-auto"
@@ -664,7 +676,7 @@ export default function ChapterDetail() {
                     <span className="text-xs text-slate-500 dark:text-slate-400">{t('chooseAnotherTab')}</span>
                   </div>
                 ) : accessLoading ? (
-                  <p className="text-xs dark:text-slate-300 text-slate-600 font-medium">{t('checkingAccess')}</p>
+                  <LoadingSkeleton rows={2} />
                 ) : isLocked ? (
                   <div className="p-8 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 text-center space-y-2">
                     <LockKeyhole size={24} className="mx-auto text-amber-500 opacity-60" />
@@ -697,7 +709,7 @@ export default function ChapterDetail() {
                               </span>
                             </div>
                             <span className="text-xs dark:text-slate-400 text-slate-500">
-                              {language === 'hi' ? '20 प्रश्न • असीमित अभ्यास • नो टाइमर' : '20 Questions • Untimed Practice'}
+                              {formatQuestions(20, language)} • {language === 'hi' ? 'असीमित अभ्यास • नो टाइमर' : 'Untimed Practice'}
                             </span>
                           </div>
                         </div>
@@ -810,7 +822,7 @@ export default function ChapterDetail() {
                     <span className="text-xs text-slate-500 dark:text-slate-400">{t('chooseAnotherTab')}</span>
                   </div>
                 ) : accessLoading ? (
-                  <p className="text-xs dark:text-slate-300 text-slate-600 font-medium">{t('checkingAccess')}</p>
+                  <LoadingSkeleton rows={2} />
                 ) : accessError ? (
                   <div className="p-3 rounded-2xl dark:bg-rose-950/40 bg-rose-50 border border-rose-300 text-rose-700 text-xs font-bold">{accessError}</div>
                 ) : isLocked ? (

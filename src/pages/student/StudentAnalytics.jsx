@@ -4,7 +4,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import LoadingSkeleton from '../../components/common/LoadingSkeleton';
 import { useAuth } from '../../context/AuthContext';
 import { useStudentStats } from '../../context/StudentStatsContext';
+import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 import { getFriendlyErrorMessage } from '../../lib/errors';
+import { formatQuestions, formatTests } from '../../lib/formatters';
 import { computeAttemptScorePercentage } from '../../lib/studentStats';
 
 const QUERY_PAGE_SIZE = 1000;
@@ -54,6 +56,7 @@ function optionECount(attempt, responses) {
 export default function StudentAnalytics() {
   const navigate = useNavigate();
   const { user, supabase } = useAuth();
+  const { language } = useThemeLanguage();
   const {
     completedAttempts: attempts,
     responses,
@@ -173,14 +176,16 @@ export default function StudentAnalytics() {
               <ArrowLeft size={14} />
             </button>
             <span className="text-[10px] uppercase font-bold text-indigo-500 dark:text-indigo-400 tracking-wider">
-              Your Learning Journey
+              {language === 'hi' ? 'आपकी अध्ययन यात्रा' : 'Your Learning Journey'}
             </span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
-            Performance Analytics
+            {language === 'hi' ? 'प्रदर्शन एवं विश्लेषण' : 'Performance Analytics'}
           </h1>
           <p className="text-xs sm:text-sm dark:text-slate-300 text-slate-600 font-medium mt-0.5">
-            See your progress, identify strong subjects and revisit completed tests.
+            {language === 'hi'
+              ? 'अपनी प्रगति देखें, मज़बूत विषय पहचानें और पूरे किए गए टेस्ट दोहराएँ।'
+              : 'See your progress, identify strong subjects and revisit completed tests.'}
           </p>
         </div>
 
@@ -188,7 +193,7 @@ export default function StudentAnalytics() {
           className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black inline-flex items-center gap-1.5 shrink-0 min-h-[44px]"
           to="/tests"
         >
-          <span>Practice more</span>
+          <span>{language === 'hi' ? 'और अभ्यास करें' : 'Practice more'}</span>
           <ArrowRight size={14} />
         </Link>
       </div>
@@ -210,12 +215,14 @@ export default function StudentAnalytics() {
                 <CheckCircle2 size={16} />
               </div>
               <small className="text-[10px] uppercase font-bold dark:text-slate-400 text-slate-500">
-                Tests taken
+                {language === 'hi' ? 'कुल टेस्ट' : 'Tests taken'}
               </small>
               <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
                 {stats.total}
               </strong>
-              <span className="text-sm dark:text-slate-400 text-slate-500">Completed attempts</span>
+              <span className="text-sm dark:text-slate-400 text-slate-500">
+                {language === 'hi' ? 'पूर्ण किए गए प्रयास' : 'Completed attempts'}
+              </span>
             </article>
 
             <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 flex flex-col justify-between">
@@ -223,14 +230,16 @@ export default function StudentAnalytics() {
                 <Target size={16} />
               </div>
               <small className="text-[10px] uppercase font-bold dark:text-slate-400 text-slate-500">
-                Overall accuracy
+                {language === 'hi' ? 'कुल सटीकता' : 'Overall accuracy'}
               </small>
               <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
                 {stats.total > 0 && Number.isFinite(Number(stats.accuracy))
                   ? `${Number(stats.accuracy).toFixed(1)}%`
                   : '—'}
               </strong>
-              <span className="text-xs dark:text-slate-400 text-slate-500">Correct ÷ Attempted Qs</span>
+              <span className="text-xs dark:text-slate-400 text-slate-500">
+                {language === 'hi' ? 'सही ÷ हल किए गए प्रश्न' : 'Correct ÷ Attempted Qs'}
+              </span>
             </article>
 
             <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 flex flex-col justify-between">
@@ -238,14 +247,16 @@ export default function StudentAnalytics() {
                 <BarChart3 size={16} />
               </div>
               <small className="text-[10px] uppercase font-bold dark:text-slate-400 text-slate-500">
-                Average score
+                {language === 'hi' ? 'औसत स्कोर' : 'Average score'}
               </small>
               <strong className="text-lg sm:text-2xl font-black dark:text-white text-slate-900 tracking-tight">
                 {stats.total > 0 && Number.isFinite(Number(stats.averageScore))
                   ? `${Number(stats.averageScore).toFixed(1)}%`
                   : '—'}
               </strong>
-              <span className="text-xs dark:text-slate-400 text-slate-500">Net marks % (after negative)</span>
+              <span className="text-xs dark:text-slate-400 text-slate-500">
+                {language === 'hi' ? 'शुद्ध अंक % (नेगेटिव के बाद)' : 'Net marks % (after negative)'}
+              </span>
             </article>
 
             <article className="p-3 sm:p-4 rounded-2xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-orange-500/30 border-orange-200 flex flex-col justify-between">
@@ -253,12 +264,14 @@ export default function StudentAnalytics() {
                 <Trophy size={16} />
               </div>
               <small className="text-[10px] uppercase font-bold text-orange-500 dark:text-orange-400">
-                Current streak
+                {language === 'hi' ? 'वर्तमान स्ट्रीक' : 'Current streak'}
               </small>
               <strong className="text-lg sm:text-2xl font-black text-orange-500 dark:text-orange-400 tracking-tight">
-                {stats.streak}d
+                {stats.streak}{' '}{language === 'hi' ? 'दिन' : 'd'}
               </strong>
-              <span className="text-sm dark:text-slate-400 text-slate-500">Consecutive days</span>
+              <span className="text-sm dark:text-slate-400 text-slate-500">
+                {language === 'hi' ? 'लगातार अध्ययन दिन' : 'Consecutive days'}
+              </span>
             </article>
           </section>
 
@@ -269,7 +282,7 @@ export default function StudentAnalytics() {
             for (let i = 6; i >= 0; i -= 1) {
               const d = new Date(now.getTime() - i * 86400000);
               const key = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(d);
-              const label = new Intl.DateTimeFormat('en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short' }).format(d);
+              const label = new Intl.DateTimeFormat(language === 'hi' ? 'hi-IN' : 'en-IN', { timeZone: 'Asia/Kolkata', weekday: 'short' }).format(d);
               days.push({ key, label, count: 0 });
             }
             const dayMap = Object.fromEntries(days.map((d) => [d.key, d]));
@@ -280,24 +293,39 @@ export default function StudentAnalytics() {
               if (dayMap[k]) dayMap[k].count += 1;
             });
             const maxC = Math.max(1, ...days.map((d) => d.count));
+            const total7Days = days.reduce((s, d) => s + d.count, 0);
             return (
               <section className="p-4 sm:p-5 rounded-3xl dark:bg-[#1E293B]/85 bg-white shadow-sm border dark:border-slate-700/60 border-slate-200 space-y-2.5">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <div>
-                    <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">Weekly Trend</div>
-                    <h2 className="text-sm sm:text-base font-black dark:text-white text-slate-900">Tests Completed (Last 7 Days)</h2>
+                    <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
+                      {language === 'hi' ? 'साप्ताहिक रुझान' : 'Weekly Trend'}
+                    </div>
+                    <h2 className="text-sm sm:text-base font-black dark:text-white text-slate-900">
+                      {language === 'hi' ? 'पिछले 7 दिनों में पूरे टेस्ट' : 'Tests Completed (Last 7 Days)'}
+                    </h2>
                   </div>
-                  <span className="text-xs font-bold text-indigo-500">{days.reduce((s, d) => s + d.count, 0)} tests</span>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-indigo-500 block">
+                      {formatTests(total7Days, language)}
+                    </span>
+                    <span className="text-[10px] text-slate-400 block">
+                      {language === 'hi' ? `अधिकतम स्केल: ${maxC}/दिन` : `Scale: 0–${maxC}/day`}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-end gap-2 h-20 pt-2">
+                <div className="flex items-end gap-2 h-24 pt-2 border-b dark:border-slate-800 border-slate-200 pb-1">
                   {days.map((d) => (
                     <div key={d.key} className="flex-1 flex flex-col items-center justify-end h-full">
+                      <span className={`text-[10px] font-bold mb-1 tabular-nums ${d.count > 0 ? 'text-indigo-500 dark:text-indigo-300' : 'text-slate-400 dark:text-slate-500'}`}>
+                        {d.count}
+                      </span>
                       <div
                         className={`w-full max-w-[28px] rounded-t-md ${d.count > 0 ? 'bg-indigo-500' : 'bg-slate-200 dark:bg-slate-800'}`}
-                        style={{ height: `${Math.max(d.count > 0 ? 18 : 6, Math.round((d.count / maxC) * 100))}%` }}
-                        title={`${d.label}: ${d.count} test(s)`}
+                        style={{ height: `${Math.max(d.count > 0 ? 18 : 6, Math.round((d.count / maxC) * 72))}%` }}
+                        title={`${d.label}: ${formatTests(d.count, language)}`}
                       />
-                      <span className="text-[10px] text-slate-400 mt-1">{d.label}</span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-medium">{d.label}</span>
                     </div>
                   ))}
                 </div>
@@ -312,9 +340,11 @@ export default function StudentAnalytics() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
-                    Find Your Edge
+                    {language === 'hi' ? 'अपनी बढ़त पहचानें' : 'Find Your Edge'}
                   </div>
-                  <h2 className="text-base font-black dark:text-white text-slate-900">Subject-wise accuracy</h2>
+                  <h2 className="text-base font-black dark:text-white text-slate-900">
+                    {language === 'hi' ? 'विषय-वार सटीकता' : 'Subject-wise accuracy'}
+                  </h2>
                 </div>
                 <Target size={18} className="text-indigo-400" />
               </div>
@@ -322,8 +352,14 @@ export default function StudentAnalytics() {
               {!subjectStats.length ? (
                 <div className="p-6 text-center space-y-2 dark:text-slate-400 text-slate-500 text-xs">
                   <BarChart3 size={24} className="mx-auto text-indigo-400 opacity-60" />
-                  <strong className="block text-sm dark:text-white text-slate-900">Subject insights will appear here.</strong>
-                  <span>Complete tests with tagged questions to build this breakdown.</span>
+                  <strong className="block text-sm dark:text-white text-slate-900">
+                    {language === 'hi' ? 'विषय विश्लेषण यहाँ दिखाई देगा।' : 'Subject insights will appear here.'}
+                  </strong>
+                  <span>
+                    {language === 'hi'
+                      ? 'यह विश्लेषण देखने के लिए विषय-टैग किए गए टेस्ट पूरे करें।'
+                      : 'Complete tests with tagged questions to build this breakdown.'}
+                  </span>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -333,7 +369,7 @@ export default function StudentAnalytics() {
                         <div>
                           <strong className="dark:text-white text-slate-900 font-bold">{item.subject}</strong>
                           <span className="text-sm text-slate-400 dark:text-slate-400 ml-2">
-                            {item.count} questions
+                            {formatQuestions(item.count, language)}
                           </span>
                         </div>
                         <span className="font-extrabold text-emerald-400">{item.accuracy.toFixed(1)}%</span>
@@ -355,23 +391,31 @@ export default function StudentAnalytics() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">
-                    Keep Getting Better
+                    {language === 'hi' ? 'निरंतर सुधार करें' : 'Keep Getting Better'}
                   </div>
-                  <h2 className="text-base font-black dark:text-white text-slate-900">Recent test attempts</h2>
+                  <h2 className="text-base font-black dark:text-white text-slate-900">
+                    {language === 'hi' ? 'हाल के टेस्ट प्रयास' : 'Recent test attempts'}
+                  </h2>
                 </div>
                 <span className="text-xs font-bold dark:text-indigo-300 text-indigo-800">
-                  {attempts.length} completed
+                  {attempts.length}{' '}{language === 'hi' ? 'पूर्ण' : 'completed'}
                 </span>
               </div>
 
               {!attempts.length ? (
                 <div className="p-6 text-center space-y-2 dark:text-slate-400 text-slate-500 text-xs">
                   <CalendarDays size={24} className="mx-auto text-indigo-400 opacity-60" />
-                  <strong className="block text-sm dark:text-white text-slate-900">Your first result is one test away.</strong>
-                  <span>Take a mock test and review your solutions here.</span>
+                  <strong className="block text-sm dark:text-white text-slate-900">
+                    {language === 'hi' ? 'आपका पहला परिणाम केवल एक टेस्ट दूर है।' : 'Your first result is one test away.'}
+                  </strong>
+                  <span>
+                    {language === 'hi'
+                      ? 'एक टेस्ट दें और अपने समाधान यहाँ देखें।'
+                      : 'Take a mock test and review your solutions here.'}
+                  </span>
                   <div className="pt-2">
                     <Link className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black inline-block" to="/tests">
-                      Find a test
+                      {language === 'hi' ? 'टेस्ट चुनें' : 'Find a test'}
                     </Link>
                   </div>
                 </div>
@@ -392,10 +436,10 @@ export default function StudentAnalytics() {
                           </div>
                           <div className="min-w-0">
                             <strong className="text-xs sm:text-sm font-bold dark:text-white text-slate-900 block truncate">
-                              {tests[attempt.test_id]?.title || attempt.test_title || 'Practice test'}
+                              {tests[attempt.test_id]?.title || attempt.test_title || (language === 'hi' ? 'अभ्यास टेस्ट' : 'Practice test')}
                             </strong>
                             <small className="text-[10px] text-slate-400 dark:text-slate-400 block truncate">
-                              {date ? new Date(date).toLocaleDateString(undefined, { dateStyle: 'medium' }) : 'Date unavailable'} • {attemptResponses.length} questions
+                              {date ? new Date(date).toLocaleDateString(language === 'hi' ? 'hi-IN' : undefined, { dateStyle: 'medium' }) : (language === 'hi' ? 'तिथि उपलब्ध नहीं' : 'Date unavailable')} • {formatQuestions(attemptResponses.length, language)}
                             </small>
                           </div>
                         </div>
@@ -414,8 +458,8 @@ export default function StudentAnalytics() {
                             )}
                           </div>
                           <Link
-                            className="w-8 h-8 rounded-xl dark:bg-slate-800 bg-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-400 transition-colors"
-                            aria-label="Review test solutions"
+                            className="w-11 h-11 min-w-[44px] min-h-[44px] rounded-xl dark:bg-slate-800 bg-slate-100 flex items-center justify-center text-slate-400 hover:text-indigo-400 transition-colors"
+                            aria-label={language === 'hi' ? 'समाधान देखें' : 'Review test solutions'}
                             to={`/quiz/result/${attempt.id}`}
                           >
                             <ArrowRight size={14} />
@@ -431,7 +475,9 @@ export default function StudentAnalytics() {
 
           <p className="text-center text-xs dark:text-slate-400 text-slate-500 font-medium pt-2">
             <Clock3 size={13} className="inline mr-1" />
-            Accuracy reflects saved response correctness across completed tests.
+            {language === 'hi'
+              ? 'सटीकता सभी पूर्ण किए गए टेस्ट के सहेजे गए उत्तरों के आधार पर है।'
+              : 'Accuracy reflects saved response correctness across completed tests.'}
           </p>
         </>
       )}

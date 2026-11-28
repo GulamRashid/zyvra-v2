@@ -323,7 +323,7 @@ export default function StudentHome() {
                 <div className="h-3.5 w-12 rounded bg-orange-500/20 animate-pulse" aria-hidden="true" />
               ) : (
                 <div className="text-xs font-black dark:text-orange-400 text-orange-600 leading-none">
-                  {profileError && !streak ? '—' : streak} {language === 'hi' ? 'दिन' : (streak === 1 ? 'Day' : 'Days')}
+                  {profileError && !streak ? '—' : streak}{' '}{language === 'hi' ? 'दिन' : (streak === 1 ? 'Day' : 'Days')}
                 </div>
               )}
               <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
@@ -428,7 +428,7 @@ export default function StudentHome() {
             </span>
           </div>
           <span className="text-[10px] font-black text-amber-500 dark:text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 shrink-0">
-            +{streakData.nextMilestone.bonusCoins} coins
+            +{streakData.nextMilestone.bonusCoins}{' '}{language === 'hi' ? 'कॉइन्स' : 'coins'}
           </span>
         </button>
       ) : null}
@@ -651,6 +651,11 @@ export default function StudentHome() {
                     : (language === 'hi'
                       ? `अभी कोई प्रयास नहीं — ${primarySyllabusExam.totalChapters} अध्याय तैयार हैं`
                       : `No attempts yet — ${primarySyllabusExam.totalChapters} chapters ready`)}
+                </p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1">
+                  {language === 'hi'
+                    ? 'नियम: कमज़ोर = अंतिम <50% या 3+ गलतियाँ · पूर्ण = 70%+'
+                    : 'Rule: Weak = latest <50% or 3+ mistakes · Done = 70%+'}
                 </p>
               </div>
               <Link
