@@ -1,6 +1,23 @@
+/* global process, Response, fetch, console */
 import { createHmac } from 'node:crypto';
 import { createClient } from '@supabase/supabase-js';
 import { getPaymentAdminClient, parseRequestBody, sanitizeErrorMessage, sendJson } from './_payment.js';
+
+const PHONE_RATE_WINDOW_MS = 15 * 60_000;
+const PHONE_RATE_MAX = 10;
+const phoneRateBuckets = new Map();
+
+function isPhoneRateLimited(key) {
+  const now = Date.now();
+  const entries = (phoneRateBuckets.get(key) || []).filter((ts) => now - ts < PHONE_RATE_WINDOW_MS);
+  if (entries.length >= PHONE_RATE_MAX) {
+    phoneRateBuckets.set(key, entries);
+    return true;
+  }
+  entries.push(now);
+  phoneRateBuckets.set(key, entries);
+  return false;
+}
 
 export async function handlePhoneLogin(req, res) {
   const isWebStandard = typeof res === 'undefined' || typeof res?.status !== 'function';
@@ -30,6 +47,14 @@ export async function handlePhoneLogin(req, res) {
     const body = await parseRequestBody(req);
     const idToken = String(body.idToken || '').trim();
     const providedMobile = String(body.mobile || '').replace(/\D/g, '').slice(-10);
+    const clientIp = (
+      (typeof req?.headers?.get === 'function' ? req.headers.get('x-forwarded-for') : req?.headers?.['x-forwarded-for']) ||
+      'unknown'
+    ).split(',')[0].trim();
+
+    if (isPhoneRateLimited(`ip:${clientIp}`) || (providedMobile && isPhoneRateLimited(`mob:${providedMobile}`))) {
+      return respond(429, { error: 'Too many login attempts. Please try again in 15 minutes.' });
+    }
 
     if (!idToken) {
       return respond(400, { error: 'Phone verification token is required.' });

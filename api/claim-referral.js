@@ -1,5 +1,22 @@
+/* global process, Response, console */
 import { createClient } from '@supabase/supabase-js';
 import { getPaymentAdminClient, parseRequestBody, sanitizeErrorMessage, sendJson } from './_payment.js';
+
+const REFERRAL_RATE_WINDOW_MS = 15 * 60_000;
+const REFERRAL_RATE_MAX = 10;
+const referralRateBuckets = new Map();
+
+function isReferralRateLimited(userId) {
+  const now = Date.now();
+  const entries = (referralRateBuckets.get(userId) || []).filter((ts) => now - ts < REFERRAL_RATE_WINDOW_MS);
+  if (entries.length >= REFERRAL_RATE_MAX) {
+    referralRateBuckets.set(userId, entries);
+    return true;
+  }
+  entries.push(now);
+  referralRateBuckets.set(userId, entries);
+  return false;
+}
 
 function getBearerToken(req) {
   const authorization =
@@ -50,6 +67,9 @@ export async function handleClaimReferral(req, res) {
     }
 
     const user = userData.user;
+    if (isReferralRateLimited(user.id)) {
+      return respond(429, { success: false, error: 'Too many referral attempts. Please try again later.' });
+    }
     const body = await parseRequestBody(req);
     const cleanCode = String(body.referral_code || '').trim().toUpperCase();
 

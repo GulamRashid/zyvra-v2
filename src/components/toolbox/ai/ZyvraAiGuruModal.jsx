@@ -249,10 +249,13 @@ export default function ZyvraAiGuruModal({
     setLoading(true);
 
     try {
+      const { data: sessionData } = supabase ? await supabase.auth.getSession() : { data: null };
+      const accessToken = sessionData?.session?.access_token || '';
       const response = await streamZyvraAiGuru({
         prompt: textToSend,
         context: initialContext,
         conversationHistory: nextMessages.slice(0, -2),
+        accessToken,
         onChunk: (accumulated) => {
           setLoading(false);
           setMessages((prev) => {

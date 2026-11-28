@@ -11,35 +11,8 @@ import { toLocalDateString } from './streak.js';
 export const AI_USAGE_STORAGE_PREFIX = 'zyvra_ai_usage_';
 export const AI_CONFIG_STORAGE_KEY = 'zyvra_ai_tutor_config_cache';
 
-const FALLBACK_B64_KEY = 'QVEuQWI4Uk42SUdXV0ZQMUhUS0ltT21UMzNRUGU2Um82eGM2bnV6ci1UVHlPVUVRTnk2RUE=';
-
-const decodeBase64 = (str) => {
-  try {
-    if (typeof globalThis !== 'undefined' && typeof globalThis.atob === 'function') {
-      return globalThis.atob(str);
-    }
-    if (typeof globalThis !== 'undefined' && typeof globalThis.Buffer !== 'undefined') {
-      return globalThis.Buffer.from(str, 'base64').toString('utf8');
-    }
-  } catch {
-    return '';
-  }
-  return '';
-};
-
-const getEnvApiKey = () => {
-  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_GEMINI_API_KEY) {
-    return import.meta.env.VITE_GEMINI_API_KEY;
-  }
-  if (typeof globalThis !== 'undefined' && globalThis.process?.env?.VITE_GEMINI_API_KEY) {
-    return globalThis.process.env.VITE_GEMINI_API_KEY;
-  }
-  return decodeBase64(FALLBACK_B64_KEY);
-};
-
 export const DEFAULT_AI_CONFIG = {
   enabled: true,
-  apiKey: getEnvApiKey(),
   model: 'gemini-3.5-flash-lite',
   fallbackModels: ['gemini-3.5-flash', 'gemini-flash-lite-latest'],
   freeQuestionsPerDay: 3,
@@ -93,11 +66,11 @@ export async function getAiConfig(supabase = null) {
         .maybeSingle();
 
       if (!error && data?.setting_value && typeof data.setting_value === 'object') {
-        const dbConfig = data.setting_value;
+        const dbConfig = { ...data.setting_value };
+        delete dbConfig.apiKey;
         const merged = {
           ...DEFAULT_AI_CONFIG,
-          ...dbConfig,
-          apiKey: (dbConfig.apiKey && String(dbConfig.apiKey).trim()) ? String(dbConfig.apiKey).trim() : getEnvApiKey()
+          ...dbConfig
         };
         if (typeof window !== 'undefined') {
           try {
@@ -112,10 +85,9 @@ export async function getAiConfig(supabase = null) {
   }
 
   if (cached) {
-    if (!cached.apiKey || !cached.apiKey.trim()) {
-      cached.apiKey = getEnvApiKey();
-    }
-    return cached;
+    const cleanCached = { ...cached };
+    delete cleanCached.apiKey;
+    return cleanCached;
   }
 
   return DEFAULT_AI_CONFIG;
@@ -125,10 +97,11 @@ export async function getAiConfig(supabase = null) {
  * Save updated AI configuration to Supabase platform_settings (Admin use)
  */
 export async function saveAiConfig(supabase, newConfig) {
-  const merged = { ...DEFAULT_AI_CONFIG, ...newConfig };
+  const sanitized = { ...DEFAULT_AI_CONFIG, ...newConfig };
+  delete sanitized.apiKey;
   if (typeof window !== 'undefined') {
     try {
-      window.localStorage.setItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(merged));
+      window.localStorage.setItem(AI_CONFIG_STORAGE_KEY, JSON.stringify(sanitized));
     } catch { /* ignore */ }
   }
 
@@ -137,14 +110,14 @@ export async function saveAiConfig(supabase, newConfig) {
       .from('platform_settings')
       .upsert({
         setting_key: 'ai_tutor_config',
-        setting_value: merged,
+        setting_value: sanitized,
         updated_at: new Date().toISOString()
       }, { onConflict: 'setting_key' });
 
     if (error) throw error;
   }
 
-  return merged;
+  return sanitized;
 }
 
 /**
@@ -262,249 +235,64 @@ export async function queryZyvraAiGuru({
   prompt,
   context = '',
   conversationHistory = [],
-  config = DEFAULT_AI_CONFIG
+  accessToken = ''
 }) {
   if (!prompt || !prompt.trim()) {
     throw new Error('Please enter a question or problem statement.');
   }
 
-  const apiKey = config.apiKey || DEFAULT_AI_CONFIG.apiKey;
-  if (!apiKey) {
-    throw new Error('AI engine API key is missing. Please contact admin.');
+  const headers = { 'Content-Type': 'application/json' };
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
   }
 
-  const systemInstructionText = config.systemPrompt || DEFAULT_AI_CONFIG.systemPrompt;
-  const modelsToTry = [
-    config.model || 'gemini-3.5-flash-lite',
-    ...(config.fallbackModels || ['gemini-3.5-flash', 'gemini-flash-lite-latest'])
-  ];
-
-  // Build clean contents payload
-  const contents = [];
-
-  // Add conversation history (up to last 6 messages to keep latency low & free quota safe)
-  const recentHistory = (conversationHistory || []).slice(-6);
-  recentHistory.forEach((msg) => {
-    if (msg.role === 'user' || msg.role === 'model') {
-      contents.push({
+  const response = await fetch('/api/ai-guru', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      prompt: String(prompt).trim().slice(0, 2000),
+      context: String(context || '').trim().slice(0, 3000),
+      conversationHistory: (conversationHistory || []).slice(-6).map((msg) => ({
         role: msg.role === 'model' ? 'model' : 'user',
-        parts: [{ text: msg.text }]
-      });
-    }
+        text: String(msg.text || '').slice(0, 1500)
+      }))
+    })
   });
 
-  // Current prompt with optional exam/question context
-  let finalUserPrompt = prompt.trim();
-  if (context && context.trim()) {
-    finalUserPrompt = `[Context / Reference Question]:\n${context.trim()}\n\n[Student Doubt / Query]:\n${prompt.trim()}`;
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data?.error || 'Could not connect to Zyvra AI. Please try again.');
   }
-
-  contents.push({
-    role: 'user',
-    parts: [{ text: finalUserPrompt }]
-  });
-
-  let lastError = null;
-
-  for (const model of modelsToTry) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-      const payload = {
-        systemInstruction: {
-          parts: [{ text: systemInstructionText }]
-        },
-        contents,
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 2048
-        }
-      };
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errMsg = errorData?.error?.message || `HTTP ${response.status} from model ${model}`;
-        // If 503 (high demand) or 404, try next model in cascade
-        if (response.status === 503 || response.status === 404) {
-          lastError = new Error(errMsg);
-          continue;
-        }
-        throw new Error(errMsg);
-      }
-
-      const data = await response.json();
-      const candidate = data?.candidates?.[0];
-      const answerText = candidate?.content?.parts?.[0]?.text;
-
-      if (!answerText) {
-        throw new Error('AI returned an empty response. Please try rephrasing your question.');
-      }
-
-      return {
-        text: answerText,
-        modelUsed: model,
-        finishReason: candidate.finishReason || 'STOP'
-      };
-    } catch (err) {
-      lastError = err;
-    }
+  if (!data?.text) {
+    throw new Error('AI returned an empty response. Please try rephrasing your question.');
   }
-
-  throw lastError || new Error('Could not connect to Zyvra AI. Please try again.');
+  return {
+    text: data.text,
+    modelUsed: data.modelUsed || 'gemini',
+    finishReason: data.finishReason || 'STOP'
+  };
 }
 
 /**
- * Stream responses word-by-word from Google Gemini API via SSE
+ * Stream responses from secure server-side /api/ai-guru endpoint
  */
 export async function streamZyvraAiGuru({
   prompt,
   context = '',
   conversationHistory = [],
   onChunk,
-  config = DEFAULT_AI_CONFIG
+  accessToken = ''
 }) {
-  if (!prompt || !prompt.trim()) {
-    throw new Error('Please enter a question or problem statement.');
-  }
-
-  const apiKey = config.apiKey || DEFAULT_AI_CONFIG.apiKey;
-  if (!apiKey) {
-    throw new Error('AI engine API key is missing. Please contact admin.');
-  }
-
-  const systemInstructionText = config.systemPrompt || DEFAULT_AI_CONFIG.systemPrompt;
-  const modelsToTry = [
-    config.model || 'gemini-3.5-flash-lite',
-    ...(config.fallbackModels || ['gemini-3.5-flash', 'gemini-flash-lite-latest'])
-  ];
-
-  const contents = [];
-  const recentHistory = (conversationHistory || []).slice(-6);
-  recentHistory.forEach((msg) => {
-    if (msg.role === 'user' || msg.role === 'model') {
-      contents.push({
-        role: msg.role === 'model' ? 'model' : 'user',
-        parts: [{ text: msg.text }]
-      });
-    }
+  const result = await queryZyvraAiGuru({
+    prompt,
+    context,
+    conversationHistory,
+    accessToken
   });
-
-  let finalUserPrompt = prompt.trim();
-  if (context && context.trim()) {
-    finalUserPrompt = `[Context / Reference Question]:\n${context.trim()}\n\n[Student Doubt / Query]:\n${prompt.trim()}`;
+  if (onChunk && result?.text) {
+    onChunk(result.text, result.text);
   }
-
-  contents.push({
-    role: 'user',
-    parts: [{ text: finalUserPrompt }]
-  });
-
-  let lastError = null;
-
-  for (const model of modelsToTry) {
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`;
-      const payload = {
-        systemInstruction: {
-          parts: [{ text: systemInstructionText }]
-        },
-        contents,
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 2048
-        }
-      };
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errMsg = errorData?.error?.message || `HTTP ${response.status} from model ${model}`;
-        if (response.status === 503 || response.status === 404) {
-          lastError = new Error(errMsg);
-          continue;
-        }
-        throw new Error(errMsg);
-      }
-
-      const DecoderClass = typeof globalThis !== 'undefined' ? (globalThis.TextDecoder || window.TextDecoder) : null;
-      const decoder = DecoderClass ? new DecoderClass('utf-8') : null;
-
-      if (!response.body || !response.body.getReader || !decoder) {
-        // Fallback if ReadableStream or TextDecoder is not available
-        return await queryZyvraAiGuru({ prompt, context, conversationHistory, config });
-      }
-
-      const reader = response.body.getReader();
-      let accumulatedText = '';
-      let buffer = '';
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (trimmed.startsWith('data: ')) {
-            const jsonStr = trimmed.slice(6).trim();
-            if (jsonStr === '[DONE]') continue;
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const partText = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (partText) {
-                accumulatedText += partText;
-                if (onChunk) {
-                  onChunk(accumulatedText, partText);
-                }
-              }
-            } catch {
-              // Ignore non-json lines
-            }
-          }
-        }
-      }
-
-      if (buffer.trim().startsWith('data: ')) {
-        try {
-          const parsed = JSON.parse(buffer.trim().slice(6).trim());
-          const partText = parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (partText) {
-            accumulatedText += partText;
-            if (onChunk) onChunk(accumulatedText, partText);
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      if (!accumulatedText.trim()) {
-        throw new Error('AI returned an empty response.');
-      }
-
-      return {
-        text: accumulatedText,
-        modelUsed: model
-      };
-    } catch (err) {
-      lastError = err;
-    }
-  }
-
-  // Graceful fallback to static query
-  return queryZyvraAiGuru({ prompt, context, conversationHistory, config });
+  return result;
 }
 
 /**

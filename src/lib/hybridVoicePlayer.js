@@ -52,121 +52,8 @@ function getCacheKey(text, lang) {
  * Primary: gemini-2.5-flash-preview-tts (AI Studio speech model, ~4s latency)
  * Fallback: gemini-3.8-flash-tts (Interactions API)
  */
-async function fetchClientGeminiSpeech(cleaned, isHindi) {
-  const apiKey = (import.meta.env?.VITE_GEMINI_API_KEY || '').trim();
-  if (!apiKey) return null;
-
-  const voiceName = isHindi ? 'Sulafat' : 'Kore';
-
-  // 1. Primary: gemini-2.5-flash-preview-tts via generateContent
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 22000);
-    const prompt = isHindi
-      ? `एक आत्मविश्वासी और स्पष्ट भारतीय शिक्षक की तरह सहज गति से पढ़ें: ${cleaned}`
-      : `Read clearly in a confident, warm educator voice at a natural pace: ${cleaned}`;
-
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            responseModalities: ['AUDIO'],
-            speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: { voiceName }
-              }
-            }
-          }
-        })
-      }
-    );
-    clearTimeout(timeoutId);
-
-    if (res.ok) {
-      const data = await res.json();
-      const inlineData = data?.candidates?.[0]?.content?.parts?.[0]?.inlineData;
-      if (inlineData?.data) {
-        const byteCharacters = atob(inlineData.data);
-        const rawBytes = new Uint8Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          rawBytes[i] = byteCharacters.charCodeAt(i);
-        }
-        const mime = String(inlineData.mimeType || '').toLowerCase();
-        const rateMatch = mime.match(/rate=(\d+)/);
-        const sampleRate = rateMatch ? Number(rateMatch[1]) : 24000;
-        const wavBytes = mime.includes('wav') ? rawBytes : pcm16ToWav(rawBytes, sampleRate, 1);
-        const blob = new Blob([wavBytes], { type: 'audio/wav' });
-        return {
-          objectUrl: URL.createObjectURL(blob),
-          arrayBuffer: wavBytes.buffer
-        };
-      }
-    }
-  } catch (err) {
-    console.warn('Client Gemini 2.5 TTS note:', err.message);
-  }
-
-  // 2. Fallback: gemini-3.8-flash-tts via interactions
-  try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 28000);
-    const url = `https://generativelanguage.googleapis.com/v1beta/interactions?key=${apiKey}`;
-    const style = isHindi
-      ? 'confident, warm Indian teacher speaking clear, expressive Hindi at a natural conversational pace with perfect pronunciation'
-      : 'confident, warm educator speaking clear, expressive English at a natural conversational pace with crisp pronunciation';
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      signal: controller.signal,
-      body: JSON.stringify({
-        model: 'gemini-3.8-flash-tts',
-        input: [{
-          type: 'user_input',
-          content: [{
-            type: 'text',
-            text: cleaned,
-            annotations: [{
-              type: 'speech_metadata',
-              style
-            }]
-          }]
-        }],
-        response_format: { type: 'audio' },
-        generation_config: {
-          speech_config: [{ voice: voiceName }]
-        }
-      })
-    });
-    clearTimeout(timeoutId);
-
-    if (res.ok) {
-      const data = await res.json();
-      for (const step of (data.steps || [])) {
-        for (const item of (step.content || [])) {
-          if (item.type === 'audio' && item.data) {
-            const byteCharacters = atob(item.data);
-            const byteArray = new Uint8Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-              byteArray[i] = byteCharacters.charCodeAt(i);
-            }
-            const blob = new Blob([byteArray], { type: item.mime_type || 'audio/wav' });
-            return {
-              objectUrl: URL.createObjectURL(blob),
-              arrayBuffer: byteArray.buffer
-            };
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.warn('Client Gemini 3.8 TTS note:', err.message);
-  }
+async function fetchClientGeminiSpeech() {
+  // Client-side direct Gemini key usage removed; TTS is served via /api/tts.
   return null;
 }
 
@@ -186,7 +73,7 @@ async function fetchNeuralSpeechBlob(cleaned, lang) {
 
   // 2. Fallback: call /api/tts endpoint
   try {
-    const controller = new AbortController();
+    const controller = new globalThis.AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
 
     const res = await fetch(`/api/tts?lang=${targetLang}&text=${encodeURIComponent(cleaned)}`, {
@@ -434,7 +321,7 @@ export async function playRealisticSpeech(rawText, options = {}) {
   const audioSrc = audioEntry?.objectUrl || (typeof audioEntry === 'string' ? audioEntry : null);
   if (audioSrc) {
     try {
-      const audio = new Audio(audioSrc);
+      const audio = new globalThis.Audio(audioSrc);
       audio.playbackRate = 1.06;
       currentAudio = audio;
 
