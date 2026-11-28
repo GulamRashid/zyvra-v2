@@ -1170,7 +1170,7 @@ export default function LiveQuiz() {
 
     try {
       recordDropoffEvent('pause');
-      const snapshot = saveProgressSnapshot({ status: 'paused' }, true);
+      const snapshot = saveProgressSnapshot({ status: 'paused', remaining }, true);
       sessionStorage.removeItem(`zyvra-active-attempt-${user?.id}-${testId}`);
 
       const { error: updateError } = await supabase.rpc('save_test_attempt_progress', {
@@ -1970,8 +1970,12 @@ export default function LiveQuiz() {
     const rafId = requestAnimationFrame(() => {
       const activeBtn = strip.querySelector(`[data-strip-index="${currentIndex}"]`);
       if (!activeBtn) return;
-      const targetLeft = activeBtn.offsetLeft - (strip.clientWidth - activeBtn.clientWidth) / 2;
-      strip.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+      const stripRect = strip.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      const delta = (btnRect.left + btnRect.width / 2) - (stripRect.left + stripRect.width / 2);
+      if (Math.abs(delta) > 1) {
+        strip.scrollTo({ left: Math.max(0, strip.scrollLeft + delta), behavior: 'smooth' });
+      }
     });
     return () => cancelAnimationFrame(rafId);
   }, [currentIndex, questions.length, testPhase]);

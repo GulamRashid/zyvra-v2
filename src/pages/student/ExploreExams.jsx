@@ -12,7 +12,7 @@ import { useThemeLanguage } from '../../context/ThemeLanguageContext';
 const DEFAULT_FULL_PASS = {
   title: 'ZYVRA All-Access Full Pass',
   subtitle: 'सभी परीक्षाओं, टेस्ट्स और टूल्स का 1 साल का अनलिमिटेड एक्सेस',
-  price: 999,
+  price: 499,
   validity_days: 365,
   is_active: true,
   include_all: true,

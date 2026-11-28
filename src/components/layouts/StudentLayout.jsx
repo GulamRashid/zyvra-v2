@@ -267,7 +267,7 @@ export default function StudentLayout() {
               {statsLoading ? (
                 <span className="inline-block h-3.5 w-4 rounded bg-slate-400/30 animate-pulse" aria-hidden="true" />
               ) : (
-                <span className="font-extrabold tabular-nums">{profileError ? '—' : streak}</span>
+                <span className="font-extrabold tabular-nums">{profileError && !streak ? '—' : streak}</span>
               )}
               {!statsLoading && streakData?.streakAtRisk && (
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" title="Study today to keep streak" />

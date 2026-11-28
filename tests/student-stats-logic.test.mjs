@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {
   computeStudentStats,
   getISTDateKey,
@@ -7,6 +8,7 @@ import {
   getISTHour,
   isAttemptCompleted
 } from '../src/lib/studentStats.js';
+import { resolveBoosterTrack } from '../src/lib/boosterTrack.js';
 
 test('getISTHour & getISTGreeting: uses Asia/Kolkata (IST) regardless of UTC', () => {
   // 03:00 UTC = 08:30 IST -> Good Morning
@@ -60,4 +62,38 @@ test('computeStudentStats: filters only completed attempts and computes unified 
   // 2 correct out of 3 answered = 66.666...%
   assert.ok(Math.abs(stats.accuracy - (200 / 3)) < 0.01);
   assert.equal(stats.currentStreak, 4);
+});
+
+test('Aggregate analytics with 12 completed attempts never renders dash and booster track is deterministic', () => {
+  const analyticsSrc = fs.readFileSync(new URL('../src/pages/student/StudentAnalytics.jsx', import.meta.url), 'utf8');
+  assert.equal(/stats\.completedAttempts\.length\s*>\s*0/.test(analyticsSrc), true);
+  assert.equal(/[^.]completedAttempts\s*>\s*0/.test(analyticsSrc), false);
+
+  const attempts = Array.from({ length: 12 }, (_, idx) => ({
+    id: `att-${idx + 1}`,
+    status: 'completed',
+    completed_at: `2026-11-28T0${idx % 9}:00:00Z`,
+    score: 12,
+    max_score: 20,
+    percentage: 60,
+    attempted_count: 20,
+    correct_count: 12
+  }));
+  const stats = computeStudentStats({ allAttempts: attempts, responses: [], profile: null, userId: 'u-12' });
+  assert.equal(stats.completedAttempts.length, 12);
+  assert.equal(stats.accuracy, 60);
+  assert.equal(stats.averageScore, 60);
+
+  const mem = new Map();
+  const mockStorage = {
+    getItem: (k) => mem.get(k) ?? null,
+    setItem: (k, v) => mem.set(k, String(v))
+  };
+  const fixedProfile = { target_exams: ['BPSC', 'SSC', 'CTET'] };
+  const first = resolveBoosterTrack({ profile: fixedProfile, dynamicExams: [{ title: 'NCERT' }], userId: 'u-12', storage: mockStorage });
+  const beforeProfileReload = resolveBoosterTrack({ profile: null, dynamicExams: [{ title: 'NCERT' }], userId: 'u-12', storage: mockStorage });
+  const third = resolveBoosterTrack({ profile: fixedProfile, dynamicExams: [{ title: 'SSC' }], userId: 'u-12', storage: mockStorage });
+  assert.equal(first, 'BPSC & PCS');
+  assert.equal(beforeProfileReload, 'BPSC & PCS');
+  assert.equal(third, 'BPSC & PCS');
 });
